@@ -1271,7 +1271,12 @@ export namespace Cdp {
     /**
      * Parameters of the 'Audits.checkContrast' method.
      */
-    export interface CheckContrastParams {}
+    export interface CheckContrastParams {
+      /**
+       * Whether to report WCAG AAA level issues. Default is false.
+       */
+      reportAAA?: boolean;
+    }
 
     /**
      * Return value of the 'Audits.checkContrast' method.
@@ -4439,13 +4444,6 @@ export namespace Cdp {
     ): Promise<Debugger.EvaluateOnCallFrameResult | undefined>;
 
     /**
-     * Execute a Wasm Evaluator module on a given call frame.
-     */
-    executeWasmEvaluator(
-      params: Debugger.ExecuteWasmEvaluatorParams,
-    ): Promise<Debugger.ExecuteWasmEvaluatorResult | undefined>;
-
-    /**
      * Returns possible locations for breakpoint. scriptId in start and end range locations should be
      * the same.
      */
@@ -4774,41 +4772,6 @@ export namespace Cdp {
      * Return value of the 'Debugger.evaluateOnCallFrame' method.
      */
     export interface EvaluateOnCallFrameResult {
-      /**
-       * Object wrapper for the evaluation result.
-       */
-      result: Runtime.RemoteObject;
-
-      /**
-       * Exception details.
-       */
-      exceptionDetails?: Runtime.ExceptionDetails;
-    }
-
-    /**
-     * Parameters of the 'Debugger.executeWasmEvaluator' method.
-     */
-    export interface ExecuteWasmEvaluatorParams {
-      /**
-       * WebAssembly call frame identifier to evaluate on.
-       */
-      callFrameId: CallFrameId;
-
-      /**
-       * Code of the evaluator module. (Encoded as a base64 string when passed over JSON)
-       */
-      evaluator: string;
-
-      /**
-       * Terminate execution after timing out (number of milliseconds).
-       */
-      timeout?: Runtime.TimeDelta;
-    }
-
-    /**
-     * Return value of the 'Debugger.executeWasmEvaluator' method.
-     */
-    export interface ExecuteWasmEvaluatorResult {
       /**
        * Object wrapper for the evaluation result.
        */
@@ -5426,6 +5389,7 @@ export namespace Cdp {
       reason:
         | 'ambiguous'
         | 'assert'
+        | 'CSPViolation'
         | 'debugCommand'
         | 'DOM'
         | 'EventListener'
@@ -14053,7 +14017,7 @@ export namespace Cdp {
 
       /**
        * The request-URI to associate with the setting of the cookie. This value can affect the
-       * default domain and path values of the created cookie.
+       * default domain, path, source port, and source scheme values of the created cookie.
        */
       url?: string;
 
@@ -14091,6 +14055,23 @@ export namespace Cdp {
        * Cookie Priority type.
        */
       priority?: CookiePriority;
+
+      /**
+       * True if cookie is SameParty.
+       */
+      sameParty?: boolean;
+
+      /**
+       * Cookie source scheme type.
+       */
+      sourceScheme?: CookieSourceScheme;
+
+      /**
+       * Cookie source port. Valid values are {-1, [1, 65535]}, -1 indicates an unspecified port.
+       * An unspecified port value allows protocol clients to emulate legacy cookie scope for the port.
+       * This is a temporary ability and it will be removed in the future.
+       */
+      sourcePort?: integer;
     }
 
     /**
@@ -14987,6 +14968,13 @@ export namespace Cdp {
     export type CookiePriority = 'Low' | 'Medium' | 'High';
 
     /**
+     * Represents the source scheme of the origin that originally set the cookie.
+     * A value of "Unset" allows protocol clients to emulate legacy cookie scope for the scheme.
+     * This is a temporary ability and it will be removed in the future.
+     */
+    export type CookieSourceScheme = 'Unset' | 'NonSecure' | 'Secure';
+
+    /**
      * Timing information for the request.
      */
     export interface ResourceTiming {
@@ -15686,6 +15674,18 @@ export namespace Cdp {
        * True if cookie is SameParty.
        */
       sameParty: boolean;
+
+      /**
+       * Cookie source scheme type.
+       */
+      sourceScheme: CookieSourceScheme;
+
+      /**
+       * Cookie source port. Valid values are {-1, [1, 65535]}, -1 indicates an unspecified port.
+       * An unspecified port value allows protocol clients to emulate legacy cookie scope for the port.
+       * This is a temporary ability and it will be removed in the future.
+       */
+      sourcePort: integer;
     }
 
     /**
@@ -15782,7 +15782,7 @@ export namespace Cdp {
 
       /**
        * The request-URI to associate with the setting of the cookie. This value can affect the
-       * default domain and path values of the created cookie.
+       * default domain, path, source port, and source scheme values of the created cookie.
        */
       url?: string;
 
@@ -15820,6 +15820,23 @@ export namespace Cdp {
        * Cookie Priority.
        */
       priority?: CookiePriority;
+
+      /**
+       * True if cookie is SameParty.
+       */
+      sameParty?: boolean;
+
+      /**
+       * Cookie source scheme type.
+       */
+      sourceScheme?: CookieSourceScheme;
+
+      /**
+       * Cookie source port. Valid values are {-1, [1, 65535]}, -1 indicates an unspecified port.
+       * An unspecified port value allows protocol clients to emulate legacy cookie scope for the port.
+       * This is a temporary ability and it will be removed in the future.
+       */
+      sourcePort?: integer;
     }
 
     /**
@@ -17746,6 +17763,13 @@ export namespace Cdp {
     setBypassCSP(params: Page.SetBypassCSPParams): Promise<Page.SetBypassCSPResult | undefined>;
 
     /**
+     * Get Permissions Policy state on given frame.
+     */
+    getPermissionsPolicyState(
+      params: Page.GetPermissionsPolicyStateParams,
+    ): Promise<Page.GetPermissionsPolicyStateResult | undefined>;
+
+    /**
      * Overrides the values of device screen dimensions (window.screen.width, window.screen.height,
      * window.innerWidth, window.innerHeight, and "device-width"/"device-height"-related CSS media
      * query results).
@@ -18794,6 +18818,20 @@ export namespace Cdp {
     export interface SetBypassCSPResult {}
 
     /**
+     * Parameters of the 'Page.getPermissionsPolicyState' method.
+     */
+    export interface GetPermissionsPolicyStateParams {
+      frameId: FrameId;
+    }
+
+    /**
+     * Return value of the 'Page.getPermissionsPolicyState' method.
+     */
+    export interface GetPermissionsPolicyStateResult {
+      states: PermissionsPolicyFeatureState[];
+    }
+
+    /**
      * Parameters of the 'Page.setDeviceMetricsOverride' method.
      */
     export interface SetDeviceMetricsOverrideParams {
@@ -19603,6 +19641,84 @@ export namespace Cdp {
       | 'SharedArrayBuffersTransferAllowed'
       | 'PerformanceMeasureMemory'
       | 'PerformanceProfile';
+
+    /**
+     * All Permissions Policy features. This enum should match the one defined
+     * in renderer/core/feature_policy/feature_policy_features.json5.
+     */
+    export type PermissionsPolicyFeature =
+      | 'accelerometer'
+      | 'ambient-light-sensor'
+      | 'autoplay'
+      | 'camera'
+      | 'ch-dpr'
+      | 'ch-device-memory'
+      | 'ch-downlink'
+      | 'ch-ect'
+      | 'ch-lang'
+      | 'ch-rtt'
+      | 'ch-ua'
+      | 'ch-ua-arch'
+      | 'ch-ua-platform'
+      | 'ch-ua-model'
+      | 'ch-ua-mobile'
+      | 'ch-ua-full-version'
+      | 'ch-ua-platform-version'
+      | 'ch-viewport-width'
+      | 'ch-width'
+      | 'clipboard-read'
+      | 'clipboard-write'
+      | 'conversion-measurement'
+      | 'cross-origin-isolated'
+      | 'display-capture'
+      | 'document-domain'
+      | 'encrypted-media'
+      | 'execution-while-out-of-viewport'
+      | 'execution-while-not-rendered'
+      | 'focus-without-user-activation'
+      | 'fullscreen'
+      | 'frobulate'
+      | 'gamepad'
+      | 'geolocation'
+      | 'gyroscope'
+      | 'hid'
+      | 'idle-detection'
+      | 'interest-cohort'
+      | 'magnetometer'
+      | 'microphone'
+      | 'midi'
+      | 'otp-credentials'
+      | 'payment'
+      | 'picture-in-picture'
+      | 'publickey-credentials-get'
+      | 'screen-wake-lock'
+      | 'serial'
+      | 'storage-access-api'
+      | 'sync-xhr'
+      | 'trust-token-redemption'
+      | 'usb'
+      | 'vertical-scroll'
+      | 'web-share'
+      | 'xr-spatial-tracking';
+
+    /**
+     * Reason for a permissions policy feature to be disabled.
+     */
+    export type PermissionsPolicyBlockReason = 'Header' | 'IframeAttribute';
+
+    export interface PermissionsPolicyBlockLocator {
+      frameId: FrameId;
+
+      blockReason: PermissionsPolicyBlockReason;
+    }
+
+    export interface PermissionsPolicyFeatureState {
+      feature: PermissionsPolicyFeature;
+
+      allowed: boolean;
+
+      locator?: PermissionsPolicyBlockLocator;
+    }
 
     /**
      * Information about the Frame on the page.
@@ -21159,8 +21275,6 @@ export namespace Cdp {
      * If executionContextId is empty, adds binding with the given name on the
      * global objects of all inspected contexts, including those created later,
      * bindings survive reloads.
-     * If executionContextId is specified, adds binding only on global object of
-     * given execution context.
      * Binding function takes exactly one argument, this argument should be string,
      * in case of any other input, function throws an exception.
      * Each binding function call produces Runtime.bindingCalled notification.
@@ -21452,6 +21566,9 @@ export namespace Cdp {
       /**
        * Specifies in which execution context to perform evaluation. If the parameter is omitted the
        * evaluation will be performed in the context of the inspected page.
+       * This is mutually exclusive with `uniqueContextId`, which offers an
+       * alternative way to identify the execution context that is more reliable
+       * in a multi-process environment.
        */
       contextId?: ExecutionContextId;
 
@@ -21506,6 +21623,16 @@ export namespace Cdp {
        * evaluation and allows unsafe-eval. Defaults to true.
        */
       allowUnsafeEvalBlockedByCSP?: boolean;
+
+      /**
+       * An alternative way to specify the execution context to evaluate in.
+       * Compared to contextId that may be reused accross processes, this is guaranteed to be
+       * system-unique, so it can be used to prevent accidental evaluation of the expression
+       * in context different than intended (e.g. as a result of navigation accross process
+       * boundaries).
+       * This is mutually exclusive with `contextId`.
+       */
+      uniqueContextId?: string;
     }
 
     /**
@@ -21811,7 +21938,22 @@ export namespace Cdp {
     export interface AddBindingParams {
       name: string;
 
+      /**
+       * If specified, the binding would only be exposed to the specified
+       * execution context. If omitted and `executionContextName` is not set,
+       * the binding is exposed to all execution contexts of the target.
+       * This parameter is mutually exclusive with `executionContextName`.
+       */
       executionContextId?: ExecutionContextId;
+
+      /**
+       * If specified, the binding is exposed to the executionContext with
+       * matching name, even for contexts created after the binding is added.
+       * See also `ExecutionContext.name` and `worldName` parameter to
+       * `Page.addScriptToEvaluateOnNewDocument`.
+       * This parameter is mutually exclusive with `executionContextId`.
+       */
+      executionContextName?: string;
     }
 
     /**
@@ -21994,11 +22136,12 @@ export namespace Cdp {
         | 'number'
         | 'boolean'
         | 'symbol'
-        | 'bigint'
-        | 'wasm';
+        | 'bigint';
 
       /**
-       * Object subtype hint. Specified for `object` or `wasm` type values only.
+       * Object subtype hint. Specified for `object` type values only.
+       * NOTE: If you change anything here, make sure to also update
+       * `subtype` in `ObjectPreview` and `PropertyPreview` below.
        */
       subtype?:
         | 'array'
@@ -22018,12 +22161,8 @@ export namespace Cdp {
         | 'typedarray'
         | 'arraybuffer'
         | 'dataview'
-        | 'i32'
-        | 'i64'
-        | 'f32'
-        | 'f64'
-        | 'v128'
-        | 'externref';
+        | 'webassemblymemory'
+        | 'wasmvalue';
 
       /**
        * Object class (constructor) name. Specified for `object` type values only.
@@ -22106,7 +22245,14 @@ export namespace Cdp {
         | 'weakset'
         | 'iterator'
         | 'generator'
-        | 'error';
+        | 'error'
+        | 'proxy'
+        | 'promise'
+        | 'typedarray'
+        | 'arraybuffer'
+        | 'dataview'
+        | 'webassemblymemory'
+        | 'wasmvalue';
 
       /**
        * String representation of the object.
@@ -22174,7 +22320,14 @@ export namespace Cdp {
         | 'weakset'
         | 'iterator'
         | 'generator'
-        | 'error';
+        | 'error'
+        | 'proxy'
+        | 'promise'
+        | 'typedarray'
+        | 'arraybuffer'
+        | 'dataview'
+        | 'webassemblymemory'
+        | 'wasmvalue';
     }
 
     export interface EntryPreview {
@@ -22335,6 +22488,13 @@ export namespace Cdp {
        * Human readable name describing given context.
        */
       name: string;
+
+      /**
+       * A system-unique execution context identifier. Unlike the id, this is unique accross
+       * multiple processes, so can be reliably used to identify specific context while backend
+       * performs a cross-process navigation.
+       */
+      uniqueId: string;
 
       /**
        * Embedder-specific auxiliary data.
