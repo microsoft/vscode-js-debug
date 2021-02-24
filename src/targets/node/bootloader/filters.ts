@@ -86,7 +86,11 @@ export const checkNotNpmPrefixCheckOnWindows = () => {
  * @see https://github.com/microsoft/vscode/issues/117312
  */
 export const checkIsNotNodeGyp = (env: IBootloaderInfo) => {
-  if (!!env.deferredMode && basename(process.argv[1]) === 'node-gyp.js') {
+  if (
+    !!env.deferredMode &&
+    process.argv.length >= 2 &&
+    basename(process.argv[1]) === 'node-gyp.js'
+  ) {
     return false;
   }
 
