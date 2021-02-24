@@ -133,6 +133,10 @@ export class DebugAdapter implements IDisposable {
           label: localize('breakpoint.caughtExceptions', 'Caught Exceptions'),
           default: false,
           supportsCondition: true,
+          description: localize(
+            'breakpoint.caughtExceptions.description',
+            "Breaks on all throw errors, even if they're caught later.",
+          ),
           conditionDescription: `error.name == "MyError"`,
         },
         {
@@ -140,6 +144,10 @@ export class DebugAdapter implements IDisposable {
           label: localize('breakpoint.uncaughtExceptions', 'Uncaught Exceptions'),
           default: false,
           supportsCondition: true,
+          description: localize(
+            'breakpoint.caughtExceptions.description',
+            'Breaks only on errors or promise rejections that are not handled.',
+          ),
           conditionDescription: `error.name == "MyError"`,
         },
       ],
