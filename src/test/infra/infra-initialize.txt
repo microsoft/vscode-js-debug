@@ -9,13 +9,17 @@
     ]
     exceptionBreakpointFilters : [
         [0] : {
+            conditionDescription : error.name == "MyError"
             default : false
+            description : Breaks on all throw errors, even if they're caught later.
             filter : all
             label : Caught Exceptions
             supportsCondition : true
         }
         [1] : {
+            conditionDescription : error.name == "MyError"
             default : false
+            description : Breaks only on errors or promise rejections that are not handled.
             filter : uncaught
             label : Uncaught Exceptions
             supportsCondition : true
