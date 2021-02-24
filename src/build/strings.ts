@@ -121,7 +121,7 @@ const strings = {
   'browser.vueComponentPaths':
     "A list of file glob patterns to find `*.vue` components. By default, searches the entire workspace. This needs to be specified due to extra lookups that Vue's sourcemaps require in Vue CLI 4. You can disable this special handling by setting this to an empty array.",
 
-  'debug.npm.script': 'Debug NPM Script',
+  'debug.npm.script': 'Debug npm Script',
   'debug.npm.noWorkspaceFolder': 'You need to open a workspace folder to debug npm scripts.',
   'debug.npm.noScripts': 'No npm scripts found in your package.json',
   'debug.npm.parseError': 'Could not read {0}: {1}',
@@ -216,7 +216,7 @@ const strings = {
   'node.snippet.nodemon.description': 'Use nodemon to relaunch a debug session on source changes',
   'node.snippet.nodemon.label': 'Node.js: Nodemon Setup',
   'node.snippet.npm.description': 'Launch a node program through an npm `debug` script',
-  'node.snippet.npm.label': 'Node.js: Launch via NPM',
+  'node.snippet.npm.label': 'Node.js: Launch via npm',
   'node.snippet.remoteattach.description': 'Attach to the debug port of a remote node program',
   'node.snippet.remoteattach.label': 'Node.js: Attach to Remote Program',
   'node.snippet.yo.description':
