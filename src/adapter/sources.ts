@@ -251,10 +251,13 @@ export class Source {
       return undefined;
     }
 
-    const sourceMapUrl = this.url + '-pretty.map';
-    const basename = this.url.split(/[\/\\]/).pop() as string;
+    // Eval'd scripts have empty urls, give them a temporary one for the purpose
+    // of the sourcemap. See #929
+    const baseUrl = this.url || `eval://${this.sourceReference}.js`;
+    const sourceMapUrl = baseUrl + '-pretty.map';
+    const basename = baseUrl.split(/[\/\\]/).pop() as string;
     const fileName = basename + '-pretty.js';
-    const map = await prettyPrintAsSourceMap(fileName, content, this.url, sourceMapUrl);
+    const map = await prettyPrintAsSourceMap(fileName, content, baseUrl, sourceMapUrl);
     if (!map) {
       return undefined;
     }

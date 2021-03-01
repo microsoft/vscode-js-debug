@@ -2,6 +2,11 @@
 
 This changelog records changes to stable releases since 1.50.2. "TBA" changes here may be available in the [nightly release](https://github.com/microsoft/vscode-js-debug/#nightly-extension) before they're in stable. Note that the minor version (`v1.X.0`) corresponds to the VS Code version js-debug is shipped in, but the patch version (`v1.50.X`) is not meaningful.
 
+## TBA
+
+- fix: pretty print not working when evaling sources ([#929](https://github.com/microsoft/vscode-js-debug/issues/929))
+- fix: browser debugging in remote not working on some Linux systems ([#908](https://github.com/microsoft/vscode-js-debug/issues/908))
+
 ## v1.54.3 - 2021-02-24
 
 - fix: auto attach failing when entering node repl

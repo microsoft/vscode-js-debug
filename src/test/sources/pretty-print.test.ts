@@ -2,6 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import Dap from '../../dap/api';
 import { ITestHandle } from '../test';
 import { itIntegrates } from '../testIntegrationUtils';
 
@@ -12,13 +13,7 @@ describe('pretty print sources', () => {
     return () => p.dap.continue({ threadId });
   }
 
-  itIntegrates('base', async function ({ r }) {
-    const p = await r.launchUrl('pretty/pretty.html');
-    const source = { path: p.workspacePath('web/pretty/ugly.js') };
-    await p.dap.setBreakpoints({ source, breakpoints: [{ line: 5, column: 1 }] });
-    p.load();
-
-    await waitAndStayPaused(p);
+  const testPrettyPrints = async (p: ITestHandle, source: Dap.Source) => {
     const res = p.dap.prettyPrintSource({ source });
 
     const gotSource = p.dap.once('loadedSource');
@@ -29,6 +24,16 @@ describe('pretty print sources', () => {
     p.log(await gotSource);
     await res;
     stopped();
+  };
+
+  itIntegrates('base', async function ({ r }) {
+    const p = await r.launchUrl('pretty/pretty.html');
+    const source = { path: p.workspacePath('web/pretty/ugly.js') };
+    await p.dap.setBreakpoints({ source, breakpoints: [{ line: 5, column: 1 }] });
+    p.load();
+
+    await waitAndStayPaused(p);
+    await testPrettyPrints(p, source);
     p.assertLog();
   });
 
@@ -94,6 +99,19 @@ describe('pretty print sources', () => {
       await p.logger.logStackTrace(threadId);
     }
 
+    p.assertLog();
+  });
+
+  itIntegrates('eval sources (#929)', async function ({ r }) {
+    const p = await r.launchUrlAndLoad('index.html');
+    await p.load();
+
+    const sourceEvt = p.waitForSource();
+    const evaled = p.evaluate('let n=1;for(let l=0;l<n;l++){console.log("hi");debugger}', '');
+
+    await waitAndStayPaused(p);
+    await testPrettyPrints(p, (await sourceEvt).source);
+    await evaled;
     p.assertLog();
   });
 });

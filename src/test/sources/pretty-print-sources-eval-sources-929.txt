@@ -1,0 +1,27 @@
+Evaluating#1: let n=1;for(let l=0;l<n;l++){console.log("hi");debugger}
+{
+    allThreadsStopped : false
+    description : Paused on debugger statement
+    reason : pause
+    threadId : <number>
+}
+<anonymous> @ <eval>/VM<xx>:1:48
+{
+    allThreadsStopped : false
+    description : Paused on debugger statement
+    reason : pause
+    threadId : <number>
+}
+<anonymous> @ ${workspaceFolder}/web/46947589.js-pretty.js:3:15
+{
+    allThreadsContinued : false
+    threadId : <number>
+}
+{
+    reason : new
+    source : {
+        name : 46947589.js-pretty.js
+        path : ${workspaceFolder}/web/46947589.js-pretty.js
+        sourceReference : <number>
+    }
+}
