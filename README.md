@@ -7,7 +7,7 @@
   </a>
 </h1>
 
-This is the JavaScript debugger for Node.js. It debugs Node.js, VS Code extensions, Chrome, Edge, WebView2, and more. It has been the default JavaScript debugger in VS Code since 1.46.
+This is a [DAP](https://microsoft.github.io/debug-adapter-protocol/)-based JavaScript debugger. It debugs Node.js, Chrome, Edge, WebView2, VS Code extensions, and more. It has been the default JavaScript debugger in Visual Studio Code since 1.46, and is gradually rolling out in Visual Studio proper.
 
 ### Nightly Extension
 

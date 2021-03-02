@@ -148,6 +148,7 @@ gulp.task('compile:dynamic', async () => {
   if (isNightly) {
     packageJson.displayName += ' (Nightly)';
     packageJson.version = getVersionNumber();
+    packageJson.preview = true;
     await fixNightlyReadme();
   }
 
