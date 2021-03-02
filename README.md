@@ -7,9 +7,7 @@
   </a>
 </h1>
 
-The new, upcoming JavaScript debugger for VS Code. This extension debugs Node.js and web applications (in Edge and Chrome), and will eventually become the built-in debugger for VS Code.
-
-This extension is installed by default on all VS Code versions after 1.46.0, however it's not enabled. You can enable it by adding `"debug.javascript.usePreview": true` to your user settings. Then you should be able to run and debug your existing programs without changing your launch config. If you can't, then please file an issue.
+This is the JavaScript debugger for Node.js. It debugs Node.js, VS Code extensions, Chrome, Edge, WebView2, and more. It has been the default JavaScript debugger in VS Code since 1.46.
 
 ### Nightly Extension
 
