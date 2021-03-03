@@ -27,6 +27,8 @@ import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
 import { IWebViewConnectionInfo } from '../targets';
 import { BrowserLauncher } from './browserLauncher';
 
+const defaultEdgeFlags = ['--do-not-de-elevate'];
+
 @injectable()
 export class EdgeLauncher extends BrowserLauncher<IEdgeLaunchConfiguration> {
   constructor(
@@ -64,7 +66,10 @@ export class EdgeLauncher extends BrowserLauncher<IEdgeLaunchConfiguration> {
     telemetryReporter: ITelemetryReporter,
   ) {
     return super.launchBrowser(
-      params,
+      {
+        ...params,
+        runtimeArgs: params.runtimeArgs ?? defaultEdgeFlags,
+      },
       dap,
       cancellationToken,
       telemetryReporter,
