@@ -3,8 +3,8 @@
  *--------------------------------------------------------*/
 
 import { inject, injectable } from 'inversify';
+import { find as findLink } from 'linkifyjs';
 import { URL } from 'url';
-import urlRegex from 'url-regex';
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
 import {
@@ -16,14 +16,18 @@ import {
 import { DefaultBrowser, IDefaultBrowserProvider } from '../common/defaultBrowserProvider';
 import { DisposableList, IDisposable } from '../common/disposable';
 import { once } from '../common/objUtils';
-import { isMetaAddress } from '../common/urlUtils';
+import { isLoopbackIp, isMetaAddress } from '../common/urlUtils';
 
 const localize = nls.loadMessageBundle();
-const urlRe = urlRegex({ strict: true });
 
 interface ITerminalLink extends vscode.TerminalLink {
   target: URL;
   workspaceFolder?: number;
+}
+
+const enum Protocol {
+  Http = 'http:',
+  Https = 'https:',
 }
 
 @injectable()
@@ -92,27 +96,35 @@ export class TerminalLinkHandler
       return vscode.workspace.workspaceFolders?.[0];
     });
 
-    urlRe.lastIndex = 0;
-    while (true) {
-      const match = urlRe.exec(context.line);
-      if (!match) {
-        return links;
+    for (const link of findLink(context.line, 'url')) {
+      let start = -1;
+      while ((start = context.line.indexOf(link.value, start + 1)) !== -1) {
+        const uri = new URL(link.href);
+
+        // hack for https://github.com/Soapbox/linkifyjs/issues/317
+        if (
+          uri.protocol === Protocol.Http &&
+          !link.value.startsWith(Protocol.Http) &&
+          !isLoopbackIp(uri.hostname)
+        ) {
+          uri.protocol = Protocol.Https;
+        }
+
+        if (uri.protocol !== Protocol.Http && uri.protocol !== Protocol.Https) {
+          continue;
+        }
+
+        links.push({
+          startIndex: start,
+          length: link.value.length,
+          tooltip: localize('terminalLinkHover.debug', 'Debug URL'),
+          target: uri,
+          workspaceFolder: getCwd()?.index,
+        });
       }
-
-      const uri = match[0].startsWith('http') ? new URL(match[0]) : new URL(`https://${match[0]}`);
-
-      if (uri.protocol !== 'http:' && uri.protocol !== 'https:') {
-        continue;
-      }
-
-      links.push({
-        startIndex: match.index,
-        length: match[0].length,
-        tooltip: localize('terminalLinkHover.debug', 'Debug URL'),
-        target: uri,
-        workspaceFolder: getCwd()?.index,
-      });
     }
+
+    return links;
   }
 
   /**

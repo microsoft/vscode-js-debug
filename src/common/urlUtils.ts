@@ -98,7 +98,8 @@ const knownMetaAddresses = new Set<string>([
  * version for us. The "right" way would be to parse the IP to an integer
  * like Go does (https://golang.org/pkg/net/#IP.IsLoopback).
  */
-const isLoopbackIp = (ipOrLocalhost: string) => knownLoopbacks.has(ipOrLocalhost.toLowerCase());
+export const isLoopbackIp = (ipOrLocalhost: string) =>
+  knownLoopbacks.has(ipOrLocalhost.toLowerCase());
 
 /**
  * If given a URL, returns its hostname.
