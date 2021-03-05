@@ -7,7 +7,6 @@ import * as fs from 'fs';
 import * as inspector from 'inspector';
 import match from 'micromatch';
 import * as path from 'path';
-import { isMainThread } from 'worker_threads';
 import { AutoAttachMode } from '../../common/contributionUtils';
 import { knownToolGlob, knownToolToken } from '../../common/knownTools';
 import { LogTag } from '../../common/logging';
@@ -40,8 +39,12 @@ const telemetry: IProcessTelemetry = {
       return;
     }
 
-    if (!isMainThread) {
-      return;
+    try {
+      if (!require('worker_threads').isMainThread) {
+        return;
+      }
+    } catch {
+      // ignored, old node version without worker threads
     }
 
     reportTelemetry(env);
