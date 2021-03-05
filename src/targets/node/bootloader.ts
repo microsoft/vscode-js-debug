@@ -7,6 +7,7 @@ import * as fs from 'fs';
 import * as inspector from 'inspector';
 import match from 'micromatch';
 import * as path from 'path';
+import { isMainThread } from 'worker_threads';
 import { AutoAttachMode } from '../../common/contributionUtils';
 import { knownToolGlob, knownToolToken } from '../../common/knownTools';
 import { LogTag } from '../../common/logging';
@@ -36,6 +37,10 @@ const telemetry: IProcessTelemetry = {
 
     if (!checkAll(inspectorOptions)) {
       env.unsetForTree(); // save work for any children
+      return;
+    }
+
+    if (!isMainThread) {
       return;
     }
 
