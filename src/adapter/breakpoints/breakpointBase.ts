@@ -601,10 +601,10 @@ export abstract class Breakpoint {
       breakpoint.deadletter = true;
       await breakpoint.done;
     } else {
-      this._manager._resolvedBreakpoints.delete(breakpoint.cdpId);
       await this._manager._thread
         ?.cdp()
         .Debugger.removeBreakpoint({ breakpointId: breakpoint.cdpId });
+      this._manager._resolvedBreakpoints.delete(breakpoint.cdpId);
     }
   }
 }

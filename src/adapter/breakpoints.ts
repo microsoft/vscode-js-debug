@@ -690,7 +690,7 @@ export class BreakpointManager {
         }
 
         const breakpoint = this._resolvedBreakpoints.get(breakpointId);
-        if (breakpoint instanceof EntryBreakpoint && breakpoint.enabled) {
+        if (breakpoint instanceof EntryBreakpoint) {
           // we intentionally don't remove the record from the map; it's kept as
           // an indicator that it did exist and was hit, so that if further
           // breakpoints are set in the file it doesn't get re-applied.
