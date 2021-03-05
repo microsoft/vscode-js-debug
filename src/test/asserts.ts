@@ -2,8 +2,9 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { expect } from 'chai';
+import { AssertionError, expect } from 'chai';
 import { traverse } from 'estraverse';
+import { delay } from '../common/promiseUtil';
 import { parseProgram } from '../common/sourceCodeManipulations';
 
 export const assertAstEqual = (a: string, b: string) => {
@@ -20,5 +21,35 @@ export const assertAstEqual = (a: string, b: string) => {
     expect(locationFreeParse(a)).to.deep.equal(locationFreeParse(b));
   } catch {
     throw new Error(`Expected\n\n${a}\n\n to be equivalent to\n\n${b}`);
+  }
+};
+
+const unset = Symbol('unset');
+
+export const assertResolved = async <T>(p: Promise<T>): Promise<T> => {
+  let r: T | typeof unset = unset;
+  p.then(rv => {
+    r = rv;
+  });
+
+  await delay(0);
+
+  if (r === unset) {
+    throw new AssertionError('Promise not resolved');
+  }
+
+  return r;
+};
+
+export const assertNotResolved = async <T>(p: Promise<T>): Promise<void> => {
+  let r: T | typeof unset = unset;
+  p.then(rv => {
+    r = rv;
+  });
+
+  await delay(0);
+
+  if (r !== unset) {
+    throw new AssertionError('Promise unexpectedly resolved');
   }
 };

@@ -353,3 +353,5 @@ export function pick<T>(obj: T, keys: ReadonlyArray<keyof T>): Partial<T> {
 
   return partial;
 }
+
+export const upcastPartial = <T>(v: Partial<T>): T => v as T;

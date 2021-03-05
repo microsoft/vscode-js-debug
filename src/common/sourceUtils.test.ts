@@ -4,7 +4,7 @@
 
 import { expect } from 'chai';
 import { LogPointCompiler } from '../adapter/breakpoints/conditions/logPoint';
-import { assertAstEqual } from '../test/assertAstEqual';
+import { assertAstEqual } from '../test/asserts';
 import { rewriteTopLevelAwait, wrapObjectLiteral } from './sourceUtils';
 
 describe('sourceUtils', () => {

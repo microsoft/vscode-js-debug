@@ -5,7 +5,7 @@
 import { generate } from 'astring';
 import { expect } from 'chai';
 import { FunctionDeclaration } from 'estree';
-import { assertAstEqual } from '../test/assertAstEqual';
+import { assertAstEqual } from '../test/asserts';
 import {
   functionToFunctionCall,
   parseSource,

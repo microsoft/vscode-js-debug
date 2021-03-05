@@ -92,6 +92,7 @@ export class ExceptionPauseService implements IExceptionPauseService {
         throw e;
       }
       this.dap.output({ category: 'stderr', output: e.message });
+      return;
     }
 
     if (this.cdp) {
@@ -132,14 +133,14 @@ export class ExceptionPauseService implements IExceptionPauseService {
    */
   public async apply(cdp: Cdp.Api) {
     this.cdp = cdp;
-    this.sendToCdp(cdp);
+
+    if (this.state.cdp !== PauseOnExceptionsState.None) {
+      await this.sendToCdp(cdp);
+    }
   }
 
   private async sendToCdp(cdp: Cdp.Api) {
-    if (this.state.cdp !== PauseOnExceptionsState.None) {
-      await cdp.Debugger.setPauseOnExceptions({ state: this.state.cdp });
-    }
-
+    await cdp.Debugger.setPauseOnExceptions({ state: this.state.cdp });
     this.blocker.resolve();
   }
 
