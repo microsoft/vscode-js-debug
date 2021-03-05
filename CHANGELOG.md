@@ -8,6 +8,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: browser debugging in remote not working on some Linux systems ([#908](https://github.com/microsoft/vscode-js-debug/issues/908))
 - fix: edge not launching if VS Code is run in admin mode on windows ([ref](https://github.com/microsoft/vscode/issues/117005))
 - fix: exception breakpoint toggle getting stuck ([919](https://github.com/microsoft/vscode-js-debug/issues/919))
+- fix: spooky race that could incorrectly break when entering hot-transpiled code
 
 ## v1.54.4 - 2021-03-04
 
