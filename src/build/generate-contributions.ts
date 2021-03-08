@@ -94,6 +94,9 @@ const forAnyDebugType = (contextKey: string, andExpr?: string) =>
 const forBrowserDebugType = (contextKey: string, andExpr?: string) =>
   forSomeDebugTypes([DebugType.Chrome, DebugType.Edge], contextKey, andExpr);
 
+const forNodeDebugType = (contextKey: string, andExpr?: string) =>
+  forSomeDebugTypes([DebugType.Node, DebugType.ExtensionHost, 'node'], contextKey, andExpr);
+
 /**
  * Opaque type for a string passed through refString, ensuring all templates
  * are defined as NLS strings.
@@ -1232,6 +1235,11 @@ const commands: ReadonlyArray<{
     title: refString('createDiagnostics.label'),
     category: 'Debug',
   },
+  {
+    command: Commands.StartWithStopOnEntry,
+    title: refString('startWithStopOnEntry.label'),
+    category: 'Debug',
+  },
 ];
 
 const menus: Menus = {
@@ -1331,6 +1339,21 @@ const menus: Menus = {
   ],
 };
 
+const keybindings = [
+  {
+    command: Commands.StartWithStopOnEntry,
+    key: 'F10',
+    mac: 'F10',
+    when: forNodeDebugType('debugConfigurationType', '!inDebugMode'),
+  },
+  {
+    command: Commands.StartWithStopOnEntry,
+    key: 'F11',
+    mac: 'F11',
+    when: forNodeDebugType('debugConfigurationType', '!inDebugMode'),
+  },
+];
+
 if (require.main === module) {
   process.stdout.write(
     JSON.stringify({
@@ -1344,6 +1367,7 @@ if (require.main === module) {
         breakpoints: breakpointLanguages.map(language => ({ language })),
         debuggers: buildDebuggers(),
         commands,
+        keybindings,
         configuration: {
           title: 'JavaScript Debugger',
           properties: configurationSchema,

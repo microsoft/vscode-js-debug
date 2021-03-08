@@ -8,7 +8,7 @@ import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
 import { Commands, Configuration, DebugType, readConfig } from '../common/contributionUtils';
 import { DefaultBrowser, IDefaultBrowserProvider } from '../common/defaultBrowserProvider';
-import { ExtensionContext } from '../ioc-extras';
+import { ExtensionContext, IExtensionContribution } from '../ioc-extras';
 
 const localize = nls.loadMessageBundle();
 
@@ -39,7 +39,7 @@ function getPossibleUrl(link: string, requirePort: boolean): string | undefined 
 }
 
 @injectable()
-export class DebugLinkUi {
+export class DebugLinkUi implements IExtensionContribution {
   private mostRecentLink: string | undefined;
 
   constructor(

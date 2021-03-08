@@ -8,11 +8,12 @@ import { ExtensionContext } from 'vscode';
 import * as nls from 'vscode-nls';
 import { Configuration, isDebugType, readConfig, writeConfig } from '../common/contributionUtils';
 import Dap from '../dap/api';
+import { IExtensionContribution } from '../ioc-extras';
 
 const localize = nls.loadMessageBundle();
 
 @injectable()
-export class DisableSourceMapUI {
+export class DisableSourceMapUI implements IExtensionContribution {
   public register(context: ExtensionContext) {
     context.subscriptions.push(
       vscode.debug.onDidReceiveDebugSessionCustomEvent(evt => {

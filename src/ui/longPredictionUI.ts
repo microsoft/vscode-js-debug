@@ -6,14 +6,14 @@ import { inject, injectable } from 'inversify';
 import { join } from 'path';
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
-import { ExtensionContext } from '../ioc-extras';
+import { ExtensionContext, IExtensionContribution } from '../ioc-extras';
 
 const localize = nls.loadMessageBundle();
 
 const omitLongPredictionKey = 'omitLongPredictions';
 
 @injectable()
-export class LongPredictionUI {
+export class LongPredictionUI implements IExtensionContribution {
   constructor(@inject(ExtensionContext) private readonly context: vscode.ExtensionContext) {}
 
   /**

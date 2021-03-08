@@ -396,7 +396,7 @@ export class UiProfileManager implements IDisposable {
 
     const chosen = await new Promise<string | undefined>(resolve => {
       quickpick.onDidAccept(() => resolve(quickpick.selectedItems[0]?.label));
-      quickpick.onDidHide(() => resolve());
+      quickpick.onDidHide(() => resolve(undefined));
       quickpick.show();
     });
 

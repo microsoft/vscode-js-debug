@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import { Container } from 'inversify';
-import { trackDispose } from '../ioc-extras';
+import { IExtensionContribution, trackDispose } from '../ioc-extras';
 import { CascadeTerminationTracker } from './cascadeTerminateTracker';
 import {
   allConfigurationProviders,
@@ -21,6 +21,7 @@ import { DurationTerminationConditionFactory } from './profiling/durationTermina
 import { ManualTerminationConditionFactory } from './profiling/manualTerminationCondition';
 import { ITerminationConditionFactory } from './profiling/terminationCondition';
 import { UiProfileManager } from './profiling/uiProfileManager';
+import { StartDebugingAndStopOnEntry } from './startDebuggingAndStopOnEntry';
 import { TerminalLinkHandler } from './terminalLinkHandler';
 
 export const registerUiComponents = (container: Container) => {
@@ -36,13 +37,15 @@ export const registerUiComponents = (container: Container) => {
     container.bind(IDebugConfigurationProvider).to(cls).inSingletonScope(),
   );
 
+  container.bind(IExtensionContribution).to(LongPredictionUI).inSingletonScope();
+  container.bind(IExtensionContribution).to(DebugLinkUi).inSingletonScope();
+  container.bind(IExtensionContribution).to(CascadeTerminationTracker).inSingletonScope();
+  container.bind(IExtensionContribution).to(DisableSourceMapUI).inSingletonScope();
+  container.bind(IExtensionContribution).to(DiagnosticsUI).inSingletonScope();
+  container.bind(IExtensionContribution).to(StartDebugingAndStopOnEntry).inSingletonScope();
   container.bind(DebugSessionTracker).toSelf().inSingletonScope().onActivation(trackDispose);
   container.bind(UiProfileManager).toSelf().inSingletonScope().onActivation(trackDispose);
-  container.bind(DiagnosticsUI).toSelf().inSingletonScope().onActivation(trackDispose);
-  container.bind(LongPredictionUI).toSelf().inSingletonScope();
   container.bind(TerminalLinkHandler).toSelf().inSingletonScope();
-  container.bind(DebugLinkUi).toSelf().inSingletonScope();
-  container.bind(CascadeTerminationTracker).toSelf().inSingletonScope();
   container.bind(DisableSourceMapUI).toSelf().inSingletonScope();
 
   container

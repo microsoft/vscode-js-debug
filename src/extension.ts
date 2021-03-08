@@ -8,20 +8,16 @@ import { allDebugTypes, Commands, registerCommand } from './common/contributionU
 import { IFsUtils } from './common/fsUtils';
 import { extensionId } from './configuration';
 import { createGlobalContainer } from './ioc';
+import { IExtensionContribution } from './ioc-extras';
 import { DelegateLauncherFactory } from './targets/delegate/delegateLauncherFactory';
 import { registerAutoAttach } from './ui/autoAttach';
-import { CascadeTerminationTracker } from './ui/cascadeTerminateTracker';
 import { registerCompanionBrowserLaunch } from './ui/companionBrowserLaunch';
 import { IDebugConfigurationProvider, IDebugConfigurationResolver } from './ui/configuration';
 import { registerCustomBreakpointsUI } from './ui/customBreakpointsUI';
-import { DebugLinkUi } from './ui/debugLinkUI';
 import { debugNpmScript } from './ui/debugNpmScript';
 import { DebugSessionTracker } from './ui/debugSessionTracker';
 import { registerDebugTerminalUI } from './ui/debugTerminalUI';
-import { DiagnosticsUI } from './ui/diagnosticsUI';
-import { DisableSourceMapUI } from './ui/disableSourceMapUI';
 import { toggleOnExperiment } from './ui/experimentEnlist';
-import { LongPredictionUI } from './ui/longPredictionUI';
 import { PrettyPrintTrackerFactory } from './ui/prettyPrint';
 import { attachProcess, pickProcess } from './ui/processPicker';
 import { registerProfilingCommand } from './ui/profiling';
@@ -100,11 +96,7 @@ export function activate(context: vscode.ExtensionContext) {
   registerProfilingCommand(context, services);
   registerAutoAttach(context, services.get(DelegateLauncherFactory));
   registerRevealPage(context, debugSessionTracker);
-  services.get(LongPredictionUI).register(context);
-  services.get(DebugLinkUi).register(context);
-  services.get(CascadeTerminationTracker).register(context);
-  services.get(DisableSourceMapUI).register(context);
-  services.get(DiagnosticsUI).register(context);
+  services.getAll<IExtensionContribution>(IExtensionContribution).forEach(c => c.register(context));
 }
 
 export function deactivate() {

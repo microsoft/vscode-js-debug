@@ -4,6 +4,7 @@
 
 import { inject, injectable } from 'inversify';
 import * as vscode from 'vscode';
+import { IExtensionContribution } from '../ioc-extras';
 import { DebugSessionTracker } from './debugSessionTracker';
 
 /**
@@ -11,7 +12,7 @@ import { DebugSessionTracker } from './debugSessionTracker';
  * termination if configured.
  */
 @injectable()
-export class CascadeTerminationTracker {
+export class CascadeTerminationTracker implements IExtensionContribution {
   constructor(@inject(DebugSessionTracker) private readonly tracker: DebugSessionTracker) {}
 
   /**

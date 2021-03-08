@@ -5,10 +5,10 @@
 import { inject, injectable } from 'inversify';
 import * as vscode from 'vscode';
 import { Commands, Contributions, registerCommand } from '../common/contributionUtils';
-import { FS, FsPromises } from '../ioc-extras';
+import { FS, FsPromises, IExtensionContribution } from '../ioc-extras';
 
 @injectable()
-export class DiagnosticsUI {
+export class DiagnosticsUI implements IExtensionContribution {
   constructor(@inject(FS) private readonly fs: FsPromises) {}
 
   public register(context: vscode.ExtensionContext) {

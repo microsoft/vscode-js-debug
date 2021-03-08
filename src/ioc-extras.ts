@@ -2,10 +2,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { interfaces } from 'inversify';
-import { IDisposable } from './common/disposable';
 import { promises as fsPromises } from 'fs';
+import { interfaces } from 'inversify';
+import type * as vscode from 'vscode';
 import { ObservableMap } from './common/datastructure/observableMap';
+import { IDisposable } from './common/disposable';
 
 /**
  * The IOC container itself.
@@ -113,3 +114,12 @@ export const trackDispose = <T>(ctx: interfaces.Context, service: T): T => {
 export const disposeContainer = (container: interfaces.Container) => {
   toDispose.get(container)?.forEach(d => d.dispose());
 };
+
+/**
+ * Type that can be registered in the VS Code extension host
+ */
+export interface IExtensionContribution {
+  register(context: vscode.ExtensionContext): void;
+}
+
+export const IExtensionContribution = Symbol('IExtensionContribution');

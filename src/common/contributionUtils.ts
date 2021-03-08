@@ -18,7 +18,7 @@ export const enum Contributions {
 }
 
 export const enum Commands {
-  AddCustomBreakpoints = 'extension.NAMESPACE(chrome-debug).addCustomBreakpoints',
+  AddCustomBreakpoints = 'extension.js-debug.addCustomBreakpoints',
   AttachProcess = 'extension.NAMESPACE(node-debug).attachNodeProcess',
   AutoAttachClearVariables = 'extension.js-debug.clearAutoAttachVariables',
   AutoAttachSetVariables = 'extension.js-debug.setAutoAttachVariables',
@@ -28,14 +28,16 @@ export const enum Commands {
   DebugLink = 'extension.js-debug.debugLink',
   DebugNpmScript = 'extension.js-debug.npmScript',
   EnlistExperiment = 'extension.js-debug.experimentEnlist',
-  PickProcess = 'extension.NAMESPACE(node-debug).pickNodeProcess',
-  PrettyPrint = 'extension.NAMESPACE(node-debug).prettyPrint',
-  RemoveAllCustomBreakpoints = 'extension.NAMESPACE(chrome-debug).removeAllCustomBreakpoints',
-  RemoveCustomBreakpoint = 'extension.NAMESPACE(chrome-debug).removeCustomBreakpoint',
+  PickProcess = 'extension.js-debug.pickNodeProcess',
+  PrettyPrint = 'extension.js-debug.prettyPrint',
+  RemoveAllCustomBreakpoints = 'extension.js-debug.removeAllCustomBreakpoints',
+  RemoveCustomBreakpoint = 'extension.js-debug.removeCustomBreakpoint',
   RevealPage = 'extension.js-debug.revealPage',
-  StartProfile = 'extension.NAMESPACE(node-debug).startProfile',
-  StopProfile = 'extension.NAMESPACE(node-debug).stopProfile',
-  ToggleSkipping = 'extension.NAMESPACE(node-debug).toggleSkippingFile',
+  /** Use node-debug's command so existing keybindings work */
+  StartWithStopOnEntry = 'extension.node-debug.startWithStopOnEntry',
+  StartProfile = 'extension.js-debug.startProfile',
+  StopProfile = 'extension.js-debug.stopProfile',
+  ToggleSkipping = 'extension.js-debug.toggleSkippingFile',
 }
 
 export const enum DebugType {
@@ -74,6 +76,7 @@ const commandsObj: { [K in Commands]: null } = {
   [Commands.StartProfile]: null,
   [Commands.StopProfile]: null,
   [Commands.ToggleSkipping]: null,
+  [Commands.StartWithStopOnEntry]: null,
 };
 
 /**
@@ -159,6 +162,7 @@ export interface ICommandTypes {
   [Commands.AutoAttachToProcess](info: IAutoAttachInfo): void;
   [Commands.RevealPage](sessionId: string): void;
   [Commands.DebugLink](link?: string): void;
+  [Commands.StartWithStopOnEntry](): void;
 }
 
 /**
