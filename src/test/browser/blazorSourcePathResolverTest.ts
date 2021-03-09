@@ -37,7 +37,7 @@ const isWindows = process.platform === 'win32';
 const platformRoot = isWindows ? 'C:' : '/c';
 
 describe('BlazorSourcePathResolver.absolutePathToUrlRegexp', () => {
-  it('generates the correct regexp in local scenarios', () => {
+  it('generates the correct regexp in local scenarios', async () => {
     const sourcePath = path.join(
       platformRoot,
       'Users',
@@ -49,7 +49,9 @@ describe('BlazorSourcePathResolver.absolutePathToUrlRegexp', () => {
       'Pages',
       'Counter.razor',
     );
-    const regexp = createBlazorSourcePathResolver(undefined).absolutePathToUrlRegexp(sourcePath);
+    const regexp = await createBlazorSourcePathResolver(undefined).absolutePathToUrlRegexp(
+      sourcePath,
+    );
 
     if (getCaseSensitivePaths()) {
       expect(regexp).to.equal(
@@ -71,7 +73,7 @@ describe('BlazorSourcePathResolver.absolutePathToUrlRegexp', () => {
   if (isWindows) {
     // At the moment the Blazor remote scenario is only supported on VS/Windows
 
-    it('generates the correct regexp in codespace scenarios', () => {
+    it('generates the correct regexp in codespace scenarios', async () => {
       const remoteFilePrefix = path.join(
         platformRoot,
         'Users',
@@ -83,7 +85,7 @@ describe('BlazorSourcePathResolver.absolutePathToUrlRegexp', () => {
         '5~~',
       );
       const sourcePath = `${remoteFilePrefix}\\C$\\workspace\\NewBlazorWASM\\NewBlazorWASM\\Pages\\Counter.razor`;
-      const regexp = createBlazorSourcePathResolver(remoteFilePrefix).absolutePathToUrlRegexp(
+      const regexp = await createBlazorSourcePathResolver(remoteFilePrefix).absolutePathToUrlRegexp(
         sourcePath,
       );
 

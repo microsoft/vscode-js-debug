@@ -15,6 +15,8 @@ import { DebugLinkUi } from './debugLinkUI';
 import { DebugSessionTracker } from './debugSessionTracker';
 import { DiagnosticsUI } from './diagnosticsUI';
 import { DisableSourceMapUI } from './disableSourceMapUI';
+import { ILinkedBreakpointLocation } from './linkedBreakpointLocation';
+import { LinkedBreakpointLocationUI } from './linkedBreakpointLocationUI';
 import { LongPredictionUI } from './longPredictionUI';
 import { BreakpointTerminationConditionFactory } from './profiling/breakpointTerminationCondition';
 import { DurationTerminationConditionFactory } from './profiling/durationTerminationCondition';
@@ -43,6 +45,7 @@ export const registerUiComponents = (container: Container) => {
   container.bind(IExtensionContribution).to(DisableSourceMapUI).inSingletonScope();
   container.bind(IExtensionContribution).to(DiagnosticsUI).inSingletonScope();
   container.bind(IExtensionContribution).to(StartDebugingAndStopOnEntry).inSingletonScope();
+  container.bind(ILinkedBreakpointLocation).to(LinkedBreakpointLocationUI).inSingletonScope();
   container.bind(DebugSessionTracker).toSelf().inSingletonScope().onActivation(trackDispose);
   container.bind(UiProfileManager).toSelf().inSingletonScope().onActivation(trackDispose);
   container.bind(TerminalLinkHandler).toSelf().inSingletonScope();

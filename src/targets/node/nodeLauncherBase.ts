@@ -18,7 +18,6 @@ import { ObservableMap } from '../../common/datastructure/observableMap';
 import { DisposableList } from '../../common/disposable';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { EventEmitter } from '../../common/events';
-import { IFsUtils } from '../../common/fsUtils';
 import { ILogger, LogTag } from '../../common/logging';
 import { once } from '../../common/objUtils';
 import { findInPath, forceForwardSlashes } from '../../common/pathUtils';
@@ -34,6 +33,7 @@ import {
   ITarget,
 } from '../../targets/targets';
 import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
+import { ISourcePathResolverFactory } from '../sourcePathResolverFactory';
 import { IBootloaderEnvironment, IBootloaderInfo } from './bootloader/environment';
 import { bootloaderDefaultPath } from './bundlePaths';
 import {
@@ -133,7 +133,8 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
   constructor(
     @inject(INodeBinaryProvider) private readonly pathProvider: NodeBinaryProvider,
     @inject(ILogger) protected readonly logger: ILogger,
-    @inject(IFsUtils) protected readonly fsUtils: IFsUtils,
+    @inject(ISourcePathResolverFactory)
+    protected readonly pathResolverFactory: ISourcePathResolverFactory,
   ) {}
 
   /**
@@ -158,17 +159,10 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
       params: resolved,
       context,
       logger,
-      pathResolver: new NodeSourcePathResolver(
-        this.fsUtils,
-        {
-          resolveSourceMapLocations: resolved.resolveSourceMapLocations,
-          basePath: resolved.cwd,
-          sourceMapOverrides: resolved.sourceMapPathOverrides,
-          remoteRoot: resolved.remoteRoot,
-          localRoot: resolved.localRoot,
-        },
-        logger,
-      ),
+      pathResolver: this.pathResolverFactory.create(
+        resolved,
+        this.logger,
+      ) as NodeSourcePathResolver,
     });
 
     await this.launchProgram(run);
@@ -398,7 +392,6 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
     }
 
     const target = new NodeTarget(
-      this.fsUtils,
       this.run.params,
       this.run.pathResolver,
       this.run.context.targetOrigin,

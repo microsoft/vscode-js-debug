@@ -108,7 +108,21 @@ export function readFileRaw(path: string): Promise<Buffer> {
 }
 
 export interface IFsUtils {
+  /**
+   * Gets whether the file exists.
+   */
   exists(path: string): Promise<boolean>;
+
+  /**
+   * Gets un-linked path of the file on disk.
+   * @throws if the path does not exist
+   */
+  realPath(path: string): Promise<string>;
+
+  /**
+   * Gets the file contents.
+   * @throws if the path does not exist
+   */
   readFile(path: string): Promise<Buffer>;
 }
 
@@ -119,6 +133,10 @@ export const IFsUtils = Symbol('FsUtils');
 
 export class LocalFsUtils implements IFsUtils {
   public constructor(private readonly fs: FsPromises) {}
+
+  public realPath(path: string): Promise<string> {
+    return this.fs.realpath(path);
+  }
 
   public async exists(path: string): Promise<boolean> {
     // Check if the file exists in the current directory.
@@ -137,6 +155,10 @@ export class LocalFsUtils implements IFsUtils {
 
 export class RemoteFsThroughDapUtils implements IFsUtils {
   public constructor(private readonly dap: Dap.Api) {}
+
+  public async realPath(): Promise<string> {
+    throw new Error('not implemented');
+  }
 
   public async exists(path: string): Promise<boolean> {
     try {
@@ -183,18 +205,20 @@ export class LocalAndRemoteFsUtils implements IFsUtils {
   }
 
   public async exists(path: string): Promise<boolean> {
-    return (this.shouldUseRemoteFileSystem(path) ? this.remoteFsUtils : this.localFsUtils).exists(
-      path,
-    );
+    return this.selectFs(path).exists(path);
   }
 
   public async readFile(path: string): Promise<Buffer> {
-    return (this.shouldUseRemoteFileSystem(path) ? this.remoteFsUtils : this.localFsUtils).readFile(
-      path,
-    );
+    return this.selectFs(path).readFile(path);
   }
 
-  public shouldUseRemoteFileSystem(path: string) {
-    return path.toLowerCase().startsWith(this.remoteFilePrefix);
+  public async realPath(path: string): Promise<string> {
+    return this.selectFs(path).realPath(path);
+  }
+
+  public selectFs(path: string) {
+    return path.toLowerCase().startsWith(this.remoteFilePrefix)
+      ? this.remoteFsUtils
+      : this.localFsUtils;
   }
 }

@@ -8,12 +8,12 @@ import { getSourceSuffix } from '../../adapter/templates';
 import Cdp from '../../cdp/api';
 import { CancellationTokenSource } from '../../common/cancellation';
 import { DebugType } from '../../common/contributionUtils';
-import { IFsUtils, LocalFsUtils } from '../../common/fsUtils';
 import { ILogger, LogTag } from '../../common/logging';
 import { delay } from '../../common/promiseUtil';
 import { isLoopback } from '../../common/urlUtils';
 import { AnyLaunchConfiguration, INodeAttachConfiguration } from '../../configuration';
 import { retryGetWSEndpoint } from '../browser/spawn/endpoints';
+import { ISourcePathResolverFactory } from '../sourcePathResolverFactory';
 import { IStopMetadata } from '../targets';
 import { LeaseFile } from './lease-file';
 import { NodeAttacherBase } from './nodeAttacherBase';
@@ -36,12 +36,12 @@ const localize = nls.loadMessageBundle();
 @injectable()
 export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
   constructor(
-    @inject(IFsUtils) fsUtils: LocalFsUtils,
     @inject(INodeBinaryProvider) pathProvider: NodeBinaryProvider,
     @inject(ILogger) logger: ILogger,
+    @inject(ISourcePathResolverFactory) pathResolverFactory: ISourcePathResolverFactory,
     private readonly restarters = new RestartPolicyFactory(),
   ) {
-    super(pathProvider, logger, fsUtils);
+    super(pathProvider, logger, pathResolverFactory);
   }
 
   /**

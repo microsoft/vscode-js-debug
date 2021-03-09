@@ -8,6 +8,7 @@ import { tmpdir } from 'os';
 import * as path from 'path';
 import playwright from 'playwright';
 import * as stream from 'stream';
+import { ExtensionContext } from 'vscode';
 import { DebugAdapter } from '../adapter/debugAdapter';
 import { Binder } from '../binder';
 import Cdp from '../cdp/api';
@@ -15,6 +16,7 @@ import CdpConnection from '../cdp/connection';
 import { DebugType } from '../common/contributionUtils';
 import { EventEmitter } from '../common/events';
 import { ILogger } from '../common/logging';
+import { upcastPartial } from '../common/objUtils';
 import { forceForwardSlashes } from '../common/pathUtils';
 import * as utils from '../common/urlUtils';
 import {
@@ -349,8 +351,24 @@ export class TestRoot {
     this._webRoot = path.join(this._workspaceRoot, 'web');
 
     const storagePath = path.join(__dirname, '..', '..');
+    // todo: make a more proper mock here
+    const workspaceState = new Map<string, unknown>();
     const services = createTopLevelSessionContainer(
-      createGlobalContainer({ storagePath, isVsCode: true }),
+      createGlobalContainer({
+        storagePath,
+        isVsCode: true,
+        context: upcastPartial<ExtensionContext>({
+          workspaceState: {
+            get<T>(key: string, defaultValue?: T) {
+              return workspaceState.get(key) ?? defaultValue;
+            },
+            update(key: string, value: unknown) {
+              workspaceState.set(key, value);
+              return Promise.resolve();
+            },
+          },
+        }),
+      }),
     );
 
     this.logger = services.get(ILogger);

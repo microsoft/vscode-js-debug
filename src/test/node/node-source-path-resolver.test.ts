@@ -23,7 +23,7 @@ describe('node source path resolver', () => {
     };
 
     it('resolves absolute', async () => {
-      const r = new NodeSourcePathResolver(fsUtils, defaultOptions, await Logger.test());
+      const r = new NodeSourcePathResolver(fsUtils, undefined, defaultOptions, await Logger.test());
       expect(await r.urlToAbsolutePath({ url: 'file:///src/index.js' })).to.equal(
         resolve('/src/index.js'),
       );
@@ -32,6 +32,7 @@ describe('node source path resolver', () => {
     it('normalizes roots (win -> posix) ', async () => {
       const r = new NodeSourcePathResolver(
         fsUtils,
+        undefined,
         {
           ...defaultOptions,
           remoteRoot: 'C:\\Source',
@@ -48,6 +49,7 @@ describe('node source path resolver', () => {
     it('normalizes roots (posix -> win) ', async () => {
       const r = new NodeSourcePathResolver(
         fsUtils,
+        undefined,
         {
           ...defaultOptions,
           remoteRoot: '/dev/src',
@@ -62,7 +64,7 @@ describe('node source path resolver', () => {
     });
 
     it('places relative paths in node_internals', async () => {
-      const r = new NodeSourcePathResolver(fsUtils, defaultOptions, await Logger.test());
+      const r = new NodeSourcePathResolver(fsUtils, undefined, defaultOptions, await Logger.test());
 
       expect(
         await r.urlToAbsolutePath({
@@ -72,7 +74,7 @@ describe('node source path resolver', () => {
     });
 
     it('applies source map overrides', async () => {
-      const r = new NodeSourcePathResolver(fsUtils, defaultOptions, await Logger.test());
+      const r = new NodeSourcePathResolver(fsUtils, undefined, defaultOptions, await Logger.test());
 
       expect(
         await r.urlToAbsolutePath({
@@ -83,7 +85,7 @@ describe('node source path resolver', () => {
     });
 
     it('loads local node internals (#823)', async () => {
-      const r = new NodeSourcePathResolver(fsUtils, defaultOptions, Logger.null);
+      const r = new NodeSourcePathResolver(fsUtils, undefined, defaultOptions, Logger.null);
 
       expect(await r.urlToAbsolutePath({ url: 'node:url' })).to.equal(
         join(__dirname, 'lib/url.js'),
@@ -146,6 +148,7 @@ describe('node source path resolver', () => {
 
           const resolver = new NodeSourcePathResolver(
             fsUtils,
+            undefined,
             {
               ...defaultOptions,
               resolveSourceMapLocations: locs,

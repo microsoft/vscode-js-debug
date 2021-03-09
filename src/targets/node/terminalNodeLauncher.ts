@@ -9,12 +9,12 @@ import * as path from 'path';
 import * as vscode from 'vscode';
 import { DebugType } from '../../common/contributionUtils';
 import { EventEmitter } from '../../common/events';
-import { IFsUtils } from '../../common/fsUtils';
 import { ILogger } from '../../common/logging';
 import { AnyLaunchConfiguration, ITerminalLaunchConfiguration } from '../../configuration';
 import { ErrorCodes } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
 import { FS, FsPromises } from '../../ioc-extras';
+import { ISourcePathResolverFactory } from '../sourcePathResolverFactory';
 import { IStopMetadata, ITarget } from '../targets';
 import {
   hideDebugInfoFromConsole,
@@ -78,9 +78,9 @@ export class TerminalNodeLauncher extends NodeLauncherBase<ITerminalLaunchConfig
     @inject(INodeBinaryProvider) pathProvider: NodeBinaryProvider,
     @inject(ILogger) logger: ILogger,
     @inject(FS) private readonly fs: FsPromises,
-    @inject(IFsUtils) fsUtils: IFsUtils,
+    @inject(ISourcePathResolverFactory) pathResolverFactory: ISourcePathResolverFactory,
   ) {
-    super(pathProvider, logger, fsUtils);
+    super(pathProvider, logger, pathResolverFactory);
   }
 
   /**

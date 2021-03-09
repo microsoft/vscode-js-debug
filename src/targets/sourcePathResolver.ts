@@ -58,13 +58,22 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
 
   constructor(protected readonly options: T, protected readonly logger: ILogger) {}
 
+  /**
+   * @inheritdoc
+   */
   public abstract urlToAbsolutePath(request: IUrlResolution): Promise<string | undefined>;
 
-  public absolutePathToUrlRegexp(absolutePath: string): string | undefined {
+  /**
+   * @inheritdoc
+   */
+  public absolutePathToUrlRegexp(absolutePath: string): Promise<string | undefined> {
     const url = this.absolutePathToUrl(absolutePath);
-    return url ? urlToRegex(url) : undefined;
+    return Promise.resolve(url ? urlToRegex(url) : undefined);
   }
 
+  /**
+   * Gets the URL at which the absolute path is expected to exist.
+   */
   protected abstract absolutePathToUrl(absolutePath: string): string | undefined;
 
   /**

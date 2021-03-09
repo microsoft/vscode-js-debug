@@ -5,7 +5,6 @@ import { promises as fs } from 'fs';
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
 import { Commands, Configuration, readConfig, registerCommand } from '../common/contributionUtils';
-import { LocalFsUtils } from '../common/fsUtils';
 import { ProxyLogger } from '../common/logging/proxyLogger';
 import { DelegateLauncherFactory } from '../targets/delegate/delegateLauncherFactory';
 import {
@@ -14,6 +13,7 @@ import {
 } from '../targets/node/autoAttachLauncher';
 import { NodeBinaryProvider } from '../targets/node/nodeBinaryProvider';
 import { noPackageJsonProvider } from '../targets/node/packageJsonProvider';
+import { ISourcePathResolverFactory } from '../targets/sourcePathResolverFactory';
 import { launchVirtualTerminalParent } from './debugTerminalUI';
 
 const localize = nls.loadMessageBundle();
@@ -21,6 +21,7 @@ const localize = nls.loadMessageBundle();
 export function registerAutoAttach(
   context: vscode.ExtensionContext,
   delegate: DelegateLauncherFactory,
+  pathResolveFactory: ISourcePathResolverFactory,
 ) {
   let launcher: Promise<AutoAttachLauncher> | undefined;
   let disposeTimeout: NodeJS.Timeout | undefined;
@@ -38,7 +39,7 @@ export function registerAutoAttach(
         logger,
         context,
         fs,
-        new LocalFsUtils(fs),
+        pathResolveFactory,
       );
 
       await launchVirtualTerminalParent(

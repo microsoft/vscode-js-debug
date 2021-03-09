@@ -89,7 +89,11 @@ import { IProgramLauncher } from './targets/node/processLauncher';
 import { RestartPolicyFactory } from './targets/node/restartPolicy';
 import { SubprocessProgramLauncher } from './targets/node/subprocessProgramLauncher';
 import { TerminalProgramLauncher } from './targets/node/terminalProgramLauncher';
-import { SourcePathResolverFactory } from './targets/sourcePathResolverFactory';
+import {
+  ISourcePathResolverFactory,
+  NodeOnlyPathResolverFactory,
+  SourcePathResolverFactory,
+} from './targets/sourcePathResolverFactory';
 import { ITargetOrigin } from './targets/targetOrigin';
 import { ILauncher, ITarget } from './targets/targets';
 import { DapTelemetryReporter } from './telemetry/dapTelemetryReporter';
@@ -272,6 +276,7 @@ export const createGlobalContainer = (options: {
   container.bind(IContainer).toConstantValue(container);
 
   container.bind(DelegateLauncherFactory).toSelf().inSingletonScope();
+  container.bind(NodeOnlyPathResolverFactory).toSelf().inSingletonScope();
 
   container.bind(SessionSubStates).toConstantValue(new ObservableMap());
   container.bind(IDefaultBrowserProvider).to(DefaultBrowserProvider).inSingletonScope();
@@ -307,12 +312,16 @@ export const provideLaunchParams = (
   dap: Dap.Api,
 ) => {
   container.bind(AnyLaunchConfiguration).toConstantValue(params);
-  container.bind(SourcePathResolverFactory).toSelf().inSingletonScope();
+  container.bind(ISourcePathResolverFactory).to(SourcePathResolverFactory).inSingletonScope();
   container.bind(IRootDapApi).toConstantValue(dap);
 
   container
     .bind(ISourcePathResolver)
-    .toDynamicValue(ctx => ctx.container.get(SourcePathResolverFactory).create(params))
+    .toDynamicValue(ctx =>
+      ctx.container
+        .get<ISourcePathResolverFactory>(ISourcePathResolverFactory)
+        .create(params, ctx.container.get<ILogger>(ILogger)),
+    )
     .inSingletonScope();
 
   container

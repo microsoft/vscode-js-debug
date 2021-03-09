@@ -11,13 +11,13 @@ import {
   DebugType,
   readConfig,
 } from '../../common/contributionUtils';
-import { IFsUtils, LocalFsUtils } from '../../common/fsUtils';
 import { ILogger } from '../../common/logging';
 import { forceForwardSlashes } from '../../common/pathUtils';
 import { AnyLaunchConfiguration, ITerminalLaunchConfiguration } from '../../configuration';
 import { ErrorCodes } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
 import { ExtensionContext, FS, FsPromises } from '../../ioc-extras';
+import { ISourcePathResolverFactory } from '../sourcePathResolverFactory';
 import { ITarget } from '../targets';
 import {
   BootloaderEnvironment,
@@ -52,9 +52,9 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
     @inject(ILogger) logger: ILogger,
     @inject(ExtensionContext) private readonly extensionContext: vscode.ExtensionContext,
     @inject(FS) private readonly fs: FsPromises,
-    @inject(IFsUtils) fsUtils: LocalFsUtils,
+    @inject(ISourcePathResolverFactory) pathResolverFactory: ISourcePathResolverFactory,
   ) {
-    super(pathProvider, logger, fsUtils);
+    super(pathProvider, logger, pathResolverFactory);
   }
 
   /**

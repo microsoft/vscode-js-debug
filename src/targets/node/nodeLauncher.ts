@@ -16,6 +16,7 @@ import { absolutePathToFileUrl, urlToRegex } from '../../common/urlUtils';
 import { AnyLaunchConfiguration, INodeLaunchConfiguration } from '../../configuration';
 import { fixInspectFlags } from '../../ui/configurationUtils';
 import { retryGetWSEndpoint } from '../browser/spawn/endpoints';
+import { ISourcePathResolverFactory } from '../sourcePathResolverFactory';
 import { CallbackFile } from './callback-file';
 import {
   getRunScript,
@@ -70,10 +71,11 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
     @inject(IBreakpointsPredictor) private readonly bpPredictor: IBreakpointsPredictor,
     @multiInject(IProgramLauncher) private readonly launchers: ReadonlyArray<IProgramLauncher>,
     @inject(RestartPolicyFactory) private readonly restarters: RestartPolicyFactory,
-    @inject(IFsUtils) fsUtils: LocalFsUtils,
+    @inject(IFsUtils) private readonly fsUtils: LocalFsUtils,
     @inject(IPackageJsonProvider) private readonly packageJson: IPackageJsonProvider,
+    @inject(ISourcePathResolverFactory) pathResolverFactory: ISourcePathResolverFactory,
   ) {
-    super(pathProvider, logger, fsUtils);
+    super(pathProvider, logger, pathResolverFactory);
   }
 
   /**

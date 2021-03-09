@@ -210,10 +210,10 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
   /**
    * @override
    */
-  public absolutePathToUrlRegexp(absolutePath: string): string | undefined {
+  public absolutePathToUrlRegexp(absolutePath: string): Promise<string | undefined> {
     let url = this.absolutePathToUrl(absolutePath);
     if (!url) {
-      return undefined;
+      return Promise.resolve(undefined);
     }
 
     let endRegexEscape = absolutePath.length;
@@ -225,6 +225,6 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
       url = url.slice(0, endRegexEscape) + `(\\.html)?`;
     }
 
-    return urlToRegex(url, [0, endRegexEscape]);
+    return Promise.resolve(urlToRegex(url, [0, endRegexEscape]));
   }
 }

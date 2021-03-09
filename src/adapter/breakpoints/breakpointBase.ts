@@ -399,15 +399,17 @@ export abstract class Breakpoint {
       columnNumber: this.originalPosition.columnNumber,
     });
 
-    const promises: Promise<void>[] = [];
+    const promises: Promise<unknown>[] = [];
     for (const workspaceLocation of workspaceLocations) {
-      const urlRegexp = this._manager._sourceContainer.sourcePathResolver.absolutePathToUrlRegexp(
-        workspaceLocation.absolutePath,
+      promises.push(
+        this._manager._sourceContainer.sourcePathResolver
+          .absolutePathToUrlRegexp(workspaceLocation.absolutePath)
+          .then(re => {
+            if (re) {
+              return this._setByUrlRegexp(thread, re, workspaceLocation);
+            }
+          }),
       );
-
-      if (urlRegexp) {
-        promises.push(this._setByUrlRegexp(thread, urlRegexp, workspaceLocation));
-      }
     }
 
     await Promise.all(promises);
@@ -436,7 +438,7 @@ export abstract class Breakpoint {
     }
 
     if (this.source.path) {
-      const urlRegexp = this._manager._sourceContainer.sourcePathResolver.absolutePathToUrlRegexp(
+      const urlRegexp = await this._manager._sourceContainer.sourcePathResolver.absolutePathToUrlRegexp(
         this.source.path,
       );
       if (!urlRegexp) {

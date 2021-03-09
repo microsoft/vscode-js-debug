@@ -76,7 +76,7 @@ export abstract class BaseConfigurationResolver<T extends AnyLaunchConfiguration
   /**
    * Resolves the configuration for the debug adapter.
    */
-  protected abstract async resolveDebugConfigurationAsync(
+  protected abstract resolveDebugConfigurationAsync(
     folder: vscode.WorkspaceFolder | undefined,
     config: ResolvingConfiguration<T>,
     token?: vscode.CancellationToken,

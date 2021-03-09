@@ -18,7 +18,7 @@ import {
   IChromeAttachConfiguration,
 } from '../../configuration';
 import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
-import { SourcePathResolverFactory } from '../sourcePathResolverFactory';
+import { ISourcePathResolverFactory } from '../sourcePathResolverFactory';
 import { ILaunchContext } from '../targets';
 import { BrowserAttacher } from './browserAttacher';
 import { BrowserTargetManager } from './browserTargetManager';
@@ -42,8 +42,8 @@ export class VSCodeRendererAttacher extends BrowserAttacher<IRendererAttachParam
   constructor(
     @inject(ILogger) logger: ILogger,
     @inject(ISourcePathResolver) pathResolver: ISourcePathResolver,
-    @inject(SourcePathResolverFactory)
-    private readonly pathResolverFactory: SourcePathResolverFactory,
+    @inject(ISourcePathResolverFactory)
+    private readonly pathResolverFactory: ISourcePathResolverFactory,
   ) {
     super(logger, pathResolver);
   }
@@ -140,7 +140,7 @@ export class VSCodeRendererAttacher extends BrowserAttacher<IRendererAttachParam
       connection,
       undefined,
       connection.rootSession(),
-      this.pathResolverFactory.create(params),
+      this.pathResolverFactory.create(params, this.logger),
       this.logger,
       context.telemetryReporter,
       params,

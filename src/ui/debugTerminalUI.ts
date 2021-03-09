@@ -14,7 +14,6 @@ import {
   readConfig,
   registerCommand,
 } from '../common/contributionUtils';
-import { IFsUtils } from '../common/fsUtils';
 import { ProxyLogger } from '../common/logging/proxyLogger';
 import {
   applyDefaults,
@@ -27,6 +26,7 @@ import { NodeBinaryProvider } from '../targets/node/nodeBinaryProvider';
 import { NodeTarget } from '../targets/node/nodeTarget';
 import { noPackageJsonProvider } from '../targets/node/packageJsonProvider';
 import { ITerminalLauncherLike, TerminalNodeLauncher } from '../targets/node/terminalNodeLauncher';
+import { ISourcePathResolverFactory } from '../targets/sourcePathResolverFactory';
 import { MutableTargetOrigin } from '../targets/targetOrigin';
 import { ITarget } from '../targets/targets';
 import { DapTelemetryReporter } from '../telemetry/dapTelemetryReporter';
@@ -180,7 +180,7 @@ export function registerDebugTerminalUI(
   context: vscode.ExtensionContext,
   delegateFactory: DelegateLauncherFactory,
   linkHandler: TerminalLinkHandler,
-  fsUtils: IFsUtils,
+  pathResolverFactory: ISourcePathResolverFactory,
 ) {
   const terminals = new Map<
     vscode.Terminal,
@@ -226,7 +226,7 @@ export function registerDebugTerminalUI(
       new NodeBinaryProvider(logger, fs, noPackageJsonProvider, vscode),
       logger,
       fs,
-      fsUtils,
+      pathResolverFactory,
     );
 
     launcher.onTerminalCreated(terminal => {
