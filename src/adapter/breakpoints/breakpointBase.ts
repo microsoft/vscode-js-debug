@@ -177,20 +177,21 @@ export abstract class Breakpoint {
       );
     }
 
+    await Promise.all(promises);
+
     if (source) {
       const uiLocations = this._manager._sourceContainer.currentSiblingUiLocations({
         lineNumber: this.originalPosition.lineNumber,
         columnNumber: this.originalPosition.columnNumber,
         source,
       });
-      promises.push(
-        ...uiLocations.map(uiLocation =>
+
+      await Promise.all(
+        uiLocations.map(uiLocation =>
           this._setByUiLocation(thread, uiToRawOffset(uiLocation, source.runtimeScriptOffset)),
         ),
       );
     }
-
-    await Promise.all(promises);
   }
 
   /**
@@ -487,9 +488,18 @@ export abstract class Breakpoint {
    * requests to avoid triggering any logpoint breakpoints multiple times.
    */
   protected hasSetOnLocationByRegexp(urlRegexp: string, lineColumn: LineColumn) {
-    return this.cdpBreakpoints.find(
-      bp => isSetByUrl(bp.args) && bp.args.urlRegex === urlRegexp && lcEqual(bp.args, lineColumn),
-    );
+    return this.cdpBreakpoints.find(bp => {
+      if (isSetByUrl(bp.args)) {
+        return bp.args.urlRegex === urlRegexp && lcEqual(bp.args, lineColumn);
+      }
+
+      const script = this._manager._sourceContainer.scriptsById.get(bp.args.location.scriptId);
+      if (script) {
+        return lcEqual(bp.args.location, lineColumn) && new RegExp(urlRegexp).test(script.url);
+      }
+
+      return undefined;
+    });
   }
 
   protected async _setByUrl(thread: Thread, url: string, lineColumn: LineColumn): Promise<void> {
@@ -512,7 +522,11 @@ export abstract class Breakpoint {
       return;
     }
 
-    return this._setAny(thread, { urlRegex, condition: this.getBreakCondition(), ...lineColumn });
+    return this._setAny(thread, {
+      urlRegex,
+      condition: this.getBreakCondition(),
+      ...lineColumn,
+    });
   }
 
   private async _setByScriptId(

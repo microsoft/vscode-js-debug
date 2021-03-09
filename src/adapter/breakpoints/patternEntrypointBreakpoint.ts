@@ -2,11 +2,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { makeRe } from 'micromatch';
+import { forceForwardSlashes } from '../../common/pathUtils';
 import { BreakpointManager, EntryBreakpointMode } from '../breakpoints';
 import { Thread } from '../threads';
 import { EntryBreakpoint } from './entryBreakpoint';
-import { forceForwardSlashes } from '../../common/pathUtils';
-import { makeRe } from 'micromatch';
 
 /**
  * A breakpoint set from the `runtimeSourcemapPausePatterns`. Unlike a normal

@@ -21,7 +21,7 @@ export interface IDeferred<T> {
 export function some<T>(
   promises: ReadonlyArray<Promise<T | undefined | null | false | ''>>,
 ): Promise<T | undefined> {
-  return new Promise<T>((resolve, reject) => {
+  return new Promise<T | undefined>((resolve, reject) => {
     let remaining = promises.length;
     for (const prom of promises) {
       prom

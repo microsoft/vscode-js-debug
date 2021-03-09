@@ -2,11 +2,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { Breakpoint, LineColumn } from './breakpointBase';
-import { BreakpointManager, EntryBreakpointMode } from '../breakpoints';
-import Dap from '../../dap/api';
 import { basename, extname } from 'path';
+import Dap from '../../dap/api';
+import { BreakpointManager, EntryBreakpointMode } from '../breakpoints';
 import { Thread } from '../threads';
+import { Breakpoint, LineColumn } from './breakpointBase';
 
 /**
  * A breakpoint set automatically on module entry.
