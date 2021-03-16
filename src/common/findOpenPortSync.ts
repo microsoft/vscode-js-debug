@@ -30,15 +30,11 @@ export function findOpenPortSync({
 const makeTester = () => {
   const testFast = (port: number) => {
     const r = spawnSync('nc', ['-z', '127.0.0.1', String(port)]);
-    if (r.status === 0) {
-      return true;
-    }
-
     if ((r.error as NodeJS.ErrnoException)?.code === 'ENOENT') {
       tester = testSlow;
     }
 
-    return false;
+    return r.status === 1;
   };
 
   const testSlow = (port: number) => {
