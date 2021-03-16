@@ -14,6 +14,7 @@ import { AnyNodeConfiguration } from '../../configuration';
 import { ITargetOrigin } from '../targetOrigin';
 import { IBreakpointPathAndId, ITarget } from '../targets';
 import { NodeSourcePathResolver } from './nodeSourcePathResolver';
+import { WatchdogTarget } from './watchdogSpawn';
 
 export interface INodeTargetLifecycleHooks {
   /**
@@ -47,7 +48,7 @@ export class NodeTarget implements ITarget, IThreadDelegate {
     private readonly targetOriginValue: ITargetOrigin,
     public readonly connection: Connection,
     cdp: Cdp.Api,
-    public readonly targetInfo: Cdp.Target.TargetInfo & { processId: number },
+    public readonly targetInfo: WatchdogTarget,
     public readonly logger: ILogger,
     private readonly lifecycle: INodeTargetLifecycleHooks = {},
     private readonly _parent: ITarget | undefined,

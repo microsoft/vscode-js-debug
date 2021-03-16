@@ -2,25 +2,25 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { spawn, ChildProcess } from 'child_process';
-import { findOpenPort } from '../../common/findOpenPort';
-import * as vscode from 'vscode';
-import { DebugType, Commands } from '../../common/contributionUtils';
-import { SinonSandbox, createSandbox } from 'sinon';
-import { eventuallyOk } from '../testIntegrationUtils';
 import { expect } from 'chai';
-import split from 'split2';
-import { removePrivatePrefix } from '../test';
-import { createFileTree } from '../createFileTree';
-import { resolveProcessId } from '../../ui/processPicker';
-import { nodeAttachConfigDefaults } from '../../configuration';
-import * as path from 'path';
-import { tmpdir } from 'os';
+import { ChildProcess, spawn } from 'child_process';
 import del from 'del';
-import { forceForwardSlashes } from '../../common/pathUtils';
-import { LocalFsUtils } from '../../common/fsUtils';
 import { promises as fsPromises } from 'fs';
+import { tmpdir } from 'os';
+import * as path from 'path';
+import { createSandbox, SinonSandbox } from 'sinon';
+import split from 'split2';
+import * as vscode from 'vscode';
+import { Commands, DebugType } from '../../common/contributionUtils';
+import { findOpenPort } from '../../common/findOpenPort';
+import { LocalFsUtils } from '../../common/fsUtils';
+import { forceForwardSlashes } from '../../common/pathUtils';
 import { delay } from '../../common/promiseUtil';
+import { nodeAttachConfigDefaults } from '../../configuration';
+import { resolveProcessId } from '../../ui/processPicker';
+import { createFileTree } from '../createFileTree';
+import { removePrivatePrefix } from '../test';
+import { eventuallyOk } from '../testIntegrationUtils';
 
 describe('pick and attach', () => {
   const testDir = path.join(tmpdir(), 'js-debug-pick-and-attach');

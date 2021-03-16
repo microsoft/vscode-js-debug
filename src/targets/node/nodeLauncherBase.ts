@@ -7,6 +7,7 @@ import { inject, injectable } from 'inversify';
 import * as net from 'net';
 import * as os from 'os';
 import * as path from 'path';
+import { IPortLeaseTracker } from '../../adapter/portLeaseTracker';
 import { getSourceSuffix } from '../../adapter/templates';
 import Cdp from '../../cdp/api';
 import Connection from '../../cdp/connection';
@@ -46,6 +47,7 @@ import { NodeSourcePathResolver } from './nodeSourcePathResolver';
 import { INodeTargetLifecycleHooks, NodeTarget } from './nodeTarget';
 import { NodeWorkerTarget } from './nodeWorkerTarget';
 import { IProgram } from './program';
+import { WatchdogTarget } from './watchdogSpawn';
 
 /**
  * Telemetry received from the nested process.
@@ -133,6 +135,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
   constructor(
     @inject(INodeBinaryProvider) private readonly pathProvider: NodeBinaryProvider,
     @inject(ILogger) protected readonly logger: ILogger,
+    @inject(IPortLeaseTracker) protected readonly portLeaseTracker: IPortLeaseTracker,
     @inject(ISourcePathResolverFactory)
     protected readonly pathResolverFactory: ISourcePathResolverFactory,
   ) {}
@@ -307,6 +310,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
       execPath: await findInPath(fs.promises, 'node', process.env),
       onlyEntrypoint: !params.autoAttachChildProcesses,
       autoAttachMode: AutoAttachMode.Always,
+      mandatePortTracking: this.portLeaseTracker.isMandated ? true : undefined,
       ...additionalOptions,
     };
 
@@ -464,8 +468,12 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
       cdp.Target.on('targetCreated', f),
     );
 
+    const cast = targetInfo as WatchdogTarget;
+    const portLease = this.portLeaseTracker.register(cast.processInspectorPort);
+    connection.onDisconnected(() => portLease.dispose());
+
     return {
-      targetInfo: targetInfo as Cdp.Target.TargetInfo & { processId: number },
+      targetInfo: cast,
       cdp,
       connection,
       logger,

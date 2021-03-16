@@ -7,6 +7,7 @@ import { inject, injectable } from 'inversify';
 import { tmpdir } from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { IPortLeaseTracker } from '../../adapter/portLeaseTracker';
 import { DebugType } from '../../common/contributionUtils';
 import { EventEmitter } from '../../common/events';
 import { ILogger } from '../../common/logging';
@@ -79,8 +80,9 @@ export class TerminalNodeLauncher extends NodeLauncherBase<ITerminalLaunchConfig
     @inject(ILogger) logger: ILogger,
     @inject(FS) private readonly fs: FsPromises,
     @inject(ISourcePathResolverFactory) pathResolverFactory: ISourcePathResolverFactory,
+    @inject(IPortLeaseTracker) portLeaseTracker: IPortLeaseTracker,
   ) {
-    super(pathProvider, logger, pathResolverFactory);
+    super(pathProvider, logger, portLeaseTracker, pathResolverFactory);
   }
 
   /**

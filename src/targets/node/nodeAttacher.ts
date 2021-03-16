@@ -4,6 +4,7 @@
 
 import { inject, injectable } from 'inversify';
 import * as nls from 'vscode-nls';
+import { IPortLeaseTracker } from '../../adapter/portLeaseTracker';
 import { getSourceSuffix } from '../../adapter/templates';
 import Cdp from '../../cdp/api';
 import { CancellationTokenSource } from '../../common/cancellation';
@@ -39,9 +40,10 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
     @inject(INodeBinaryProvider) pathProvider: NodeBinaryProvider,
     @inject(ILogger) logger: ILogger,
     @inject(ISourcePathResolverFactory) pathResolverFactory: ISourcePathResolverFactory,
+    @inject(IPortLeaseTracker) portLeaseTracker: IPortLeaseTracker,
     private readonly restarters = new RestartPolicyFactory(),
   ) {
-    super(pathProvider, logger, pathResolverFactory);
+    super(pathProvider, logger, portLeaseTracker, pathResolverFactory);
   }
 
   /**

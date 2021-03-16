@@ -30,6 +30,7 @@ import { Diagnostics } from './adapter/diagnosics';
 import { Evaluator, IEvaluator } from './adapter/evaluator';
 import { ExceptionPauseService, IExceptionPauseService } from './adapter/exceptionPauseService';
 import { IPerformanceProvider, PerformanceProviderFactory } from './adapter/performance';
+import { IPortLeaseTracker, PortLeaseTracker } from './adapter/portLeaseTracker';
 import { IProfileController, ProfileController } from './adapter/profileController';
 import { IProfilerFactory, ProfilerFactory } from './adapter/profiling';
 import { BasicCpuProfiler } from './adapter/profiling/basicCpuProfiler';
@@ -283,6 +284,7 @@ export const createGlobalContainer = (options: {
   container.bind(StoragePath).toConstantValue(options.storagePath);
   container.bind(IsVSCode).toConstantValue(options.isVsCode);
   container.bind(INvmResolver).to(NvmResolver);
+  container.bind(IPortLeaseTracker).to(PortLeaseTracker);
   container.bind(ProcessEnv).toConstantValue(process.env);
   container.bind(Execa).toConstantValue(execa);
   container.bind(FS).toConstantValue(fsPromises);

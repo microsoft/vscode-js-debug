@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { CancellationToken } from 'vscode';
+import type { CancellationToken } from 'vscode';
 import { ErrorCodes } from '../dap/errors';
 import { ProtocolError } from '../dap/protocolError';
 import { IDisposable } from './disposable';

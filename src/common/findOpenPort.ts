@@ -2,23 +2,56 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { createServer, AddressInfo } from 'net';
-import { CancellationToken } from 'vscode';
+import { AddressInfo, createServer, Server, Socket } from 'net';
+import type { CancellationToken } from 'vscode';
 import { NeverCancelled, TaskCancelledError } from './cancellation';
 import { IDisposable } from './disposable';
+import { randomInRange } from './random';
+
+type PortTesterFn<T> = (port: number, ct: CancellationToken) => Promise<T>;
+
+export interface IFindOpenPortOptions<T> {
+  min?: number;
+  max?: number;
+  attempts?: number;
+  tester: PortTesterFn<T>;
+}
+
+export const enum DefaultJsDebugPorts {
+  Min = 53000,
+  Max = 54000,
+}
 
 /**
- * Finds an open TCP port that can be listened on.
+ * Finds an open TCP port that can be listened on. If a custom tester is
+ * provided, its return value is used. Otherwise, just a number is returned.
  */
-export async function findOpenPort(maxAttempts = 1000, ct?: CancellationToken) {
-  for (let i = 0; ; i++) {
-    const port = 3000 + Math.floor(Math.random() * 50000);
+export function findOpenPort(
+  options?: Partial<IFindOpenPortOptions<number>>,
+  cancellationToken?: CancellationToken,
+): Promise<number>;
+export function findOpenPort<T>(
+  options: Partial<IFindOpenPortOptions<T>>,
+  cancellationToken?: CancellationToken,
+): Promise<T>;
+export async function findOpenPort<T>(
+  {
+    min = DefaultJsDebugPorts.Min,
+    max = DefaultJsDebugPorts.Max,
+    attempts = 1000,
+    tester = acquirePortNumber as PortTesterFn<T>,
+  }: Partial<IFindOpenPortOptions<T>> = {},
+  cancellationToken: CancellationToken = NeverCancelled,
+) {
+  let port = randomInRange(min, max);
+  for (let i = Math.min(attempts, max - min); ; i--) {
     try {
-      await assertPortOpen(port, ct);
-      return port;
+      return await tester(port, cancellationToken);
     } catch (e) {
-      if (i >= maxAttempts || e instanceof TaskCancelledError) {
+      if (i === 0 || e instanceof TaskCancelledError) {
         throw e;
+      } else {
+        port = port === max - 1 ? min : port + 1;
       }
     }
   }
@@ -29,7 +62,7 @@ export async function findOpenPort(maxAttempts = 1000, ct?: CancellationToken) {
  */
 export async function isPortOpen(port: number, ct?: CancellationToken) {
   try {
-    await assertPortOpen(port, ct);
+    await acquirePortNumber(port, ct);
     return true;
   } catch {
     return false;
@@ -38,16 +71,18 @@ export async function isPortOpen(port: number, ct?: CancellationToken) {
 
 /**
  * Checks that the port is open, throwing an error if not.
+ * @returns the port number
  */
-export function assertPortOpen(port: number, ct: CancellationToken = NeverCancelled) {
+export function acquirePortNumber(port: number, ct: CancellationToken = NeverCancelled) {
   let disposable: IDisposable | undefined;
   return new Promise((resolve, reject) => {
     const server = createServer();
     server.listen(port, () => {
       const address = server.address() as AddressInfo;
-      server.on('error', reject);
       server.close(() => resolve(address.port));
     });
+
+    server.on('error', reject);
 
     disposable = ct.onCancellationRequested(() => {
       server.close();
@@ -55,3 +90,25 @@ export function assertPortOpen(port: number, ct: CancellationToken = NeverCancel
     });
   }).finally(() => disposable?.dispose());
 }
+
+/**
+ * Checks that the port is open, throwing an error if not.
+ * @returns the listening server
+ */
+export const makeAcquireTcpServer = (onSocket: (socket: Socket) => void): PortTesterFn<Server> => (
+  port,
+  ct,
+) => {
+  let disposable: IDisposable | undefined;
+  return new Promise<Server>((resolve, reject) => {
+    const server = createServer(onSocket);
+    server.listen(port);
+    server.on('error', reject);
+    server.on('listening', () => resolve(server));
+
+    disposable = ct.onCancellationRequested(() => {
+      server.close();
+      reject(new TaskCancelledError('Port open lookup cancelled'));
+    });
+  }).finally(() => disposable?.dispose());
+};

@@ -76,6 +76,11 @@ export interface IBootloaderInfo {
    * Pattern globs to use when auto attaching in 'smart' mode.
    */
   aaPatterns?: ReadonlyArray<string>;
+
+  /**
+   * Whether the process is running in a remote environment.
+   */
+  mandatePortTracking?: boolean;
 }
 
 export interface IBootloaderEnvironment {

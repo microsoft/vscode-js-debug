@@ -9,7 +9,6 @@ import { extensionId } from './configuration';
 import { createGlobalContainer } from './ioc';
 import { IExtensionContribution } from './ioc-extras';
 import { DelegateLauncherFactory } from './targets/delegate/delegateLauncherFactory';
-import { NodeOnlyPathResolverFactory } from './targets/sourcePathResolverFactory';
 import { registerAutoAttach } from './ui/autoAttach';
 import { registerCompanionBrowserLaunch } from './ui/companionBrowserLaunch';
 import { IDebugConfigurationProvider, IDebugConfigurationResolver } from './ui/configuration';
@@ -91,14 +90,10 @@ export function activate(context: vscode.ExtensionContext) {
     context,
     services.get(DelegateLauncherFactory),
     services.get(TerminalLinkHandler),
-    services.get(NodeOnlyPathResolverFactory),
+    services,
   );
   registerProfilingCommand(context, services);
-  registerAutoAttach(
-    context,
-    services.get(DelegateLauncherFactory),
-    services.get(NodeOnlyPathResolverFactory),
-  );
+  registerAutoAttach(context, services.get(DelegateLauncherFactory), services);
   registerRevealPage(context, debugSessionTracker);
   services.getAll<IExtensionContribution>(IExtensionContribution).forEach(c => c.register(context));
 }

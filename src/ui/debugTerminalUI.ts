@@ -2,10 +2,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { promises as fs } from 'fs';
+import { Container } from 'inversify';
 import { homedir } from 'os';
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
+import { IPortLeaseTracker } from '../adapter/portLeaseTracker';
 import { NeverCancelled } from '../common/cancellation';
 import {
   Commands,
@@ -21,12 +22,13 @@ import {
   terminalBaseDefaults,
 } from '../configuration';
 import { createPendingDapApi } from '../dap/pending-api';
+import { FS } from '../ioc-extras';
 import { DelegateLauncherFactory } from '../targets/delegate/delegateLauncherFactory';
 import { NodeBinaryProvider } from '../targets/node/nodeBinaryProvider';
 import { NodeTarget } from '../targets/node/nodeTarget';
 import { noPackageJsonProvider } from '../targets/node/packageJsonProvider';
 import { ITerminalLauncherLike, TerminalNodeLauncher } from '../targets/node/terminalNodeLauncher';
-import { ISourcePathResolverFactory } from '../targets/sourcePathResolverFactory';
+import { NodeOnlyPathResolverFactory } from '../targets/sourcePathResolverFactory';
 import { MutableTargetOrigin } from '../targets/targetOrigin';
 import { ITarget } from '../targets/targets';
 import { DapTelemetryReporter } from '../telemetry/dapTelemetryReporter';
@@ -180,7 +182,7 @@ export function registerDebugTerminalUI(
   context: vscode.ExtensionContext,
   delegateFactory: DelegateLauncherFactory,
   linkHandler: TerminalLinkHandler,
-  pathResolverFactory: ISourcePathResolverFactory,
+  services: Container,
 ) {
   const terminals = new Map<
     vscode.Terminal,
@@ -223,10 +225,11 @@ export function registerDebugTerminalUI(
 
     const logger = new ProxyLogger();
     const launcher = new TerminalNodeLauncher(
-      new NodeBinaryProvider(logger, fs, noPackageJsonProvider, vscode),
+      new NodeBinaryProvider(logger, services.get(FS), noPackageJsonProvider, vscode),
       logger,
-      fs,
-      pathResolverFactory,
+      services.get(FS),
+      services.get(NodeOnlyPathResolverFactory),
+      services.get(IPortLeaseTracker),
     );
 
     launcher.onTerminalCreated(terminal => {

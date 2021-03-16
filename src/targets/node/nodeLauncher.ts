@@ -5,6 +5,7 @@
 import { inject, injectable, multiInject } from 'inversify';
 import { extname, resolve } from 'path';
 import { IBreakpointsPredictor } from '../../adapter/breakpointPredictor';
+import { IPortLeaseTracker } from '../../adapter/portLeaseTracker';
 import Cdp from '../../cdp/api';
 import { DebugType } from '../../common/contributionUtils';
 import { IFsUtils, LocalFsUtils } from '../../common/fsUtils';
@@ -74,8 +75,9 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
     @inject(IFsUtils) private readonly fsUtils: LocalFsUtils,
     @inject(IPackageJsonProvider) private readonly packageJson: IPackageJsonProvider,
     @inject(ISourcePathResolverFactory) pathResolverFactory: ISourcePathResolverFactory,
+    @inject(IPortLeaseTracker) portLeaseTracker: IPortLeaseTracker,
   ) {
-    super(pathProvider, logger, pathResolverFactory);
+    super(pathProvider, logger, portLeaseTracker, pathResolverFactory);
   }
 
   /**

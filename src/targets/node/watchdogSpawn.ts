@@ -58,6 +58,11 @@ export interface IWatchdogInfo {
   openerId?: string;
 }
 
+export type WatchdogTarget = Cdp.Target.TargetInfo & {
+  processId: number;
+  processInspectorPort: number;
+};
+
 const enum Method {
   AttachToTarget = 'Target.attachToTarget',
   DetachFromTarget = 'Target.detachFromTarget',
@@ -68,7 +73,7 @@ export class WatchDog implements IDisposable {
   private target?: WebSocketTransport;
   private gracefulExit = false;
   private targetAlive = false;
-  private readonly targetInfo: Cdp.Target.TargetInfo & { processId: number } = {
+  private readonly targetInfo: WatchdogTarget = {
     targetId: this.info.ownId ?? createTargetId(),
     processId: Number(this.info.pid) || 0,
     type: this.info.waitForDebugger ? 'waitingForDebugger' : '',
@@ -77,6 +82,7 @@ export class WatchDog implements IDisposable {
     openerId: this.info.openerId,
     attached: true,
     canAccessOpener: false,
+    processInspectorPort: Number(new URL(this.info.inspectorURL).port),
   };
 
   /**

@@ -2,15 +2,15 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { AnyLaunchConfiguration, IExtensionHostLaunchConfiguration } from '../../configuration';
-import { DebugType } from '../../common/contributionUtils';
-import { NodeLauncherBase, IRunData } from './nodeLauncherBase';
 import { existsSync, lstatSync } from 'fs';
-import { findOpenPort } from '../../common/findOpenPort';
-import { StubProgram } from './program';
 import { injectable } from 'inversify';
+import { DebugType } from '../../common/contributionUtils';
+import { findOpenPort } from '../../common/findOpenPort';
+import { AnyLaunchConfiguration, IExtensionHostLaunchConfiguration } from '../../configuration';
 import Dap from '../../dap/api';
 import { VSCodeRendererAttacher } from '../browser/vscodeRendererAttacher';
+import { IRunData, NodeLauncherBase } from './nodeLauncherBase';
+import { StubProgram } from './program';
 
 /**
  * Boots an instance of VS Code for extension debugging. Once this happens,

@@ -99,7 +99,12 @@ export class TerminalLinkHandler
     for (const link of findLink(context.line, 'url')) {
       let start = -1;
       while ((start = context.line.indexOf(link.value, start + 1)) !== -1) {
-        const uri = new URL(link.href);
+        let uri: URL;
+        try {
+          uri = new URL(link.href);
+        } catch {
+          continue;
+        }
 
         // hack for https://github.com/Soapbox/linkifyjs/issues/317
         if (

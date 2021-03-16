@@ -5,6 +5,7 @@
 import { inject, injectable } from 'inversify';
 import * as path from 'path';
 import * as vscode from 'vscode';
+import { IPortLeaseTracker } from '../../adapter/portLeaseTracker';
 import {
   AutoAttachMode,
   Configuration,
@@ -53,8 +54,9 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
     @inject(ExtensionContext) private readonly extensionContext: vscode.ExtensionContext,
     @inject(FS) private readonly fs: FsPromises,
     @inject(ISourcePathResolverFactory) pathResolverFactory: ISourcePathResolverFactory,
+    @inject(IPortLeaseTracker) portLeaseTracker: IPortLeaseTracker,
   ) {
-    super(pathProvider, logger, pathResolverFactory);
+    super(pathProvider, logger, portLeaseTracker, pathResolverFactory);
   }
 
   /**

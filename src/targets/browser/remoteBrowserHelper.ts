@@ -3,8 +3,9 @@
  *--------------------------------------------------------*/
 
 import { inject, injectable } from 'inversify';
-import { AddressInfo, createServer, Server, Socket } from 'net';
+import { AddressInfo, Server, Socket } from 'net';
 import { CancellationToken } from 'vscode';
+import { acquireTrackedServer, IPortLeaseTracker } from '../../adapter/portLeaseTracker';
 import { GzipPipeTransport } from '../../cdp/gzipPipeTransport';
 import { ITransport } from '../../cdp/transport';
 import { timeoutPromise } from '../../common/cancellation';
@@ -27,7 +28,10 @@ export class RemoteBrowserHelper implements IDisposable {
    */
   private teardown = new WeakMap<ITransport, () => void>();
 
-  constructor(@inject(ILogger) private readonly logger: ILogger) {}
+  constructor(
+    @inject(ILogger) private readonly logger: ILogger,
+    @inject(IPortLeaseTracker) private readonly portLeaseTracker: IPortLeaseTracker,
+  ) {}
 
   /**
    * Launches the browser in the companion app, and return the transport.
@@ -42,11 +46,10 @@ export class RemoteBrowserHelper implements IDisposable {
     }
 
     const connection = getDeferred<Socket>();
-    const server = (this.server = await new Promise<Server>((resolve, reject) => {
-      const s = createServer(connection.resolve)
-        .on('error', reject)
-        .listen(0, '127.0.0.1', () => resolve(s));
-    }));
+    const server = (this.server = await acquireTrackedServer(
+      this.portLeaseTracker,
+      connection.resolve,
+    ));
 
     const launchId = ++launchIdCounter;
     dap.launchBrowserInCompanion({

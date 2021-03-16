@@ -1,11 +1,13 @@
 /*---------------------------------------------------------
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
-import { promises as fs } from 'fs';
+import { Container } from 'inversify';
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
+import { IPortLeaseTracker } from '../adapter/portLeaseTracker';
 import { Commands, Configuration, readConfig, registerCommand } from '../common/contributionUtils';
 import { ProxyLogger } from '../common/logging/proxyLogger';
+import { FS } from '../ioc-extras';
 import { DelegateLauncherFactory } from '../targets/delegate/delegateLauncherFactory';
 import {
   AutoAttachLauncher,
@@ -13,7 +15,7 @@ import {
 } from '../targets/node/autoAttachLauncher';
 import { NodeBinaryProvider } from '../targets/node/nodeBinaryProvider';
 import { noPackageJsonProvider } from '../targets/node/packageJsonProvider';
-import { ISourcePathResolverFactory } from '../targets/sourcePathResolverFactory';
+import { NodeOnlyPathResolverFactory } from '../targets/sourcePathResolverFactory';
 import { launchVirtualTerminalParent } from './debugTerminalUI';
 
 const localize = nls.loadMessageBundle();
@@ -21,7 +23,7 @@ const localize = nls.loadMessageBundle();
 export function registerAutoAttach(
   context: vscode.ExtensionContext,
   delegate: DelegateLauncherFactory,
-  pathResolveFactory: ISourcePathResolverFactory,
+  services: Container,
 ) {
   let launcher: Promise<AutoAttachLauncher> | undefined;
   let disposeTimeout: NodeJS.Timeout | undefined;
@@ -35,11 +37,12 @@ export function registerAutoAttach(
       const logger = new ProxyLogger();
       // TODO: Figure out how to inject FsUtils
       const inst = new AutoAttachLauncher(
-        new NodeBinaryProvider(logger, fs, noPackageJsonProvider, vscode),
+        new NodeBinaryProvider(logger, services.get(FS), noPackageJsonProvider, vscode),
         logger,
         context,
-        fs,
-        pathResolveFactory,
+        services.get(FS),
+        services.get(NodeOnlyPathResolverFactory),
+        services.get(IPortLeaseTracker),
       );
 
       await launchVirtualTerminalParent(

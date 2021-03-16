@@ -8,6 +8,7 @@ import * as inspector from 'inspector';
 import match from 'micromatch';
 import * as path from 'path';
 import { AutoAttachMode } from '../../common/contributionUtils';
+import { findOpenPortSync } from '../../common/findOpenPortSync';
 import { knownToolGlob, knownToolToken } from '../../common/knownTools';
 import { LogTag } from '../../common/logging';
 import { BootloaderEnvironment, IAutoAttachInfo, IBootloaderInfo } from './bootloader/environment';
@@ -25,8 +26,14 @@ const telemetry: IProcessTelemetry = {
   architecture: process.arch,
 };
 
+const jsDebugRegisteredToken = '$jsDebugIsRegistered';
+
 (() => {
   try {
+    if (jsDebugRegisteredToken in global) {
+      return;
+    }
+
     const env = new BootloaderEnvironment(process.env);
     const inspectorOptions = env.inspectorOptions;
     bootloaderLogger.info(LogTag.RuntimeLaunch, 'Bootloader imported', {
@@ -34,6 +41,7 @@ const telemetry: IProcessTelemetry = {
       args: process.argv,
     });
 
+    Object.assign(global, { [jsDebugRegisteredToken]: true });
     if (!checkAll(inspectorOptions)) {
       env.unsetForTree(); // save work for any children
       return;
@@ -94,7 +102,7 @@ function inspectOrQueue(env: IBootloaderInfo, ownId: string): boolean {
       return false;
     }
 
-    inspector.open(0, undefined, false); // first call to set the inspector.url()
+    inspector.open(getInspectPort(env), undefined, false); // first call to set the inspector.url()
   }
 
   const info: IAutoAttachInfo = {
@@ -167,6 +175,23 @@ function inspectOrQueue(env: IBootloaderInfo, ownId: string): boolean {
   }
 
   return true;
+}
+
+/**
+ * Returns the port that the inspector should listen on.
+ */
+function getInspectPort(env: IBootloaderInfo) {
+  // Port checking is a little slow (especially on windows), avoid doing
+  // so if port registration is not mandatory
+  if (!env.mandatePortTracking) {
+    return 0;
+  }
+
+  try {
+    return findOpenPortSync({ attempts: 20 });
+  } catch {
+    return 0;
+  }
 }
 
 function shouldForceProcessIntoDebugMode(env: IBootloaderInfo) {
