@@ -1240,6 +1240,11 @@ const commands: ReadonlyArray<{
     title: refString('startWithStopOnEntry.label'),
     category: 'Debug',
   },
+  {
+    command: Commands.RequestCDPProxy,
+    title: refString('requestCDPProxy.label'),
+    category: 'Debug',
+  },
 ];
 
 const menus: Menus = {
@@ -1279,6 +1284,11 @@ const menus: Menus = {
       command: Commands.RevealPage,
       group: 'navigation',
       when: forBrowserDebugType('debugType', `callStackItemType == 'session'`),
+    },
+    {
+      command: Commands.RequestCDPProxy,
+      group: 'navigation',
+      when: forAnyDebugType('debugType', `callStackItemType == 'session'`),
     },
     {
       command: Commands.ToggleSkipping,

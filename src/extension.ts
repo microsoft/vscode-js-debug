@@ -20,6 +20,7 @@ import { toggleOnExperiment } from './ui/experimentEnlist';
 import { PrettyPrintTrackerFactory } from './ui/prettyPrint';
 import { attachProcess, pickProcess } from './ui/processPicker';
 import { registerProfilingCommand } from './ui/profiling';
+import { registerRequestCDPProxy } from './ui/requestCDPProxy';
 import { registerRevealPage } from './ui/revealPage';
 import { TerminalLinkHandler } from './ui/terminalLinkHandler';
 import { toggleSkippingFile } from './ui/toggleSkippingFile';
@@ -43,7 +44,7 @@ export function activate(context: vscode.ExtensionContext) {
     registerCommand(vscode.commands, Commands.PickProcess, pickProcess),
     registerCommand(vscode.commands, Commands.AttachProcess, attachProcess),
     registerCommand(vscode.commands, Commands.ToggleSkipping, toggleSkippingFile),
-    registerCommand(vscode.commands, Commands.EnlistExperiment, toggleOnExperiment),
+    registerCommand(vscode.commands, Commands.EnlistExperiment, toggleOnExperiment)
   );
 
   context.subscriptions.push(
@@ -95,6 +96,7 @@ export function activate(context: vscode.ExtensionContext) {
   registerProfilingCommand(context, services);
   registerAutoAttach(context, services.get(DelegateLauncherFactory), services);
   registerRevealPage(context, debugSessionTracker);
+  registerRequestCDPProxy(context, debugSessionTracker);
   services.getAll<IExtensionContribution>(IExtensionContribution).forEach(c => c.register(context));
 }
 

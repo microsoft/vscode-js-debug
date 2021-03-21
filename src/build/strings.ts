@@ -308,6 +308,7 @@ A common case to disable certificate verification can be done by passing \`{ "ht
   'debugLink.label': 'Open Link',
   'createDiagnostics.label': 'Diagnose Breakpoint Problems',
   'startWithStopOnEntry.label': 'Start Debugging and Stop on Entry',
+  'requestCDPProxy.label': 'Request CDP Proxy for Debug Session',
 };
 
 export default strings;
