@@ -1024,9 +1024,16 @@ export namespace Dap {
     createDiagnosticsRequest(params: CreateDiagnosticsParams): Promise<CreateDiagnosticsResult>;
 
     /**
-     * Shows a prompt to the user suggesting they use the diagnostic tool if breakpoints don't bind.
+     * Request WebSocket connection information on a proxy for this debug sessions CDP connection.
      */
-    suggestDiagnosticTool(params: SuggestDiagnosticToolEventParams): void;
+    on(
+      request: 'requestCDPProxy',
+      handler: (params: RequestCDPProxyParams) => Promise<RequestCDPProxyResult | Error>,
+    ): () => void;
+    /**
+     * Request WebSocket connection information on a proxy for this debug sessions CDP connection.
+     */
+    requestCDPProxyRequest(params: RequestCDPProxyParams): Promise<RequestCDPProxyResult>;
   }
 
   export interface TestApi {
@@ -1699,20 +1706,9 @@ export namespace Dap {
     createDiagnostics(params: CreateDiagnosticsParams): Promise<CreateDiagnosticsResult>;
 
     /**
-     * Shows a prompt to the user suggesting they use the diagnostic tool if breakpoints don't bind.
+     * Request WebSocket connection information on a proxy for this debug sessions CDP connection.
      */
-    on(
-      request: 'suggestDiagnosticTool',
-      handler: (params: SuggestDiagnosticToolEventParams) => void,
-    ): void;
-    off(
-      request: 'suggestDiagnosticTool',
-      handler: (params: SuggestDiagnosticToolEventParams) => void,
-    ): void;
-    once(
-      request: 'suggestDiagnosticTool',
-      filter?: (event: SuggestDiagnosticToolEventParams) => boolean,
-    ): Promise<SuggestDiagnosticToolEventParams>;
+    requestCDPProxy(params: RequestCDPProxyParams): Promise<RequestCDPProxyResult>;
   }
 
   export interface AttachParams {
@@ -2799,6 +2795,20 @@ export namespace Dap {
     doesExists: boolean;
   }
 
+  export interface RequestCDPProxyParams {}
+
+  export interface RequestCDPProxyResult {
+    /**
+     * Name of the host, on which the CDP proxy is available through a WebSocket.
+     */
+    host?: string;
+
+    /**
+     * Port on the host, under which the CDP proxy is available through a WebSocket.
+     */
+    port?: number;
+  }
+
   export interface RestartFrameParams {
     /**
      * Restart this stackframe.
@@ -3310,8 +3320,6 @@ export namespace Dap {
      */
     hitBreakpointIds?: integer[];
   }
-
-  export interface SuggestDiagnosticToolEventParams {}
 
   export interface SuggestDisableSourcemapEventParams {
     /**
