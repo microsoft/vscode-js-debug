@@ -284,7 +284,7 @@ export const createGlobalContainer = (options: {
   container.bind(StoragePath).toConstantValue(options.storagePath);
   container.bind(IsVSCode).toConstantValue(options.isVsCode);
   container.bind(INvmResolver).to(NvmResolver);
-  container.bind(IPortLeaseTracker).to(PortLeaseTracker);
+  container.bind(IPortLeaseTracker).to(PortLeaseTracker).inSingletonScope();
   container.bind(ProcessEnv).toConstantValue(process.env);
   container.bind(Execa).toConstantValue(execa);
   container.bind(FS).toConstantValue(fsPromises);
