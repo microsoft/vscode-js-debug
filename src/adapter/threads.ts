@@ -789,7 +789,7 @@ export class Thread implements IVariableStoreDelegate {
   public rawLocationToUiLocation(
     rawLocation: RawLocation,
   ): Promise<IPreferredUiLocation | undefined> | IPreferredUiLocation | undefined {
-    if (!rawLocation.scriptId) {
+    if (!rawLocation.scriptId || this._executionContexts.size === 0) {
       return undefined;
     }
 
