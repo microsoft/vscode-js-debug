@@ -18,9 +18,12 @@ import { ExtensionLocation } from '../ioc-extras';
 export const acquireTrackedServer = async (
   tracker: IPortLeaseTracker,
   onSocket: (s: net.Socket) => void,
+  overridePort?: number,
   ct?: CancellationToken,
 ) => {
-  const server = await findOpenPort({ tester: makeAcquireTcpServer(onSocket) }, ct);
+  const server = overridePort
+    ? net.createServer(onSocket).listen(overridePort)
+    : await findOpenPort({ tester: makeAcquireTcpServer(onSocket) }, ct);
   const dispose = tracker.register((server.address() as net.AddressInfo).port);
   server.on('close', () => dispose.dispose());
   server.on('error', () => dispose.dispose());

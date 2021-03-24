@@ -3,25 +3,24 @@
  *--------------------------------------------------------*/
 
 require('source-map-support').install(); // Enable TypeScript stack traces translation
-import 'reflect-metadata';
-
+import * as fs from 'fs';
 /**
  * This script launches vscode-js-debug in server mode for Visual Studio
  */
 import * as net from 'net';
-import * as fs from 'fs';
-import * as path from 'path';
 import * as os from 'os';
-import { createGlobalContainer } from './ioc';
-import { IDebugSessionLike, ISessionLauncher, Session } from './sessionManager';
-import { getDeferred, IDeferred } from './common/promiseUtil';
-import DapConnection from './dap/connection';
-import { IPseudoAttachConfiguration } from './configuration';
-import { DebugConfiguration } from 'vscode';
-import { ServerSessionManager } from './serverSessionManager';
-import { ITarget } from './targets/targets';
+import * as path from 'path';
+import 'reflect-metadata';
 import { Readable, Writable } from 'stream';
+import { DebugConfiguration } from 'vscode';
 import * as nls from 'vscode-nls';
+import { getDeferred, IDeferred } from './common/promiseUtil';
+import { IPseudoAttachConfiguration } from './configuration';
+import DapConnection from './dap/connection';
+import { createGlobalContainer } from './ioc';
+import { ServerSessionManager } from './serverSessionManager';
+import { IDebugSessionLike, ISessionLauncher, Session } from './sessionManager';
+import { ITarget } from './targets/targets';
 
 const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-js-debug-'));
 
@@ -87,8 +86,8 @@ class VsDebugServer implements ISessionLauncher<VSDebugSession> {
     deferredConnection.resolve(newSession.connection);
   }
 
-  launchRoot(deferredConnection: IDeferred<DapConnection>, session: VSDebugSession) {
-    const result = this.sessionServer.createRootDebugServer(session, debugServerPort);
+  async launchRoot(deferredConnection: IDeferred<DapConnection>, session: VSDebugSession) {
+    const result = await this.sessionServer.createRootDebugServer(session, debugServerPort);
     result.connectionPromise.then(x => deferredConnection.resolve(x));
     console.log((result.server.address() as net.AddressInfo).port.toString());
   }
@@ -106,20 +105,20 @@ class VsDebugServer implements ISessionLauncher<VSDebugSession> {
       deferredConnection.promise,
       childAttachConfig,
     );
-    const result = this.sessionServer.createChildDebugServer(session);
-    result.connectionPromise.then(x => deferredConnection.resolve(x));
-    childAttachConfig[
-      '__jsDebugChildServer'
-    ] = (result.server.address() as net.AddressInfo).port.toString();
 
-    // Custom message currently not part of DAP
-    parentSession.connection._send({
-      seq: 0,
-      command: 'attachedChildSession',
-      type: 'request',
-      arguments: {
-        config: childAttachConfig,
-      },
+    this.sessionServer.createChildDebugServer(session).then(({ server, connectionPromise }) => {
+      connectionPromise.then(x => deferredConnection.resolve(x));
+      childAttachConfig.__jsDebugChildServer = (server.address() as net.AddressInfo).port.toString();
+
+      // Custom message currently not part of DAP
+      parentSession.connection._send({
+        seq: 0,
+        command: 'attachedChildSession',
+        type: 'request',
+        arguments: {
+          config: childAttachConfig,
+        },
+      });
     });
   }
 }

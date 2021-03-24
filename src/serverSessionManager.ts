@@ -2,15 +2,16 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { SessionManager, ISessionLauncher, IDebugSessionLike, Session } from './sessionManager';
-import { IDisposable } from './common/disposable';
-import * as net from 'net';
 import { Container } from 'inversify';
-import { StreamDapTransport, IDapTransport } from './dap/transport';
-import { IPseudoAttachConfiguration } from './configuration';
-import { getDeferred, IDeferred } from './common/promiseUtil';
-import DapConnection from './dap/connection';
+import * as net from 'net';
 import { Readable, Writable } from 'stream';
+import { acquireTrackedServer, IPortLeaseTracker } from './adapter/portLeaseTracker';
+import { IDisposable } from './common/disposable';
+import { getDeferred, IDeferred } from './common/promiseUtil';
+import { IPseudoAttachConfiguration } from './configuration';
+import DapConnection from './dap/connection';
+import { IDapTransport, StreamDapTransport } from './dap/transport';
+import { IDebugSessionLike, ISessionLauncher, Session, SessionManager } from './sessionManager';
 
 interface IDebugServerCreateResult {
   server: net.Server;
@@ -22,11 +23,13 @@ interface IDebugServerCreateResult {
  */
 export class ServerSessionManager<T extends IDebugSessionLike> {
   private readonly sessionManager: SessionManager<T>;
+  private readonly portLeaseTracker: IPortLeaseTracker;
   private disposables: IDisposable[] = [];
   private servers = new Map<string, net.Server>();
 
   constructor(globalContainer: Container, sessionLauncher: ISessionLauncher<T>) {
     this.sessionManager = new SessionManager(globalContainer, sessionLauncher);
+    this.portLeaseTracker = globalContainer.get(IPortLeaseTracker);
     this.disposables.push(this.sessionManager);
   }
 
@@ -51,7 +54,7 @@ export class ServerSessionManager<T extends IDebugSessionLike> {
   public createRootDebugServer(
     debugSession: T,
     debugServerPort?: number,
-  ): IDebugServerCreateResult {
+  ): Promise<IDebugServerCreateResult> {
     return this.innerCreateServer(
       debugSession,
       transport => this.sessionManager.createNewRootSession(debugSession, transport),
@@ -79,7 +82,7 @@ export class ServerSessionManager<T extends IDebugSessionLike> {
    * @param debugSession The IDE-specific debug session
    * @returns The newly created debug server and a promise which resolves to the DapConnection associated with the session
    */
-  public createChildDebugServer(debugSession: T): IDebugServerCreateResult {
+  public createChildDebugServer(debugSession: T): Promise<IDebugServerCreateResult> {
     return this.innerCreateServer(debugSession, transport =>
       this.sessionManager.createNewChildSession(
         debugSession,
@@ -89,21 +92,23 @@ export class ServerSessionManager<T extends IDebugSessionLike> {
     );
   }
 
-  private innerCreateServer(
+  private async innerCreateServer(
     debugSession: T,
     sessionCreationFunc: (transport: IDapTransport) => Session<T>,
-    debugServerPort?: number,
-  ): IDebugServerCreateResult {
+    port?: number,
+  ): Promise<IDebugServerCreateResult> {
     const deferredConnection: IDeferred<DapConnection> = getDeferred();
-    const debugServer = net.createServer(socket => {
-      const transport = new StreamDapTransport(socket, socket);
-      const session = sessionCreationFunc(transport);
-      deferredConnection.resolve(session.connection);
-    });
-    debugServer.on('error', deferredConnection.reject);
-    debugServer.listen(debugServerPort || 0);
-    this.servers.set(debugSession.id, debugServer);
+    const debugServer = await acquireTrackedServer(
+      this.portLeaseTracker,
+      socket => {
+        const transport = new StreamDapTransport(socket, socket);
+        const session = sessionCreationFunc(transport);
+        deferredConnection.resolve(session.connection);
+      },
+      port,
+    );
 
+    this.servers.set(debugSession.id, debugServer);
     return { server: debugServer, connectionPromise: deferredConnection.promise };
   }
 
