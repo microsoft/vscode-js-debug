@@ -2,6 +2,10 @@
 
 This changelog records changes to stable releases since 1.50.2. "TBA" changes here may be available in the [nightly release](https://github.com/microsoft/vscode-js-debug/#nightly-extension) before they're in stable. Note that the minor version (`v1.X.0`) corresponds to the VS Code version js-debug is shipped in, but the patch version (`v1.50.X`) is not meaningful.
 
+## TBA
+
+- chore: update wording on debug terminal label to match new profiles
+
 ## v1.55.1 - 2021-03-24
 
 - fix: sessions hanging if exception is thrown immediately before or during shutdown
