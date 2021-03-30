@@ -3,17 +3,17 @@
  *--------------------------------------------------------*/
 
 import { expect } from 'chai';
+import { promises as fsPromises } from 'fs';
 import { join } from 'path';
 import { SinonStub, stub } from 'sinon';
 import * as vscode from 'vscode';
 import { DebugType } from '../../common/contributionUtils';
 import { EnvironmentVars } from '../../common/environmentVars';
+import { LocalFsUtils } from '../../common/fsUtils';
 import { INodeLaunchConfiguration } from '../../configuration';
 import { NodeConfigurationResolver } from '../../ui/configuration/nodeDebugConfigurationResolver';
-import { testFixturesDir } from '../test';
 import { createFileTree } from '../createFileTree';
-import { LocalFsUtils } from '../../common/fsUtils';
-import { promises as fsPromises } from 'fs';
+import { testFixturesDir } from '../test';
 
 describe('NodeDebugConfigurationProvider', () => {
   let provider: NodeConfigurationResolver;
@@ -214,7 +214,7 @@ describe('NodeDebugConfigurationProvider', () => {
       runtimeExecutable: 'node64',
       env: {
         hello: 'world',
-        PATH: '/usr/bin:/my/node/location',
+        PATH: '/my/node/location:/usr/bin',
       },
     });
   });

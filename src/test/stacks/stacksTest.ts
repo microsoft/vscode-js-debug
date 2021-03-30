@@ -251,6 +251,7 @@ describe('stacks', () => {
       const event = await p.dap.once('stopped');
       await delay(200); // need to pause test to let debouncer update scripts
       await p.logger.logStackTrace(event.threadId!, scopes);
+      return event;
     }
 
     itIntegrates('single authored js', async ({ r }) => {
@@ -275,15 +276,25 @@ describe('stacks', () => {
       p.assertLog();
     });
 
-    itIntegrates('multiple authored ts to js', async ({ r }) => {
-      const p = await r.launchUrl('browserify/pause.html', { skipFiles: ['**/module*.ts'] });
-      await delay(500); // need to pause test to let debouncer update scripts
-      const source: Dap.Source = {
-        path: p.workspacePath('web/browserify/module1.ts'),
-      };
-      await p.dap.setBreakpoints({ source, breakpoints: [{ line: 3, column: 0 }] });
-      p.load();
-      await waitForPausedThenDelayStackTrace(p, false);
+    itIntegrates.only('multiple authored ts to js', async ({ r }) => {
+      const p = await r.launchUrlAndLoad('browserify/browserify.html', {
+        skipFiles: ['**/module*.ts'],
+      });
+      const evaluate = p.dap.evaluate({
+        expression: 'window.callBack(() => { debugger });\nconsole.log("out");',
+      });
+
+      p.logger.logAsConsole('# at debugger:\n');
+      const s1 = await waitForPausedThenDelayStackTrace(p, false);
+      await p.dap.next({ threadId: s1.threadId! });
+
+      p.logger.logAsConsole('# after debugger:\n');
+      const s2 = await waitForPausedThenDelayStackTrace(p, false);
+      await p.dap.next({ threadId: s2.threadId! });
+
+      p.logger.logAsConsole('# should have stepped out:\n');
+      await waitForPause(p);
+      await evaluate;
       p.assertLog();
     });
 

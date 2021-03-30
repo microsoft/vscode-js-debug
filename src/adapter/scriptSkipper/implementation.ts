@@ -243,7 +243,6 @@ export class ScriptSkipper {
     scriptIds = source.scriptIds(),
   ): boolean {
     const map = source instanceof SourceFromMap ? this._isAuthoredUrlSkipped : this._isUrlSkipped;
-
     const url = source.url;
     if (!map.has(this._normalizeUrl(url))) {
       if (this._isNodeInternal(url, nodeInternals)) {
@@ -253,32 +252,29 @@ export class ScriptSkipper {
       } else {
         map.set(url, this._testSkipNonNodeInternal(url));
       }
-
-      let hasSkip = this.isScriptSkipped(url);
-      if (hasSkip) {
-        if (isSourceWithMap(source)) {
-          // if compiled and skipped, also skip authored sources
-          const authoredSources = Array.from(source.sourceMap.sourceByUrl.values());
-          authoredSources.forEach(authoredSource => {
-            this._isAuthoredUrlSkipped.set(authoredSource.url, true);
-          });
-        }
-      }
-
-      if (isSourceWithMap(source)) {
-        for (const nestedSource of source.sourceMap.sourceByUrl.values()) {
-          hasSkip =
-            this._initializeSkippingValueForSource(nestedSource, nodeInternals, scriptIds) ||
-            hasSkip;
-        }
-
-        this._updateSourceWithSkippedSourceMappedSources(source, scriptIds);
-      }
-
-      return hasSkip;
     }
 
-    return false;
+    let hasSkip = this.isScriptSkipped(url);
+    if (hasSkip) {
+      if (isSourceWithMap(source)) {
+        // if compiled and skipped, also skip authored sources
+        const authoredSources = Array.from(source.sourceMap.sourceByUrl.values());
+        authoredSources.forEach(authoredSource => {
+          this._isAuthoredUrlSkipped.set(authoredSource.url, true);
+        });
+      }
+    }
+
+    if (isSourceWithMap(source)) {
+      for (const nestedSource of source.sourceMap.sourceByUrl.values()) {
+        hasSkip =
+          this._initializeSkippingValueForSource(nestedSource, nodeInternals, scriptIds) || hasSkip;
+      }
+
+      this._updateSourceWithSkippedSourceMappedSources(source, scriptIds);
+    }
+
+    return hasSkip;
   }
 
   private async _initNodeInternals(target: ITarget): Promise<void> {
