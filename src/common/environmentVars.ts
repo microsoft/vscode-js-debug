@@ -75,12 +75,20 @@ export class EnvironmentVars {
   /**
    * Adds the given location to the environment PATH.
    */
-  public addToPath(location: string, prependOrAppend: 'prepend' | 'append' = 'append') {
+  public addToPath(
+    location: string,
+    prependOrAppend: 'prepend' | 'append' = 'append',
+    includePlaceholder = false,
+  ) {
     const prop = EnvironmentVars.platform === 'win32' ? 'Path' : 'PATH';
     const delimiter =
       EnvironmentVars.platform === 'win32' ? path.win32.delimiter : path.posix.delimiter;
 
     let value = this.lookup(prop);
+    if (includePlaceholder && !value) {
+      value = `\${env:${prop}}`;
+    }
+
     if (!value) {
       value = location;
     } else if (prependOrAppend === 'append') {

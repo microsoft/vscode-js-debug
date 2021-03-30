@@ -110,7 +110,7 @@ export class NodeConfigurationResolver extends BaseConfigurationResolver<AnyNode
       const nvmVersion = config.runtimeVersion;
       if (typeof nvmVersion === 'string' && nvmVersion !== 'default') {
         const { directory, binary } = await this.nvmResolver.resolveNvmVersionPath(nvmVersion);
-        config.env = new EnvironmentVars(config.env).addToPath(directory).value;
+        config.env = new EnvironmentVars(config.env).addToPath(directory, 'prepend', true).value;
         config.runtimeExecutable =
           !config.runtimeExecutable || config.runtimeExecutable === 'node'
             ? binary
