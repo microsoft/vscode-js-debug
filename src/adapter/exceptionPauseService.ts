@@ -65,6 +65,7 @@ export class ExceptionPauseService implements IExceptionPauseService {
   private state: PauseOnExceptions = { cdp: PauseOnExceptionsState.None };
   private cdp?: Cdp.Api;
   private breakOnError: boolean;
+  private noDebug: boolean;
   private blocker = getDeferred<void>();
 
   public get launchBlocker() {
@@ -77,6 +78,7 @@ export class ExceptionPauseService implements IExceptionPauseService {
     @inject(IDapApi) private readonly dap: Dap.Api,
     @inject(AnyLaunchConfiguration) launchConfig: AnyLaunchConfiguration,
   ) {
+    this.noDebug = !!launchConfig.noDebug;
     this.breakOnError = launchConfig.__breakOnConditionalError;
     this.blocker.resolve();
   }
@@ -85,6 +87,10 @@ export class ExceptionPauseService implements IExceptionPauseService {
    * @inheritdoc
    */
   public async setBreakpoints(params: Dap.SetExceptionBreakpointsParams) {
+    if (this.noDebug) {
+      return;
+    }
+
     try {
       this.state = this.parseBreakpointRequest(params);
     } catch (e) {
