@@ -19,12 +19,7 @@ import { fixInspectFlags } from '../../ui/configurationUtils';
 import { retryGetWSEndpoint } from '../browser/spawn/endpoints';
 import { ISourcePathResolverFactory } from '../sourcePathResolverFactory';
 import { CallbackFile } from './callback-file';
-import {
-  getRunScript,
-  hideDebugInfoFromConsole,
-  INodeBinaryProvider,
-  NodeBinaryProvider,
-} from './nodeBinaryProvider';
+import { getRunScript, hideDebugInfoFromConsole, INodeBinaryProvider } from './nodeBinaryProvider';
 import { IProcessTelemetry, IRunData, NodeLauncherBase } from './nodeLauncherBase';
 import { INodeTargetLifecycleHooks } from './nodeTarget';
 import { IPackageJsonProvider } from './packageJsonProvider';
@@ -67,7 +62,7 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
   private attachSimplePort?: number;
 
   constructor(
-    @inject(INodeBinaryProvider) pathProvider: NodeBinaryProvider,
+    @inject(INodeBinaryProvider) pathProvider: INodeBinaryProvider,
     @inject(ILogger) logger: ILogger,
     @inject(IBreakpointsPredictor) private readonly bpPredictor: IBreakpointsPredictor,
     @multiInject(IProgramLauncher) private readonly launchers: ReadonlyArray<IProgramLauncher>,

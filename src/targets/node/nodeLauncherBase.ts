@@ -37,12 +37,7 @@ import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
 import { ISourcePathResolverFactory } from '../sourcePathResolverFactory';
 import { IBootloaderEnvironment, IBootloaderInfo } from './bootloader/environment';
 import { bootloaderDefaultPath } from './bundlePaths';
-import {
-  Capability,
-  INodeBinaryProvider,
-  NodeBinary,
-  NodeBinaryProvider,
-} from './nodeBinaryProvider';
+import { Capability, INodeBinaryProvider, NodeBinary } from './nodeBinaryProvider';
 import { NodeSourcePathResolver } from './nodeSourcePathResolver';
 import { INodeTargetLifecycleHooks, NodeTarget } from './nodeTarget';
 import { NodeWorkerTarget } from './nodeWorkerTarget';
@@ -133,7 +128,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
   private bootloaderFile = once(this.getBootloaderFile.bind(this));
 
   constructor(
-    @inject(INodeBinaryProvider) private readonly pathProvider: NodeBinaryProvider,
+    @inject(INodeBinaryProvider) private readonly pathProvider: INodeBinaryProvider,
     @inject(ILogger) protected readonly logger: ILogger,
     @inject(IPortLeaseTracker) protected readonly portLeaseTracker: IPortLeaseTracker,
     @inject(ISourcePathResolverFactory)

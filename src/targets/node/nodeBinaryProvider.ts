@@ -136,6 +136,22 @@ const electronNodeVersion = new Map<number, Semver>([
   [1, new Semver(8, 0, 0)], // 7 earlier, but that will throw an error -- at least try
 ]);
 
+export interface INodeBinaryProvider {
+  /**
+   * Validates the path and returns an absolute path to the Node binary to run.
+   * @param env The environment variables to use to resolve the node binary.
+   * @param executable An explicit executable path to resolve, will bypass
+   * path-based detection if given.
+   * @param explicitVersion An explicit Node.js version to use, will bypass
+   * version checking on the binary ig given.
+   */
+  resolveAndValidate(
+    env: EnvironmentVars,
+    executable?: string,
+    explicitVersion?: number,
+  ): Promise<NodeBinary>;
+}
+
 /**
  * Utility that resolves a path to Node.js and validates
  * it's a debuggable version./
@@ -153,7 +169,6 @@ export class NodeBinaryProvider {
     @inject(ILogger) private readonly logger: ILogger,
     @inject(FS) private readonly fs: FsPromises,
     @inject(IPackageJsonProvider) private readonly packageJson: IPackageJsonProvider,
-    @optional() @inject(VSCodeApi) private readonly vscode: typeof vscodeType | undefined,
   ) {}
 
   /**
@@ -164,10 +179,6 @@ export class NodeBinaryProvider {
     executable = 'node',
     explicitVersion?: number,
   ): Promise<NodeBinary> {
-    if (!this.vscode) {
-      return this.resolveAndValidateInner(env, executable, explicitVersion);
-    }
-
     try {
       return await this.resolveAndValidateInner(env, executable, explicitVersion);
     } catch (e) {
@@ -175,17 +186,20 @@ export class NodeBinaryProvider {
         throw e;
       }
 
-      const yes = localize('yes', 'Yes');
-      const response = await this.vscode.window.showErrorMessage(
-        localize('outOfDate', '{0} Would you like to try debugging anyway?', e.message),
-        yes,
-      );
-      if (response !== yes) {
-        throw e;
+      if (await this.shouldTryDebuggingAnyway(e)) {
+        return new NodeBinary(e.location, e.version instanceof Semver ? e.version : undefined);
       }
 
-      return new NodeBinary(e.location, e.version instanceof Semver ? e.version : undefined);
+      throw e;
     }
+  }
+
+  /**
+   * Gets whether we should continue to try to debug even if we saw an outdated
+   * Node.js version.
+   */
+  protected shouldTryDebuggingAnyway(_outatedReason: NodeBinaryOutOfDateError) {
+    return Promise.resolve(false);
   }
 
   private async resolveAndValidateInner(
@@ -295,5 +309,33 @@ export class NodeBinaryProvider {
         ),
       );
     }
+  }
+}
+
+export class InteractiveNodeBinaryProvider extends NodeBinaryProvider {
+  constructor(
+    @inject(ILogger) logger: ILogger,
+    @inject(FS) fs: FsPromises,
+    @inject(IPackageJsonProvider) packageJson: IPackageJsonProvider,
+    @optional() @inject(VSCodeApi) private readonly vscode: typeof vscodeType | undefined,
+  ) {
+    super(logger, fs, packageJson);
+  }
+
+  /**
+   * @override
+   */
+  protected async shouldTryDebuggingAnyway({ message }: NodeBinaryOutOfDateError) {
+    if (!this.vscode) {
+      return false;
+    }
+
+    const yes = localize('yes', 'Yes');
+    const response = await this.vscode.window.showErrorMessage(
+      localize('outOfDate', '{0} Would you like to try debugging anyway?', message),
+      yes,
+    );
+
+    return response === yes;
   }
 }

@@ -36,7 +36,7 @@ describe('NodeBinaryProvider', function () {
       getPath: () => Promise.resolve(undefined),
       getContents: () => Promise.resolve(undefined),
     };
-    p = new NodeBinaryProvider(Logger.null, fsPromises, packageJson, undefined);
+    p = new NodeBinaryProvider(Logger.null, fsPromises, packageJson);
   });
 
   it('rejects not found', async () => {

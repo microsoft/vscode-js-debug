@@ -7,6 +7,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: runtimeVersion overwriting default PATH ([ref](https://github.com/microsoft/vscode/issues/120140))
 - fix: skipFiles not skipping ranges in sourcemapped scripts ([ref](https://github.com/microsoft/vscode/issues/118282))
 - chore: update wording on debug terminal label to match new profiles
+- fix: 'node version is outdated' incorrectly showing with auto attach ([#957](https://github.com/microsoft/vscode-js-debug/issues/957))
 
 ## v1.55.1 - 2021-03-24
 

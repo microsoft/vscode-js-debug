@@ -19,7 +19,7 @@ import { IStopMetadata } from '../targets';
 import { LeaseFile } from './lease-file';
 import { NodeAttacherBase } from './nodeAttacherBase';
 import { watchAllChildren } from './nodeAttacherCluster';
-import { INodeBinaryProvider, NodeBinary, NodeBinaryProvider } from './nodeBinaryProvider';
+import { INodeBinaryProvider, NodeBinary } from './nodeBinaryProvider';
 import { IRunData } from './nodeLauncherBase';
 import { IProgram, StubProgram, WatchDogProgram } from './program';
 import { IRestartPolicy, RestartPolicyFactory } from './restartPolicy';
@@ -37,7 +37,7 @@ const localize = nls.loadMessageBundle();
 @injectable()
 export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
   constructor(
-    @inject(INodeBinaryProvider) pathProvider: NodeBinaryProvider,
+    @inject(INodeBinaryProvider) pathProvider: INodeBinaryProvider,
     @inject(ILogger) logger: ILogger,
     @inject(ISourcePathResolverFactory) pathResolverFactory: ISourcePathResolverFactory,
     @inject(IPortLeaseTracker) portLeaseTracker: IPortLeaseTracker,

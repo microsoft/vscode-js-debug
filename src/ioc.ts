@@ -82,7 +82,10 @@ import { DelegateLauncherFactory } from './targets/delegate/delegateLauncherFact
 import { ExtensionHostAttacher } from './targets/node/extensionHostAttacher';
 import { ExtensionHostLauncher } from './targets/node/extensionHostLauncher';
 import { NodeAttacher } from './targets/node/nodeAttacher';
-import { INodeBinaryProvider, NodeBinaryProvider } from './targets/node/nodeBinaryProvider';
+import {
+  INodeBinaryProvider,
+  InteractiveNodeBinaryProvider,
+} from './targets/node/nodeBinaryProvider';
 import { NodeLauncher } from './targets/node/nodeLauncher';
 import { INvmResolver, NvmResolver } from './targets/node/nvmResolver';
 import { IPackageJsonProvider, PackageJsonProvider } from './targets/node/packageJsonProvider';
@@ -207,7 +210,7 @@ export const createTopLevelSessionContainer = (parent: Container) => {
     .toDynamicValue(ctx => CodeSearchStrategy.createOrFallback(ctx.container.get<ILogger>(ILogger)))
     .inSingletonScope();
 
-  container.bind(INodeBinaryProvider).to(NodeBinaryProvider);
+  container.bind(INodeBinaryProvider).to(InteractiveNodeBinaryProvider);
   container.bind(RemoteBrowserHelper).toSelf().inSingletonScope().onActivation(trackDispose);
 
   // Launcher logic:

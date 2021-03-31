@@ -27,12 +27,7 @@ import {
   variableDelimiter,
 } from './bootloader/environment';
 import { bootloaderDefaultPath, watchdogPath } from './bundlePaths';
-import {
-  Capability,
-  INodeBinaryProvider,
-  NodeBinary,
-  NodeBinaryProvider,
-} from './nodeBinaryProvider';
+import { Capability, INodeBinaryProvider, NodeBinary } from './nodeBinaryProvider';
 import { IProcessTelemetry, IRunData, NodeLauncherBase } from './nodeLauncherBase';
 import { NodeTarget } from './nodeTarget';
 import { StubProgram } from './program';
@@ -49,7 +44,7 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
   private telemetryItems = new Map<number, IProcessTelemetry>();
 
   constructor(
-    @inject(INodeBinaryProvider) pathProvider: NodeBinaryProvider,
+    @inject(INodeBinaryProvider) pathProvider: INodeBinaryProvider,
     @inject(ILogger) logger: ILogger,
     @inject(ExtensionContext) private readonly extensionContext: vscode.ExtensionContext,
     @inject(FS) private readonly fs: FsPromises,

@@ -17,12 +17,7 @@ import { ProtocolError } from '../../dap/protocolError';
 import { FS, FsPromises } from '../../ioc-extras';
 import { ISourcePathResolverFactory } from '../sourcePathResolverFactory';
 import { IStopMetadata, ITarget } from '../targets';
-import {
-  hideDebugInfoFromConsole,
-  INodeBinaryProvider,
-  NodeBinary,
-  NodeBinaryProvider,
-} from './nodeBinaryProvider';
+import { hideDebugInfoFromConsole, INodeBinaryProvider, NodeBinary } from './nodeBinaryProvider';
 import { IProcessTelemetry, IRunData, NodeLauncherBase } from './nodeLauncherBase';
 import { IProgram } from './program';
 
@@ -76,7 +71,7 @@ export class TerminalNodeLauncher extends NodeLauncherBase<ITerminalLaunchConfig
   public readonly onTerminalCreated = this.terminalCreatedEmitter.event;
 
   constructor(
-    @inject(INodeBinaryProvider) pathProvider: NodeBinaryProvider,
+    @inject(INodeBinaryProvider) pathProvider: INodeBinaryProvider,
     @inject(ILogger) logger: ILogger,
     @inject(FS) private readonly fs: FsPromises,
     @inject(ISourcePathResolverFactory) pathResolverFactory: ISourcePathResolverFactory,
