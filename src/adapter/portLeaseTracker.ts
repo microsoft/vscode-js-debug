@@ -22,7 +22,7 @@ export const acquireTrackedServer = async (
   ct?: CancellationToken,
 ) => {
   const server = overridePort
-    ? net.createServer(onSocket).listen(overridePort)
+    ? net.createServer(onSocket).listen(overridePort, '127.0.0.1')
     : await findOpenPort({ tester: makeAcquireTcpServer(onSocket) }, ct);
   const dispose = tracker.register((server.address() as net.AddressInfo).port);
   server.on('close', () => dispose.dispose());
