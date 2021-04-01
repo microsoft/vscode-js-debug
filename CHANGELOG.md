@@ -9,6 +9,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - chore: update wording on debug terminal label to match new profiles
 - fix: 'node version is outdated' incorrectly showing with auto attach ([#957](https://github.com/microsoft/vscode-js-debug/issues/957))
 - fix: programs not terminating in 'run without debugging' with break on exception ([ref](https://github.com/microsoft/vscode/issues/119340))
+- fix: browser debugging when using a WSL remote ([ref](https://github.com/microsoft/vscode/issues/120227))
 
 ## v1.55.1 - 2021-03-24
 

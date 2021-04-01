@@ -102,7 +102,7 @@ export const makeAcquireTcpServer = (onSocket: (socket: Socket) => void): PortTe
   let disposable: IDisposable | undefined;
   return new Promise<Server>((resolve, reject) => {
     const server = createServer(onSocket);
-    server.listen(port);
+    server.listen(port, '127.0.0.1');
     server.on('error', reject);
     server.on('listening', () => resolve(server));
 
