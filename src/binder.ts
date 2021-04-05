@@ -8,6 +8,7 @@ import { CancellationToken } from 'vscode';
 import * as nls from 'vscode-nls';
 import { getAsyncStackPolicy, IAsyncStackPolicy } from './adapter/asyncStackPolicy';
 import { DebugAdapter } from './adapter/debugAdapter';
+import { DiagnosticToolSuggester } from './adapter/diagnosticToolSuggester';
 import { SelfProfile } from './adapter/selfProfile';
 import { Thread } from './adapter/threads';
 import { CancellationTokenSource } from './common/cancellation';
@@ -99,6 +100,10 @@ export class Binder implements IDisposable {
       });
       dap.on('setExceptionBreakpoints', async () => ({}));
       dap.on('setBreakpoints', async params => {
+        if (params.breakpoints?.length) {
+          _rootServices.get(DiagnosticToolSuggester).notifyHadBreakpoint();
+        }
+
         return {
           breakpoints:
             params.breakpoints?.map(() => ({

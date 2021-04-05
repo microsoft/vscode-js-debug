@@ -27,6 +27,7 @@ import { Completions, ICompletions } from './adapter/completions';
 import { IConsole } from './adapter/console';
 import { Console } from './adapter/console/console';
 import { Diagnostics } from './adapter/diagnosics';
+import { DiagnosticToolSuggester } from './adapter/diagnosticToolSuggester';
 import { Evaluator, IEvaluator } from './adapter/evaluator';
 import { ExceptionPauseService, IExceptionPauseService } from './adapter/exceptionPauseService';
 import { IPerformanceProvider, PerformanceProviderFactory } from './adapter/performance';
@@ -336,6 +337,8 @@ export const provideLaunchParams = (
     .to(CachingSourceMapFactory)
     .inSingletonScope()
     .onActivation(trackDispose);
+
+  container.bind(DiagnosticToolSuggester).toSelf().inSingletonScope().onActivation(trackDispose);
 
   container.bind(BreakpointsPredictor).toSelf();
   container

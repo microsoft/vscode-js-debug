@@ -20,6 +20,7 @@ import { BreakpointManager } from './breakpoints';
 import { ICompletions } from './completions';
 import { IConsole } from './console';
 import { Diagnostics } from './diagnosics';
+import { DiagnosticToolSuggester } from './diagnosticToolSuggester';
 import { IEvaluator } from './evaluator';
 import { IExceptionPauseService, PauseOnExceptionsState } from './exceptionPauseService';
 import { IPerformanceProvider } from './performance';
@@ -333,6 +334,8 @@ export class DebugAdapter implements IDisposable {
       );
 
     this.breakpointManager.setThread(this._thread);
+    this._services.get(DiagnosticToolSuggester).attach(cdp);
+
     return this._thread;
   }
 

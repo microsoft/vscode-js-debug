@@ -42,13 +42,16 @@ export class DisposableList {
   /**
    * Adds new items to the disposable list.
    */
-  public push(...newItems: ReadonlyArray<IDisposable>) {
+  public push(newItem: IDisposable): IDisposable;
+  public push(...newItems: ReadonlyArray<IDisposable>): void;
+  public push(...newItems: ReadonlyArray<IDisposable>): IDisposable {
     if (this.disposed) {
       newItems.forEach(d => d.dispose());
-      return;
+      return newItems[0];
     }
 
     this.items.push(...newItems);
+    return newItems[0];
   }
 
   /**

@@ -473,6 +473,12 @@ const dapCustom: JSONSchema4 = {
         required: ['file'],
       },
     ),
+
+    ...makeEvent(
+      'suggestDiagnosticTool',
+      "Shows a prompt to the user suggesting they use the diagnostic tool if breakpoints don't bind.",
+      {},
+    ),
   },
 };
 

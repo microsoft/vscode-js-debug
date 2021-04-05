@@ -1022,6 +1022,11 @@ export namespace Dap {
      * Generates diagnostic information for the debug session.
      */
     createDiagnosticsRequest(params: CreateDiagnosticsParams): Promise<CreateDiagnosticsResult>;
+
+    /**
+     * Shows a prompt to the user suggesting they use the diagnostic tool if breakpoints don't bind.
+     */
+    suggestDiagnosticTool(params: SuggestDiagnosticToolEventParams): void;
   }
 
   export interface TestApi {
@@ -1692,6 +1697,22 @@ export namespace Dap {
      * Generates diagnostic information for the debug session.
      */
     createDiagnostics(params: CreateDiagnosticsParams): Promise<CreateDiagnosticsResult>;
+
+    /**
+     * Shows a prompt to the user suggesting they use the diagnostic tool if breakpoints don't bind.
+     */
+    on(
+      request: 'suggestDiagnosticTool',
+      handler: (params: SuggestDiagnosticToolEventParams) => void,
+    ): void;
+    off(
+      request: 'suggestDiagnosticTool',
+      handler: (params: SuggestDiagnosticToolEventParams) => void,
+    ): void;
+    once(
+      request: 'suggestDiagnosticTool',
+      filter?: (event: SuggestDiagnosticToolEventParams) => boolean,
+    ): Promise<SuggestDiagnosticToolEventParams>;
   }
 
   export interface AttachParams {
@@ -3280,7 +3301,17 @@ export namespace Dap {
      * - If the attribute is missing or false, only the thread with the given threadId can be expanded.
      */
     allThreadsStopped?: boolean;
+
+    /**
+     * Ids of the breakpoints that triggered the event. In most cases there will be only a single breakpoint but here are some examples for multiple breakpoints:
+     * - Different types of breakpoints map to the same location.
+     * - Multiple source breakpoints get collapsed to the same instruction by the compiler/runtime.
+     * - Multiple function breakpoints with different function names map to the same location.
+     */
+    hitBreakpointIds?: integer[];
   }
+
+  export interface SuggestDiagnosticToolEventParams {}
 
   export interface SuggestDisableSourcemapEventParams {
     /**
