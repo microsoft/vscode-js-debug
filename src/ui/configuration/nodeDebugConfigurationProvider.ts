@@ -14,7 +14,7 @@ import {
   AnyTerminalConfiguration,
   breakpointLanguages,
   ResolvingNodeConfiguration,
-  ResolvingTerminalConfiguration
+  ResolvingTerminalConfiguration,
 } from '../../configuration';
 import { findScripts } from '../debugNpmScript';
 import { getPackageManager } from '../getRunScriptCommand';
