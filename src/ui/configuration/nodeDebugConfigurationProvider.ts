@@ -14,7 +14,7 @@ import {
   AnyTerminalConfiguration,
   breakpointLanguages,
   ResolvingNodeConfiguration,
-  ResolvingTerminalConfiguration,
+  ResolvingTerminalConfiguration
 } from '../../configuration';
 import { findScripts } from '../debugNpmScript';
 import { getPackageManager } from '../getRunScriptCommand';
@@ -83,7 +83,7 @@ export class NodeDynamicDebugConfigurationProvider extends BaseConfigurationProv
   protected async getFromNpmScripts(folder?: vscode.WorkspaceFolder): Promise<DynamicConfig[]> {
     const openTerminal: AnyResolvingConfiguration = {
       type: DebugType.Terminal,
-      name: localize('debug.terminal.label', 'New JavaScript Debug Terminal'),
+      name: localize('debug.terminal.label', 'JavaScript Debug Terminal'),
       request: 'launch',
       cwd: folder?.uri.fsPath,
     };
