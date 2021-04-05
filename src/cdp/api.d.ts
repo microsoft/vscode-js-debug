@@ -1590,6 +1590,8 @@ export namespace Cdp {
 
       request: AffectedRequest;
 
+      initiatorOrigin?: string;
+
       resourceIPAddressSpace?: Network.IPAddressSpace;
 
       clientSecurityState?: Network.ClientSecurityState;
@@ -1859,6 +1861,13 @@ export namespace Cdp {
     ): Promise<Browser.SetDownloadBehaviorResult | undefined>;
 
     /**
+     * Cancel a download if in progress
+     */
+    cancelDownload(
+      params: Browser.CancelDownloadParams,
+    ): Promise<Browser.CancelDownloadResult | undefined>;
+
+    /**
      * Close browser gracefully.
      */
     close(params: Browser.CloseParams): Promise<Browser.CloseResult | undefined>;
@@ -2034,6 +2043,26 @@ export namespace Cdp {
      * Return value of the 'Browser.setDownloadBehavior' method.
      */
     export interface SetDownloadBehaviorResult {}
+
+    /**
+     * Parameters of the 'Browser.cancelDownload' method.
+     */
+    export interface CancelDownloadParams {
+      /**
+       * Global unique identifier of the download.
+       */
+      guid: string;
+
+      /**
+       * BrowserContext to perform the action in. When omitted, default browser context is used.
+       */
+      browserContextId?: BrowserContextID;
+    }
+
+    /**
+     * Return value of the 'Browser.cancelDownload' method.
+     */
+    export interface CancelDownloadResult {}
 
     /**
      * Parameters of the 'Browser.close' method.
@@ -13134,6 +13163,20 @@ export namespace Cdp {
    */
   export interface NetworkApi {
     /**
+     * Sets a list of content encodings that will be accepted. Empty list means no encoding is accepted.
+     */
+    setAcceptedEncodings(
+      params: Network.SetAcceptedEncodingsParams,
+    ): Promise<Network.SetAcceptedEncodingsResult | undefined>;
+
+    /**
+     * Clears accepted encodings set by setAcceptedEncodings
+     */
+    clearAcceptedEncodingsOverride(
+      params: Network.ClearAcceptedEncodingsOverrideParams,
+    ): Promise<Network.ClearAcceptedEncodingsOverrideResult | undefined>;
+
+    /**
      * Tells whether clearing browser cache is supported.
      * @deprecated
      */
@@ -13549,6 +13592,31 @@ export namespace Cdp {
    * Types of the 'Network' domain.
    */
   export namespace Network {
+    /**
+     * Parameters of the 'Network.setAcceptedEncodings' method.
+     */
+    export interface SetAcceptedEncodingsParams {
+      /**
+       * List of accepted content encodings.
+       */
+      encodings: ContentEncoding[];
+    }
+
+    /**
+     * Return value of the 'Network.setAcceptedEncodings' method.
+     */
+    export interface SetAcceptedEncodingsResult {}
+
+    /**
+     * Parameters of the 'Network.clearAcceptedEncodingsOverride' method.
+     */
+    export interface ClearAcceptedEncodingsOverrideParams {}
+
+    /**
+     * Return value of the 'Network.clearAcceptedEncodingsOverride' method.
+     */
+    export interface ClearAcceptedEncodingsOverrideResult {}
+
     /**
      * Parameters of the 'Network.canClearBrowserCache' method.
      */
@@ -15287,7 +15355,6 @@ export namespace Cdp {
       | 'inspector'
       | 'subresource-filter'
       | 'content-type'
-      | 'collapsed-by-client'
       | 'coep-frame-resource-needs-coep-header'
       | 'coop-sandboxed-iframe-cannot-navigate-to-coop-page'
       | 'corp-not-same-origin'
@@ -16053,6 +16120,11 @@ export namespace Cdp {
       errors?: SignedExchangeError[];
     }
 
+    /**
+     * List of content encodings supported by the backend.
+     */
+    export type ContentEncoding = 'deflate' | 'gzip' | 'br';
+
     export type PrivateNetworkRequestPolicy =
       | 'Allow'
       | 'BlockFromInsecureToMorePrivate'
@@ -16084,7 +16156,7 @@ export namespace Cdp {
       reportOnlyReportingEndpoint?: string;
     }
 
-    export type CrossOriginEmbedderPolicyValue = 'None' | 'RequireCorp';
+    export type CrossOriginEmbedderPolicyValue = 'None' | 'CorsOrCredentialless' | 'RequireCorp';
 
     export interface CrossOriginEmbedderPolicyStatus {
       value: CrossOriginEmbedderPolicyValue;
@@ -16579,6 +16651,10 @@ export namespace Cdp {
       params: Overlay.SetShowFlexOverlaysParams,
     ): Promise<Overlay.SetShowFlexOverlaysResult | undefined>;
 
+    setShowScrollSnapOverlays(
+      params: Overlay.SetShowScrollSnapOverlaysParams,
+    ): Promise<Overlay.SetShowScrollSnapOverlaysResult | undefined>;
+
     /**
      * Requests that backend shows paint rectangles
      */
@@ -17041,6 +17117,21 @@ export namespace Cdp {
      * Return value of the 'Overlay.setShowFlexOverlays' method.
      */
     export interface SetShowFlexOverlaysResult {}
+
+    /**
+     * Parameters of the 'Overlay.setShowScrollSnapOverlays' method.
+     */
+    export interface SetShowScrollSnapOverlaysParams {
+      /**
+       * An array of node identifiers and descriptors for the highlight appearance.
+       */
+      scrollSnapHighlightConfigs: ScrollSnapHighlightConfig[];
+    }
+
+    /**
+     * Return value of the 'Overlay.setShowScrollSnapOverlays' method.
+     */
+    export interface SetShowScrollSnapOverlaysResult {}
 
     /**
      * Parameters of the 'Overlay.setShowPaintRects' method.
@@ -17519,6 +17610,40 @@ export namespace Cdp {
       nodeId: DOM.NodeId;
     }
 
+    export interface ScrollSnapContainerHighlightConfig {
+      /**
+       * The style of the snapport border (default: transparent)
+       */
+      snapportBorder?: LineStyle;
+
+      /**
+       * The style of the snap area border (default: transparent)
+       */
+      snapAreaBorder?: LineStyle;
+
+      /**
+       * The margin highlight fill color (default: transparent).
+       */
+      scrollMarginColor?: DOM.RGBA;
+
+      /**
+       * The padding highlight fill color (default: transparent).
+       */
+      scrollPaddingColor?: DOM.RGBA;
+    }
+
+    export interface ScrollSnapHighlightConfig {
+      /**
+       * A descriptor for the highlight appearance of scroll snap containers.
+       */
+      scrollSnapContainerHighlightConfig: ScrollSnapContainerHighlightConfig;
+
+      /**
+       * Identifier of the node to highlight.
+       */
+      nodeId: DOM.NodeId;
+    }
+
     /**
      * Configuration for dual screen hinge
      */
@@ -17878,10 +18003,26 @@ export namespace Cdp {
 
     /**
      * Forces compilation cache to be generated for every subresource script.
+     * See also: `Page.produceCompilationCache`.
      */
     setProduceCompilationCache(
       params: Page.SetProduceCompilationCacheParams,
     ): Promise<Page.SetProduceCompilationCacheResult | undefined>;
+
+    /**
+     * Requests backend to produce compilation cache for the specified scripts.
+     * Unlike setProduceCompilationCache, this allows client to only produce cache
+     * for specific scripts. `scripts` are appeneded to the list of scripts
+     * for which the cache for would produced. Disabling compilation cache with
+     * `setProduceCompilationCache` would reset all pending cache requests.
+     * The list may also be reset during page navigation.
+     * When script with a matching URL is encountered, the cache is optionally
+     * produced upon backend discretion, based on internal heuristics.
+     * See also: `Page.compilationCacheProduced`.
+     */
+    produceCompilationCache(
+      params: Page.ProduceCompilationCacheParams,
+    ): Promise<Page.ProduceCompilationCacheResult | undefined>;
 
     /**
      * Seeds compilation cache for given url. Compilation cache does not survive
@@ -18400,19 +18541,37 @@ export namespace Cdp {
      */
     export interface GetLayoutMetricsResult {
       /**
-       * Metrics relating to the layout viewport.
+       * Deprecated metrics relating to the layout viewport. Can be in DP or in CSS pixels depending on the `enable-use-zoom-for-dsf` flag. Use `cssLayoutViewport` instead.
+       * @deprecated
        */
       layoutViewport: LayoutViewport;
 
       /**
-       * Metrics relating to the visual viewport.
+       * Deprecated metrics relating to the visual viewport. Can be in DP or in CSS pixels depending on the `enable-use-zoom-for-dsf` flag. Use `cssVisualViewport` instead.
+       * @deprecated
        */
       visualViewport: VisualViewport;
 
       /**
-       * Size of scrollable area.
+       * Deprecated size of scrollable area. Can be in DP or in CSS pixels depending on the `enable-use-zoom-for-dsf` flag. Use `cssContentSize` instead.
+       * @deprecated
        */
       contentSize: DOM.Rect;
+
+      /**
+       * Metrics relating to the layout viewport in CSS pixels.
+       */
+      cssLayoutViewport: LayoutViewport;
+
+      /**
+       * Metrics relating to the visual viewport in CSS pixels.
+       */
+      cssVisualViewport: VisualViewport;
+
+      /**
+       * Size of scrollable area in CSS pixels.
+       */
+      cssContentSize: DOM.Rect;
     }
 
     /**
@@ -19159,6 +19318,18 @@ export namespace Cdp {
      * Return value of the 'Page.setProduceCompilationCache' method.
      */
     export interface SetProduceCompilationCacheResult {}
+
+    /**
+     * Parameters of the 'Page.produceCompilationCache' method.
+     */
+    export interface ProduceCompilationCacheParams {
+      scripts: CompilationCacheParams[];
+    }
+
+    /**
+     * Return value of the 'Page.produceCompilationCache' method.
+     */
+    export interface ProduceCompilationCacheResult {}
 
     /**
      * Parameters of the 'Page.addCompilationCache' method.
@@ -20212,6 +20383,22 @@ export namespace Cdp {
       | 'strictOrigin'
       | 'strictOriginWhenCrossOrigin'
       | 'unsafeUrl';
+
+    /**
+     * Per-script compilation cache parameters for `Page.produceCompilationCache`
+     */
+    export interface CompilationCacheParams {
+      /**
+       * The URL of the script to produce a compilation cache entry for.
+       */
+      url: string;
+
+      /**
+       * A hint to the backend whether eager compilation is recommended.
+       * (the actual compilation mode used is upon backend discretion).
+       */
+      eager?: boolean;
+    }
   }
 
   /**
@@ -23535,6 +23722,14 @@ export namespace Cdp {
     ): Promise<Storage.GetTrustTokensResult | undefined>;
 
     /**
+     * Removes all Trust Tokens issued by the provided issuerOrigin.
+     * Leaves other stored data, including the issuer's Redemption Records, intact.
+     */
+    clearTrustTokens(
+      params: Storage.ClearTrustTokensParams,
+    ): Promise<Storage.ClearTrustTokensResult | undefined>;
+
+    /**
      * A cache's contents have been modified.
      */
     on(
@@ -23777,6 +23972,23 @@ export namespace Cdp {
      */
     export interface GetTrustTokensResult {
       tokens: TrustTokens[];
+    }
+
+    /**
+     * Parameters of the 'Storage.clearTrustTokens' method.
+     */
+    export interface ClearTrustTokensParams {
+      issuerOrigin: string;
+    }
+
+    /**
+     * Return value of the 'Storage.clearTrustTokens' method.
+     */
+    export interface ClearTrustTokensResult {
+      /**
+       * True if any tokens were deleted, false otherwise.
+       */
+      didDeleteTokens: boolean;
     }
 
     /**
@@ -24469,7 +24681,7 @@ export namespace Cdp {
      */
     export interface CreateTargetParams {
       /**
-       * The initial URL the page will be navigated to.
+       * The initial URL the page will be navigated to. An empty string indicates about:blank.
        */
       url: string;
 
@@ -25035,6 +25247,11 @@ export namespace Cdp {
        * are ignored. (Encoded as a base64 string when passed over JSON)
        */
       perfettoConfig?: string;
+
+      /**
+       * Backend type (defaults to `auto`)
+       */
+      tracingBackend?: TracingBackend;
     }
 
     /**
@@ -25167,6 +25384,15 @@ export namespace Cdp {
      * memory_instrumentation.mojom
      */
     export type MemoryDumpLevelOfDetail = 'background' | 'light' | 'detailed';
+
+    /**
+     * Backend type to use for tracing. `chrome` uses the Chrome-integrated
+     * tracing service and is supported on all platforms. `system` is only
+     * supported on Chrome OS and uses the Perfetto system tracing service.
+     * `auto` chooses `system` when the perfettoConfig provided to Tracing.start
+     * specifies at least one non-Chrome data source; otherwise uses `chrome`.
+     */
+    export type TracingBackend = 'auto' | 'chrome' | 'system';
   }
 
   /**

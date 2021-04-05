@@ -4,6 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## TBA
 
+- feat: 'intelligently' suggest using diagnostic tool for breakpoint issues ([ref](https://github.com/microsoft/vscode/issues/57590))
 - fix: runtimeVersion overwriting default PATH ([ref](https://github.com/microsoft/vscode/issues/120140))
 - fix: skipFiles not skipping ranges in sourcemapped scripts ([ref](https://github.com/microsoft/vscode/issues/118282))
 - chore: update wording on debug terminal label to match new profiles

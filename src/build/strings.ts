@@ -306,7 +306,7 @@ A common case to disable certificate verification can be done by passing \`{ "ht
   'profile.start': 'Take Performance Profile',
   'profile.stop': 'Stop Performance Profile',
   'debugLink.label': 'Open Link',
-  'createDiagnostics.label': 'Create Diagnostic Information for Current Session',
+  'createDiagnostics.label': 'Diagnose Breakpoint Problems',
   'startWithStopOnEntry.label': 'Start Debugging and Stop on Entry',
 };
 

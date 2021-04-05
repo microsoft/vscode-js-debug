@@ -43,6 +43,13 @@ export class DebugSessionTracker implements vscode.Disposable {
   }
 
   /**
+   * Gets whether the js-debug session is still running.
+   */
+  public isRunning(session: vscode.DebugSession) {
+    return [...this.sessions.values()].includes(session);
+  }
+
+  /**
    * Returns a list of sessions with the given debug session name.
    */
   public getByName(name: string) {
@@ -54,6 +61,13 @@ export class DebugSessionTracker implements vscode.Disposable {
    */
   public getConcreteSessions() {
     return [...this.sessions.values()].filter(DebugSessionTracker.isConcreteSession);
+  }
+
+  /**
+   * Gets all direct children of the given session.
+   */
+  public getChildren(session: vscode.DebugSession) {
+    return [...this.sessions.values()].filter(s => s.configuration.__parentId === session.id);
   }
 
   public attach() {

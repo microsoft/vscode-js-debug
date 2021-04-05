@@ -92,7 +92,7 @@ export const allDebugTypes: ReadonlySet<DebugType> = new Set(Object.keys(debugTy
 /**
  * Gets whether the given debug type is one of the js-debug-handled debug types.
  */
-export const isDebugType = (debugType: string): debugType is DebugType =>
+export const isDebugType = (debugType: unknown): debugType is DebugType =>
   allDebugTypes.has(debugType as DebugType);
 
 export const enum AutoAttachMode {

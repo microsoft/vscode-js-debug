@@ -1,10 +1,18 @@
 /*---------------------------------------------------------
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
+
+import { IDisposable } from './disposable';
+
 export const delay = (duration: number) =>
   isFinite(duration)
     ? new Promise<void>(resolve => setTimeout(resolve, duration))
     : new Promise<void>(() => undefined);
+
+export const disposableTimeout = (fn: () => void, delay?: number): IDisposable => {
+  const timeout = setTimeout(fn, delay);
+  return { dispose: () => clearTimeout(timeout) };
+};
 
 export interface IDeferred<T> {
   resolve: (result: T) => void;
