@@ -126,7 +126,7 @@ const strings = {
   'debug.npm.noScripts': 'No npm scripts found in your package.json',
   'debug.npm.parseError': 'Could not read {0}: {1}',
   'debug.npm.edit': 'Edit package.json',
-  'debug.terminal.label': 'New JavaScript Debug Terminal',
+  'debug.terminal.label': 'JavaScript Debug Terminal',
   'debug.terminal.program.description':
     'Command to run in the launched terminal. If not provided, the terminal will open without launching a program.',
   'debug.terminal.snippet.label': 'Run "npm start" in a debug terminal',
