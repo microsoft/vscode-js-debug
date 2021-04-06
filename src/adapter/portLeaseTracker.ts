@@ -5,10 +5,16 @@
 import { inject, injectable } from 'inversify';
 import * as net from 'net';
 import type { CancellationToken } from 'vscode';
+import * as WebSocket from 'ws';
 import { cancellableRace } from '../common/cancellation';
 import { IDisposable } from '../common/disposable';
 import { EventEmitter } from '../common/events';
-import { DefaultJsDebugPorts, findOpenPort, makeAcquireTcpServer } from '../common/findOpenPort';
+import {
+  DefaultJsDebugPorts,
+  findOpenPort,
+  makeAcquireTcpServer,
+  makeAcquireWebSocketServer,
+} from '../common/findOpenPort';
 import { delay } from '../common/promiseUtil';
 import { ExtensionLocation } from '../ioc-extras';
 
@@ -24,6 +30,21 @@ export const acquireTrackedServer = async (
   const server = overridePort
     ? net.createServer(onSocket).listen(overridePort, '127.0.0.1')
     : await findOpenPort({ tester: makeAcquireTcpServer(onSocket) }, ct);
+  const dispose = tracker.register((server.address() as net.AddressInfo).port);
+  server.on('close', () => dispose.dispose());
+  server.on('error', () => dispose.dispose());
+  return server;
+};
+
+/**
+ * Helper that creates a server registered with the lease tracker.
+ */
+export const acquireTrackedWebSocketServer = async (
+  tracker: IPortLeaseTracker,
+  options?: WebSocket.ServerOptions,
+  ct?: CancellationToken,
+) => {
+  const server = await findOpenPort({ tester: makeAcquireWebSocketServer(options) }, ct);
   const dispose = tracker.register((server.address() as net.AddressInfo).port);
   server.on('close', () => dispose.dispose());
   server.on('error', () => dispose.dispose());

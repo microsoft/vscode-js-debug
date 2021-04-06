@@ -23,6 +23,7 @@ import {
   IBreakpointConditionFactory,
 } from './adapter/breakpoints/conditions';
 import { LogPointCompiler } from './adapter/breakpoints/conditions/logPoint';
+import { CdpProxyProvider, ICdpProxyProvider } from './adapter/cdpProxy';
 import { Completions, ICompletions } from './adapter/completions';
 import { IConsole } from './adapter/console';
 import { Console } from './adapter/console/console';
@@ -176,6 +177,12 @@ export const createTargetContainer = (
   container.bind(BasicCpuProfiler).toSelf();
   container.bind(IProfilerFactory).to(ProfilerFactory).inSingletonScope();
   container.bind(IProfileController).to(ProfileController).inSingletonScope();
+
+  container
+    .bind(ICdpProxyProvider)
+    .to(CdpProxyProvider)
+    .inSingletonScope()
+    .onActivation(trackDispose);
 
   return container;
 };

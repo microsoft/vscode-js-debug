@@ -44,7 +44,7 @@ export function activate(context: vscode.ExtensionContext) {
     registerCommand(vscode.commands, Commands.PickProcess, pickProcess),
     registerCommand(vscode.commands, Commands.AttachProcess, attachProcess),
     registerCommand(vscode.commands, Commands.ToggleSkipping, toggleSkippingFile),
-    registerCommand(vscode.commands, Commands.EnlistExperiment, toggleOnExperiment)
+    registerCommand(vscode.commands, Commands.EnlistExperiment, toggleOnExperiment),
   );
 
   context.subscriptions.push(

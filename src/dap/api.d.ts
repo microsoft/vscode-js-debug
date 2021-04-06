@@ -1024,6 +1024,11 @@ export namespace Dap {
     createDiagnosticsRequest(params: CreateDiagnosticsParams): Promise<CreateDiagnosticsResult>;
 
     /**
+     * Shows a prompt to the user suggesting they use the diagnostic tool if breakpoints don't bind.
+     */
+    suggestDiagnosticTool(params: SuggestDiagnosticToolEventParams): void;
+
+    /**
      * Request WebSocket connection information on a proxy for this debug sessions CDP connection.
      */
     on(
@@ -1704,6 +1709,22 @@ export namespace Dap {
      * Generates diagnostic information for the debug session.
      */
     createDiagnostics(params: CreateDiagnosticsParams): Promise<CreateDiagnosticsResult>;
+
+    /**
+     * Shows a prompt to the user suggesting they use the diagnostic tool if breakpoints don't bind.
+     */
+    on(
+      request: 'suggestDiagnosticTool',
+      handler: (params: SuggestDiagnosticToolEventParams) => void,
+    ): void;
+    off(
+      request: 'suggestDiagnosticTool',
+      handler: (params: SuggestDiagnosticToolEventParams) => void,
+    ): void;
+    once(
+      request: 'suggestDiagnosticTool',
+      filter?: (event: SuggestDiagnosticToolEventParams) => boolean,
+    ): Promise<SuggestDiagnosticToolEventParams>;
 
     /**
      * Request WebSocket connection information on a proxy for this debug sessions CDP connection.
@@ -3320,6 +3341,8 @@ export namespace Dap {
      */
     hitBreakpointIds?: integer[];
   }
+
+  export interface SuggestDiagnosticToolEventParams {}
 
   export interface SuggestDisableSourcemapEventParams {
     /**

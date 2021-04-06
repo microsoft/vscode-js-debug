@@ -2,6 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { once } from './objUtils';
+
 export interface IDisposable {
   dispose(): void;
 }
@@ -24,6 +26,10 @@ export class EventEmitter<T> implements IDisposable {
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   private _listeners = new Set<ListenerData<T, any>>();
+
+  public get size() {
+    return this._listeners.size;
+  }
 
   constructor() {
     this.event = <ThisArg>(
@@ -61,5 +67,41 @@ export class EventEmitter<T> implements IDisposable {
   dispose() {
     this._listeners.clear();
     if (this._deliveryQueue) this._deliveryQueue = [];
+  }
+}
+
+/**
+ * Map of listeners that deals with refcounting.
+ */
+export class ListenerMap<K, V> {
+  private readonly map = new Map<K, EventEmitter<V>>();
+  public readonly listeners: ReadonlyMap<K, EventEmitter<V>> = this.map;
+
+  /**
+   * Adds a listener for the givne event.
+   */
+  public listen(key: K, handler: (arg: V) => void): IDisposable {
+    let emitter = this.map.get(key);
+    if (!emitter) {
+      emitter = new EventEmitter<V>();
+      this.map.set(key, emitter);
+    }
+
+    const listener = emitter.event(handler);
+    return {
+      dispose: once(() => {
+        listener.dispose();
+        if (emitter?.size === 0) {
+          this.map.delete(key);
+        }
+      }),
+    };
+  }
+
+  /**
+   * Emits the event for the listener.
+   */
+  public emit(event: K, value: V) {
+    this.listeners.get(event)?.fire(value);
   }
 }

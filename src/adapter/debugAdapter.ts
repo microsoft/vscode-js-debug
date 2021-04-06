@@ -17,7 +17,7 @@ import { disposeContainer } from '../ioc-extras';
 import { ITelemetryReporter } from '../telemetry/telemetryReporter';
 import { IAsyncStackPolicy } from './asyncStackPolicy';
 import { BreakpointManager } from './breakpoints';
-import { CDPProxyServer } from './cdpProxy';
+import { ICdpProxyProvider } from './cdpProxy';
 import { ICompletions } from './completions';
 import { IConsole } from './console';
 import { Diagnostics } from './diagnosics';
@@ -46,7 +46,6 @@ export class DebugAdapter implements IDisposable {
   private _thread: Thread | undefined;
   private _configurationDoneDeferred: IDeferred<void>;
   private lastBreakpointId = 0;
-  private _cdpProxyServer: CDPProxyServer | undefined;
 
   constructor(
     dap: Dap.Api,
@@ -421,20 +420,8 @@ export class DebugAdapter implements IDisposable {
     return { file: await this._services.get(Diagnostics).generateHtml() };
   }
 
-  async _requestCDPProxy() {
-    if (!this._cdpProxyServer) {
-      const cdp = this._thread?.cdp();
-
-      if (cdp) {
-        const cdpProxy = new CDPProxyServer(cdp);
-        cdpProxy.proxy();
-
-        this._disposables.push(cdpProxy);
-        this._cdpProxyServer = cdpProxy;
-      }
-    }
-
-    return this._cdpProxyServer?.address() || {};
+  public async _requestCDPProxy() {
+    return await this._services.get<ICdpProxyProvider>(ICdpProxyProvider).proxy();
   }
 
   dispose() {
