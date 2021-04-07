@@ -473,11 +473,29 @@ const dapCustom: JSONSchema4 = {
         required: ['file'],
       },
     ),
-
     ...makeEvent(
       'suggestDiagnosticTool',
       "Shows a prompt to the user suggesting they use the diagnostic tool if breakpoints don't bind.",
       {},
+    ),
+    ...makeRequest(
+      'requestCDPProxy',
+      'Request WebSocket connection information on a proxy for this debug sessions CDP connection.',
+      undefined,
+      {
+        properties: {
+          host: {
+            type: 'string',
+            description:
+              'Name of the host, on which the CDP proxy is available through a WebSocket.',
+          },
+          port: {
+            type: 'number',
+            description:
+              'Port on the host, under which the CDP proxy is available through a WebSocket.',
+          },
+        },
+      },
     ),
   },
 };

@@ -14,6 +14,8 @@ export namespace Cdp {
    * Protocol API.
    */
   export interface Api {
+    readonly session: import('./connection').CDPSession;
+
     /**
      * Pauses events being sent through the aPI.
      */
@@ -11283,6 +11285,13 @@ export namespace Cdp {
    */
   export interface InputApi {
     /**
+     * Dispatches a drag event into the page.
+     */
+    dispatchDragEvent(
+      params: Input.DispatchDragEventParams,
+    ): Promise<Input.DispatchDragEventResult | undefined>;
+
+    /**
      * Dispatches a key event to the page.
      */
     dispatchKeyEvent(
@@ -11349,6 +11358,40 @@ export namespace Cdp {
    * Types of the 'Input' domain.
    */
   export namespace Input {
+    /**
+     * Parameters of the 'Input.dispatchDragEvent' method.
+     */
+    export interface DispatchDragEventParams {
+      /**
+       * Type of the drag event.
+       */
+      type: 'dragEnter' | 'dragOver' | 'drop' | 'dragCancel';
+
+      /**
+       * X coordinate of the event relative to the main frame's viewport in CSS pixels.
+       */
+      x: number;
+
+      /**
+       * Y coordinate of the event relative to the main frame's viewport in CSS pixels. 0 refers to
+       * the top of the viewport and Y increases as it proceeds towards the bottom of the viewport.
+       */
+      y: number;
+
+      data: DragData;
+
+      /**
+       * Bit field representing pressed modifier keys. Alt=1, Ctrl=2, Meta/Command=4, Shift=8
+       * (default: 0).
+       */
+      modifiers?: integer;
+    }
+
+    /**
+     * Return value of the 'Input.dispatchDragEvent' method.
+     */
+    export interface DispatchDragEventResult {}
+
     /**
      * Parameters of the 'Input.dispatchKeyEvent' method.
      */
@@ -11865,6 +11908,39 @@ export namespace Cdp {
      * UTC time in seconds, counted from January 1, 1970.
      */
     export type TimeSinceEpoch = number;
+
+    export interface DragDataItem {
+      /**
+       * Mime type of the dragged data.
+       */
+      mimeType: string;
+
+      /**
+       * Depending of the value of `mimeType`, it contains the dragged link,
+       * text, HTML markup or any other data.
+       */
+      data: string;
+
+      /**
+       * Title associated with a link. Only valid when `mimeType` == "text/uri-list".
+       */
+      title?: string;
+
+      /**
+       * Stores the base URL for the contained markup. Only valid when `mimeType`
+       * == "text/html".
+       */
+      baseURL?: string;
+    }
+
+    export interface DragData {
+      items: DragDataItem[];
+
+      /**
+       * Bit field representing allowed drag operations. Copy = 1, Link = 2, Move = 16
+       */
+      dragOperationsMask: integer;
+    }
   }
 
   /**

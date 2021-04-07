@@ -2,8 +2,9 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { AddressInfo, createServer, Server, Socket } from 'net';
+import * as net from 'net';
 import type { CancellationToken } from 'vscode';
+import * as WebSocket from 'ws';
 import { NeverCancelled, TaskCancelledError } from './cancellation';
 import { IDisposable } from './disposable';
 import { randomInRange } from './random';
@@ -76,9 +77,9 @@ export async function isPortOpen(port: number, ct?: CancellationToken) {
 export function acquirePortNumber(port: number, ct: CancellationToken = NeverCancelled) {
   let disposable: IDisposable | undefined;
   return new Promise((resolve, reject) => {
-    const server = createServer();
-    server.listen(port, () => {
-      const address = server.address() as AddressInfo;
+    const server = net.createServer();
+    server.listen(port, '127.0.0.1', () => {
+      const address = server.address() as net.AddressInfo;
       server.close(() => resolve(address.port));
     });
 
@@ -92,17 +93,38 @@ export function acquirePortNumber(port: number, ct: CancellationToken = NeverCan
 }
 
 /**
- * Checks that the port is open, throwing an error if not.
+ * Tester that can be passed into findOpenPort to create a TCP server.
  * @returns the listening server
  */
-export const makeAcquireTcpServer = (onSocket: (socket: Socket) => void): PortTesterFn<Server> => (
-  port,
-  ct,
-) => {
+export const makeAcquireTcpServer = (
+  onSocket: (socket: net.Socket) => void,
+): PortTesterFn<net.Server> => (port, ct) => {
+  const server = net.createServer(onSocket);
+  server.listen(port, '127.0.0.1');
+  return serverResolutionPromise(server, ct);
+};
+
+/**
+ * Tester that can be passed into findOpenPort to create a WebSocket server.
+ * @returns the listening server
+ */
+export const makeAcquireWebSocketServer = (
+  options?: WebSocket.ServerOptions,
+): PortTesterFn<WebSocket.Server> => (port, ct) =>
+  serverResolutionPromise(new WebSocket.Server({ host: '127.0.0.1', ...options, port }), ct);
+
+interface IServerLike {
+  on(event: 'error', handler: (err: Error) => void): void;
+  on(event: 'listening', handler: () => void): void;
+  close(): void;
+}
+
+export const serverResolutionPromise = <T extends IServerLike>(
+  server: T,
+  ct: CancellationToken,
+): Promise<T> => {
   let disposable: IDisposable | undefined;
-  return new Promise<Server>((resolve, reject) => {
-    const server = createServer(onSocket);
-    server.listen(port, '127.0.0.1');
+  return new Promise<T>((resolve, reject) => {
     server.on('error', reject);
     server.on('listening', () => resolve(server));
 

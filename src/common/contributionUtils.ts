@@ -33,6 +33,7 @@ export const enum Commands {
   RemoveAllCustomBreakpoints = 'extension.js-debug.removeAllCustomBreakpoints',
   RemoveCustomBreakpoint = 'extension.js-debug.removeCustomBreakpoint',
   RevealPage = 'extension.js-debug.revealPage',
+  RequestCDPProxy = 'extension.js-debug.requestCDPProxy',
   /** Use node-debug's command so existing keybindings work */
   StartWithStopOnEntry = 'extension.node-debug.startWithStopOnEntry',
   StartProfile = 'extension.js-debug.startProfile',
@@ -77,6 +78,7 @@ const commandsObj: { [K in Commands]: null } = {
   [Commands.StopProfile]: null,
   [Commands.ToggleSkipping]: null,
   [Commands.StartWithStopOnEntry]: null,
+  [Commands.RequestCDPProxy]: null,
 };
 
 /**
@@ -163,6 +165,9 @@ export interface ICommandTypes {
   [Commands.RevealPage](sessionId: string): void;
   [Commands.DebugLink](link?: string): void;
   [Commands.StartWithStopOnEntry](): void;
+  [Commands.RequestCDPProxy](
+    sessionId: string,
+  ): { address: string; port: number; family: string } | null;
 }
 
 /**

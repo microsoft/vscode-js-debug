@@ -17,6 +17,7 @@ import { disposeContainer } from '../ioc-extras';
 import { ITelemetryReporter } from '../telemetry/telemetryReporter';
 import { IAsyncStackPolicy } from './asyncStackPolicy';
 import { BreakpointManager } from './breakpoints';
+import { ICdpProxyProvider } from './cdpProxy';
 import { ICompletions } from './completions';
 import { IConsole } from './console';
 import { Diagnostics } from './diagnosics';
@@ -104,6 +105,7 @@ export class DebugAdapter implements IDisposable {
       })),
     );
     this.dap.on('createDiagnostics', () => this._dumpDiagnostics());
+    this.dap.on('requestCDPProxy', () => this._requestCDPProxy());
   }
 
   public async launchBlocker(): Promise<void> {
@@ -416,6 +418,10 @@ export class DebugAdapter implements IDisposable {
 
   async _dumpDiagnostics() {
     return { file: await this._services.get(Diagnostics).generateHtml() };
+  }
+
+  public async _requestCDPProxy() {
+    return await this._services.get<ICdpProxyProvider>(ICdpProxyProvider).proxy();
   }
 
   dispose() {

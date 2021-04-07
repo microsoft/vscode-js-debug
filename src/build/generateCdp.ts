@@ -240,7 +240,9 @@ async function generate() {
 
   interfaceSeparator();
   appendText('Protocol API.');
-  result.push(`export interface Api {`);
+  result.push(`export interface Api {
+    readonly session: import('./connection').CDPSession;
+  `);
   appendPauseResume();
   domains.forEach(d => {
     result.push(`${d.domain}: ${d.domain}Api;`);

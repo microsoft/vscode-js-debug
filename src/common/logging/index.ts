@@ -34,6 +34,7 @@ export const enum LogTag {
   PerfFunction = 'perf.function',
   CdpSend = 'cdp.send',
   CdpReceive = 'cdp.receive',
+  ProxyActivity = 'proxyActivity',
   DapSend = 'dap.send',
   DapReceive = 'dap.receive',
   Internal = 'internal',
@@ -56,6 +57,7 @@ const logTabObj: { [K in LogTag]: null } = {
   [LogTag.DapSend]: null,
   [LogTag.DapReceive]: null,
   [LogTag.Internal]: null,
+  [LogTag.ProxyActivity]: null,
 };
 
 /**

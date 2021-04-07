@@ -3,45 +3,39 @@
  *--------------------------------------------------------*/
 
 import { IDisposable } from '../common/disposable';
-import { EventEmitter } from '../common/events';
+import { EventEmitter, ListenerMap } from '../common/events';
 import { HrTime } from '../common/hrnow';
 import { ILogger, LogTag } from '../common/logging';
 import { ITelemetryReporter } from '../telemetry/telemetryReporter';
 import Cdp from './api';
+import { CdpProtocol } from './protocol';
 import { ITransport } from './transport';
-
-interface IProtocolCommand {
-  id?: number;
-  method: string;
-  params: object;
-  sessionId?: string;
-}
-
-interface IProtocolError {
-  id: number;
-  method?: string;
-  error: { code: number; message: string };
-  sessionId?: string;
-}
-
-interface IProtocolSuccess {
-  id: number;
-  result: object;
-  sessionId?: string;
-}
-
-type ProtocolMessage = IProtocolCommand | IProtocolSuccess | IProtocolError;
 
 interface IProtocolCallback {
   resolve: (o: object) => void;
   reject: (e: Error) => void;
-  from: Error;
+  from: ProtocolError;
   method: string;
 }
 
 let connectionId = 0;
 
 export const ICdpApi = Symbol('ICdpApi');
+
+export class ProtocolError extends Error {
+  public cause?: { code: number; message: string };
+
+  constructor(public readonly method: string) {
+    super('<<message>>');
+  }
+
+  public setCause(code: number, message: string) {
+    this.cause = { code, message };
+    this.message = `CDP error ${code} calling method ${this.method}: ${message}`;
+    this.stack = this.stack?.replace('<<message>>', this.message);
+    return this;
+  }
+}
 
 export default class Connection {
   private _connectionId = connectionId++;
@@ -73,9 +67,9 @@ export default class Connection {
     return this._rootSession.cdp();
   }
 
-  _send(method: string, params: object | undefined = {}, sessionId: string): number {
+  public _send(method: string, params: object | undefined = {}, sessionId: string): number {
     const id = ++this._lastId;
-    const message: IProtocolCommand = { id, method, params };
+    const message: CdpProtocol.ICommand = { id, method, params };
     if (sessionId) message.sessionId = sessionId;
     const messageString = JSON.stringify(message);
     this.logger.verbose(LogTag.CdpSend, undefined, { connectionId: this._connectionId, message });
@@ -144,7 +138,7 @@ export default class Connection {
     }
   }
 
-  _onTransportClose() {
+  private _onTransportClose() {
     if (this._closed) return;
     this._closed = true;
     this._transport.dispose();
@@ -153,21 +147,21 @@ export default class Connection {
     this._onDisconnectedEmitter.fire();
   }
 
-  close() {
+  public close() {
     this._onTransportClose();
   }
 
-  isClosed(): boolean {
+  public isClosed(): boolean {
     return this._closed;
   }
 
-  createSession(sessionId: Cdp.Target.SessionID): Cdp.Api {
+  public createSession(sessionId: Cdp.Target.SessionID): Cdp.Api {
     const session = new CDPSession(this, sessionId, this.logger);
     this._sessions.set(sessionId, session);
     return session.cdp();
   }
 
-  disposeSession(sessionId: Cdp.Target.SessionID) {
+  public disposeSession(sessionId: Cdp.Target.SessionID) {
     const session = this._sessions.get(sessionId);
     if (!session) return;
     session._onClose();
@@ -180,13 +174,14 @@ export default class Connection {
 // We artificially queue protocol messages to achieve this.
 const needsReordering = +process.version.substring(1).split('.')[0] < 11;
 
-class CDPSession {
+export class CDPSession {
   private _connection?: Connection;
   private _callbacks: Map<number, IProtocolCallback>;
   private _sessionId: string;
   private _cdp: Cdp.Api;
-  private _queue: ProtocolMessage[] = [];
-  private _listeners = new Map<string, Set<(params: object) => void>>();
+  private _queue: CdpProtocol.Message[] = [];
+  private _prefixListeners = new ListenerMap<string, CdpProtocol.ICommand>();
+  private _directListeners = new ListenerMap<string, object>();
   private paused = false;
 
   constructor(connection: Connection, sessionId: string, private readonly logger: ILogger) {
@@ -229,6 +224,7 @@ class CDPSession {
         get: (_target, agentName: string) => {
           if (agentName === 'pause') return () => this.pause();
           if (agentName === 'resume') return () => this.resume();
+          if (agentName === 'session') return this;
 
           return new Proxy(
             {},
@@ -237,12 +233,9 @@ class CDPSession {
                 if (methodName === 'then') return;
                 if (methodName === 'on')
                   return (eventName: string, listener: (params: object) => void) =>
-                    this._on(`${agentName}.${eventName}`, listener);
-                if (methodName === 'off')
-                  return (eventName: string, listener: (params: object) => void) =>
-                    this._off(`${agentName}.${eventName}`, listener);
+                    this.on(`${agentName}.${eventName}`, listener);
                 return (params: object | undefined) =>
-                  this._send(`${agentName}.${methodName}`, params);
+                  this.send(`${agentName}.${methodName}`, params);
               },
             },
           );
@@ -251,40 +244,51 @@ class CDPSession {
     ) as Cdp.Api;
   }
 
-  _on(method: string, listener: (params: object) => void): IDisposable {
-    let listenerSet = this._listeners.get(method);
-    if (!listenerSet) {
-      listenerSet = new Set();
-      this._listeners.set(method, listenerSet);
+  /**
+   * Adds a new listener for the given method.
+   */
+  public on(method: string, listener: (params: object) => void): IDisposable {
+    return this._directListeners.listen(method, listener);
+  }
+
+  /**
+   * Adds a new listener for the given prefix.
+   */
+  public onPrefix(method: string, listener: (params: CdpProtocol.ICommand) => void): IDisposable {
+    return this._prefixListeners.listen(method, listener);
+  }
+
+  /**
+   * Sends a request to CDP, returning its untyped result.
+   */
+  public send(method: string, params: object | undefined = {}): Promise<object | undefined> {
+    return this.sendOrDie(method, params).catch(() => undefined);
+  }
+
+  /**
+   * Sends a request to CDP, returning a standard Promise
+   * with its resulting state.
+   */
+  public sendOrDie(method: string, params: object | undefined = {}): Promise<object> {
+    if (!this._connection) {
+      return Promise.reject(new ProtocolError(method).setCause(0, 'Connection is closed'));
     }
 
-    listenerSet.add(listener);
-    return { dispose: () => this._off(method, listener) };
-  }
-
-  _off(method: string, listener: (params: object) => void): void {
-    const listeners = this._listeners.get(method);
-    if (listeners) listeners.delete(listener);
-  }
-
-  _send(method: string, params: object | undefined = {}): Promise<object | undefined> {
-    return this._sendOrDie(method, params).catch(() => undefined);
-  }
-
-  _sendOrDie(method: string, params: object | undefined = {}): Promise<object | undefined> {
-    if (!this._connection)
-      return Promise.reject(
-        new Error(
-          `Protocol error (${method}): Session closed. Most likely the target has been closed.`,
-        ),
-      );
     const id = this._connection._send(method, params, this._sessionId);
-    return new Promise((resolve, reject) => {
-      this._callbacks.set(id, { resolve, reject, from: new Error(), method });
+    return new Promise<object>((resolve, reject) => {
+      this._callbacks.set(id, {
+        resolve,
+        reject,
+        from: new ProtocolError(method),
+        method,
+      });
     });
   }
 
-  _onMessage(object: ProtocolMessage) {
+  /**
+   * Handles an incoming message. Called by the connection.
+   */
+  public _onMessage(object: CdpProtocol.Message) {
     // If we're paused, queue events but still process responses to avoid hanging.
     if (this.paused && object.id) {
       this._processResponse(object);
@@ -310,7 +314,7 @@ class CDPSession {
     }
   }
 
-  _processQueue() {
+  private _processQueue() {
     this._connection?.waitWrapper(() => {
       if (this.paused) {
         return;
@@ -328,14 +332,19 @@ class CDPSession {
     });
   }
 
-  _processResponse(object: ProtocolMessage) {
+  private _processResponse(object: CdpProtocol.Message) {
     if (object.id === undefined) {
-      // for some reason, TS doesn't narrow this even though IProtocolCommand
+      // for some reason, TS doesn't narrow this even though CdpProtocol.ICommand
       // is the only type of the tuple where id can be undefined.
-      const asCommand = object as IProtocolCommand;
-      const listeners = this._listeners.get(asCommand.method);
-      for (const listener of listeners || []) {
-        listener(asCommand.params);
+      const asCommand = object as CdpProtocol.ICommand;
+      this._directListeners.emit(asCommand.method, asCommand.params);
+
+      // May eventually be useful to use a trie here if
+      // this becomes hot with many listeners
+      for (const [key, emitter] of this._prefixListeners.listeners) {
+        if (asCommand.method.startsWith(key)) {
+          emitter.fire(asCommand);
+        }
       }
 
       return;
@@ -348,29 +357,32 @@ class CDPSession {
 
     this._callbacks.delete(object.id);
     if ('error' in object) {
-      callback.from.message = `Protocol error (${object.method}): ${object.error.message}`;
-      callback.from.message += ` - ${JSON.stringify(object.error)}`;
-      callback.reject(callback.from);
+      callback.reject(callback.from.setCause(object.error.code, object.error.message));
     } else if ('result' in object) {
       callback.resolve(object.result);
     }
   }
 
-  async detach() {
-    if (!this._connection)
+  public async detach() {
+    if (!this._connection) {
       throw new Error(`Session already detached. Most likely the target has been closed.`);
-    await this._connection._send('Target.detachFromTarget', {}, this._sessionId);
+    }
+
+    this._connection._send('Target.detachFromTarget', {}, this._sessionId);
   }
 
-  isClosed(): boolean {
+  public isClosed(): boolean {
     return !this._connection;
   }
 
+  /**
+   * Marks the session as closed, called by the connection.
+   */
   _onClose() {
     for (const callback of this._callbacks.values()) {
-      callback.from.message = `Protocol error (${callback.method}): Target closed.`;
-      callback.reject(callback.from);
+      callback.reject(callback.from.setCause(0, 'Connection is closed'));
     }
+
     this._callbacks.clear();
     this._connection = undefined;
   }
