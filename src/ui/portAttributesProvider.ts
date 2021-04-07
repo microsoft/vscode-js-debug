@@ -30,14 +30,12 @@ export class JsDebugPortAttributesProvider
   /**
    * @inheritdoc
    */
-  public providePortAttributes(ports: number[]) {
-    return Promise.all(
-      ports.map(async port => ({
+  public async providePortAttributes(port: number) {
+    if (await this.leaseTracker.isRegistered(port)) {
+      return {
         port,
-        autoForwardAction: (await this.leaseTracker.isRegistered(port))
-          ? PortAutoForwardAction.Ignore
-          : PortAutoForwardAction.Notify,
-      })),
-    );
+        autoForwardAction: PortAutoForwardAction.Ignore,
+      };
+    }
   }
 }
