@@ -1,0 +1,12 @@
+version
+  major 1
+  minor 0
+
+experimental domain JsDebug
+  # Subscribes to the given CDP event(s). Events will not be sent through the
+  # connection unless you subscribe to them
+  command subscribe
+    parameters
+      # List of events to subscribe to. Supports wildcards, for example
+      # you can subscribe to `Debugger.scriptParsed` or `Debugger.*`
+      array of string events

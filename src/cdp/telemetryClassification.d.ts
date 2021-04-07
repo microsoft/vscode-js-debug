@@ -33,6 +33,10 @@ interface ICDPOperationClassification {
   '!backgroundservice.backgroundserviceeventreceived.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
 
   // Domain: Browser
+  'browser.downloadwillbegin': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!browser.downloadwillbegin.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  'browser.downloadprogress': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!browser.downloadprogress.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
 
   // Domain: CacheStorage
 
@@ -149,6 +153,8 @@ interface ICDPOperationClassification {
   // Domain: IndexedDB
 
   // Domain: Input
+  'input.dragintercepted': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!input.dragintercepted.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
 
   // Domain: Inspector
   'inspector.detached': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
@@ -159,6 +165,8 @@ interface ICDPOperationClassification {
   '!inspector.targetreloadedaftercrash.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
 
   // Domain: IO
+
+  // Domain: JsDebug
 
   // Domain: LayerTree
   'layertree.layerpainted': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };

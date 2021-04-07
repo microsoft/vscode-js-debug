@@ -119,10 +119,10 @@ describe('CdpProxyProvider', () => {
     client.Debugger.on('scriptParsed', () => recv.push('Debugger.scriptParsed'));
     client.Animation.on('animationStarted', () => recv.push('Animation.animationStarted'));
 
-    await client.session.sendOrDie('Runtime.evaluate', { expression: '' });
+    await client.Runtime.evaluate({ expression: '' });
     expect(recv).to.be.empty;
 
-    await client.session.sendOrDie('JsDebug.subscribe', {
+    await client.JsDebug.subscribe({
       events: ['Debugger.*', 'Runtime.consoleAPICalled'],
     });
     await client.session.sendOrDie('Runtime.evaluate', { expression: '' });

@@ -49,6 +49,7 @@ export namespace Cdp {
     Input: InputApi;
     Inspector: InspectorApi;
     IO: IOApi;
+    JsDebug: JsDebugApi;
     LayerTree: LayerTreeApi;
     Log: LogApi;
     Media: MediaApi;
@@ -1945,6 +1946,22 @@ export namespace Cdp {
     executeBrowserCommand(
       params: Browser.ExecuteBrowserCommandParams,
     ): Promise<Browser.ExecuteBrowserCommandResult | undefined>;
+
+    /**
+     * Fired when page is about to start a download.
+     */
+    on(
+      event: 'downloadWillBegin',
+      listener: (event: Browser.DownloadWillBeginEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when download makes progress. Last call has |done| == true.
+     */
+    on(
+      event: 'downloadProgress',
+      listener: (event: Browser.DownloadProgressEvent) => void,
+    ): IDisposable;
   }
 
   /**
@@ -2039,6 +2056,11 @@ export namespace Cdp {
        * or 'allowAndName'.
        */
       downloadPath?: string;
+
+      /**
+       * Whether to emit download events (defaults to false).
+       */
+      eventsEnabled?: boolean;
     }
 
     /**
@@ -2294,6 +2316,56 @@ export namespace Cdp {
      * Return value of the 'Browser.executeBrowserCommand' method.
      */
     export interface ExecuteBrowserCommandResult {}
+
+    /**
+     * Parameters of the 'Browser.downloadWillBegin' event.
+     */
+    export interface DownloadWillBeginEvent {
+      /**
+       * Id of the frame that caused the download to begin.
+       */
+      frameId: Page.FrameId;
+
+      /**
+       * Global unique identifier of the download.
+       */
+      guid: string;
+
+      /**
+       * URL of the resource being downloaded.
+       */
+      url: string;
+
+      /**
+       * Suggested file name of the resource (the actual name of the file saved on disk may differ).
+       */
+      suggestedFilename: string;
+    }
+
+    /**
+     * Parameters of the 'Browser.downloadProgress' event.
+     */
+    export interface DownloadProgressEvent {
+      /**
+       * Global unique identifier of the download.
+       */
+      guid: string;
+
+      /**
+       * Total expected bytes to download.
+       */
+      totalBytes: number;
+
+      /**
+       * Total bytes received.
+       */
+      receivedBytes: number;
+
+      /**
+       * Download status.
+       */
+      state: 'inProgress' | 'completed' | 'canceled';
+    }
 
     export type BrowserContextID = string;
 
@@ -11333,6 +11405,14 @@ export namespace Cdp {
     ): Promise<Input.SetIgnoreInputEventsResult | undefined>;
 
     /**
+     * Prevents default drag and drop behavior and instead emits `Input.dragIntercepted` events.
+     * Drag and drop behavior can be directly controlled via `Input.dispatchDragEvent`.
+     */
+    setInterceptDrags(
+      params: Input.SetInterceptDragsParams,
+    ): Promise<Input.SetInterceptDragsResult | undefined>;
+
+    /**
      * Synthesizes a pinch gesture over a time period by issuing appropriate touch events.
      */
     synthesizePinchGesture(
@@ -11352,6 +11432,15 @@ export namespace Cdp {
     synthesizeTapGesture(
       params: Input.SynthesizeTapGestureParams,
     ): Promise<Input.SynthesizeTapGestureResult | undefined>;
+
+    /**
+     * Emitted only when `Input.setInterceptDrags` is enabled. Use this data with `Input.dispatchDragEvent` to
+     * restore normal drag and drop behavior.
+     */
+    on(
+      event: 'dragIntercepted',
+      listener: (event: Input.DragInterceptedEvent) => void,
+    ): IDisposable;
   }
 
   /**
@@ -11698,6 +11787,18 @@ export namespace Cdp {
     export interface SetIgnoreInputEventsResult {}
 
     /**
+     * Parameters of the 'Input.setInterceptDrags' method.
+     */
+    export interface SetInterceptDragsParams {
+      enabled: boolean;
+    }
+
+    /**
+     * Return value of the 'Input.setInterceptDrags' method.
+     */
+    export interface SetInterceptDragsResult {}
+
+    /**
      * Parameters of the 'Input.synthesizePinchGesture' method.
      */
     export interface SynthesizePinchGestureParams {
@@ -11841,6 +11942,13 @@ export namespace Cdp {
      * Return value of the 'Input.synthesizeTapGesture' method.
      */
     export interface SynthesizeTapGestureResult {}
+
+    /**
+     * Parameters of the 'Input.dragIntercepted' event.
+     */
+    export interface DragInterceptedEvent {
+      data: DragData;
+    }
 
     export interface TouchPoint {
       /**
@@ -12129,6 +12237,38 @@ export namespace Cdp {
      * `&lt;uuid&gt` is an UUID of a Blob.
      */
     export type StreamHandle = string;
+  }
+
+  /**
+   * Methods and events of the 'JsDebug' domain.
+   */
+  export interface JsDebugApi {
+    /**
+     * Subscribes to the given CDP event(s). Events will not be sent through the
+     * connection unless you subscribe to them
+     */
+    subscribe(params: JsDebug.SubscribeParams): Promise<JsDebug.SubscribeResult | undefined>;
+  }
+
+  /**
+   * Types of the 'JsDebug' domain.
+   */
+  export namespace JsDebug {
+    /**
+     * Parameters of the 'JsDebug.subscribe' method.
+     */
+    export interface SubscribeParams {
+      /**
+       * List of events to subscribe to. Supports wildcards, for example
+       * you can subscribe to `Debugger.scriptParsed` or `Debugger.*`
+       */
+      events: string[];
+    }
+
+    /**
+     * Return value of the 'JsDebug.subscribe' method.
+     */
+    export interface SubscribeResult {}
   }
 
   /**
@@ -18218,6 +18358,8 @@ export namespace Cdp {
 
     /**
      * Fired when page is about to start a download.
+     * Deprecated. Use Browser.downloadWillBegin instead.
+     * @deprecated
      */
     on(
       event: 'downloadWillBegin',
@@ -18226,6 +18368,8 @@ export namespace Cdp {
 
     /**
      * Fired when download makes progress. Last call has |done| == true.
+     * Deprecated. Use Browser.downloadProgress instead.
+     * @deprecated
      */
     on(
       event: 'downloadProgress',
