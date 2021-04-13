@@ -163,6 +163,7 @@ export class Thread implements IVariableStoreDelegate {
   private readonly _pausedDetailsEvent = new WeakMap<IPausedDetails, Cdp.Debugger.PausedEvent>();
   private readonly _onPausedEmitter = new EventEmitter<IPausedDetails>();
   private readonly _dap: DeferredContainer<Dap.Api>;
+  private disposed = false;
 
   /**
    * Details set when a "step in" is issued. Used allow async stepping in
@@ -737,6 +738,7 @@ export class Thread implements IVariableStoreDelegate {
    * @inheritdoc
    */
   async dispose() {
+    this.disposed = true;
     this._removeAllScripts(true /* silent */);
     for (const [debuggerId, thread] of Thread._allThreadsByDebuggerId) {
       if (thread === this) Thread._allThreadsByDebuggerId.delete(debuggerId);
@@ -789,7 +791,8 @@ export class Thread implements IVariableStoreDelegate {
   public rawLocationToUiLocation(
     rawLocation: RawLocation,
   ): Promise<IPreferredUiLocation | undefined> | IPreferredUiLocation | undefined {
-    if (!rawLocation.scriptId || this._executionContexts.size === 0) {
+    // disposed check from https://github.com/microsoft/vscode/issues/121136
+    if (!rawLocation.scriptId || this.disposed) {
       return undefined;
     }
 

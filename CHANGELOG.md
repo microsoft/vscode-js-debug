@@ -5,6 +5,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 ## TBA
 
 - feat: show private properties in the inspector ([#892](https://github.com/microsoft/vscode-js-debug/issues/892))
+- fix: sources not working in RN Windows ([ref](https://github.com/microsoft/vscode/issues/121136))
 
 ## v1.56.0 - 2021-04-07
 
