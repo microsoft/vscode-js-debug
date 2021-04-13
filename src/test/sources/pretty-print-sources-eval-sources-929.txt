@@ -12,7 +12,7 @@ Evaluating#1: let n=1;for(let l=0;l<n;l++){console.log("hi");debugger}
     reason : pause
     threadId : <number>
 }
-<anonymous> @ ${workspaceFolder}/web/46947589.js-pretty.js:3:15
+<anonymous> @ ${workspaceFolder}/web/46947589.js-pretty.js:4:3
 {
     allThreadsContinued : false
     threadId : <number>
