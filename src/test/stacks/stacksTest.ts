@@ -276,7 +276,7 @@ describe('stacks', () => {
       p.assertLog();
     });
 
-    itIntegrates.only('multiple authored ts to js', async ({ r }) => {
+    itIntegrates('multiple authored ts to js', async ({ r }) => {
       const p = await r.launchUrlAndLoad('browserify/browserify.html', {
         skipFiles: ['**/module*.ts'],
       });
