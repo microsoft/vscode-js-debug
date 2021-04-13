@@ -96,6 +96,8 @@ export interface IVariableStoreDelegate {
   renderDebuggerLocation(location: Cdp.Debugger.Location): Promise<string>;
 }
 
+type AnyPropertyDescriptor = Cdp.Runtime.PropertyDescriptor | Cdp.Runtime.PrivatePropertyDescriptor;
+
 export class VariableStore {
   private _cdp: Cdp.Api;
   private static _lastVariableReference = 0;
@@ -415,8 +417,8 @@ export class VariableStore {
     if (!accessorsProperties || !ownProperties) return [];
 
     // Merge own properties and all accessors.
-    const propertiesMap = new Map<string, Cdp.Runtime.PropertyDescriptor>();
-    const propertySymbols: Cdp.Runtime.PropertyDescriptor[] = [];
+    const propertiesMap = new Map<string, AnyPropertyDescriptor>();
+    const propertySymbols: AnyPropertyDescriptor[] = [];
     for (const property of accessorsProperties.result) {
       if (property.symbol) propertySymbols.push(property);
       else propertiesMap.set(property.name, property);
@@ -425,6 +427,9 @@ export class VariableStore {
       if (property.get || property.set) continue;
       if (property.symbol) propertySymbols.push(property);
       else propertiesMap.set(property.name, property);
+    }
+    for (const property of ownProperties.privateProperties ?? []) {
+      propertiesMap.set(property.name, property);
     }
 
     // Push own properties & accessors and symbols
@@ -529,7 +534,7 @@ export class VariableStore {
   }
 
   private async _createVariablesForProperty(
-    p: Cdp.Runtime.PropertyDescriptor,
+    p: AnyPropertyDescriptor,
     owner: RemoteObject,
   ): Promise<Dap.Variable[]> {
     const result: Dap.Variable[] = [];

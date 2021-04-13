@@ -77,6 +77,14 @@ describe('variables', () => {
       p.assertLog();
     });
 
+    itIntegrates('private props', async ({ r }) => {
+      const p = await r.launchAndLoad('blank');
+      await p.logger.evaluateAndLog(`
+        class A { #foo = 'bar' }
+        new A();`);
+      p.assertLog();
+    });
+
     itIntegrates('deep accessor', async ({ r }) => {
       const p = await r.launchAndLoad('blank');
       await p.logger.evaluateAndLog(`

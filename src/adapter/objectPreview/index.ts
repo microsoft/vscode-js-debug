@@ -76,7 +76,9 @@ function previewRemoteObjectInternal(
     : renderValue(object, context.budget, context.quoted);
 }
 
-export function propertyWeight(prop: Cdp.Runtime.PropertyDescriptor): number {
+export function propertyWeight(
+  prop: Cdp.Runtime.PropertyDescriptor | Cdp.Runtime.PrivatePropertyDescriptor,
+): number {
   if (prop.name === '__proto__') return 0;
   if (prop.name.startsWith('__')) return 1;
   return 100;
