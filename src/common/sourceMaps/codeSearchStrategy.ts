@@ -2,14 +2,14 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { injectable } from 'inversify';
 import type * as vscodeType from 'vscode';
-import { LogTag, ILogger } from '../logging';
+import { FileGlobList } from '../fileGlobList';
+import { ILogger, LogTag } from '../logging';
 import { forceForwardSlashes } from '../pathUtils';
 import { NodeSearchStrategy } from './nodeSearchStrategy';
 import { ISourceMapMetadata } from './sourceMap';
 import { createMetadataForFile, ISearchStrategy } from './sourceMapRepository';
-import { injectable } from 'inversify';
-import { FileGlobList } from '../fileGlobList';
 
 /**
  * A source map repository that uses VS Code's proposed search API to
@@ -85,7 +85,7 @@ export class CodeSearchStrategy implements ISearchStrategy {
     return {
       include: new this.vscode.RelativePattern(
         files.rootPath,
-        forceForwardSlashes(files.patterns.filter(p => !p.startsWith('!')).join(', ')),
+        `{${forceForwardSlashes(files.patterns.filter(p => !p.startsWith('!')).join(', '))}}`,
       ),
       exclude: files.patterns
         .filter(p => p.startsWith('!'))
