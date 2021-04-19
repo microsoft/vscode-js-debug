@@ -1357,6 +1357,10 @@ const keybindings = [
 if (require.main === module) {
   process.stdout.write(
     JSON.stringify({
+      workspaceTrust: {
+        request: 'onDemand',
+        description: refString('workspaceTrust.description'),
+      },
       activationEvents: [
         ...[...allCommands].map(cmd => `onCommand:${cmd}`),
         ...debuggers.map(dbg => `onDebugResolve:${dbg.type}`),

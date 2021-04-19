@@ -97,6 +97,11 @@ export const launchVirtualTerminalParent = (
         return;
       }
 
+      if (!(await vscode.workspace.requestWorkspaceTrust({ modal: true }))) {
+        target.detach();
+        return;
+      }
+
       if (!target.parent()) {
         const cwd = await getWorkingDirectory(target);
         if (target instanceof NodeTarget && cwd) {

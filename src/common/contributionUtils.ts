@@ -27,7 +27,6 @@ export const enum Commands {
   CreateDiagnostics = 'extension.js-debug.createDiagnostics',
   DebugLink = 'extension.js-debug.debugLink',
   DebugNpmScript = 'extension.js-debug.npmScript',
-  EnlistExperiment = 'extension.js-debug.experimentEnlist',
   PickProcess = 'extension.js-debug.pickNodeProcess',
   PrettyPrint = 'extension.js-debug.prettyPrint',
   RemoveAllCustomBreakpoints = 'extension.js-debug.removeAllCustomBreakpoints',
@@ -68,7 +67,6 @@ const commandsObj: { [K in Commands]: null } = {
   [Commands.CreateDiagnostics]: null,
   [Commands.DebugLink]: null,
   [Commands.DebugNpmScript]: null,
-  [Commands.EnlistExperiment]: null,
   [Commands.PickProcess]: null,
   [Commands.PrettyPrint]: null,
   [Commands.RemoveAllCustomBreakpoints]: null,
@@ -156,7 +154,6 @@ export interface ICommandTypes {
   [Commands.CreateDiagnostics](): void;
   [Commands.ToggleSkipping](file: string | number): void;
   [Commands.PrettyPrint](): void;
-  [Commands.EnlistExperiment](): void;
   [Commands.StartProfile](args?: string | IStartProfileArguments): void;
   [Commands.StopProfile](sessionId?: string): void;
   [Commands.AutoAttachSetVariables](): { ipcAddress: string } | void;

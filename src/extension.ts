@@ -16,7 +16,6 @@ import { registerCustomBreakpointsUI } from './ui/customBreakpointsUI';
 import { debugNpmScript } from './ui/debugNpmScript';
 import { DebugSessionTracker } from './ui/debugSessionTracker';
 import { registerDebugTerminalUI } from './ui/debugTerminalUI';
-import { toggleOnExperiment } from './ui/experimentEnlist';
 import { PrettyPrintTrackerFactory } from './ui/prettyPrint';
 import { attachProcess, pickProcess } from './ui/processPicker';
 import { registerProfilingCommand } from './ui/profiling';
@@ -44,7 +43,6 @@ export function activate(context: vscode.ExtensionContext) {
     registerCommand(vscode.commands, Commands.PickProcess, pickProcess),
     registerCommand(vscode.commands, Commands.AttachProcess, attachProcess),
     registerCommand(vscode.commands, Commands.ToggleSkipping, toggleSkippingFile),
-    registerCommand(vscode.commands, Commands.EnlistExperiment, toggleOnExperiment),
   );
 
   context.subscriptions.push(
