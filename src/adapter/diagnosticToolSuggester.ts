@@ -5,6 +5,7 @@
 import { inject, injectable } from 'inversify';
 import Cdp from '../cdp/api';
 import { DisposableList } from '../common/disposable';
+import { EventEmitter } from '../common/events';
 import { disposableTimeout } from '../common/promiseUtil';
 import Dap from '../dap/api';
 import { IRootDapApi } from '../dap/connection';
@@ -33,6 +34,13 @@ export class DiagnosticToolSuggester {
    */
   private static consecutiveQualifyingSessions = 0;
 
+  /**
+   * Fired when a disqualifying event happens. This is global, since in a
+   * compound launch config many sessions might be launched but only one of
+   * them could end up qualifying.
+   */
+  private static didVerifyEmitter = new EventEmitter<void>();
+
   private readonly disposable = new DisposableList();
   private hadBreakpoint = false;
   private didVerifyBreakpoint = false;
@@ -44,6 +52,12 @@ export class DiagnosticToolSuggester {
   }
 
   constructor(@inject(IRootDapApi) dap: Dap.Api) {
+    this.disposable.push(
+      DiagnosticToolSuggester.didVerifyEmitter.event(() => {
+        this.didVerifyBreakpoint = true;
+      }),
+    );
+
     if (DiagnosticToolSuggester.consecutiveQualifyingSessions >= consecutiveSessions) {
       this.disposable.push(
         disposableTimeout(() => {
@@ -77,7 +91,7 @@ export class DiagnosticToolSuggester {
     if (!this.didVerifyBreakpoint) {
       const listener = this.disposable.push(
         cdp.Debugger.on('breakpointResolved', () => {
-          this.didVerifyBreakpoint = true;
+          DiagnosticToolSuggester.didVerifyEmitter.fire();
           this.disposable.disposeObject(listener);
         }),
       );

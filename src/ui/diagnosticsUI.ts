@@ -15,6 +15,7 @@ const neverRemindKey = 'neverRemind';
 @injectable()
 export class DiagnosticsUI implements IExtensionContribution {
   private dismissedForSession = false;
+  private isPrompting = false;
 
   constructor(
     @inject(FS) private readonly fs: FsPromises,
@@ -32,10 +33,13 @@ export class DiagnosticsUI implements IExtensionContribution {
         if (
           evt.event !== 'suggestDiagnosticTool' ||
           this.dismissedForSession ||
-          this.context.workspaceState.get(neverRemindKey)
+          this.context.workspaceState.get(neverRemindKey) ||
+          this.isPrompting
         ) {
           return;
         }
+
+        this.isPrompting = true;
 
         const yes = localize('yes', 'Yes');
         const notNow = localize('notNow', 'Not Now');
@@ -46,6 +50,8 @@ export class DiagnosticsUI implements IExtensionContribution {
           notNow,
           never,
         );
+
+        this.isPrompting = false;
 
         switch (response) {
           case yes:
