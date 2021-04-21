@@ -69,8 +69,14 @@ export class DiagnosticToolSuggester {
     }
   }
 
-  public notifyHadBreakpoint() {
+  public notifyVerifiedBreakpoint() {
     this.hadBreakpoint = true;
+  }
+
+  public notifyHadBreakpoint() {
+    if (!this.didVerifyBreakpoint) {
+      DiagnosticToolSuggester.didVerifyEmitter.fire();
+    }
   }
 
   /**
@@ -84,15 +90,6 @@ export class DiagnosticToolSuggester {
             this.hadNonModuleSourcemap = true;
             this.disposable.disposeObject(listener);
           }
-        }),
-      );
-    }
-
-    if (!this.didVerifyBreakpoint) {
-      const listener = this.disposable.push(
-        cdp.Debugger.on('breakpointResolved', () => {
-          DiagnosticToolSuggester.didVerifyEmitter.fire();
-          this.disposable.disposeObject(listener);
         }),
       );
     }

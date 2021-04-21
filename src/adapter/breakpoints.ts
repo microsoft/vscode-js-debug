@@ -23,6 +23,7 @@ import { EntryBreakpoint } from './breakpoints/entryBreakpoint';
 import { NeverResolvedBreakpoint } from './breakpoints/neverResolvedBreakpoint';
 import { PatternEntryBreakpoint } from './breakpoints/patternEntrypointBreakpoint';
 import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
+import { DiagnosticToolSuggester } from './diagnosticToolSuggester';
 import {
   base0To1,
   base1To0,
@@ -135,6 +136,7 @@ export class BreakpointManager {
     @inject(AnyLaunchConfiguration) private readonly launchConfig: AnyLaunchConfiguration,
     @inject(IBreakpointConditionFactory)
     private readonly conditionFactory: IBreakpointConditionFactory,
+    @inject(DiagnosticToolSuggester) private readonly suggester: DiagnosticToolSuggester,
     @inject(IBreakpointsPredictor) public readonly _breakpointsPredictor?: IBreakpointsPredictor,
   ) {
     this._dap = dap;
@@ -622,6 +624,7 @@ export class BreakpointManager {
     const dap = await breakpoint.toDap();
     if (dap.verified) {
       this._breakpointsStatisticsCalculator.registerResolvedBreakpoint(breakpoint.dapId);
+      this.suggester.notifyVerifiedBreakpoint();
     }
 
     if (emitChange) {
