@@ -172,7 +172,7 @@
   "enableProposedApi": true,
   "capabilities": {
     "virtualWorkspaces": false
-  }
+  },
   "activationEvents": [
     "onDebugDynamicConfigurations",
     "onDebugInitialConfigurations",
