@@ -2,7 +2,7 @@
 
 This changelog records changes to stable releases since 1.50.2. "TBA" changes here may be available in the [nightly release](https://github.com/microsoft/vscode-js-debug/#nightly-extension) before they're in stable. Note that the minor version (`v1.X.0`) corresponds to the VS Code version js-debug is shipped in, but the patch version (`v1.50.X`) is not meaningful.
 
-## TBA
+## v1.56.1 - 2021-04-23
 
 - feat: show private properties in the inspector ([#892](https://github.com/microsoft/vscode-js-debug/issues/892))
 - fix: sources not working in RN Windows ([ref](https://github.com/microsoft/vscode/issues/121136))
