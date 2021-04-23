@@ -165,6 +165,14 @@ export interface ILaunchMetrics {
   parameters: string;
 }
 
+interface IDiagnosticPromptClassification {
+  event: { classification: 'SystemMetaData'; purpose: 'FeatureInsight' };
+}
+
+export interface IDiagnosticPromptMetrics {
+  event: 'suggested' | 'opened' | 'resolved';
+}
+
 /******************************************************************************
  * Implementations
  *****************************************************************************/
@@ -255,6 +263,13 @@ export const createLoggers = (sendEvent: (event: Dap.OutputEventParams) => void)
     );
   };
 
+  const diagnosticPrompt = (metrics: IDiagnosticPromptMetrics) => {
+    publicLog2<
+      IGlobalMetrics & IDiagnosticPromptMetrics,
+      IDiagnosticPromptClassification & IGlobalClassification
+    >('js-debug/diagnosticPrompt', { ...globalMetrics, ...metrics });
+  };
+
   /**
    * VS contains a file .gitcommit with the exact commit version being shipped.
    * We want to be able to easily track which commit telemetry came from, specially to translate error call stacks
@@ -268,6 +283,10 @@ export const createLoggers = (sendEvent: (event: Dap.OutputEventParams) => void)
     }
   }
 
+  const setGlobalMetric = <K extends keyof IGlobalMetrics>(key: K, value: IGlobalMetrics[K]) => {
+    globalMetrics[key] = value;
+  };
+
   return {
     breakpointStats,
     statistics,
@@ -277,6 +296,8 @@ export const createLoggers = (sendEvent: (event: Dap.OutputEventParams) => void)
     error,
     launch,
     nodeRuntime,
+    diagnosticPrompt,
+    setGlobalMetric,
   };
 };
 

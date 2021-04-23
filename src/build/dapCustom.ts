@@ -462,7 +462,14 @@ const dapCustom: JSONSchema4 = {
     ...makeRequest(
       'createDiagnostics',
       'Generates diagnostic information for the debug session.',
-      undefined,
+      {
+        properties: {
+          fromSuggestion: {
+            type: 'boolean',
+            description: 'Whether the tool is opening from a prompt',
+          },
+        },
+      },
       {
         properties: {
           file: {

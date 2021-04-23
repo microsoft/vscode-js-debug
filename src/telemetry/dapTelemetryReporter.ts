@@ -43,6 +43,8 @@ export class DapTelemetryReporter implements ITelemetryReporter {
    */
   public readonly onFlush = this.flushEmitter.event;
 
+  public readonly setGlobalMetric = this.loggers.setGlobalMetric;
+
   /**
    * @inheritdoc
    */
@@ -107,7 +109,10 @@ export class DapTelemetryReporter implements ITelemetryReporter {
     }
   }
 
-  private pushOutput(event: Dap.OutputEventParams) {
+  /**
+   * Pushes raw telemetry.
+   */
+  public pushOutput(event: Dap.OutputEventParams) {
     event.data = mapOutput(event.data) as object;
     if (this.target instanceof Array) {
       this.target.push(event);

@@ -104,7 +104,7 @@ export class DebugAdapter implements IDisposable {
         breakpoints: await this.breakpointManager.getBreakpointLocations(thread, params),
       })),
     );
-    this.dap.on('createDiagnostics', () => this._dumpDiagnostics());
+    this.dap.on('createDiagnostics', params => this._dumpDiagnostics(params));
     this.dap.on('requestCDPProxy', () => this._requestCDPProxy());
   }
 
@@ -416,8 +416,15 @@ export class DebugAdapter implements IDisposable {
     return {};
   }
 
-  async _dumpDiagnostics() {
-    return { file: await this._services.get(Diagnostics).generateHtml() };
+  async _dumpDiagnostics(params: Dap.CreateDiagnosticsParams) {
+    const out = { file: await this._services.get(Diagnostics).generateHtml() };
+    if (params.fromSuggestion) {
+      this._services
+        .get<ITelemetryReporter>(ITelemetryReporter)
+        .report('diagnosticPrompt', { event: 'opened' });
+    }
+
+    return out;
   }
 
   public async _requestCDPProxy() {

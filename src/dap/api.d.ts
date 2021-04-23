@@ -333,7 +333,6 @@ export namespace Dap {
      * The request configures the debuggers response to thrown exceptions.
      * If an exception is configured to break, a 'stopped' event is fired (with reason 'exception').
      * Clients should only call this request if the capability 'exceptionBreakpointFilters' returns one or more filters.
-     * If a filter or filter option is invalid (e.g. due to an invalid 'condition'), the request should fail with an 'ErrorResponse' explaining the problem(s).
      */
     on(
       request: 'setExceptionBreakpoints',
@@ -345,7 +344,6 @@ export namespace Dap {
      * The request configures the debuggers response to thrown exceptions.
      * If an exception is configured to break, a 'stopped' event is fired (with reason 'exception').
      * Clients should only call this request if the capability 'exceptionBreakpointFilters' returns one or more filters.
-     * If a filter or filter option is invalid (e.g. due to an invalid 'condition'), the request should fail with an 'ErrorResponse' explaining the problem(s).
      */
     setExceptionBreakpointsRequest(
       params: SetExceptionBreakpointsParams,
@@ -1322,7 +1320,6 @@ export namespace Dap {
      * The request configures the debuggers response to thrown exceptions.
      * If an exception is configured to break, a 'stopped' event is fired (with reason 'exception').
      * Clients should only call this request if the capability 'exceptionBreakpointFilters' returns one or more filters.
-     * If a filter or filter option is invalid (e.g. due to an invalid 'condition'), the request should fail with an 'ErrorResponse' explaining the problem(s).
      */
     setExceptionBreakpoints(
       params: SetExceptionBreakpointsParams,
@@ -1894,7 +1891,12 @@ export namespace Dap {
     text: string;
   }
 
-  export interface CreateDiagnosticsParams {}
+  export interface CreateDiagnosticsParams {
+    /**
+     * Whether the tool is opening from a prompt
+     */
+    fromSuggestion?: boolean;
+  }
 
   export interface CreateDiagnosticsResult {
     /**
@@ -2003,6 +2005,13 @@ export namespace Dap {
      * The attribute is only honored by a debug adapter if the capability 'supportTerminateDebuggee' is true.
      */
     terminateDebuggee?: boolean;
+
+    /**
+     * Indicates whether the debuggee should stay suspended when the debugger is disconnected.
+     * If unspecified, the debuggee should resume execution.
+     * The attribute is only honored by a debug adapter if the capability 'supportSuspendDebuggee' is true.
+     */
+    suspendDebuggee?: boolean;
   }
 
   export interface DisconnectResult {}
@@ -2344,6 +2353,11 @@ export namespace Dap {
      * The debug adapter supports the 'terminateDebuggee' attribute on the 'disconnect' request.
      */
     supportTerminateDebuggee?: boolean;
+
+    /**
+     * The debug adapter supports the 'suspendDebuggee' attribute on the 'disconnect' request.
+     */
+    supportSuspendDebuggee?: boolean;
 
     /**
      * The debug adapter supports the delayed loading of parts of the stack, which requires that both the 'startFrame' and 'levels' arguments and an optional 'totalFrames' result of the 'StackTrace' request are supported.
@@ -2839,7 +2853,12 @@ export namespace Dap {
 
   export interface RestartFrameResult {}
 
-  export interface RestartParams {}
+  export interface RestartParams {
+    /**
+     * The latest version of the 'launch' or 'attach' configuration.
+     */
+    arguments?: LaunchRequestArguments | AttachRequestArguments;
+  }
 
   export interface RestartResult {}
 
@@ -2988,7 +3007,13 @@ export namespace Dap {
     exceptionOptions?: ExceptionOptions[];
   }
 
-  export interface SetExceptionBreakpointsResult {}
+  export interface SetExceptionBreakpointsResult {
+    /**
+     * Information about the exception breakpoints or filters.
+     * The breakpoints returned are in the same order as the elements of the 'filters', 'filterOptions', 'exceptionOptions' arrays in the arguments. If both 'filters' and 'filterOptions' are given, the returned array must start with 'filters' information first, followed by 'filterOptions' information.
+     */
+    breakpoints?: Breakpoint[];
+  }
 
   export interface SetExpressionParams {
     /**
@@ -3861,6 +3886,35 @@ export namespace Dap {
   }
 
   /**
+   * Arguments for 'attach' request. Additional attributes are implementation specific.
+   */
+  export interface AttachRequestArguments {
+    /**
+     * Optional data from the previous, restarted session.
+     * The data is sent as the 'restart' attribute of the 'terminated' event.
+     * The client should leave the data intact.
+     */
+    __restart?: any[] | boolean | integer | null | number | object | string;
+  }
+
+  /**
+   * Arguments for 'launch' request. Additional attributes are implementation specific.
+   */
+  export interface LaunchRequestArguments {
+    /**
+     * If noDebug is true the launch request should launch the program without enabling debugging.
+     */
+    noDebug?: boolean;
+
+    /**
+     * Optional data from the previous, restarted session.
+     * The data is sent as the 'restart' attribute of the 'terminated' event.
+     * The client should leave the data intact.
+     */
+    __restart?: any[] | boolean | integer | null | number | object | string;
+  }
+
+  /**
    * The granularity of one 'step' in the stepping requests 'next', 'stepIn', 'stepOut', and 'stepBack'.
    */
   export type SteppingGranularity = string;
@@ -4371,6 +4425,11 @@ export namespace Dap {
      * The debug adapter supports the 'terminateDebuggee' attribute on the 'disconnect' request.
      */
     supportTerminateDebuggee?: boolean;
+
+    /**
+     * The debug adapter supports the 'suspendDebuggee' attribute on the 'disconnect' request.
+     */
+    supportSuspendDebuggee?: boolean;
 
     /**
      * The debug adapter supports the delayed loading of parts of the stack, which requires that both the 'startFrame' and 'levels' arguments and an optional 'totalFrames' result of the 'StackTrace' request are supported.

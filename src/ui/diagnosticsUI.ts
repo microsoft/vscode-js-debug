@@ -55,7 +55,7 @@ export class DiagnosticsUI implements IExtensionContribution {
 
         switch (response) {
           case yes:
-            this.getDiagnosticInfo(await this.getTargetSession());
+            this.getDiagnosticInfo(await this.getTargetSession(), true);
             break;
           case never:
             context.workspaceState.update(neverRemindKey, true);
@@ -104,7 +104,10 @@ export class DiagnosticsUI implements IExtensionContribution {
     }).finally(() => qp.dispose());
   }
 
-  private async getDiagnosticInfo(session: vscode.DebugSession | undefined) {
+  private async getDiagnosticInfo(
+    session: vscode.DebugSession | undefined,
+    fromSuggestion = false,
+  ) {
     if (!session || !this.tracker.isRunning(session)) {
       vscode.window.showErrorMessage(
         localize(
@@ -116,7 +119,7 @@ export class DiagnosticsUI implements IExtensionContribution {
       return;
     }
 
-    const { file } = await session.customRequest('createDiagnostics');
+    const { file } = await session.customRequest('createDiagnostics', { fromSuggestion });
     const panel = vscode.window.createWebviewPanel(
       Contributions.DiagnosticsView,
       'Debug Diagnostics',

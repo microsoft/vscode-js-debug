@@ -9,6 +9,8 @@ import { EventEmitter } from '../common/events';
 import { disposableTimeout } from '../common/promiseUtil';
 import Dap from '../dap/api';
 import { IRootDapApi } from '../dap/connection';
+import { IExperimentationService } from '../telemetry/experimentationService';
+import { ITelemetryReporter } from '../telemetry/telemetryReporter';
 
 const ignoredModulePatterns = /\/node_modules\/|^node\:/;
 const consecutiveSessions = 2;
@@ -41,6 +43,11 @@ export class DiagnosticToolSuggester {
    */
   private static didVerifyEmitter = new EventEmitter<void>();
 
+  /**
+   * Whether we recently suggested using the diagnostic tool.
+   */
+  private static didSuggest = false;
+
   private readonly disposable = new DisposableList();
   private hadBreakpoint = false;
   private didVerifyBreakpoint = false;
@@ -51,7 +58,11 @@ export class DiagnosticToolSuggester {
     return this.hadBreakpoint && !this.didVerifyBreakpoint && this.hadNonModuleSourcemap;
   }
 
-  constructor(@inject(IRootDapApi) dap: Dap.Api) {
+  constructor(
+    @inject(IRootDapApi) dap: Dap.Api,
+    @inject(ITelemetryReporter) private readonly telemetry: ITelemetryReporter,
+    @inject(IExperimentationService) private readonly experimentation: IExperimentationService,
+  ) {
     this.disposable.push(
       DiagnosticToolSuggester.didVerifyEmitter.event(() => {
         this.didVerifyBreakpoint = true;
@@ -60,22 +71,37 @@ export class DiagnosticToolSuggester {
 
     if (DiagnosticToolSuggester.consecutiveQualifyingSessions >= consecutiveSessions) {
       this.disposable.push(
-        disposableTimeout(() => {
-          if (this.currentlyQualifying) {
-            dap.suggestDiagnosticTool({});
+        disposableTimeout(async () => {
+          if (!this.currentlyQualifying) {
+            return;
           }
+
+          if (!(await this.experimentation.getTreatment('diagnosticPrompt', true))) {
+            return;
+          }
+
+          telemetry.report('diagnosticPrompt', { event: 'suggested' });
+          DiagnosticToolSuggester.didSuggest = true;
+          dap.suggestDiagnosticTool({});
         }, suggestDelay),
       );
     }
   }
 
-  public notifyVerifiedBreakpoint() {
+  public notifyHadBreakpoint() {
     this.hadBreakpoint = true;
   }
 
-  public notifyHadBreakpoint() {
-    if (!this.didVerifyBreakpoint) {
-      DiagnosticToolSuggester.didVerifyEmitter.fire();
+  public notifyVerifiedBreakpoint() {
+    if (this.didVerifyBreakpoint) {
+      return;
+    }
+
+    DiagnosticToolSuggester.didVerifyEmitter.fire();
+
+    if (DiagnosticToolSuggester.didSuggest) {
+      DiagnosticToolSuggester.didSuggest = false;
+      this.telemetry.report('diagnosticPrompt', { event: 'resolved' });
     }
   }
 

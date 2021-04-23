@@ -3,9 +3,9 @@
  *--------------------------------------------------------*/
 
 import { IDisposable } from '../common/disposable';
-import { LogFunctions, IRPCMetricsAndErrorsMap } from './classification';
-import Dap from '../dap/api';
 import { IEvent } from '../common/events';
+import Dap from '../dap/api';
+import { IRPCMetricsAndErrorsMap, LogFunctions } from './classification';
 
 // For each logger that takes an IRPCOperation, an OpsBatchReporter
 export type Batchable = {

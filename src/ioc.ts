@@ -103,6 +103,8 @@ import {
 import { ITargetOrigin } from './targets/targetOrigin';
 import { ILauncher, ITarget } from './targets/targets';
 import { DapTelemetryReporter } from './telemetry/dapTelemetryReporter';
+import { IExperimentationService } from './telemetry/experimentationService';
+import { NullExperimentationService } from './telemetry/nullExperimentationService';
 import { NullTelemetryReporter } from './telemetry/nullTelemetryReporter';
 import { ITelemetryReporter } from './telemetry/telemetryReporter';
 
@@ -243,6 +245,11 @@ export const createTopLevelSessionContainer = (parent: Container) => {
       .bind(IRequestOptionsProvider)
       .to(require('./ui/settingRequestOptionsProvider').SettingRequestOptionsProvider)
       .inSingletonScope();
+
+    container
+      .bind(IExperimentationService)
+      .to(require('./telemetry/vscodeExperimentationService').VSCodeExperimentationService)
+      .inSingletonScope();
   }
 
   container.bind(ILauncher).to(NodeAttacher).onActivation(trackDispose);
@@ -290,6 +297,7 @@ export const createGlobalContainer = (options: {
   container.bind(DelegateLauncherFactory).toSelf().inSingletonScope();
   container.bind(NodeOnlyPathResolverFactory).toSelf().inSingletonScope();
 
+  container.bind(IExperimentationService).to(NullExperimentationService).inSingletonScope();
   container.bind(SessionSubStates).toConstantValue(new ObservableMap());
   container.bind(IDefaultBrowserProvider).to(DefaultBrowserProvider).inSingletonScope();
   container.bind(StoragePath).toConstantValue(options.storagePath);
