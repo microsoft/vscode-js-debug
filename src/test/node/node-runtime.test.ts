@@ -111,6 +111,10 @@ describe('node runtime', () => {
   });
 
   itIntegrates('chakracore string value', async ({ r }) => {
+    if (process.platform !== 'win32') {
+      return;
+    }
+
     createFileTree(testFixturesDir, {
       'test.js': ['const message = "hello world!";', 'console.log(message);', 'debugger;'],
     });
