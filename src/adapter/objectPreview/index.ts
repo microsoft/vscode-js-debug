@@ -294,7 +294,8 @@ function renderPropertyPreview(
 
 function renderValue(object: ObjectPreview.AnyObject, budget: number, quote: boolean): string {
   if (object.type === 'string') {
-    const value = stringUtils.trimMiddle(object.value, quote ? budget - 2 : budget);
+    const stringValue = object.value || (object.description ? object.description : '');
+    const value = stringUtils.trimMiddle(stringValue, quote ? budget - 2 : budget);
     return quote ? `'${value}'` : value;
   }
 
