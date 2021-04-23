@@ -171,9 +171,6 @@
   },
   "main": "./src/extension.js",
   "enableProposedApi": true,
-  "capabilities": {
-    "virtualWorkspaces": false
-  },
   "activationEvents": [
     "onDebugDynamicConfigurations",
     "onDebugInitialConfigurations",
