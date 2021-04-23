@@ -210,7 +210,8 @@
       "types": [
         {
           "command": "extension.js-debug.createDebuggerTerminal",
-          "title": "%debug.terminal.label%"
+          "title": "%debug.terminal.label%",
+          "icon": "$(debug)"
         }
       ]
     }
