@@ -772,4 +772,16 @@ export class BreakpointManager {
       bp.executionContextWasCleared();
     }
   }
+
+  /**
+   * Reapplies any currently-set user defined breakpoints.
+   */
+  public async reapply() {
+    const all = [...this.allUserBreakpoints];
+    await Promise.all(all.map(a => a.disable()));
+    if (this._thread) {
+      const thread = this._thread;
+      await Promise.all(all.map(a => a.enable(thread)));
+    }
+  }
 }

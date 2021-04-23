@@ -528,6 +528,12 @@ export class Thread implements IVariableStoreDelegate {
       this.replVariables.clear();
       this._executionContextsCleared();
     });
+    this._cdp.Inspector.on('targetReloadedAfterCrash', () => {
+      // It was reported that crashing targets sometimes loses breakpoints.
+      // I could not reproduce this by calling `Page.crash()`, but put this fix
+      // in nevertheless; it should be safe.
+      this._breakpointManager.reapply();
+    });
     if (this.launchConfig.outputCapture === OutputSource.Console) {
       this._cdp.Runtime.on('consoleAPICalled', event => {
         this.console.dispatch(this, event);
