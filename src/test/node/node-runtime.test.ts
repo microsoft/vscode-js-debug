@@ -110,6 +110,33 @@ describe('node runtime', () => {
     handle.assertLog({ substring: true });
   });
 
+  itIntegrates('chakracore string value', async ({ r }) => {
+    createFileTree(testFixturesDir, {
+      'test.js': ['const message = "hello world!";', 'console.log(message);', 'debugger;'],
+    });
+    const chakracore = join(testWorkspace, 'chakracore', 'ChakraCore.Debugger.Sample.exe');
+    const handle = await r.runScript('test.js', {
+      runtimeExecutable: chakracore,
+      runtimeArgs: ['--inspect-brk', '--port', '9229'],
+      attachSimplePort: 9229,
+      continueOnAttach: true,
+    });
+
+    handle.load();
+    const { threadId } = handle.log(await handle.dap.once('stopped'));
+    handle.dap.continue({ threadId });
+    await handle.dap.once('stopped');
+
+    const stack = await handle.dap.stackTrace({ threadId });
+    await handle.logger.evaluateAndLog('message', {
+      params: {
+        frameId: stack.stackFrames[0].id,
+      },
+    });
+
+    handle.assertLog({ substring: true });
+  });
+
   itIntegrates('exits with child process launcher', async ({ r }) => {
     createFileTree(testFixturesDir, { 'test.js': '' });
     const handle = await r.runScript('test.js', { console: 'internalConsole' });
