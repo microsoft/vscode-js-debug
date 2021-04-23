@@ -1600,6 +1600,26 @@ export namespace Cdp {
       clientSecurityState?: Network.ClientSecurityState;
     }
 
+    export type AttributionReportingIssueType =
+      | 'PermissionPolicyDisabled'
+      | 'InvalidAttributionData';
+
+    /**
+     * Details for issues around "Attribution Reporting API" usage.
+     * Explainer: https://github.com/WICG/conversion-measurement-api
+     */
+    export interface AttributionReportingIssueDetails {
+      violationType: AttributionReportingIssueType;
+
+      frame?: AffectedFrame;
+
+      request?: AffectedRequest;
+
+      violatingNodeId?: DOM.BackendNodeId;
+
+      invalidParameter?: string;
+    }
+
     /**
      * A unique identifier for the type of issue. Each type may use one of the
      * optional fields in InspectorIssueDetails to convey more specific
@@ -1614,7 +1634,8 @@ export namespace Cdp {
       | 'SharedArrayBufferIssue'
       | 'TrustedWebActivityIssue'
       | 'LowTextContrastIssue'
-      | 'CorsIssue';
+      | 'CorsIssue'
+      | 'AttributionReportingIssue';
 
     /**
      * This struct holds a list of optional fields with additional information
@@ -1639,6 +1660,8 @@ export namespace Cdp {
       lowTextContrastIssueDetails?: LowTextContrastIssueDetails;
 
       corsIssueDetails?: CorsIssueDetails;
+
+      attributionReportingIssueDetails?: AttributionReportingIssueDetails;
     }
 
     /**
@@ -7813,7 +7836,10 @@ export namespace Cdp {
       pseudoElements?: Node[];
 
       /**
-       * Import document for the HTMLImport links.
+       * Deprecated, as the HTML Imports API has been removed (crbug.com/937746).
+       * This property used to return the imported document for the HTMLImport links.
+       * The property is always undefined now.
+       * @deprecated
        */
       importedDocument?: Node;
 
@@ -8412,6 +8438,20 @@ export namespace Cdp {
        * Whether to include DOM rectangles (offsetRects, clientRects, scrollRects) into the snapshot
        */
       includeDOMRects?: boolean;
+
+      /**
+       * Whether to include blended background colors in the snapshot (default: false).
+       * Blended background color is achieved by blending background colors of all elements
+       * that overlap with the current element.
+       */
+      includeBlendedBackgroundColors?: boolean;
+
+      /**
+       * Whether to include text color opacity in the snapshot (default: false).
+       * An element might have the opacity property set that affects the text color of the element.
+       * The final text color opacity is computed based on the opacity of all overlapping elements.
+       */
+      includeTextColorOpacities?: boolean;
     }
 
     /**
@@ -8910,6 +8950,16 @@ export namespace Cdp {
        * The client rect of nodes. Only available when includeDOMRects is set to true
        */
       clientRects?: Rectangle[];
+
+      /**
+       * The list of background colors that are blended with colors of overlapping elements.
+       */
+      blendedBackgroundColors?: StringIndex[];
+
+      /**
+       * The list of computed text opacities.
+       */
+      textColorOpacities?: number[];
     }
 
     /**
@@ -9928,7 +9978,7 @@ export namespace Cdp {
     /**
      * Enum of image types that can be disabled.
      */
-    export type DisabledImageType = 'avif' | 'webp';
+    export type DisabledImageType = 'avif' | 'jxl' | 'webp';
   }
 
   /**
@@ -18415,6 +18465,17 @@ export namespace Cdp {
      */
     on(event: 'lifecycleEvent', listener: (event: Page.LifecycleEventEvent) => void): IDisposable;
 
+    /**
+     * Fired for failed bfcache history navigations if BackForwardCache feature is enabled. Do
+     * not assume any ordering with the Page.frameNavigated event. This event is fired only for
+     * main-frame history navigation where the document changes (non-same-document navigations),
+     * when bfcache navigation fails.
+     */
+    on(
+      event: 'backForwardCacheNotUsed',
+      listener: (event: Page.BackForwardCacheNotUsedEvent) => void,
+    ): IDisposable;
+
     on(event: 'loadEventFired', listener: (event: Page.LoadEventFiredEvent) => void): IDisposable;
 
     /**
@@ -19697,6 +19758,8 @@ export namespace Cdp {
        * Frame object.
        */
       frame: Frame;
+
+      type: NavigationType;
     }
 
     /**
@@ -19909,6 +19972,21 @@ export namespace Cdp {
       name: string;
 
       timestamp: Network.MonotonicTime;
+    }
+
+    /**
+     * Parameters of the 'Page.backForwardCacheNotUsed' event.
+     */
+    export interface BackForwardCacheNotUsedEvent {
+      /**
+       * The loader id for the associated navgation.
+       */
+      loaderId: Network.LoaderId;
+
+      /**
+       * The frame id of the associated frame.
+       */
+      frameId: FrameId;
     }
 
     /**
@@ -20619,6 +20697,11 @@ export namespace Cdp {
        */
       eager?: boolean;
     }
+
+    /**
+     * The type of a frameNavigated event.
+     */
+    export type NavigationType = 'Navigation' | 'BackForwardCacheRestore';
   }
 
   /**
@@ -26317,6 +26400,13 @@ export namespace Cdp {
        * Defaults to false.
        */
       hasLargeBlob?: boolean;
+
+      /**
+       * If set to true, the authenticator will support the credBlob extension.
+       * https://fidoalliance.org/specs/fido-v2.1-rd-20201208/fido-client-to-authenticator-protocol-v2.1-rd-20201208.html#sctn-credBlob-extension
+       * Defaults to false.
+       */
+      hasCredBlob?: boolean;
 
       /**
        * If set to true, tests of user presence will succeed immediately.

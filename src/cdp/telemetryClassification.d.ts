@@ -307,6 +307,8 @@ interface ICDPOperationClassification {
   '!page.javascriptdialogopening.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   'page.lifecycleevent': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!page.lifecycleevent.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  'page.backforwardcachenotused': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!page.backforwardcachenotused.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   'page.loadeventfired': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!page.loadeventfired.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   'page.navigatedwithindocument': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
