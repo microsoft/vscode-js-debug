@@ -228,12 +228,8 @@ export class ScriptSkipper {
     const nodeInternals = this._allNodeInternals?.settledValue;
     if (this._allNodeInternals && !nodeInternals) {
       this._allNodeInternals.promise.then(v => this._initializeSkippingValueForSource(source, v));
-      return;
-    }
-
-    const isSkipped = this._initializeSkippingValueForSource(source, nodeInternals);
-    if (isSkipped) {
-      this._updateSkippedDebounce();
+    } else {
+      this._initializeSkippingValueForSource(source, nodeInternals);
     }
   }
 
@@ -272,6 +268,10 @@ export class ScriptSkipper {
       }
 
       this._updateSourceWithSkippedSourceMappedSources(source, scriptIds);
+    }
+
+    if (hasSkip) {
+      this._updateSkippedDebounce();
     }
 
     return hasSkip;
