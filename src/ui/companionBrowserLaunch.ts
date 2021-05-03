@@ -2,11 +2,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { URL } from 'url';
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
+import { Configuration, readConfig } from '../common/contributionUtils';
 import Dap from '../dap/api';
-import { readConfig, Configuration } from '../common/contributionUtils';
-import { URL } from 'url';
 
 const localize = nls.loadMessageBundle();
 const sessionTunnels = new Map<string, vscode.Tunnel>();

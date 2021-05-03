@@ -518,40 +518,43 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
     cdp: Cdp.Api,
     run: IRunData<T>,
   ): Promise<IProcessTelemetry | void> {
-    const telemetry = await cdp.Runtime.evaluate({
-      contextId: 1,
-      returnByValue: true,
-      // note: for some bizarre reason, if launched with --inspect-brk, the
-      // process.pid in extension host debugging is initially undefined.
-      expression:
-        `typeof process === 'undefined' || process.pid === undefined ? 'process not defined' : ({ processId: process.pid, nodeVersion: process.version, architecture: process.arch })` +
-        getSourceSuffix(),
-    });
+    for (let retries = 0; retries < 5; retries++) {
+      const telemetry = await cdp.Runtime.evaluate({
+        contextId: 1,
+        returnByValue: true,
+        // note: for some bizarre reason, if launched with --inspect-brk, the
+        // process.pid in extension host debugging is initially undefined.
+        expression:
+          `typeof process === 'undefined' || process.pid === undefined ? 'process not defined' : ({ processId: process.pid, nodeVersion: process.version, architecture: process.arch })` +
+          getSourceSuffix(),
+      });
 
-    if (!this.program) {
-      return; // shut down
+      if (!this.program) {
+        return; // shut down
+      }
+
+      if (!telemetry || !telemetry.result.value) {
+        this.logger.error(LogTag.RuntimeTarget, 'Undefined result getting telemetry');
+        return;
+      }
+
+      if (typeof telemetry.result.value !== 'object') {
+        this.logger.info(LogTag.RuntimeTarget, 'Process not yet defined, will retry');
+        await delay(20);
+        continue;
+      }
+
+      const result = telemetry.result.value as IProcessTelemetry;
+      run.context.telemetryReporter.report('nodeRuntime', {
+        version: result.nodeVersion,
+        arch: result.architecture,
+      });
+      this.program.gotTelemetery(result);
+
+      return result;
     }
 
-    if (!telemetry || !telemetry.result.value) {
-      this.logger.error(LogTag.RuntimeTarget, 'Undefined result getting telemetry');
-      return;
-    }
-
-    if (typeof telemetry.result.value !== 'object') {
-      this.logger.info(LogTag.RuntimeTarget, 'Process not yet defined, will retry');
-      await delay(10);
-      return this.gatherTelemetryFromCdp(cdp, run);
-    }
-
-    const result = telemetry.result.value as IProcessTelemetry;
-
-    run.context.telemetryReporter.report('nodeRuntime', {
-      version: result.nodeVersion,
-      arch: result.architecture,
-    });
-    this.program.gotTelemetery(result);
-
-    return result;
+    return undefined;
   }
 }
 
