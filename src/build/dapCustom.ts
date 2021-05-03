@@ -490,6 +490,7 @@ const dapCustom: JSONSchema4 = {
       'Request WebSocket connection information on a proxy for this debug sessions CDP connection.',
       undefined,
       {
+        required: ['host', 'port', 'path'],
         properties: {
           host: {
             type: 'string',
@@ -500,6 +501,10 @@ const dapCustom: JSONSchema4 = {
             type: 'number',
             description:
               'Port on the host, under which the CDP proxy is available through a WebSocket.',
+          },
+          path: {
+            type: 'string',
+            description: 'Websocket path to connect to.',
           },
         },
       },

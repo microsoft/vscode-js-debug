@@ -2,6 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { randomBytes } from 'crypto';
 import { inject, injectable } from 'inversify';
 import WebSocket from 'ws';
 import { Cdp } from '../cdp/api';
@@ -9,6 +10,7 @@ import { ICdpApi, ProtocolError } from '../cdp/connection';
 import { CdpProtocol } from '../cdp/protocol';
 import { DisposableList, IDisposable } from '../common/disposable';
 import { ILogger, LogTag } from '../common/logging';
+import Dap from '../dap/api';
 import { acquireTrackedWebSocketServer, IPortLeaseTracker } from './portLeaseTracker';
 
 const jsDebugDomain = 'JsDebug';
@@ -39,11 +41,6 @@ const enum ProxyErrors {
   ServerError = -32000,
 }
 
-const readAddress = (server: WebSocket.Server) => {
-  const addr = server.address() as WebSocket.AddressInfo;
-  return { host: addr.address, port: addr.port };
-};
-
 /**
  * Implementation for the adapter-side of a CDP proxy server. A proxy server
  * is unique per debug session and target, and is therefore associated with
@@ -55,7 +52,7 @@ export interface ICdpProxyProvider extends IDisposable {
   /**
    * Acquires the proxy server, and returns its address.
    */
-  proxy(): Promise<{ host: string; port: number }>;
+  proxy(): Promise<Dap.RequestCDPProxyResult>;
 }
 
 export const ICdpProxyProvider = Symbol('ICdpProxyProvider');
@@ -65,7 +62,7 @@ export const ICdpProxyProvider = Symbol('ICdpProxyProvider');
  */
 @injectable()
 export class CdpProxyProvider implements ICdpProxyProvider {
-  private server?: WebSocket.Server;
+  private server?: Promise<{ server: WebSocket.Server; path: string }>;
   private readonly disposables = new DisposableList();
 
   private jsDebugApi: IJsDebugDomain = {
@@ -99,13 +96,21 @@ export class CdpProxyProvider implements ICdpProxyProvider {
    * Acquires the proxy server, and returns its address.
    */
   public async proxy() {
-    if (this.server) {
-      return readAddress(this.server);
+    if (!this.server) {
+      this.server = this.createServer();
     }
 
-    const server = (this.server = await acquireTrackedWebSocketServer(this.portTracker, {
+    const { server, path } = await this.server;
+    const addr = server.address() as WebSocket.AddressInfo;
+    return { host: addr.address, port: addr.port, path };
+  }
+
+  private async createServer() {
+    const path = `/${randomBytes(20).toString('hex')}`;
+    const server = await acquireTrackedWebSocketServer(this.portTracker, {
       perMessageDeflate: true,
-    }));
+      path,
+    });
 
     this.logger.info(LogTag.ProxyActivity, 'activated cdp proxy');
 
@@ -151,7 +156,7 @@ export class CdpProxyProvider implements ICdpProxyProvider {
       });
     });
 
-    return readAddress(this.server);
+    return { server, path };
   }
 
   /**
@@ -159,7 +164,7 @@ export class CdpProxyProvider implements ICdpProxyProvider {
    */
   public dispose() {
     this.disposables.dispose();
-    this.server?.close();
+    this.server?.then(s => s.server.close());
     this.server = undefined;
   }
 

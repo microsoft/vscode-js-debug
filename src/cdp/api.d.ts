@@ -1528,7 +1528,7 @@ export namespace Cdp {
 
     /**
      * Details for a issue arising from an SAB being instantiated in, or
-     * transfered to a context that is not cross-origin isolated.
+     * transferred to a context that is not cross-origin isolated.
      */
     export interface SharedArrayBufferIssueDetails {
       sourceCodeLocation: SourceCodeLocation;
@@ -1602,7 +1602,10 @@ export namespace Cdp {
 
     export type AttributionReportingIssueType =
       | 'PermissionPolicyDisabled'
-      | 'InvalidAttributionData';
+      | 'InvalidAttributionSourceEventId'
+      | 'InvalidAttributionData'
+      | 'AttributionSourceUntrustworthyOrigin'
+      | 'AttributionUntrustworthyOrigin';
 
     /**
      * Details for issues around "Attribution Reporting API" usage.
@@ -2075,7 +2078,7 @@ export namespace Cdp {
       browserContextId?: BrowserContextID;
 
       /**
-       * The default path to save downloaded files to. This is requred if behavior is set to 'allow'
+       * The default path to save downloaded files to. This is required if behavior is set to 'allow'
        * or 'allowAndName'.
        */
       downloadPath?: string;
@@ -6340,7 +6343,7 @@ export namespace Cdp {
     ): IDisposable;
 
     /**
-     * Called when distrubution is changed.
+     * Called when distribution is changed.
      */
     on(
       event: 'distributedNodesUpdated',
@@ -7546,7 +7549,7 @@ export namespace Cdp {
      */
     export interface DistributedNodesUpdatedEvent {
       /**
-       * Insertion point where distrubuted nodes were updated.
+       * Insertion point where distributed nodes were updated.
        */
       insertionPointId: NodeId;
 
@@ -9191,14 +9194,14 @@ export namespace Cdp {
     canEmulate(params: Emulation.CanEmulateParams): Promise<Emulation.CanEmulateResult | undefined>;
 
     /**
-     * Clears the overriden device metrics.
+     * Clears the overridden device metrics.
      */
     clearDeviceMetricsOverride(
       params: Emulation.ClearDeviceMetricsOverrideParams,
     ): Promise<Emulation.ClearDeviceMetricsOverrideResult | undefined>;
 
     /**
-     * Clears the overriden Geolocation Position and Error.
+     * Clears the overridden Geolocation Position and Error.
      */
     clearGeolocationOverride(
       params: Emulation.ClearGeolocationOverrideParams,
@@ -9780,7 +9783,7 @@ export namespace Cdp {
       waitForNavigation?: boolean;
 
       /**
-       * If set, base::Time::Now will be overriden to initially return this value.
+       * If set, base::Time::Now will be overridden to initially return this value.
        */
       initialVirtualTime?: Network.TimeSinceEpoch;
     }
@@ -10354,8 +10357,8 @@ export namespace Cdp {
 
     export interface RequestPattern {
       /**
-       * Wildcards ('*' -> zero or more, '?' -> exactly one) are allowed. Escape character is
-       * backslash. Omitting is equivalent to "*".
+       * Wildcards (`'*'` -> zero or more, `'?'` -> exactly one) are allowed. Escape character is
+       * backslash. Omitting is equivalent to `"*"`.
        */
       urlPattern?: string;
 
@@ -10365,7 +10368,7 @@ export namespace Cdp {
       resourceType?: Network.ResourceType;
 
       /**
-       * Stage at wich to begin intercepting requests. Default is Request.
+       * Stage at which to begin intercepting requests. Default is Request.
        */
       requestStage?: RequestStage;
     }
@@ -12257,7 +12260,7 @@ export namespace Cdp {
       data: string;
 
       /**
-       * Set if the end-of-file condition occured while reading.
+       * Set if the end-of-file condition occurred while reading.
        */
       eof: boolean;
     }
@@ -12283,7 +12286,7 @@ export namespace Cdp {
     }
 
     /**
-     * This is either obtained from another method or specifed as `blob:&lt;uuid&gt;` where
+     * This is either obtained from another method or specified as `blob:&lt;uuid&gt;` where
      * `&lt;uuid&gt` is an UUID of a Blob.
      */
     export type StreamHandle = string;
@@ -13020,8 +13023,8 @@ export namespace Cdp {
     ): IDisposable;
 
     /**
-     * Called whenever a player is created, or when a new agent joins and recieves
-     * a list of active players. If an agent is restored, it will recieve the full
+     * Called whenever a player is created, or when a new agent joins and receives
+     * a list of active players. If an agent is restored, it will receive the full
      * list of player ids and all events again.
      */
     on(event: 'playersCreated', listener: (event: Media.PlayersCreatedEvent) => void): IDisposable;
@@ -16232,8 +16235,8 @@ export namespace Cdp {
      */
     export interface RequestPattern {
       /**
-       * Wildcards ('*' -> zero or more, '?' -> exactly one) are allowed. Escape character is
-       * backslash. Omitting is equivalent to "*".
+       * Wildcards (`'*'` -> zero or more, `'?'` -> exactly one) are allowed. Escape character is
+       * backslash. Omitting is equivalent to `"*"`.
        */
       urlPattern?: string;
 
@@ -16243,7 +16246,7 @@ export namespace Cdp {
       resourceType?: ResourceType;
 
       /**
-       * Stage at wich to begin intercepting requests. Default is Request.
+       * Stage at which to begin intercepting requests. Default is Request.
        */
       interceptionStage?: InterceptionStage;
     }
@@ -17978,7 +17981,7 @@ export namespace Cdp {
     ): Promise<Page.CaptureSnapshotResult | undefined>;
 
     /**
-     * Clears the overriden device metrics.
+     * Clears the overridden device metrics.
      * @deprecated
      */
     clearDeviceMetricsOverride(
@@ -17994,7 +17997,7 @@ export namespace Cdp {
     ): Promise<Page.ClearDeviceOrientationOverrideResult | undefined>;
 
     /**
-     * Clears the overriden Geolocation Position and Error.
+     * Clears the overridden Geolocation Position and Error.
      * @deprecated
      */
     clearGeolocationOverride(
@@ -18548,6 +18551,12 @@ export namespace Cdp {
        * event is emitted.
        */
       worldName?: string;
+
+      /**
+       * Specifies whether command line API should be available to the script, defaults
+       * to false.
+       */
+      includeCommandLineAPI?: boolean;
     }
 
     /**
@@ -19428,7 +19437,7 @@ export namespace Cdp {
       behavior: 'deny' | 'allow' | 'default';
 
       /**
-       * The default path to save downloaded files to. This is requred if behavior is set to 'allow'
+       * The default path to save downloaded files to. This is required if behavior is set to 'allow'
        */
       downloadPath?: string;
     }
@@ -20162,6 +20171,7 @@ export namespace Cdp {
       | 'publickey-credentials-get'
       | 'screen-wake-lock'
       | 'serial'
+      | 'shared-autofill'
       | 'storage-access-api'
       | 'sync-xhr'
       | 'trust-token-redemption'
@@ -24190,7 +24200,7 @@ export namespace Cdp {
 
       /**
        * The quota size (in bytes) to override the original quota with.
-       * If this is called multiple times, the overriden quota will be equal to
+       * If this is called multiple times, the overridden quota will be equal to
        * the quotaSize provided in the final call. If this is called without
        * specifying a quotaSize, the quota will be reset to the default value for
        * the specified origin. If this is called multiple times with different
@@ -26039,7 +26049,7 @@ export namespace Cdp {
       currentTime: number;
 
       /**
-       * The time spent on rendering graph divided by render qunatum duration,
+       * The time spent on rendering graph divided by render quantum duration,
        * and multiplied by 100. 100 means the audio renderer reached the full
        * capacity and glitch may occur.
        */

@@ -4,6 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly
 
+- refactor: include a mandator path in the CDP proxy ([#987](https://github.com/microsoft/vscode-js-debug/issues/987))
 - fix: make sure servers are listening before returning
 - fix: don't send infinite telemetry requests for React Native ([#981](https://github.com/microsoft/vscode-js-debug/issues/981))
 

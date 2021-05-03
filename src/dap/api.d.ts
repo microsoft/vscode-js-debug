@@ -2836,12 +2836,17 @@ export namespace Dap {
     /**
      * Name of the host, on which the CDP proxy is available through a WebSocket.
      */
-    host?: string;
+    host: string;
 
     /**
      * Port on the host, under which the CDP proxy is available through a WebSocket.
      */
-    port?: number;
+    port: number;
+
+    /**
+     * Websocket path to connect to.
+     */
+    path: string;
   }
 
   export interface RestartFrameParams {
