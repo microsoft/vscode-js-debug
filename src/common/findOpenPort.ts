@@ -101,7 +101,7 @@ export const makeAcquireTcpServer = (
 ): PortTesterFn<net.Server> => (port, ct) => {
   const server = net.createServer(onSocket);
   server.listen(port, '127.0.0.1');
-  return serverResolutionPromise(server, ct);
+  return waitForServerToListen(server, ct);
 };
 
 /**
@@ -111,7 +111,7 @@ export const makeAcquireTcpServer = (
 export const makeAcquireWebSocketServer = (
   options?: WebSocket.ServerOptions,
 ): PortTesterFn<WebSocket.Server> => (port, ct) =>
-  serverResolutionPromise(new WebSocket.Server({ host: '127.0.0.1', ...options, port }), ct);
+  waitForServerToListen(new WebSocket.Server({ host: '127.0.0.1', ...options, port }), ct);
 
 interface IServerLike {
   on(event: 'error', handler: (err: Error) => void): void;
@@ -119,7 +119,7 @@ interface IServerLike {
   close(): void;
 }
 
-export const serverResolutionPromise = <T extends IServerLike>(
+export const waitForServerToListen = <T extends IServerLike>(
   server: T,
   ct: CancellationToken,
 ): Promise<T> => {

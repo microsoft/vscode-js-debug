@@ -34,7 +34,8 @@ const tunnelRemoteServerIfNecessary = async (args: Dap.LaunchBrowserInCompanionE
   }
 
   const port = Number(url.port) || 80;
-  if ((await vscode.workspace.tunnels).some(isTunnelForPort(port))) {
+  const tunnels = await vscode.workspace.tunnels;
+  if (tunnels.some(isTunnelForPort(port))) {
     return;
   }
 
@@ -78,9 +79,7 @@ const launchCompanionBrowser = async (
     }
 
     await vscode.commands.executeCommand('js-debug-companion.launchAndAttach', {
-      proxyUri: tunnel
-        ? `${tunnel.remoteAddress.host}:${tunnel.remoteAddress.port}`
-        : `127.0.0.1:${args.serverPort}`,
+      proxyUri: tunnel ? `127.0.0.1:${tunnel.remoteAddress.port}` : `127.0.0.1:${args.serverPort}`,
       ...args,
     });
   } catch (e) {

@@ -2,18 +2,24 @@
 
 This changelog records changes to stable releases since 1.50.2. "TBA" changes here may be available in the [nightly release](https://github.com/microsoft/vscode-js-debug/#nightly-extension) before they're in stable. Note that the minor version (`v1.X.0`) corresponds to the VS Code version js-debug is shipped in, but the patch version (`v1.50.X`) is not meaningful.
 
-## v1.56.2 - 2021-04-39
+## Nightly
+
+- fix: make sure servers are listening before returning
+
+## v1.56 (April 2021)
+
+### v1.56.2 - 2021-04-39
 
 - fix: string previews not working in RN Windows
 
-## v1.56.1 - 2021-04-23
+### v1.56.1 - 2021-04-23
 
 - feat: show private properties in the inspector ([#892](https://github.com/microsoft/vscode-js-debug/issues/892))
 - fix: sources not working in RN Windows ([ref](https://github.com/microsoft/vscode/issues/121136))
 - fix: improve suggest tool behavior ([#970](https://github.com/microsoft/vscode-js-debug/issues/970))
 - fix: re-apply breakpoints if pages crash
 
-## v1.56.0 - 2021-04-07
+### v1.56.0 - 2021-04-07
 
 - feat: 'intelligently' suggest using diagnostic tool for breakpoint issues ([ref](https://github.com/microsoft/vscode/issues/57590))
 - feat: add cdp sharing for extensions to interact with debugging, see [docs](./CDP_SHARE.md) ([#892](https://github.com/microsoft/vscode-js-debug/issues/893))
@@ -24,12 +30,14 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: programs not terminating in 'run without debugging' with break on exception ([ref](https://github.com/microsoft/vscode/issues/119340))
 - fix: browser debugging when using a WSL remote ([ref](https://github.com/microsoft/vscode/issues/120227))
 
-## v1.55.1 - 2021-03-24
+## v1.55 (March 2021)
+
+### v1.55.1 - 2021-03-24
 
 - fix: sessions hanging if exception is thrown immediately before or during shutdown
 - fix: track DAP servers in ports manager as well ([#942 comment](https://github.com/microsoft/vscode-js-debug/issues/942#event-4501887036))
 
-## v1.55.0 - 2021-03-22
+### v1.55.0 - 2021-03-22
 
 - feat: implement 'start debugging and stop on entry' command/keybinding ([ref](https://github.com/microsoft/vscode/issues/49855))
 - feat: improve handling of symbolic links ([#776](https://github.com/microsoft/vscode-js-debug/issues/776))
@@ -40,32 +48,36 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: exception breakpoint toggle getting stuck ([919](https://github.com/microsoft/vscode-js-debug/issues/919))
 - fix: spooky race that could incorrectly break when entering hot-transpiled code
 
-## v1.54.4 - 2021-03-04
+## v1.54 (February 2021)
+
+### v1.54.4 - 2021-03-04
 
 - fix: worker_thread debugging node working on Node >14.5.0 ([933](https://github.com/microsoft/vscode-js-debug/issues/933))
 
-## v1.54.3 - 2021-02-24
+### v1.54.3 - 2021-02-24
 
 - fix: auto attach failing when entering node repl
 
-## v1.54.2 - 2021-02-23
+### v1.54.2 - 2021-02-23
 
 - fix: auto attach only to workspace scripts by default ([#856](https://github.com/microsoft/vscode-js-debug/issues/856))
 - fix: do not show restart frame action on async stacktraces ([ref](https://github.com/microsoft/vscode/issues/116345))
 - fix: do not attach to node-gyp fixing install failures ([ref](https://github.com/microsoft/vscode/issues/117312))
 - fix: sessions being mixed up or not initializing when attaching concurrently ([ref](https://github.com/microsoft/vscode/issues/115996))
 
-## v1.54.1 - 2021-02-04
+### v1.54.1 - 2021-02-04
 
 - fix: wrong command used in create debug terminal command
 
-## v1.54.0 - 2021-02-08
+### v1.54.0 - 2021-02-08
 
 - fix: allow copying values from watch expressions ([ref](https://github.com/microsoft/vscode/issues/115049))
 - fix: reuse debug terminals when running npm scripts, when possible
 - refactor: move script lens functionality into built-in npm extension
 
-## v1.53.0 - 2021-01-25
+## v1.53 (January 2021)
+
+### v1.53.0 - 2021-01-25
 
 - feat: allow debugging node worker_threads
 - feat: allow pausing on conditional exceptions ([ref](https://github.com/microsoft/vscode/issues/104453))
@@ -82,15 +94,17 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: debugger statements being missed if directly stepped on the first executable line of a new script early in execution
 - fix: source map warning on node 15 ([#903](https://github.com/microsoft/vscode-js-debug/issues/903))
 
-## v1.52.2 - 2020-12-07
+## v1.52 (November/December 2020)
+
+### v1.52.2 - 2020-12-07
 
 - fix: issue preventing breakpoint predictor from running in ext host ([ref](https://github.com/microsoft/vscode/issues/112052))
 
-## v1.52.1 - 2020-12-01
+### v1.52.1 - 2020-12-01
 
 - fix: processes not being killed on posix ([#864](https://github.com/microsoft/vscode-js-debug/issues/864))
 
-## v1.52.0 - 2020-11-30
+### v1.52.0 - 2020-11-30
 
 - feat: allow debugging node internals ([#823](https://github.com/microsoft/vscode-js-debug/issues/823))
 - feat: show diagnostic tool in a webview and integrate with vscode theme ([ref](https://github.com/microsoft/vscode/issues/109526), [ref](https://github.com/microsoft/vscode/issues/109529), [ref](https://github.com/microsoft/vscode/issues/109531))
@@ -112,7 +126,9 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: don't scan outfiles when sourceMaps is false ([#866](https://github.com/microsoft/vscode-js-debug/issues/866))
 - fix: skipfiles not working for paths in dotfiles/folders ([ref](https://github.com/microsoft/vscode/issues/111301))
 
-## v1.51.0 - 2020-10-26
+## v1.51 (October 2020)
+
+### v1.51.0 - 2020-10-26
 
 - feat: add a diagnostic tool under the `Create Diagnostic Information` command ([#260](https://github.com/microsoft/vscode-js-debug/issues/260))
 - feat: add an advanced `perScriptSourcemaps` option, when loading individual unbundled scripts
