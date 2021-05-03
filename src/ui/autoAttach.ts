@@ -89,8 +89,13 @@ export function registerAutoAttach(
       launcher?.then(l => l.refreshVariables());
     }),
     registerCommand(vscode.commands, Commands.AutoAttachToProcess, async info => {
-      const launcher = await acquireLauncher();
-      launcher.spawnForChild(info);
+      try {
+        const launcher = await acquireLauncher();
+        launcher.spawnForChild(info);
+      } catch (err) {
+        console.error(err);
+        vscode.window.showErrorMessage(`Error activating auto attach: ${err.stack || err}`);
+      }
     }),
     registerCommand(vscode.commands, Commands.AutoAttachClearVariables, async () => {
       AutoAttachLauncher.clearVariables(context);
