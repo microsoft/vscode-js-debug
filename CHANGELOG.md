@@ -8,6 +8,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: make sure servers are listening before returning
 - fix: don't send infinite telemetry requests for React Native ([#981](https://github.com/microsoft/vscode-js-debug/issues/981))
 - fix: skipFiles working inconsistently in `attach` mode ([ref](https://github.com/microsoft/vscode/issues/118282))
+- fix: contribute js-debug to html ([ref](https://github.com/microsoft/vscode/issues/123106))
 - chore: log errors activating auto attach
 
 ## v1.56 (April 2021)
