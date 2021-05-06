@@ -207,7 +207,7 @@ describe('node runtime', () => {
     handle.load();
     await handle.dap.once('terminated');
     expect(receivedRequest).to.containSubset({
-      title: 'Node Debug Console',
+      title: 'Test Case',
       kind: 'integrated',
       cwd: testFixturesDir,
       env: { myEnv: 'foo' },
