@@ -116,7 +116,7 @@ interface IDebugger<T extends AnyLaunchConfiguration> {
   label: MappedReferenceString;
   program?: string;
   runtime?: string;
-  languages?: string[];
+  languages: string[];
   variables?: { [key: string]: Commands };
   required?: (keyof T)[];
   configurationSnippets: ({
@@ -126,6 +126,9 @@ interface IDebugger<T extends AnyLaunchConfiguration> {
   configurationAttributes: ConfigurationAttributes<T>;
   defaults: T;
 }
+
+const commonLanguages = ['javascript', 'typescript', 'javascriptreact', 'typescriptreact'];
+const browserLanguages = [...commonLanguages, 'html'];
 
 const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> = {
   resolveSourceMapLocations: {
@@ -363,6 +366,7 @@ const nodeAttachConfig: IDebugger<INodeAttachConfiguration> = {
   type: DebugType.Node,
   request: 'attach',
   label: refString('node.label'),
+  languages: commonLanguages,
   variables: {
     PickProcess: Commands.PickProcess,
   },
@@ -463,6 +467,7 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
   type: DebugType.Node,
   request: 'launch',
   label: refString('node.label'),
+  languages: commonLanguages,
   variables: {
     PickProcess: Commands.PickProcess,
   },
@@ -775,6 +780,7 @@ const chromeLaunchConfig: IDebugger<IChromeLaunchConfiguration> = {
   type: DebugType.Chrome,
   request: 'launch',
   label: refString('chrome.label'),
+  languages: browserLanguages,
   configurationSnippets: [
     {
       label: refString('chrome.launch.label'),
@@ -865,6 +871,7 @@ const chromeAttachConfig: IDebugger<IChromeAttachConfiguration> = {
   type: DebugType.Chrome,
   request: 'attach',
   label: refString('chrome.label'),
+  languages: browserLanguages,
   configurationSnippets: [
     {
       label: refString('chrome.attach.label'),
@@ -886,6 +893,7 @@ const extensionHostConfig: IDebugger<IExtensionHostLaunchConfiguration> = {
   type: DebugType.ExtensionHost,
   request: 'launch',
   label: refString('extensionHost.label'),
+  languages: commonLanguages,
   required: ['args'],
   configurationSnippets: [
     {
@@ -942,6 +950,7 @@ const edgeLaunchConfig: IDebugger<IEdgeLaunchConfiguration> = {
   type: DebugType.Edge,
   request: 'launch',
   label: refString('edge.launch.label'),
+  languages: browserLanguages,
   configurationSnippets: [
     {
       label: refString('edge.launch.label'),
@@ -985,6 +994,7 @@ const edgeAttachConfig: IDebugger<IEdgeAttachConfiguration> = {
   type: DebugType.Edge,
   request: 'attach',
   label: refString('edge.label'),
+  languages: browserLanguages,
   configurationSnippets: [
     {
       label: refString('edge.attach.label'),
@@ -1029,7 +1039,6 @@ function buildDebuggers() {
       // eslint-disable-next-line
       const { request, configurationAttributes, required, defaults, ...rest } = d;
       entry = {
-        languages: ['javascript', 'typescript', 'javascriptreact', 'typescriptreact'],
         ...rest,
         aiKey: appInsightsKey,
         configurationAttributes: {},
