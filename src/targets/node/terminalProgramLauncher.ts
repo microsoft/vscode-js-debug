@@ -3,7 +3,6 @@
  *--------------------------------------------------------*/
 
 import { inject, injectable } from 'inversify';
-import * as nls from 'vscode-nls';
 import { ILogger } from '../../common/logging';
 import { removeNulls } from '../../common/objUtils';
 import { INodeLaunchConfiguration } from '../../configuration';
@@ -13,8 +12,6 @@ import { ProtocolError } from '../../dap/protocolError';
 import { ILaunchContext } from '../targets';
 import { getNodeLaunchArgs, IProgramLauncher } from './processLauncher';
 import { TerminalProcess } from './program';
-
-const localize = nls.loadMessageBundle();
 
 /**
  * Launcher that boots a subprocess.
@@ -35,7 +32,7 @@ export class TerminalProgramLauncher implements IProgramLauncher {
   ) {
     const params: Dap.RunInTerminalParams = {
       kind: config.console === 'integratedTerminal' ? 'integrated' : 'external',
-      title: localize('node.console.title', 'Node Debug Console'),
+      title: config.name,
       cwd: config.cwd,
       args: [binary, ...getNodeLaunchArgs(config)],
       env: removeNulls(config.env),
