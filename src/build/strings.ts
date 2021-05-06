@@ -180,7 +180,7 @@ const strings = {
     "'useWSL' is deprecated and support for it will be dropped. Use the 'Remote - WSL' extension instead.",
   'node.launch.useWSL.description': 'Use Windows Subsystem for Linux.',
   'node.localRoot.description': 'Path to the local directory containing the program.',
-  'node.port.description': 'Debug port to attach to. Default is 5858.',
+  'node.port.description': 'Debug port to attach to. Default is 9229.',
   'node.websocket.address.description':
     'Exact websocket address to attach to. If unspecified, it will be discovered from the address and port.',
   'node.resolveSourceMapLocations.description':

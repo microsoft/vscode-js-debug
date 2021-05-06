@@ -21,7 +21,7 @@
   "!**/node_modules/**"
 ]</pre></code><h4>outputCapture</h4><p>From where to capture output messages: the default debug API if set to <code>console</code>, or stdout/stderr streams if set to <code>std</code>.</p>
 <h5>Default value:</h4><pre><code>"console"</pre></code><h4>pauseForSourceMap</h4><p>Whether to wait for source maps to load for each incoming script. This has a performance overhead, and might be safely disabled when running off of disk, so long as <code>rootPath</code> is not disabled.</p>
-<h5>Default value:</h4><pre><code>false</pre></code><h4>port</h4><p>Debug port to attach to. Default is 5858.</p>
+<h5>Default value:</h4><pre><code>false</pre></code><h4>port</h4><p>Debug port to attach to. Default is 9229.</p>
 <h5>Default value:</h4><pre><code>9229</pre></code><h4>processId</h4><p>ID of process to attach to.</p>
 <h5>Default value:</h4><pre><code>undefined</pre></code><h4>remoteRoot</h4><p>Absolute path to the remote directory containing the program.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>resolveSourceMapLocations</h4><p>A list of minimatch patterns for locations (folders and URLs) in which source maps can be used to resolve local files. This can be used to avoid incorrectly breaking in external source mapped code. Patterns can be prefixed with &quot;!&quot; to exclude them. May be set to an empty array or null to avoid restriction.</p>

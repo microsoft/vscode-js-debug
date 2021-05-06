@@ -533,7 +533,7 @@ export interface INodeAttachConfiguration extends INodeBaseConfiguration {
   address: string;
 
   /**
-   * Debug port to attach to. Default is 5858.
+   * Debug port to attach to. Default is 9229.
    */
   port: number;
 
@@ -647,7 +647,7 @@ export interface IChromiumAttachConfiguration extends IChromiumBaseConfiguration
   address: string;
 
   /**
-   * Debug port to attach to. Default is 5858.
+   * Debug port to attach to. Default is 9229.
    */
   port: number;
 
