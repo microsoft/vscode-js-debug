@@ -13,7 +13,7 @@ import { ILogger, LogTag } from '../../common/logging';
 import { delay } from '../../common/promiseUtil';
 import { isLoopback } from '../../common/urlUtils';
 import { AnyLaunchConfiguration, INodeAttachConfiguration } from '../../configuration';
-import { retryGetWSEndpoint } from '../browser/spawn/endpoints';
+import { retryGetNodeEndpoint } from '../browser/spawn/endpoints';
 import { ISourcePathResolverFactory } from '../sourcePathResolverFactory';
 import { IStopMetadata } from '../targets';
 import { LeaseFile } from './lease-file';
@@ -68,7 +68,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
         if (runData.params.websocketAddress) {
           inspectorURL = runData.params.websocketAddress;
         } else {
-          inspectorURL = await retryGetWSEndpoint(
+          inspectorURL = await retryGetNodeEndpoint(
             `http://${runData.params.address}:${runData.params.port}`,
             restarting
               ? CancellationTokenSource.withTimeout(runData.params.timeout).token

@@ -13,7 +13,7 @@ import {
   IExtensionHostAttachConfiguration,
   KillBehavior,
 } from '../../configuration';
-import { retryGetWSEndpoint } from '../browser/spawn/endpoints';
+import { retryGetNodeEndpoint } from '../browser/spawn/endpoints';
 import { NodeAttacherBase } from './nodeAttacherBase';
 import { NodeBinary } from './nodeBinaryProvider';
 import { IRunData } from './nodeLauncherBase';
@@ -53,7 +53,7 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostAttach
   protected async launchProgram(
     runData: IRunData<IExtensionHostAttachConfiguration>,
   ): Promise<void> {
-    const inspectorURL = await retryGetWSEndpoint(
+    const inspectorURL = await retryGetNodeEndpoint(
       `http://localhost:${runData.params.port}`,
       runData.context.cancellationToken,
       this.logger,

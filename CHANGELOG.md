@@ -10,6 +10,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: skipFiles working inconsistently in `attach` mode ([ref](https://github.com/microsoft/vscode/issues/118282))
 - fix: contribute js-debug to html ([ref](https://github.com/microsoft/vscode/issues/123106))
 - chore: log errors activating auto attach
+- fix: intermittent debug failures with browsers, especially Electron ([ref](https://github.com/microsoft/vscode/issues/123420)))
 
 ## v1.56 (April 2021)
 

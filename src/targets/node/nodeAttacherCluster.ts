@@ -45,7 +45,7 @@ export async function watchAllChildren(
     }
 
     todo.push(
-      getWSEndpoint(`http://${options.hostname}:${port}`, cancellation, logger)
+      getWSEndpoint(`http://${options.hostname}:${port}`, cancellation, logger, true)
         .then(inspectorURL =>
           WatchDog.attach({
             ipcAddress: options.ipcAddress,

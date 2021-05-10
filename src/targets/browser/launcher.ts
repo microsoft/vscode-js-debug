@@ -21,7 +21,7 @@ import {
   IBrowserProcess,
   NonTrackedBrowserProcess,
 } from './spawn/browserProcess';
-import { retryGetWSEndpoint } from './spawn/endpoints';
+import { retryGetBrowserEndpoint } from './spawn/endpoints';
 import { launchUnelevatedChrome } from './unelevatedChome';
 
 const noop = () => undefined;
@@ -206,7 +206,7 @@ export async function attach(
     );
     return new CdpConnection(connectionTransport, logger, telemetryReporter);
   } else if (browserURL) {
-    const connectionURL = await retryGetWSEndpoint(browserURL, cancellationToken, logger);
+    const connectionURL = await retryGetBrowserEndpoint(browserURL, cancellationToken, logger);
 
     const inspectWs = options.inspectUri
       ? constructInspectorWSUri(options.inspectUri, options.pageURL, connectionURL)
