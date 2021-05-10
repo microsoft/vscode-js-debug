@@ -16,7 +16,7 @@ import { ILogger } from '../../../common/logging';
 import { delay } from '../../../common/promiseUtil';
 import { killTree } from '../../node/killTree';
 import { constructInspectorWSUri } from '../constructInspectorWSUri';
-import { retryGetWSEndpoint } from './endpoints';
+import { retryGetBrowserEndpoint } from './endpoints';
 
 interface ITransportOptions {
   connection: 'pipe' | number;
@@ -68,7 +68,7 @@ const inspectWsConnection = async (
   const endpoint =
     options.connection === 0
       ? await waitForWSEndpoint(process, cancellationToken)
-      : await retryGetWSEndpoint(
+      : await retryGetBrowserEndpoint(
           `http://localhost:${options.connection}`,
           cancellationToken,
           logger,

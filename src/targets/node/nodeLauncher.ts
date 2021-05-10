@@ -16,7 +16,7 @@ import { ISourceMapMetadata } from '../../common/sourceMaps/sourceMap';
 import { absolutePathToFileUrl, urlToRegex } from '../../common/urlUtils';
 import { AnyLaunchConfiguration, INodeLaunchConfiguration } from '../../configuration';
 import { fixInspectFlags } from '../../ui/configurationUtils';
-import { retryGetWSEndpoint } from '../browser/spawn/endpoints';
+import { retryGetNodeEndpoint } from '../browser/spawn/endpoints';
 import { ISourcePathResolverFactory } from '../sourcePathResolverFactory';
 import { CallbackFile } from './callback-file';
 import { getRunScript, hideDebugInfoFromConsole, INodeBinaryProvider } from './nodeBinaryProvider';
@@ -145,7 +145,7 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
         const wd = await WatchDog.attach({
           ipcAddress: runData.serverAddress,
           scriptName: 'Remote Process',
-          inspectorURL: await retryGetWSEndpoint(
+          inspectorURL: await retryGetNodeEndpoint(
             `http://127.0.0.1:${this.attachSimplePort}`,
             runData.context.cancellationToken,
             this.logger,

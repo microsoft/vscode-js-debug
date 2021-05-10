@@ -2,6 +2,10 @@
 
 This changelog records changes to stable releases since 1.50.2. "TBA" changes here may be available in the [nightly release](https://github.com/microsoft/vscode-js-debug/#nightly-extension) before they're in stable. Note that the minor version (`v1.X.0`) corresponds to the VS Code version js-debug is shipped in, but the patch version (`v1.50.X`) is not meaningful.
 
+## Nightly-only
+
+- fix: intermittent debug failures with browsers, especially Electron ([ref](https://github.com/microsoft/vscode/issues/123420)))
+
 ## v1.56 (April 2021)
 
 ### v1.56.3 - 2021-05-06
