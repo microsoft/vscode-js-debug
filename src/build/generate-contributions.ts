@@ -128,7 +128,7 @@ interface IDebugger<T extends AnyLaunchConfiguration> {
 }
 
 const commonLanguages = ['javascript', 'typescript', 'javascriptreact', 'typescriptreact'];
-const browserLanguages = [...commonLanguages, 'html'];
+const browserLanguages = [...commonLanguages, 'html', 'css', 'coffeescript', 'handlebars', 'vue'];
 
 const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> = {
   resolveSourceMapLocations: {
