@@ -12,6 +12,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - chore: log errors activating auto attach
 - fix: intermittent debug failures with browsers, especially Electron ([ref](https://github.com/microsoft/vscode/issues/123420)))
 - fix: add additional languages for browser debugging ([ref](https://github.com/microsoft/vscode/issues/123484))
+- feat: support DAP `hitBreakpointIds` ([#994](https://github.com/microsoft/vscode-js-debug/issues/994))
 
 ## v1.56 (April 2021)
 
