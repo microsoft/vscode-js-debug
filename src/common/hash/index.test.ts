@@ -10,7 +10,7 @@ import { Hasher } from '.';
 import { createFileTree, getTestDir } from '../../test/createFileTree';
 
 describe('hash process', function () {
-  this.timeout(10 * 1000); // 10 seconds timeout
+  this.timeout(15_000);
   let hasher: Hasher;
   let testDir: string;
 
