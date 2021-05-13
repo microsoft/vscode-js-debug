@@ -42,7 +42,7 @@ export class DisposableList {
   /**
    * Adds new items to the disposable list.
    */
-  public push(newItem: IDisposable): IDisposable;
+  public push<T extends IDisposable>(newItem: T): T;
   public push(...newItems: ReadonlyArray<IDisposable>): void;
   public push(...newItems: ReadonlyArray<IDisposable>): IDisposable {
     if (this.disposed) {

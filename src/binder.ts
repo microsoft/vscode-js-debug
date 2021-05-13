@@ -14,6 +14,7 @@ import { Thread } from './adapter/threads';
 import { CancellationTokenSource } from './common/cancellation';
 import { EventEmitter, IDisposable } from './common/events';
 import { ILogger, LogTag, resolveLoggerOptions } from './common/logging';
+import { MutableLaunchConfig } from './common/mutableLaunchConfig';
 import { mapValues } from './common/objUtils';
 import { delay, getDeferred, IDeferred } from './common/promiseUtil';
 import * as urlUtils from './common/urlUtils';
@@ -146,8 +147,8 @@ export class Binder implements IDisposable {
         await this._disconnect();
         return {};
       });
-      dap.on('restart', async () => {
-        await this._restart();
+      dap.on('restart', async ({ arguments: params }) => {
+        await this._restart(params as AnyResolvingConfiguration);
         return {};
       });
       dap.on('startSelfProfile', async ({ file }) => {
@@ -276,8 +277,21 @@ export class Binder implements IDisposable {
     });
   }
 
-  async _restart() {
-    await Promise.all([...this.getLaunchers()].map(l => l.restart()));
+  async _restart(newParams?: AnyResolvingConfiguration) {
+    let resolved: AnyLaunchConfiguration | undefined;
+    if (newParams) {
+      const currentParams = this._rootServices.get<MutableLaunchConfig>(MutableLaunchConfig);
+      resolved = applyDefaults(
+        {
+          __workspaceFolder: currentParams.__workspaceFolder,
+          ...newParams,
+        },
+        this._rootServices.get<ExtensionLocation>(ExtensionLocation),
+      );
+      currentParams.update(resolved);
+    }
+
+    await Promise.all([...this.getLaunchers()].map(l => l.restart(resolved)));
   }
 
   async _launch(

@@ -138,7 +138,7 @@ export interface ILauncher extends IDisposable {
    * Attempts to restart the debugged process. This may no-op for certain
    * debug types, like attach.
    */
-  restart(): Promise<void>;
+  restart(newParams?: AnyLaunchConfiguration): Promise<void>;
 
   /**
    * Event that fires when targets connect or disconnect.

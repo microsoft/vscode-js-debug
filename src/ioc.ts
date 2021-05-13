@@ -52,6 +52,7 @@ import { OutFiles, VueComponentPaths } from './common/fileGlobList';
 import { IFsUtils, LocalAndRemoteFsUtils, LocalFsUtils } from './common/fsUtils';
 import { ILogger } from './common/logging';
 import { Logger } from './common/logging/logger';
+import { createMutableLaunchConfig, MutableLaunchConfig } from './common/mutableLaunchConfig';
 import { CodeSearchStrategy } from './common/sourceMaps/codeSearchStrategy';
 import { CachingSourceMapFactory, ISourceMapFactory } from './common/sourceMaps/sourceMapFactory';
 import { ISearchStrategy } from './common/sourceMaps/sourceMapRepository';
@@ -332,7 +333,8 @@ export const provideLaunchParams = (
   params: AnyLaunchConfiguration,
   dap: Dap.Api,
 ) => {
-  container.bind(AnyLaunchConfiguration).toConstantValue(params);
+  container.bind(MutableLaunchConfig).toConstantValue(createMutableLaunchConfig(params));
+  container.bind(AnyLaunchConfiguration).toService(MutableLaunchConfig);
   container.bind(ISourcePathResolverFactory).to(SourcePathResolverFactory).inSingletonScope();
   container.bind(IRootDapApi).toConstantValue(dap);
 

@@ -188,7 +188,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
   /**
    * Restarts the ongoing program.
    */
-  public async restart(): Promise<void> {
+  public async restart(newParams: AnyLaunchConfiguration): Promise<void> {
     if (!this.run) {
       return;
     }
@@ -214,6 +214,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
     const cts = CancellationTokenSource.withTimeout(this.run.params.timeout);
     await this.launchProgram({
       ...this.run,
+      params: newParams ? this.resolveParams(newParams) ?? this.run.params : this.run.params,
       context: {
         ...this.run.context,
         cancellationToken: cts.token,
