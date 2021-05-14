@@ -1,0 +1,21 @@
+
+hitDebugger @ ${workspaceFolder}/web/minified/index.js:13:5
+  > scope #0: Local: hitDebugger
+      arg1: 2
+      arg2: 3
+      > this: Window
+  scope #1: Global [expensive]
+
+test @ ${workspaceFolder}/web/minified/index.js:6:5
+  > scope #0: Block: test
+      inner1: 2
+      inner2: 3
+      > this: Window
+  > scope #1: Local: test
+      > hitDebugger: ƒ hitDebugger(arg1, arg2) {\n    debugger;\n  }
+      later: undefined
+      outer: 1
+  scope #2: Global [expensive]
+
+<anonymous> @ <eval>/VM<xx>:1:1
+  scope #0: Global [expensive]

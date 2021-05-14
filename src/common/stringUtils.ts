@@ -2,6 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { IPosition } from './positions';
+
 export function trimEnd(text: string, maxLength: number) {
   if (text.length <= maxLength) return text;
   return text.substr(0, maxLength - 1) + '…';
@@ -48,4 +50,35 @@ export function escapeRegexSpecialChars(str: string, except?: string): string {
 
   const r = new RegExp(`[${useRegexChars}]`, 'g');
   return str.replace(r, '\\$&');
+}
+
+export class PositionToOffset {
+  private readonly lines: number[] = [];
+
+  constructor(public readonly source: string) {
+    let last = 0;
+    for (let i = source.indexOf('\n'); i !== -1; i = source.indexOf('\n', last)) {
+      this.lines.push(i - last);
+      last = i + 1;
+    }
+
+    this.lines.push(source.length - last);
+  }
+
+  /**
+   * Converts from a base 0 line and column to a file offset.
+   */
+  public convert(position: IPosition) {
+    const base0 = position.base0;
+    if (base0.lineNumber > this.lines.length) {
+      return this.source.length;
+    }
+
+    let offset = 0;
+    for (let i = 0; i < base0.lineNumber; i++) {
+      offset += this.lines[i] + 1;
+    }
+
+    return offset + Math.min(this.lines[base0.lineNumber], base0.columnNumber);
+  }
 }

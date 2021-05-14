@@ -9,8 +9,9 @@ import { Identifier, MemberExpression, Node, Program } from 'estree';
 import { inject, injectable } from 'inversify';
 import Cdp from '../cdp/api';
 import { ICdpApi } from '../cdp/connection';
+import { IPosition } from '../common/positions';
 import { getEnd, getStart, getText, parseProgram } from '../common/sourceCodeManipulations';
-import { positionToOffset } from '../common/sourceUtils';
+import { PositionToOffset } from '../common/stringUtils';
 import Dap from '../dap/api';
 import { IEvaluator, returnValueStr } from './evaluator';
 import { StackFrame } from './stackTrace';
@@ -30,8 +31,7 @@ export interface ICompletionContext {
  */
 export interface ICompletionExpression {
   expression: string;
-  line: number;
-  column: number;
+  position: IPosition;
 }
 
 export interface ICompletionWithSort extends Dap.CompletionItem {
@@ -141,8 +141,7 @@ export class Completions {
     options: ICompletionContext & ICompletionExpression,
   ): Promise<Dap.CompletionItem[]> {
     const source = parseProgram(options.expression);
-
-    const offset = positionToOffset(options.expression, options.line, options.column);
+    const offset = new PositionToOffset(options.expression).convert(options.position);
     let candidate: () => Promise<ICompletionWithSort[]> = () => Promise.resolve([]);
 
     traverse(source, {
@@ -310,6 +309,7 @@ export class Completions {
     const callFrameId = stackFrame && stackFrame.callFrameId();
     const objRefResult = await this.evaluator.evaluate(
       callFrameId ? { ...params, callFrameId } : { ...params, contextId: executionContextId },
+      { stackFrame },
     );
 
     if (!objRefResult || objRefResult.exceptionDetails) {

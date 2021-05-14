@@ -8,7 +8,9 @@ import { DebugType } from '../common/contributionUtils';
 import { EventEmitter } from '../common/events';
 import { HrTime } from '../common/hrnow';
 import { ILogger, LogTag } from '../common/logging';
+import { Base1Position } from '../common/positions';
 import { delay, getDeferred, IDeferred } from '../common/promiseUtil';
+import { IRenameProvider } from '../common/sourceMaps/renameProvider';
 import * as sourceUtils from '../common/sourceUtils';
 import * as urlUtils from '../common/urlUtils';
 import { fileUrlToAbsolutePath } from '../common/urlUtils';
@@ -179,6 +181,7 @@ export class Thread implements IVariableStoreDelegate {
     cdp: Cdp.Api,
     dap: Dap.Api,
     delegate: IThreadDelegate,
+    renameProvider: IRenameProvider,
     private readonly logger: ILogger,
     private readonly evaluator: IEvaluator,
     private readonly completer: ICompletions,
@@ -195,6 +198,7 @@ export class Thread implements IVariableStoreDelegate {
     this.replVariables = new VariableStore(
       this._cdp,
       this,
+      renameProvider,
       launchConfig.__autoExpandGetters,
       launchConfig.customDescriptionGenerator,
       launchConfig.customPropertiesGenerator,
@@ -372,8 +376,7 @@ export class Thread implements IVariableStoreDelegate {
       executionContextId: this._selectedContext ? this._selectedContext.description.id : undefined,
       stackFrame,
       expression: params.text,
-      line: params.line || 1,
-      column: params.column,
+      position: new Base1Position(params.line || 1, params.column),
     });
 
     // Merge the actual completion items with the synthetic target changing items.
@@ -394,8 +397,9 @@ export class Thread implements IVariableStoreDelegate {
 
   async evaluate(args: Dap.EvaluateParams): Promise<Dap.EvaluateResult | Dap.Error> {
     let callFrameId: Cdp.Debugger.CallFrameId | undefined;
+    let stackFrame: StackFrame | undefined;
     if (args.frameId !== undefined) {
-      const stackFrame = this._pausedDetails
+      stackFrame = this._pausedDetails
         ? this._pausedDetails.stackTrace.frame(args.frameId)
         : undefined;
       if (!stackFrame) return this._stackFrameNotFoundError();
@@ -451,7 +455,7 @@ export class Thread implements IVariableStoreDelegate {
             ...params,
             contextId: this._selectedContext ? this._selectedContext.description.id : undefined,
           },
-      { isInternalScript: false },
+      { isInternalScript: false, stackFrame },
     );
 
     // Report result for repl immediately so that the user could see the expression they entered.
@@ -716,13 +720,7 @@ export class Thread implements IVariableStoreDelegate {
 
     this._waitingForStepIn = undefined;
     this._pausedDetailsEvent.set(pausedDetails, event);
-    this._pausedVariables = new VariableStore(
-      this._cdp,
-      this,
-      this.launchConfig.__autoExpandGetters,
-      this.launchConfig.customDescriptionGenerator,
-      this.launchConfig.customPropertiesGenerator,
-    );
+    this._pausedVariables = this.replVariables.createDetached();
 
     await this._onThreadPaused(pausedDetails);
   }

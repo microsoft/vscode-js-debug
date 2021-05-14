@@ -12,6 +12,13 @@
       "program": "${workspaceFolder}/main.js",
     },
     {
+      "type": "node",
+      "request": "launch",
+      "trace": true,
+      "name": "[Node] Launch Minified program",
+      "program": "${workspaceFolder}/main.min.js",
+    },
+    {
       "name": "[Node] Launch File with Deno",
       "type": "pwa-node",
       "request": "launch",

@@ -5,6 +5,7 @@
 import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
 import { once } from '../common/objUtils';
+import { Base0Position } from '../common/positions';
 import Dap from '../dap/api';
 import { asyncScopesNotAvailable } from '../dap/errors';
 import { ProtocolError } from '../dap/protocolError';
@@ -180,6 +181,11 @@ export class StackFrame {
   private _isAsyncSeparator = false;
   private _scope: IScope | undefined;
   private _thread: Thread;
+
+  public get rawPosition() {
+    // todo: move RawLocation to use Positions, then just return that.
+    return new Base0Position(this._rawLocation.lineNumber, this._rawLocation.columnNumber);
+  }
 
   static fromRuntime(
     thread: Thread,
@@ -376,7 +382,12 @@ export class StackFrame {
       return existing;
     }
 
-    const scopeRef: IScopeRef = { callFrameId: scope.callFrameId, scopeNumber };
+    const scopeRef: IScopeRef = {
+      stackFrame: this,
+      callFrameId: scope.callFrameId,
+      scopeNumber,
+    };
+
     const extraProperties: IExtraProperty[] = [];
     if (scopeNumber === 0) {
       extraProperties.push({ name: 'this', value: scope.thisObject });

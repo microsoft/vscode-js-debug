@@ -308,6 +308,15 @@ describe('variables', () => {
       p.assertLog();
     });
 
+    itIntegrates('name mapping', async ({ r }) => {
+      const p = await r.launchUrlAndLoad('minified/index.html');
+      p.cdp.Runtime.evaluate({ expression: `test()` });
+      const event = await p.dap.once('stopped');
+      await p.logger.logStackTrace(event.threadId!, true);
+      await p.dap.continue({ threadId: event.threadId! });
+      p.assertLog();
+    });
+
     itIntegrates('evaluateName', async ({ r }) => {
       const p = await r.launchAndLoad('blank');
       p.cdp.Runtime.evaluate({

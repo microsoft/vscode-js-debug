@@ -4,6 +4,8 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly
 
+- feat: support renamed sourcemap identifiers ([ref](https://github.com/microsoft/vscode/issues/12066))
+- feat: support DAP `hitBreakpointIds` ([#994](https://github.com/microsoft/vscode-js-debug/issues/994))
 - refactor: include a mandator path in the CDP proxy ([#987](https://github.com/microsoft/vscode-js-debug/issues/987))
 - fix: make sure servers are listening before returning
 - fix: don't send infinite telemetry requests for React Native ([#981](https://github.com/microsoft/vscode-js-debug/issues/981))
@@ -12,7 +14,6 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - chore: log errors activating auto attach
 - fix: intermittent debug failures with browsers, especially Electron ([ref](https://github.com/microsoft/vscode/issues/123420)))
 - fix: add additional languages for browser debugging ([ref](https://github.com/microsoft/vscode/issues/123484))
-- feat: support DAP `hitBreakpointIds` ([#994](https://github.com/microsoft/vscode-js-debug/issues/994))
 - feat: allow limited adjustment of launch config options during restart ([ref](https://github.com/microsoft/vscode/issues/118196))
 
 ## v1.56 (April 2021)

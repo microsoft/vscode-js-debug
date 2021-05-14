@@ -1,6 +1,9 @@
 {
     allThreadsStopped : false
     description : Paused on breakpoint
+    hitBreakpointIds : [
+        [0] : 1
+    ]
     reason : breakpoint
     threadId : <number>
 }
@@ -10,6 +13,9 @@
 {
     allThreadsStopped : false
     description : Paused on breakpoint
+    hitBreakpointIds : [
+        [0] : 1
+    ]
     reason : breakpoint
     threadId : <number>
 }

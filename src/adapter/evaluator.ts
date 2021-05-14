@@ -6,11 +6,14 @@ import { Node as AcornNode } from 'acorn';
 import { generate } from 'astring';
 import { randomBytes } from 'crypto';
 import { replace } from 'estraverse';
-import { ConditionalExpression } from 'estree';
+import { ConditionalExpression, Expression } from 'estree';
 import { inject, injectable } from 'inversify';
 import Cdp from '../cdp/api';
 import { ICdpApi } from '../cdp/connection';
+import { IPosition } from '../common/positions';
 import { parseProgram } from '../common/sourceCodeManipulations';
+import { IRenameProvider, RenameMapping } from '../common/sourceMaps/renameProvider';
+import { StackFrame } from './stackTrace';
 import { getSourceSuffix } from './templates';
 
 export const returnValueStr = '$returnValue';
@@ -97,14 +100,27 @@ export interface IPrepareOptions extends IEvaluatorBaseOptions {
    * given remote objects.
    */
   hoist?: ReadonlyArray<string>;
+
+  /**
+   * Optional information used to rename identifiers.
+   */
+  renames?: RenamePrepareOptions;
 }
+
+export type RenamePrepareOptions = { position: IPosition; mapping: RenameMapping };
 
 export interface IEvaluateOptions extends IEvaluatorBaseOptions {
   /**
    * Replaces the identifiers in the associated script with references to the
    * given remote objects.
    */
-  hoist?: { [key: string]: Cdp.Runtime.RemoteObject };
+  hoist?: ReadonlyArray<string>;
+
+  /**
+   * Stack frame object on which the evaluation is being run. This is
+   * necessary to allow for renamed properties.
+   */
+  stackFrame?: StackFrame;
 }
 
 /**
@@ -121,7 +137,10 @@ export class Evaluator implements IEvaluator {
     return !!this.returnValue;
   }
 
-  constructor(@inject(ICdpApi) private readonly cdp: Cdp.Api) {}
+  constructor(
+    @inject(ICdpApi) private readonly cdp: Cdp.Api,
+    @inject(IRenameProvider) private readonly renameProvider: IRenameProvider,
+  ) {}
 
   /**
    * @inheritdoc
@@ -135,9 +154,9 @@ export class Evaluator implements IEvaluator {
    */
   public prepare(
     expression: string,
-    options: IPrepareOptions = {},
+    { isInternalScript, hoist, renames }: IPrepareOptions = {},
   ): { canEvaluateDirectly: boolean; invoke: PreparedCallFrameExpr } {
-    if (options.isInternalScript !== false) {
+    if (isInternalScript !== false) {
       expression += getSourceSuffix();
     }
 
@@ -147,15 +166,16 @@ export class Evaluator implements IEvaluator {
     // evalute the expression and unhoist it from the globals.
     const toHoist = new Map<string, string>();
     toHoist.set(returnValueStr, makeHoistedName());
-    for (const key of options.hoist ?? []) {
+    for (const key of hoist ?? []) {
       toHoist.set(key, makeHoistedName());
     }
 
-    const { transformed, hoisted } = this.replaceVariableInExpression(expression, toHoist);
+    const { transformed, hoisted } = this.replaceVariableInExpression(expression, toHoist, renames);
     if (!hoisted.size) {
       return {
         canEvaluateDirectly: true,
-        invoke: params => this.cdp.Debugger.evaluateOnCallFrame({ ...params, expression }),
+        invoke: params =>
+          this.cdp.Debugger.evaluateOnCallFrame({ ...params, expression: transformed }),
       };
     }
 
@@ -178,18 +198,27 @@ export class Evaluator implements IEvaluator {
   ): Promise<Cdp.Debugger.EvaluateOnCallFrameResult>;
   public evaluate(
     params: Cdp.Runtime.EvaluateParams,
-    options?: IPrepareOptions,
+    options?: IEvaluateOptions,
   ): Promise<Cdp.Runtime.EvaluateResult>;
   public async evaluate(
     params: Cdp.Debugger.EvaluateOnCallFrameParams | Cdp.Runtime.EvaluateParams,
-    options?: IPrepareOptions,
+    options?: IEvaluateOptions,
   ) {
     // no call frame means there will not be any relevant $returnValue to reference
     if (!('callFrameId' in params)) {
       return this.cdp.Runtime.evaluate(params);
     }
 
-    return this.prepare(params.expression, options).invoke(params);
+    let prepareOptions: IPrepareOptions | undefined = options;
+    if (options?.stackFrame) {
+      const mapping = await this.renameProvider.provideOnStackframe(options.stackFrame);
+      prepareOptions = {
+        ...prepareOptions,
+        renames: { mapping, position: options.stackFrame.rawPosition },
+      };
+    }
+
+    return this.prepare(params.expression, prepareOptions).invoke(params);
   }
 
   /**
@@ -221,9 +250,12 @@ export class Evaluator implements IEvaluator {
   private replaceVariableInExpression(
     expr: string,
     hoistMap: Map<string /* identifier */, string /* hoised */>,
+    renames: RenamePrepareOptions | undefined,
   ): { hoisted: Set<string>; transformed: string } {
     const hoisted = new Set<string>();
-    const replacement = (name: string): ConditionalExpression => ({
+    let mutated = false;
+
+    const replacement = (name: string, fallback: Expression): ConditionalExpression => ({
       type: 'ConditionalExpression',
       test: {
         type: 'BinaryExpression',
@@ -237,23 +269,30 @@ export class Evaluator implements IEvaluator {
         right: { type: 'Literal', value: 'undefined' },
       },
       consequent: { type: 'Identifier', name },
-      alternate: {
-        type: 'Identifier',
-        name: 'undefined',
-      },
+      alternate: fallback,
     });
 
     const parents: Node[] = [];
     const transformed = replace(parseProgram(expr), {
-      enter: node => {
+      enter(node) {
         const asAcorn = node as AcornNode;
-        if (
-          node.type === 'Identifier' &&
-          hoistMap.has(node.name) &&
-          expr[asAcorn.start - 1] !== '.'
-        ) {
+        if (node.type !== 'Identifier' || expr[asAcorn.start - 1] === '.') {
+          return;
+        }
+
+        const hoistName = hoistMap.get(node.name);
+        if (hoistName) {
           hoisted.add(node.name);
-          return replacement(hoistMap.get(node.name) as string);
+          mutated = true;
+          this.skip();
+          return replacement(hoistName, undefinedExpression);
+        }
+
+        const cname = renames?.mapping.getCompiledName(node.name, renames.position);
+        if (cname) {
+          mutated = true;
+          this.skip();
+          return replacement(cname, node);
         }
       },
       leave: () => {
@@ -261,6 +300,11 @@ export class Evaluator implements IEvaluator {
       },
     });
 
-    return { hoisted, transformed: hoisted.size ? generate(transformed) : expr };
+    return { hoisted, transformed: mutated ? generate(transformed) : expr };
   }
 }
+
+const undefinedExpression: Expression = {
+  type: 'Identifier',
+  name: 'undefined',
+};

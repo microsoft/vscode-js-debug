@@ -7,10 +7,11 @@ import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
 import { flatten } from '../common/objUtils';
 import { parseSource, statementsToFunction } from '../common/sourceCodeManipulations';
+import { IRenameProvider } from '../common/sourceMaps/renameProvider';
 import Dap from '../dap/api';
 import * as errors from '../dap/errors';
 import * as objectPreview from './objectPreview';
-import { StackTrace } from './stackTrace';
+import { StackFrame, StackTrace } from './stackTrace';
 import { getSourceSuffix, RemoteException } from './templates';
 import { getArrayProperties } from './templates/getArrayProperties';
 import { getArraySlots } from './templates/getArraySlots';
@@ -41,6 +42,7 @@ class RemoteObject {
     cdp: Cdp.Api,
     object: Cdp.Runtime.RemoteObject,
     public readonly parent?: RemoteObject,
+    public renamedFromSource?: string,
   ) {
     this.o = object;
     // eslint-disable-next-line
@@ -83,6 +85,7 @@ class RemoteObject {
 }
 
 export interface IScopeRef {
+  stackFrame: StackFrame;
   callFrameId: Cdp.Debugger.CallFrameId;
   scopeNumber: number;
 }
@@ -109,12 +112,24 @@ export class VariableStore {
   constructor(
     cdp: Cdp.Api,
     delegate: IVariableStoreDelegate,
+    private readonly renameProvider: IRenameProvider,
     private readonly autoExpandGetters: boolean,
     private readonly customDescriptionGenerator: string | undefined,
     private readonly customPropertiesGenerator: string | undefined,
   ) {
     this._cdp = cdp;
     this._delegate = delegate;
+  }
+
+  createDetached() {
+    return new VariableStore(
+      this._cdp,
+      this._delegate,
+      this.renameProvider,
+      this.autoExpandGetters,
+      this.customDescriptionGenerator,
+      this.customPropertiesGenerator,
+    );
   }
 
   hasVariables(variablesReference: number): boolean {
@@ -583,6 +598,15 @@ export class VariableStore {
     value?: RemoteObject,
     context?: string,
   ): Promise<Dap.Variable> {
+    const scopeRef = value?.parent?.scopeRef;
+    if (scopeRef) {
+      const renames = await this.renameProvider.provideOnStackframe(scopeRef.stackFrame);
+      const original = renames.getOriginalName(name, scopeRef.stackFrame.rawPosition);
+      if (original) {
+        name = original;
+      }
+    }
+
     if (!value) {
       return {
         name,

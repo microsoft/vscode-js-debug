@@ -8,6 +8,7 @@ import { Cdp } from '../cdp/api';
 import { DisposableList, IDisposable } from '../common/disposable';
 import { ILogger, LogTag } from '../common/logging';
 import { getDeferred, IDeferred } from '../common/promiseUtil';
+import { IRenameProvider } from '../common/sourceMaps/renameProvider';
 import * as sourceUtils from '../common/sourceUtils';
 import * as urlUtils from '../common/urlUtils';
 import { AnyLaunchConfiguration } from '../configuration';
@@ -308,6 +309,7 @@ export class DebugAdapter implements IDisposable {
       cdp,
       this.dap,
       delegate,
+      this._services.get(IRenameProvider),
       this._services.get(ILogger),
       this._services.get(IEvaluator),
       this._services.get(ICompletions),

@@ -2,8 +2,45 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { once } from './objUtils';
+
 export interface IDisposable {
   dispose(): void;
+}
+
+export interface IReference<T> extends IDisposable {
+  value: T;
+}
+
+export class RefCounter<T extends IDisposable> {
+  private disposed = false;
+  private count = 0;
+
+  constructor(public readonly value: T) {}
+
+  public checkout(): IReference<T> {
+    if (this.disposed) {
+      throw new Error('Cannot checkout a disposed instance');
+    }
+
+    this.count++;
+
+    return {
+      value: this.value,
+      dispose: once(() => {
+        if (--this.count === 0) {
+          this.dispose();
+        }
+      }),
+    };
+  }
+
+  public dispose() {
+    if (!this.disposed) {
+      this.disposed = true;
+      this.value.dispose;
+    }
+  }
 }
 
 /**

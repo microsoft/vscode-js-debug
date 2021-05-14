@@ -355,3 +355,15 @@ export function pick<T>(obj: T, keys: ReadonlyArray<keyof T>): Partial<T> {
 }
 
 export const upcastPartial = <T>(v: Partial<T>): T => v as T;
+
+/**
+ * Inverts the keys and values in a map.
+ */
+export function invertMap<K, V>(map: ReadonlyMap<K, V>): Map<V, K> {
+  const result = new Map<V, K>();
+  for (const [key, value] of map) {
+    result.set(value, key);
+  }
+
+  return result;
+}
