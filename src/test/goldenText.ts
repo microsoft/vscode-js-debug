@@ -11,6 +11,7 @@ import * as urlUtils from '../common/urlUtils';
 import { testFixturesDir } from './test';
 
 const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
+const kOmitNames = new Set(['hitBreakpointIds']);
 
 const trimLineWhitespace = (str: string) =>
   str
@@ -217,7 +218,7 @@ export class GoldenText {
       propertyNames.sort();
       for (let i = 0; i < propertyNames.length; ++i) {
         const name = propertyNames[i];
-        if (!object.hasOwnProperty(name)) continue;
+        if (!object.hasOwnProperty(name) || kOmitNames.has(name)) continue;
         const prefixWithName = '    ' + prefix + name + ' : ';
         let value = object[name];
         if (stabilizeNames && stabilizeNames.includes(name)) value = `<${typeof value}>`;
