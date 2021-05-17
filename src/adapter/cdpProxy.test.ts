@@ -128,4 +128,40 @@ describe('CdpProxyProvider', () => {
     await client.session.sendOrDie('Runtime.evaluate', { expression: '' });
     expect(recv).to.deep.equal(['Runtime.consoleAPICalled', 'Debugger.scriptParsed']);
   });
+
+  describe('replays', () => {
+    it('CSS', async () => {
+      transport.onDidSendEmitter.event(async message => {
+        await delay(0);
+        transport.injectMessage({
+          id: message.id as number,
+          result: {},
+          sessionId: message.sessionId,
+        });
+      });
+
+      transport.injectMessage({
+        method: 'CSS.styleSheetAdded',
+        params: { styleSheetId: '42' },
+        sessionId: 'sesh',
+      });
+      transport.injectMessage({
+        method: 'CSS.styleSheetAdded',
+        params: { styleSheetId: '43' },
+        sessionId: 'sesh',
+      });
+      transport.injectMessage({
+        method: 'CSS.styleSheetRemoved',
+        params: { styleSheetId: '43' },
+        sessionId: 'sesh',
+      });
+
+      const events: unknown[] = [];
+      client.CSS.on('styleSheetAdded', evt => events.push(evt));
+      client.CSS.on('styleSheetRemoved', evt => events.push(evt));
+
+      expect(await client.CSS.enable({})).to.deep.equal({});
+      expect(events).to.deep.equal([{ styleSheetId: '42' }]);
+    });
+  });
 });

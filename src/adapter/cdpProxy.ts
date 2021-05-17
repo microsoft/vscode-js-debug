@@ -14,7 +14,6 @@ import Dap from '../dap/api';
 import { acquireTrackedWebSocketServer, IPortLeaseTracker } from './portLeaseTracker';
 
 const jsDebugDomain = 'JsDebug';
-const jsDebugMethodPrefix = jsDebugDomain + '.';
 const eventWildcard = '*';
 
 /**
@@ -55,6 +54,64 @@ export interface ICdpProxyProvider extends IDisposable {
   proxy(): Promise<Dap.RequestCDPProxyResult>;
 }
 
+type ReplayMethod = { event: string; params: Record<string, unknown> };
+
+/**
+ * Handles replaying events from domains. Certain events are only fired when
+ * a domain is first enabled, so subsequent connections may not receive it.
+ */
+class DomainReplays {
+  private replays = new Map<keyof Cdp.Api, ReplayMethod[]>();
+
+  /**
+   * Adds a message to be replayed.
+   */
+  public addReplay(domain: keyof Cdp.Api, event: string, params: unknown) {
+    const obj = { event: `${domain}.${event}`, params: params as Record<string, unknown> };
+    const arr = this.replays.get(domain);
+    if (arr) {
+      arr.push(obj);
+    } else {
+      this.replays.set(domain, [obj]);
+    }
+  }
+
+  /**
+   * Captures replay for the event on CDP.
+   */
+  public capture(cdp: Cdp.Api, domain: keyof Cdp.Api, event: string) {
+    (cdp[domain] as {
+      on(event: string, fn: (arg: Record<string, unknown>) => void): void;
+    }).on(event, evt => this.addReplay(domain, event, evt));
+  }
+
+  /**
+   * Filters replayed events.
+   */
+  public filterReply(domain: keyof Cdp.Api, filterFn: (r: ReplayMethod) => boolean) {
+    const arr = this.replays.get(domain);
+    if (!arr) {
+      return;
+    }
+
+    this.replays.set(domain, arr.filter(filterFn));
+  }
+
+  /**
+   * Removes all replay info for a domain.
+   */
+  public clear(domain: keyof Cdp.Api) {
+    this.replays.delete(domain);
+  }
+
+  /**
+   * Gets replay messages for the given domain.
+   */
+  public read(domain: keyof Cdp.Api) {
+    return this.replays.get(domain) ?? [];
+  }
+}
+
 export const ICdpProxyProvider = Symbol('ICdpProxyProvider');
 
 /**
@@ -64,6 +121,7 @@ export const ICdpProxyProvider = Symbol('ICdpProxyProvider');
 export class CdpProxyProvider implements ICdpProxyProvider {
   private server?: Promise<{ server: WebSocket.Server; path: string }>;
   private readonly disposables = new DisposableList();
+  private readonly replay = new DomainReplays();
 
   private jsDebugApi: IJsDebugDomain = {
     /** @inheritdoc */
@@ -90,7 +148,20 @@ export class CdpProxyProvider implements ICdpProxyProvider {
     @inject(ICdpApi) private readonly cdp: Cdp.Api,
     @inject(IPortLeaseTracker) private readonly portTracker: IPortLeaseTracker,
     @inject(ILogger) private readonly logger: ILogger,
-  ) {}
+  ) {
+    this.replay.capture(cdp, 'CSS', 'fontsUpdated');
+    this.replay.capture(cdp, 'CSS', 'styleSheetAdded');
+
+    cdp.CSS.on('fontsUpdated', evt => {
+      if (evt.font) {
+        this.replay.addReplay('CSS', 'fontsUpdated', evt);
+      }
+    });
+
+    cdp.CSS.on('styleSheetRemoved', evt =>
+      this.replay.filterReply('CSS', s => s.params.styleSheetId !== evt.styleSheetId),
+    );
+  }
 
   /**
    * Acquires the proxy server, and returns its address.
@@ -139,14 +210,12 @@ export class CdpProxyProvider implements ICdpProxyProvider {
         this.logger.verbose(LogTag.ProxyActivity, 'received proxy message', message);
 
         const { method, params, id = 0 } = message;
+        const [domain, fn] = method.split('.');
         try {
-          const result = method.startsWith(jsDebugMethodPrefix)
-            ? await this.invokeJsDebugDomainMethod(
-                clientHandle,
-                method.slice(jsDebugMethodPrefix.length),
-                params,
-              )
-            : await this.cdp.session.sendOrDie(method, params);
+          const result =
+            domain === jsDebugDomain
+              ? await this.invokeJsDebugDomainMethod(clientHandle, fn, params)
+              : await this.invokeCdpMethod(clientHandle, domain, fn, params);
           clientHandle.send({ id, result });
         } catch (e) {
           const error =
@@ -168,11 +237,31 @@ export class CdpProxyProvider implements ICdpProxyProvider {
     this.server = undefined;
   }
 
+  private invokeCdpMethod(client: ClientHandle, domain: string, method: string, params: object) {
+    const promise = this.cdp.session.sendOrDie(`${domain}.${method}`, params);
+    switch (method) {
+      case 'enable':
+        this.replay
+          .read(domain as keyof Cdp.Api)
+          .forEach(m => client.send({ method: m.event, params: m.params }));
+        break;
+      case 'disable':
+        this.replay.clear(domain as keyof Cdp.Api);
+        break;
+      default:
+      // no-op
+    }
+
+    // it's intentional that replay is sent before the
+    // enabled response; this is what Chrome does.
+    return promise;
+  }
+
   private invokeJsDebugDomainMethod(handle: ClientHandle, method: string, params: unknown) {
     if (!this.jsDebugApi.hasOwnProperty(method)) {
       throw new ProtocolError(method).setCause(
         ProxyErrors.MethodNotFound,
-        `${jsDebugMethodPrefix}${method} not found`,
+        `${jsDebugDomain}.${method} not found`,
       );
     }
 

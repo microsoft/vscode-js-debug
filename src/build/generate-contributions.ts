@@ -1253,6 +1253,7 @@ const commands: ReadonlyArray<{
     command: Commands.OpenEdgeDevTools,
     title: refString('openEdgeDevTools.label'),
     icon: '$(inspect)',
+    category: 'Debug',
   },
 ];
 
