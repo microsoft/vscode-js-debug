@@ -421,7 +421,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
           attached: true,
           canAccessOpener: false,
           type: 'node-worker',
-          targetId: evt.sessionId,
+          targetId: `${parent.id()}-${evt.sessionId}`,
           title: evt.workerInfo.title,
           url: evt.workerInfo.url,
           openerId: parent.id(),
