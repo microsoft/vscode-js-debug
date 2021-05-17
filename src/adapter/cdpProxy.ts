@@ -149,7 +149,6 @@ export class CdpProxyProvider implements ICdpProxyProvider {
     @inject(IPortLeaseTracker) private readonly portTracker: IPortLeaseTracker,
     @inject(ILogger) private readonly logger: ILogger,
   ) {
-    this.replay.capture(cdp, 'CSS', 'fontsUpdated');
     this.replay.capture(cdp, 'CSS', 'styleSheetAdded');
 
     cdp.CSS.on('fontsUpdated', evt => {
