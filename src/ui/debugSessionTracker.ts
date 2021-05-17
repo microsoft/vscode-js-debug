@@ -20,6 +20,27 @@ export class DebugSessionTracker implements vscode.Disposable {
     return !!session.configuration.__pendingTargetId;
   }
 
+  /**
+   * Prompts the user to pick one of the given debug sessions. Will not show
+   * a prompt if candidates < 2.
+   */
+  public static pickSession(candidates: vscode.DebugSession[], title: string) {
+    if (candidates.length < 2) {
+      return candidates[0];
+    }
+
+    const qp = vscode.window.createQuickPick<{ id: string; label: string }>();
+    qp.title = title;
+    qp.items = candidates.map(c => ({ label: c.name, id: c.id }));
+    qp.ignoreFocusOut = true;
+
+    return new Promise<vscode.DebugSession | undefined>(resolve => {
+      qp.onDidAccept(() => resolve(candidates.find(i => i.id === qp.selectedItems[0]?.id)));
+      qp.onDidHide(() => resolve(undefined));
+      qp.show();
+    }).finally(() => qp.dispose());
+  }
+
   private _onSessionAddedEmitter = new vscode.EventEmitter<vscode.DebugSession>();
   private _onSessionEndedEmitter = new vscode.EventEmitter<vscode.DebugSession>();
   private _disposables: vscode.Disposable[] = [];

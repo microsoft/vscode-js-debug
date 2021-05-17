@@ -79,11 +79,13 @@ export class BrowserTarget implements ITarget, IThreadDelegate {
   /**
    * @inheritdoc
    */
-  public readonly supplementalConfig = {
-    __usePerformanceFromParent:
-      this._targetInfo.type !== BrowserTargetType.Page &&
-      this._targetInfo.type !== BrowserTargetType.Page,
-  };
+  public get supplementalConfig() {
+    const type = this.type();
+    return {
+      __browserTargetType: type,
+      __usePerformanceFromParent: type !== BrowserTargetType.Page,
+    };
+  }
 
   _children: Map<Cdp.Target.TargetID, BrowserTarget> = new Map();
 

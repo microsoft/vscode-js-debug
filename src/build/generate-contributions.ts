@@ -1249,6 +1249,11 @@ const commands: ReadonlyArray<{
     title: refString('startWithStopOnEntry.label'),
     category: 'Debug',
   },
+  {
+    command: Commands.OpenEdgeDevTools,
+    title: refString('openEdgeDevTools.label'),
+    icon: '$(inspect)',
+  },
 ];
 
 const menus: Menus = {
@@ -1281,6 +1286,11 @@ const menus: Menus = {
       command: Commands.CreateDiagnostics,
       title: refString('createDiagnostics.label'),
       when: forAnyDebugType('debugType', 'inDebugMode'),
+    },
+    {
+      command: Commands.OpenEdgeDevTools,
+      title: refString('openEdgeDevTools.label'),
+      when: `debugType == ${DebugType.Edge}`,
     },
   ],
   'debug/callstack/context': [
@@ -1319,6 +1329,10 @@ const menus: Menus = {
     {
       command: Commands.StopProfile,
       when: forAnyDebugType('debugType', 'jsDebugIsProfiling'),
+    },
+    {
+      command: Commands.OpenEdgeDevTools,
+      when: `debugType == ${DebugType.Edge}`,
     },
   ],
   'view/title': [

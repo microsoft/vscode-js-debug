@@ -87,21 +87,10 @@ export class DiagnosticsUI implements IExtensionContribution {
   }
 
   private pickSession() {
-    const candidates = this.tracker.getConcreteSessions();
-    if (candidates.length < 2) {
-      return candidates[0];
-    }
-
-    const qp = vscode.window.createQuickPick<{ id: string; label: string }>();
-    qp.title = localize('selectInspectSession', 'Select the session you want to inspect:');
-    qp.items = candidates.map(c => ({ label: c.name, id: c.id }));
-    qp.ignoreFocusOut = true;
-
-    return new Promise<vscode.DebugSession | undefined>(resolve => {
-      qp.onDidAccept(() => resolve(candidates.find(i => i.id === qp.selectedItems[0]?.id)));
-      qp.onDidHide(() => resolve(undefined));
-      qp.show();
-    }).finally(() => qp.dispose());
+    return DebugSessionTracker.pickSession(
+      this.tracker.getConcreteSessions(),
+      localize('selectInspectSession', 'Select the session you want to inspect:'),
+    );
   }
 
   private async getDiagnosticInfo(

@@ -309,6 +309,7 @@ A common case to disable certificate verification can be done by passing \`{ "ht
   'createDiagnostics.label': 'Diagnose Breakpoint Problems',
   'startWithStopOnEntry.label': 'Start Debugging and Stop on Entry',
   'requestCDPProxy.label': 'Request CDP Proxy for Debug Session',
+  'openEdgeDevTools.label': 'Open Browser Devtools',
   'workspaceTrust.description': 'Trust is required to debug code in this workspace.',
 };
 

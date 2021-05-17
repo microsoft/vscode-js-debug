@@ -15,6 +15,7 @@ import { DebugLinkUi } from './debugLinkUI';
 import { DebugSessionTracker } from './debugSessionTracker';
 import { DiagnosticsUI } from './diagnosticsUI';
 import { DisableSourceMapUI } from './disableSourceMapUI';
+import { EdgeDevToolOpener } from './edgeDevToolOpener';
 import { ILinkedBreakpointLocation } from './linkedBreakpointLocation';
 import { LinkedBreakpointLocationUI } from './linkedBreakpointLocationUI';
 import { LongPredictionUI } from './longPredictionUI';
@@ -47,6 +48,7 @@ export const registerUiComponents = (container: Container) => {
   container.bind(IExtensionContribution).to(DiagnosticsUI).inSingletonScope();
   container.bind(IExtensionContribution).to(StartDebugingAndStopOnEntry).inSingletonScope();
   container.bind(IExtensionContribution).to(JsDebugPortAttributesProvider).inSingletonScope();
+  container.bind(IExtensionContribution).to(EdgeDevToolOpener).inSingletonScope();
   container.bind(ILinkedBreakpointLocation).to(LinkedBreakpointLocationUI).inSingletonScope();
   container.bind(DebugSessionTracker).toSelf().inSingletonScope().onActivation(trackDispose);
   container.bind(UiProfileManager).toSelf().inSingletonScope().onActivation(trackDispose);

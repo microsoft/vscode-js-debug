@@ -6,6 +6,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 - feat: support renamed sourcemap identifiers ([ref](https://github.com/microsoft/vscode/issues/12066))
 - feat: support DAP `hitBreakpointIds` ([#994](https://github.com/microsoft/vscode-js-debug/issues/994))
+- feat: add Edge inspector integration
 - refactor: include a mandator path in the CDP proxy ([#987](https://github.com/microsoft/vscode-js-debug/issues/987))
 - fix: make sure servers are listening before returning
 - fix: don't send infinite telemetry requests for React Native ([#981](https://github.com/microsoft/vscode-js-debug/issues/981))

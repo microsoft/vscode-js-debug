@@ -38,6 +38,7 @@ export const enum Commands {
   StartProfile = 'extension.js-debug.startProfile',
   StopProfile = 'extension.js-debug.stopProfile',
   ToggleSkipping = 'extension.js-debug.toggleSkippingFile',
+  OpenEdgeDevTools = 'extension.js-debug.openEdgeDevTools',
 }
 
 export const enum DebugType {
@@ -77,6 +78,7 @@ const commandsObj: { [K in Commands]: null } = {
   [Commands.ToggleSkipping]: null,
   [Commands.StartWithStopOnEntry]: null,
   [Commands.RequestCDPProxy]: null,
+  [Commands.OpenEdgeDevTools]: null,
 };
 
 /**
@@ -165,6 +167,7 @@ export interface ICommandTypes {
   [Commands.RequestCDPProxy](
     sessionId: string,
   ): { address: string; port: number; family: string } | null;
+  [Commands.OpenEdgeDevTools](): void;
 }
 
 /**
