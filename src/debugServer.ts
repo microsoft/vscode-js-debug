@@ -83,7 +83,7 @@ class Configurator {
   }
 }
 
-export function startDebugServer(port: number): Promise<IDisposable> {
+export function startDebugServer(port: number, host?: string): Promise<IDisposable> {
   return new Promise((resolve, reject) => {
     const server = net
       .createServer(async socket => {
@@ -115,7 +115,7 @@ export function startDebugServer(port: number): Promise<IDisposable> {
         const configurator = new Configurator(connection.dap());
       })
       .on('error', reject)
-      .listen(port, () => {
+      .listen({ port, host }, () => {
         console.log(`Debug server listening at ${(server.address() as net.AddressInfo).port}`);
         resolve({
           dispose: () => {
