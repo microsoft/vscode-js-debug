@@ -14,7 +14,7 @@
 <h5>Default value:</h4><pre><code>true</pre></code><h4>env</h4><p>Environment variables passed to the program. The value <code>null</code> removes the variable from the environment.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>envFile</h4><p>Absolute path to a file containing environment variable definitions.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>localRoot</h4><p>Path to the local directory containing the program.</p>
-<h5>Default value:</h4><pre><code>null</pre></code><h4>nodeVersionHint</h4><p>Allows you to explicitly specify the Node version that&#39;s running, which can be used to disable or enable certain behaviors in cases where the automatic version detection does not working.</p>
+<h5>Default value:</h4><pre><code>null</pre></code><h4>nodeVersionHint</h4><p>Allows you to explicitly specify the Node version that&#39;s running, which can be used to disable or enable certain behaviors in cases where the automatic version detection does not work.</p>
 <h5>Default value:</h4><pre><code>undefined</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
 <h5>Default value:</h4><pre><code>[
   "${workspaceFolder}/**/*.js",
@@ -42,7 +42,7 @@
   "meteor://💻app/*": "${workspaceFolder}/*"
 }</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
-<h5>Default value:</h4><pre><code>10000</pre></code><h4>timeouts</h4><p>Timeouts for several debugger operations</p>
+<h5>Default value:</h4><pre><code>10000</pre></code><h4>timeouts</h4><p>Timeouts for several debugger operations.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>websocketAddress</h4><p>Exact websocket address to attach to. If unspecified, it will be discovered from the address and port.</p>
 <h5>Default value:</h4><pre><code>undefined</pre></code></details>
@@ -60,16 +60,16 @@
 <h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code><h4>enableContentValidation</h4><p>Toggles whether we verify the contents of files on disk match the ones loaded in the runtime. This is useful in a variety of scenarios and required in some, but can cause issues if you have server-side transformation of scripts, for example.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>env</h4><p>Environment variables passed to the program. The value <code>null</code> removes the variable from the environment.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>envFile</h4><p>Absolute path to a file containing environment variable definitions.</p>
-<h5>Default value:</h4><pre><code>null</pre></code><h4>killBehavior</h4><p>Configures how debug process are killed when stopping the sesssion. Can be:<br><br>- forceful (default): forcefully tears down the process tree. Sends SIGKILL on posix, or <code>taskkill.exe /F</code> on Windows.<br>- polite: gracefully tears down the process tree. It&#39;s possible that misbehaving processes continue to run after shutdown in this way. Sends SIGTERM on posix, or <code>taskkill.exe</code> with no <code>/F</code> (force) flag on Windows.<br>- none: no termination will happen.</p>
+<h5>Default value:</h4><pre><code>null</pre></code><h4>killBehavior</h4><p>Configures how debug processes are killed when stopping the session. Can be:<br><br>- forceful (default): forcefully tears down the process tree. Sends SIGKILL on posix, or <code>taskkill.exe /F</code> on Windows.<br>- polite: gracefully tears down the process tree. It&#39;s possible that misbehaving processes continue to run after shutdown in this way. Sends SIGTERM on posix, or <code>taskkill.exe</code> with no <code>/F</code> (force) flag on Windows.<br>- none: no termination will happen.</p>
 <h5>Default value:</h4><pre><code>"forceful"</pre></code><h4>localRoot</h4><p>Path to the local directory containing the program.</p>
-<h5>Default value:</h4><pre><code>null</pre></code><h4>nodeVersionHint</h4><p>Allows you to explicitly specify the Node version that&#39;s running, which can be used to disable or enable certain behaviors in cases where the automatic version detection does not working.</p>
+<h5>Default value:</h4><pre><code>null</pre></code><h4>nodeVersionHint</h4><p>Allows you to explicitly specify the Node version that&#39;s running, which can be used to disable or enable certain behaviors in cases where the automatic version detection does not work.</p>
 <h5>Default value:</h4><pre><code>undefined</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
 <h5>Default value:</h4><pre><code>[
   "${workspaceFolder}/**/*.js",
   "!**/node_modules/**"
 ]</pre></code><h4>outputCapture</h4><p>From where to capture output messages: the default debug API if set to <code>console</code>, or stdout/stderr streams if set to <code>std</code>.</p>
 <h5>Default value:</h4><pre><code>"console"</pre></code><h4>pauseForSourceMap</h4><p>Whether to wait for source maps to load for each incoming script. This has a performance overhead, and might be safely disabled when running off of disk, so long as <code>rootPath</code> is not disabled.</p>
-<h5>Default value:</h4><pre><code>false</pre></code><h4>profileStartup</h4><p>If true, will start profiling soon as the process launches</p>
+<h5>Default value:</h4><pre><code>false</pre></code><h4>profileStartup</h4><p>If true, will start profiling as soon as the process launches</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>program</h4><p>Absolute path to the program. Generated value is guessed by looking at package.json and opened files. Edit this attribute.</p>
 <h5>Default value:</h4><pre><code>""</pre></code><h4>remoteRoot</h4><p>Absolute path to the remote directory containing the program.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>resolveSourceMapLocations</h4><p>A list of minimatch patterns for locations (folders and URLs) in which source maps can be used to resolve local files. This can be used to avoid incorrectly breaking in external source mapped code. Patterns can be prefixed with &quot;!&quot; to exclude them. May be set to an empty array or null to avoid restriction.</p>
@@ -94,7 +94,7 @@
 }</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>stopOnEntry</h4><p>Automatically stop program after launch.</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
-<h5>Default value:</h4><pre><code>10000</pre></code><h4>timeouts</h4><p>Timeouts for several debugger operations</p>
+<h5>Default value:</h4><pre><code>10000</pre></code><h4>timeouts</h4><p>Timeouts for several debugger operations.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
 <h5>Default value:</h4><pre><code>false</pre></code></details>
 
@@ -110,7 +110,7 @@
 <h5>Default value:</h4><pre><code>true</pre></code><h4>env</h4><p>Environment variables passed to the program. The value <code>null</code> removes the variable from the environment.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>envFile</h4><p>Absolute path to a file containing environment variable definitions.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>localRoot</h4><p>Path to the local directory containing the program.</p>
-<h5>Default value:</h4><pre><code>null</pre></code><h4>nodeVersionHint</h4><p>Allows you to explicitly specify the Node version that&#39;s running, which can be used to disable or enable certain behaviors in cases where the automatic version detection does not working.</p>
+<h5>Default value:</h4><pre><code>null</pre></code><h4>nodeVersionHint</h4><p>Allows you to explicitly specify the Node version that&#39;s running, which can be used to disable or enable certain behaviors in cases where the automatic version detection does not work.</p>
 <h5>Default value:</h4><pre><code>undefined</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
 <h5>Default value:</h4><pre><code>[
   "${workspaceFolder}/**/*.js",
@@ -137,7 +137,7 @@
   "meteor://💻app/*": "${workspaceFolder}/*"
 }</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
-<h5>Default value:</h4><pre><code>10000</pre></code><h4>timeouts</h4><p>Timeouts for several debugger operations</p>
+<h5>Default value:</h4><pre><code>10000</pre></code><h4>timeouts</h4><p>Timeouts for several debugger operations.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
 <h5>Default value:</h4><pre><code>false</pre></code></details>
 
@@ -157,7 +157,7 @@
 <h5>Default value:</h4><pre><code>true</pre></code><h4>env</h4><p>Environment variables passed to the program. The value <code>null</code> removes the variable from the environment.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>envFile</h4><p>Absolute path to a file containing environment variable definitions.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>localRoot</h4><p>Path to the local directory containing the program.</p>
-<h5>Default value:</h4><pre><code>null</pre></code><h4>nodeVersionHint</h4><p>Allows you to explicitly specify the Node version that&#39;s running, which can be used to disable or enable certain behaviors in cases where the automatic version detection does not working.</p>
+<h5>Default value:</h4><pre><code>null</pre></code><h4>nodeVersionHint</h4><p>Allows you to explicitly specify the Node version that&#39;s running, which can be used to disable or enable certain behaviors in cases where the automatic version detection does not work.</p>
 <h5>Default value:</h4><pre><code>undefined</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
 <h5>Default value:</h4><pre><code>[
   "${workspaceFolder}/out/**/*.js"
@@ -183,7 +183,7 @@
   "meteor://💻app/*": "${workspaceFolder}/*"
 }</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
-<h5>Default value:</h4><pre><code>10000</pre></code><h4>timeouts</h4><p>Timeouts for several debugger operations</p>
+<h5>Default value:</h4><pre><code>10000</pre></code><h4>timeouts</h4><p>Timeouts for several debugger operations.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
 <h5>Default value:</h4><pre><code>false</pre></code></details>
 
@@ -226,7 +226,7 @@
   "meteor://💻app/*": "${webRoot}/*"
 }</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
-<h5>Default value:</h4><pre><code>10000</pre></code><h4>timeouts</h4><p>Timeouts for several debugger operations</p>
+<h5>Default value:</h4><pre><code>10000</pre></code><h4>timeouts</h4><p>Timeouts for several debugger operations.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>url</h4><p>Will search for a tab with this exact url and attach to it, if found</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>urlFilter</h4><p>Will search for a page with this url and attach to it, if found. Can have * wildcards.</p>
@@ -272,7 +272,7 @@
 }</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>targetSelection</h4><p>Whether to attach to all targets that match the URL filter (&quot;automatic&quot;) or ask to pick one (&quot;pick&quot;).</p>
 <h5>Default value:</h4><pre><code>"automatic"</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
-<h5>Default value:</h4><pre><code>10000</pre></code><h4>timeouts</h4><p>Timeouts for several debugger operations</p>
+<h5>Default value:</h4><pre><code>10000</pre></code><h4>timeouts</h4><p>Timeouts for several debugger operations.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>url</h4><p>Will search for a tab with this exact url and attach to it, if found</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>urlFilter</h4><p>Will search for a page with this url and attach to it, if found. Can have * wildcards.</p>
@@ -323,7 +323,7 @@
   "meteor://💻app/*": "${webRoot}/*"
 }</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
-<h5>Default value:</h4><pre><code>10000</pre></code><h4>timeouts</h4><p>Timeouts for several debugger operations</p>
+<h5>Default value:</h4><pre><code>10000</pre></code><h4>timeouts</h4><p>Timeouts for several debugger operations.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>url</h4><p>Will search for a tab with this exact url and attach to it, if found</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>urlFilter</h4><p>Will search for a page with this url and attach to it, if found. Can have * wildcards.</p>
@@ -370,7 +370,7 @@
 }</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>targetSelection</h4><p>Whether to attach to all targets that match the URL filter (&quot;automatic&quot;) or ask to pick one (&quot;pick&quot;).</p>
 <h5>Default value:</h4><pre><code>"automatic"</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
-<h5>Default value:</h4><pre><code>10000</pre></code><h4>timeouts</h4><p>Timeouts for several debugger operations</p>
+<h5>Default value:</h4><pre><code>10000</pre></code><h4>timeouts</h4><p>Timeouts for several debugger operations.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>url</h4><p>Will search for a tab with this exact url and attach to it, if found</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>urlFilter</h4><p>Will search for a page with this url and attach to it, if found. Can have * wildcards.</p>
