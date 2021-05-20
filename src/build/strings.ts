@@ -191,7 +191,7 @@ const strings = {
     'Try to restart the program if it exits with a non-zero exit code.',
   'node.attach.restart.description':
     "Try to reconnect to the program if we lose connection. If set to `true`, we'll try once a second, forever. You can customize the interval and maximum number of attempts by specifying the `delay` and `maxAttempts` in an object instead.",
-  'node.killBehavior.description': `Configures how debug process are killed when stopping the session. Can be:
+  'node.killBehavior.description': `Configures how debug processes are killed when stopping the session. Can be:
 
 - forceful (default): forcefully tears down the process tree. Sends SIGKILL on posix, or \`taskkill.exe /F\` on Windows.
 - polite: gracefully tears down the process tree. It's possible that misbehaving processes continue to run after shutdown in this way. Sends SIGTERM on posix, or \`taskkill.exe\` with no \`/F\` (force) flag on Windows.
@@ -229,15 +229,15 @@ const strings = {
   'node.timeout.description':
     'Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.',
   'node.versionHint.description':
-    "Allows you to explicitly specify the Node version that's running, which can be used to disable or enable certain behaviors in cases where the automatic version detection does not working.",
-  'timeouts.generalDescription': 'Timeouts for several debugger operations',
-  'timeouts.generalDescription.markdown': 'Timeouts for several debugger operations',
-  'timeouts.sourceMaps.description': 'Timeouts related to source maps operations',
+    "Allows you to explicitly specify the Node version that's running, which can be used to disable or enable certain behaviors in cases where the automatic version detection does not work.",
+  'timeouts.generalDescription': 'Timeouts for several debugger operations.',
+  'timeouts.generalDescription.markdown': 'Timeouts for several debugger operations.',
+  'timeouts.sourceMaps.description': 'Timeouts related to source maps operations.',
   'timeouts.sourceMaps.sourceMapMinPause.description':
     'Minimum time in milliseconds spent waiting for each source-map to be processed when a script is being parsed',
   'timeouts.sourceMaps.sourceMapCumulativePause.description':
     'Extra time in milliseconds allowed per session to be spent waiting for source-maps to be processed, after the minimum time (sourceMapMinPause) has been exhausted',
-  'node.profileStartup.description': 'If true, will start profiling soon as the process launches',
+  'node.profileStartup.description': 'If true, will start profiling as soon as the process launches',
   'node.attachSimplePort.description':
     'If set, attaches to the process via the given port. This is generally no longer necessary for Node.js programs and loses the ability to debug child processes, but can be useful in more esoteric scenarios such as with Deno and Docker launches. If set to 0, a random port will be chosen and --inspect-brk added to the launch arguments automatically.',
   'enableContentValidation.description':
