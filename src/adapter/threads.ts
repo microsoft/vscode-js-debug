@@ -44,6 +44,7 @@ import {
   serializeForClipboardTmpl,
 } from './templates/serializeForClipboard';
 import { IVariableStoreDelegate, VariableStore } from './variables';
+
 const localize = nls.loadMessageBundle();
 
 export type PausedReason =
@@ -1106,6 +1107,8 @@ export class Thread implements IVariableStoreDelegate {
       this._scriptSources.set(event.url, urlHashMap);
     }
 
+    let { sourceMapURL } = event;
+
     const createSource = async () => {
       const prevSource = event.url && event.hash && urlHashMap && urlHashMap.get(event.hash);
       if (prevSource) {
@@ -1129,16 +1132,24 @@ export class Thread implements IVariableStoreDelegate {
         : undefined;
 
       let resolvedSourceMapUrl: string | undefined;
-      if (event.sourceMapURL && this.launchConfig.sourceMaps) {
-        // Note: we should in theory refetch source maps with relative urls, if the base url has changed,
-        // but in practice that usually means new scripts with new source maps anyway.
-        resolvedSourceMapUrl = urlUtils.isDataUri(event.sourceMapURL)
-          ? event.sourceMapURL
-          : (event.url && urlUtils.completeUrl(event.url, event.sourceMapURL)) || event.url;
-        if (!resolvedSourceMapUrl) {
-          this._dap.with(dap =>
-            errors.reportToConsole(dap, `Could not load source map from ${event.sourceMapURL}`),
+      if (this.launchConfig.sourceMaps) {
+        if (!sourceMapURL && event.url.startsWith('file://')) {
+          sourceMapURL = this._breakpointManager._breakpointsPredictor?.getSourceMapUrlForCompiled(
+            event.url.substring('file://'.length),
           );
+        }
+
+        if (sourceMapURL) {
+          // Note: we should in theory refetch source maps with relative urls, if the base url has changed,
+          // but in practice that usually means new scripts with new source maps anyway.
+          resolvedSourceMapUrl = urlUtils.isDataUri(sourceMapURL)
+            ? sourceMapURL
+            : (event.url && urlUtils.completeUrl(event.url, sourceMapURL)) || event.url;
+          if (!resolvedSourceMapUrl) {
+            this._dap.with(dap =>
+              errors.reportToConsole(dap, `Could not load source map from ${sourceMapURL}`),
+            );
+          }
         }
       }
 
@@ -1175,7 +1186,7 @@ export class Thread implements IVariableStoreDelegate {
 
     this._sourceContainer.addScriptById(script);
 
-    if (event.sourceMapURL) {
+    if (sourceMapURL) {
       // If we won't pause before executing this script, still try to load source
       // map and set breakpoints as soon as possible. We pause on the first line
       // (the "module entry breakpoint") to ensure this resolves.

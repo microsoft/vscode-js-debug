@@ -2,14 +2,16 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { injectable } from 'inversify';
+import * as Path from 'path';
 import type * as vscodeType from 'vscode';
-import { LogTag, ILogger } from '../logging';
+import { FileGlobList } from '../fileGlobList';
+import { readfile } from '../fsUtils';
+import { ILogger, LogTag } from '../logging';
 import { forceForwardSlashes } from '../pathUtils';
 import { NodeSearchStrategy } from './nodeSearchStrategy';
 import { ISourceMapMetadata } from './sourceMap';
 import { createMetadataForFile, ISearchStrategy } from './sourceMapRepository';
-import { injectable } from 'inversify';
-import { FileGlobList } from '../fileGlobList';
 
 /**
  * A source map repository that uses VS Code's proposed search API to
@@ -53,7 +55,7 @@ export class CodeSearchStrategy implements ISearchStrategy {
     outFiles: FileGlobList,
     onChild: (child: Required<ISourceMapMetadata>) => T | Promise<T>,
   ): Promise<T[]> {
-    const todo: Promise<T | void>[] = [];
+    const results: Record<string, string> = {};
 
     await this.vscode.workspace.findTextInFiles(
       { pattern: 'sourceMappingURL', isCaseSensitive: true },
@@ -63,18 +65,50 @@ export class CodeSearchStrategy implements ISearchStrategy {
       },
       result => {
         const text = 'text' in result ? result.text : result.preview.text;
-        todo.push(
-          createMetadataForFile(result.uri.fsPath, text)
-            .then(parsed => parsed && onChild(parsed))
-            .catch(error =>
-              this.logger.warn(LogTag.SourceMapParsing, 'Error parsing source map', {
-                error,
-                file: result.uri.fsPath,
-              }),
-            ),
-        );
+        results[result.uri.fsPath] = text;
       },
     );
+
+    // TODO: add as a new option sourceMapLookups
+    const list = new FileGlobList({
+      rootPath: outFiles.rootPath,
+      patterns: ['**/.source-maps.json', '!**/node_modules/**'],
+    });
+    const searchOptions = this.getTextSearchOptions(list);
+    const sourceMapLookupFiles = await this.vscode.workspace.findFiles(
+      searchOptions.include as vscodeType.GlobPattern,
+      searchOptions.exclude as vscodeType.GlobPattern,
+    );
+
+    for (const result of sourceMapLookupFiles) {
+      const lookupFile = result.fsPath;
+      const dir = Path.dirname(lookupFile);
+      const lookupData = JSON.parse(await readfile(lookupFile));
+      for (const file in lookupData) {
+        const fsPath = Path.join(dir, file);
+        if (!(fsPath in results)) {
+          const mappingUrl = lookupData[file].sourceMappingURL || lookupData[file];
+          if (mappingUrl) {
+            results[fsPath] = `//# sourceMappingURL=${mappingUrl}`;
+          }
+        }
+      }
+    }
+
+    const todo: Promise<T | void>[] = [];
+
+    for (const fsPath in results) {
+      todo.push(
+        createMetadataForFile(fsPath, results[fsPath])
+          .then(parsed => parsed && onChild(parsed))
+          .catch(error =>
+            this.logger.warn(LogTag.SourceMapParsing, 'Error parsing source map', {
+              error,
+              file: fsPath,
+            }),
+          ),
+      );
+    }
 
     this.logger.info(LogTag.SourceMapParsing, `findTextInFiles search found ${todo.length} files`);
 

@@ -63,6 +63,12 @@ export interface IBreakpointsPredictor {
    * Returns predicted breakpoint locations for the provided source.
    */
   predictedResolvedLocations(location: IWorkspaceLocation): IWorkspaceLocation[];
+
+  /**
+   * Returns source map url for a compiled path
+   * @param compiledPath
+   */
+  getSourceMapUrlForCompiled(compiledPath: string): string;
 }
 
 /**
@@ -151,6 +157,13 @@ export class BreakpointPredictorDelegate implements IBreakpointsPredictor, IDisp
   /**
    * @inheritdoc
    */
+  getSourceMapUrlForCompiled(compiledPath: string) {
+    return this.implementation.getSourceMapUrlForCompiled(compiledPath);
+  }
+
+  /**
+   * @inheritdoc
+   */
   dispose() {
     this.parent?.invalidateNextChild();
   }
@@ -161,6 +174,7 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
   private readonly predictedLocations = new Map<string, IWorkspaceLocation[]>();
   private readonly longParseEmitter = new EventEmitter<void>();
   private sourcePathToCompiled?: Promise<MetadataMap>;
+  private compiledSourceMapMeta: Record<string, Readonly<ISourceMapMetadata>>;
   private cache?: CorrelatedCache<number, { sourceUrl: string; resolvedPath: string }[]>;
 
   /**
@@ -182,6 +196,7 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
         path.join(launchConfig.__workspaceCachePath, 'bp-predict.json'),
       );
     }
+    this.compiledSourceMapMeta = {};
   }
 
   private async createInitialMapping(): Promise<MetadataMap> {
@@ -217,6 +232,7 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
 
     try {
       await this.repo.streamChildrenWithSourcemaps(this.outFiles, async metadata => {
+        this.compiledSourceMapMeta[metadata.compiledPath] = metadata;
         const cached = await this.cache?.lookup(metadata.compiledPath, metadata.mtime);
         if (cached) {
           cached.forEach(c => addDiscovery({ ...c, ...metadata }));
@@ -356,5 +372,9 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
   public predictedResolvedLocations(location: IWorkspaceLocation): IWorkspaceLocation[] {
     const key = `${location.absolutePath}:${location.lineNumber}:${location.columnNumber || 1}`;
     return this.predictedLocations.get(key) ?? [];
+  }
+
+  public getSourceMapUrlForCompiled(compiledPath: string): string {
+    return this.compiledSourceMapMeta[compiledPath]?.sourceMapUrl;
   }
 }
