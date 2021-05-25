@@ -303,7 +303,11 @@ export class DebugAdapter implements IDisposable {
     return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
   }
 
-  createThread(cdp: Cdp.Api, delegate: IThreadDelegate): Thread {
+  createThread(
+    cdp: Cdp.Api,
+    delegate: IThreadDelegate,
+    initializeParams?: Dap.InitializeParams,
+  ): Thread {
     this._thread = new Thread(
       this.sourceContainer,
       cdp,
@@ -318,6 +322,13 @@ export class DebugAdapter implements IDisposable {
       this._services.get(IConsole),
       this._services.get(IExceptionPauseService),
     );
+    if (initializeParams) {
+      // We won't get notified of an initialize message:
+      // that was already caught by the caller.
+      setTimeout(() => {
+        this._onInitialize(initializeParams);
+      }, 0);
+    }
 
     const profile = this._services.get<IProfileController>(IProfileController);
     profile.connect(this.dap, this._thread);
