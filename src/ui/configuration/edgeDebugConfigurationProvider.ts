@@ -2,20 +2,23 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { injectable } from 'inversify';
 import * as vscode from 'vscode';
-import {
-  edgeAttachConfigDefaults,
-  edgeLaunchConfigDefaults,
-  ResolvingEdgeConfiguration,
-  AnyEdgeConfiguration,
-  IEdgeLaunchConfiguration,
-} from '../../configuration';
+import * as nls from 'vscode-nls';
 import { DebugType } from '../../common/contributionUtils';
 import {
-  ChromiumDebugConfigurationResolver,
+  AnyEdgeConfiguration,
+  edgeAttachConfigDefaults,
+  edgeLaunchConfigDefaults,
+  IEdgeLaunchConfiguration,
+  ResolvingEdgeConfiguration,
+} from '../../configuration';
+import {
   ChromiumDebugConfigurationProvider,
+  ChromiumDebugConfigurationResolver,
 } from './chromiumDebugConfigurationProvider';
-import { injectable } from 'inversify';
+
+const localize = nls.loadMessageBundle();
 
 /**
  * Configuration provider for Chrome debugging.
@@ -68,5 +71,12 @@ export class EdgeDebugConfigurationProvider extends ChromiumDebugConfigurationPr
 > {
   protected getType() {
     return DebugType.Edge as const;
+  }
+
+  protected getDefaultLaunch() {
+    return {
+      ...super.getDefaultLaunch(),
+      name: localize('chrome.launch.name', 'Launch Edge against localhost'),
+    };
   }
 }
