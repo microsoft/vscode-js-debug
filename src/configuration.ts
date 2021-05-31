@@ -322,6 +322,13 @@ export interface INodeBaseConfiguration extends IBaseConfiguration, IConfigurati
    * with `--inpect-brk`.
    */
   continueOnAttach?: boolean;
+
+  /**
+   * A mapping of folders from one path to another. To resolve scripts to their
+   * original locations. Typical use is to map scripts in `node_modules` to their
+   * sources that locate in another folder.
+   */
+  pathMapping: PathMapping;
 }
 
 export interface IConfigurationWithEnv {
@@ -420,7 +427,7 @@ export interface INodeLaunchConfiguration extends INodeBaseConfiguration, IConfi
   attachSimplePort: null | number;
 
   /**
-   * Configures how debug process are killed when stopping the sesssion. Can be:
+   * Configures how debug process are killed when stopping the session. Can be:
    *  - forceful (default): forcefully tears down the process tree. Sends
    *    SIGKILL on posix, or `taskkill.exe /F` on Windows.
    *  - polite: gracefully tears down the process tree. It's possible that
@@ -833,6 +840,7 @@ const nodeBaseDefaults: INodeBaseConfiguration = {
   resolveSourceMapLocations: ['**', '!**/node_modules/**'],
   autoAttachChildProcesses: true,
   runtimeSourcemapPausePatterns: [],
+  pathMapping: {},
 };
 
 export const terminalBaseDefaults: ITerminalLaunchConfiguration = {
@@ -884,6 +892,7 @@ export const nodeLaunchConfigDefaults: INodeLaunchConfiguration = {
   profileStartup: false,
   attachSimplePort: null,
   killBehavior: KillBehavior.Forceful,
+  pathMapping: {},
 };
 
 export const chromeAttachConfigDefaults: IChromeAttachConfiguration = {

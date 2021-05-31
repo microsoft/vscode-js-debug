@@ -357,6 +357,14 @@ const nodeBaseConfigurationAttributes: ConfigurationAttributes<INodeBaseConfigur
     description: refString('node.versionHint.description'),
     default: 12,
   },
+  pathMapping: {
+    type: 'object',
+    items: {
+      type: 'string',
+    },
+    markdownDescription: refString('node.pathMapping.description'),
+    default: {},
+  },
 };
 
 /**

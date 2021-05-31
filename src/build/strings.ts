@@ -225,6 +225,8 @@ const strings = {
   'node.sourceMapPathOverrides.description':
     'A set of mappings for rewriting the locations of source files from what the sourcemap says, to their locations on disk.',
   'node.sourceMaps.description': 'Use JavaScript source maps (if they exist).',
+  'node.pathMapping.description':
+    'A mapping of folders from one path to another. To resolve scripts to their original locations. Typical use is to map scripts in `node_modules` to their sources that locate in another folder.',
   'node.stopOnEntry.description': 'Automatically stop program after launch.',
   'node.timeout.description':
     'Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.',

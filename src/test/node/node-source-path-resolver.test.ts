@@ -20,6 +20,7 @@ describe('node source path resolver', () => {
       remoteRoot: null,
       localRoot: null,
       sourceMapOverrides: { 'webpack:///*': `${__dirname}/*` },
+      pathMapping: {},
     };
 
     it('resolves absolute', async () => {
@@ -92,6 +93,35 @@ describe('node source path resolver', () => {
       );
       expect(await r.urlToAbsolutePath({ url: 'node:internal/url.js' })).to.equal(
         join(__dirname, 'lib/internal/url.js'),
+      );
+    });
+
+    it('applies pathMapping option', async () => {
+      const r = new NodeSourcePathResolver(
+        {
+          realPath: fsUtils.realPath,
+          readFile: fsUtils.readFile,
+          exists: async p => p === '/lib/index.js',
+        },
+        undefined,
+        {
+          ...defaultOptions,
+          pathMapping: {
+            '/src': '/lib',
+          },
+        },
+        Logger.null,
+      );
+
+      expect(await r.urlToAbsolutePath({ url: 'file:///src/index.js' })).to.equal('/lib/index.js');
+      expect(await r.urlToAbsolutePath({ url: 'file:///src/not-exist.js' })).to.equal(
+        '/src/not-exist.js',
+      );
+      expect(await r.urlToAbsolutePath({ url: 'file:///src2/index.js' })).to.equal(
+        '/src2/index.js',
+      );
+      expect(await r.urlToAbsolutePath({ url: 'file:///test/src/index.js' })).to.equal(
+        '/test/src/index.js',
       );
     });
 
