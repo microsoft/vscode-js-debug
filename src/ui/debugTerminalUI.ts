@@ -15,6 +15,7 @@ import {
   readConfig,
   registerCommand,
 } from '../common/contributionUtils';
+import { EventEmitter } from '../common/events';
 import { ProxyLogger } from '../common/logging/proxyLogger';
 import {
   applyDefaults,
@@ -97,7 +98,7 @@ export const launchVirtualTerminalParent = (
         return;
       }
 
-      if (!(await vscode.workspace.requestWorkspaceTrust({ modal: true }))) {
+      if (!(await vscode.workspace.requestWorkspaceTrust())) {
         target.detach();
         return;
       }
@@ -180,6 +181,22 @@ async function getWorkspaceFolder() {
   return picked?.folder ?? Abort;
 }
 
+class ProfileTerminalLauncher extends TerminalNodeLauncher {
+  private optionsReadyEmitter = new EventEmitter<vscode.TerminalOptions>();
+  public readonly onOptionsReady = this.optionsReadyEmitter.event;
+
+  /** @override */
+  protected createTerminal(options: vscode.TerminalOptions) {
+    this.optionsReadyEmitter.fire(options);
+    return new Promise<vscode.Terminal>(resolve => {
+      const listener = vscode.window.onDidOpenTerminal(t => {
+        listener.dispose();
+        resolve(t);
+      });
+    });
+  }
+}
+
 /**
  * Registers a command to launch the debugger terminal.
  */
@@ -194,6 +211,15 @@ export function registerDebugTerminalUI(
     { launcher: TerminalNodeLauncher; folder?: vscode.WorkspaceFolder; cwd?: string }
   >();
 
+  const createLauncher = (logger: ProxyLogger, binary: NodeBinaryProvider) =>
+    new TerminalNodeLauncher(
+      binary,
+      logger,
+      services.get(FS),
+      services.get(NodeOnlyPathResolverFactory),
+      services.get(IPortLeaseTracker),
+    );
+
   /**
    * See docblocks on {@link DelegateLauncher} for more information on
    * how this works.
@@ -203,6 +229,7 @@ export function registerDebugTerminalUI(
     command?: string,
     workspaceFolder?: vscode.WorkspaceFolder,
     defaultConfig?: Partial<ITerminalLaunchConfiguration>,
+    createLauncherFn = createLauncher,
   ) {
     if (!workspaceFolder) {
       const picked = await getWorkspaceFolder();
@@ -229,12 +256,9 @@ export function registerDebugTerminalUI(
     }
 
     const logger = new ProxyLogger();
-    const launcher = new TerminalNodeLauncher(
-      new NodeBinaryProvider(logger, services.get(FS), noPackageJsonProvider),
+    const launcher = createLauncherFn(
       logger,
-      services.get(FS),
-      services.get(NodeOnlyPathResolverFactory),
-      services.get(IPortLeaseTracker),
+      new NodeBinaryProvider(logger, services.get(FS), noPackageJsonProvider),
     );
 
     launcher.onTerminalCreated(terminal => {
@@ -260,6 +284,24 @@ export function registerDebugTerminalUI(
     registerCommand(vscode.commands, Commands.CreateDebuggerTerminal, (command, folder, config) =>
       launchTerminal(delegateFactory, command, folder, config),
     ),
+    vscode.window.registerTerminalProfileProvider('extension.js-debug.debugTerminal', {
+      provideProfileOptions: () =>
+        new Promise(resolve =>
+          launchTerminal(delegateFactory, undefined, undefined, undefined, (logger, binary) => {
+            const launcher = new ProfileTerminalLauncher(
+              binary,
+              logger,
+              services.get(FS),
+              services.get(NodeOnlyPathResolverFactory),
+              services.get(IPortLeaseTracker),
+            );
+
+            launcher.onOptionsReady(resolve);
+
+            return launcher;
+          }),
+        ),
+    }),
     vscode.window.registerTerminalLinkProvider?.(linkHandler),
   );
 }

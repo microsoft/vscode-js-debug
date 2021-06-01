@@ -175,7 +175,8 @@
     "onDebugInitialConfigurations",
     "onDebugResolve:node",
     "onDebugResolve:extensionHost",
-    "onDebugResolve:chrome"
+    "onDebugResolve:chrome",
+    "onTerminalProfile:extension.js-debug.debugTerminal"
   ],
   "extensionKind": [
     "workspace"
@@ -203,9 +204,9 @@
       }
     ],
     "terminal": {
-      "types": [
+      "profiles": [
         {
-          "command": "extension.js-debug.createDebuggerTerminal",
+          "id": "extension.js-debug.debugTerminal",
           "title": "%debug.terminal.label%",
           "icon": "$(debug)"
         }

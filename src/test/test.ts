@@ -359,6 +359,7 @@ export class TestRoot {
         isVsCode: true,
         context: upcastPartial<ExtensionContext>({
           workspaceState: {
+            keys: [],
             get<T>(key: string, defaultValue?: T) {
               return workspaceState.get(key) ?? defaultValue;
             },
