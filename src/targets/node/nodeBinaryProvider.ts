@@ -63,6 +63,31 @@ export const getRunScript = (
 const assumedVersion = new Semver(12, 0, 0);
 const minimumVersion = new Semver(8, 0, 0);
 
+export interface IWarningMessage {
+  inclusiveMin: Semver;
+  inclusiveMax: Semver;
+  message: string;
+}
+
+const warningMessages: ReadonlyArray<IWarningMessage> = [
+  {
+    inclusiveMin: new Semver(16, 0, 0),
+    inclusiveMax: new Semver(16, 2, 0),
+    message: localize(
+      'warning.16bpIssue',
+      'Some breakpoints might not work in your version of Node.js. We suggest temporarily downgrading to Node 14. Details: https://aka.ms/AAcsvqm',
+    ),
+  },
+  {
+    inclusiveMin: new Semver(7, 0, 0),
+    inclusiveMax: new Semver(8, 99, 99),
+    message: localize(
+      'warning.8outdated',
+      "You're running an outdated version of Node.js. We recommend upgrading for the latest bug, performance, and security fixes.",
+    ),
+  },
+];
+
 /**
  * DTO returned from the NodeBinaryProvider.
  */
@@ -72,6 +97,23 @@ export class NodeBinary {
    */
   public get isPreciselyKnown() {
     return this.version !== undefined;
+  }
+
+  /**
+   * Gets a warning message for users of the binary.
+   */
+  public get warning() {
+    if (!this.version) {
+      return;
+    }
+
+    for (const message of warningMessages) {
+      if (message.inclusiveMax.gte(this.version) && message.inclusiveMin.lte(this.version)) {
+        return message;
+      }
+    }
+
+    return undefined;
   }
 
   private capabilities = new Set<Capability>();
