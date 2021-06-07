@@ -72,7 +72,7 @@ export interface IWarningMessage {
 const warningMessages: ReadonlyArray<IWarningMessage> = [
   {
     inclusiveMin: new Semver(16, 0, 0),
-    inclusiveMax: new Semver(16, 2, 0),
+    inclusiveMax: new Semver(16, 3, 99),
     message: localize(
       'warning.16bpIssue',
       'Some breakpoints might not work in your version of Node.js. We suggest temporarily downgrading to Node 14. Details: https://aka.ms/AAcsvqm',
