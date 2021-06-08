@@ -47,6 +47,7 @@ export class DebugAdapter implements IDisposable {
   private _thread: Thread | undefined;
   private _configurationDoneDeferred: IDeferred<void>;
   private lastBreakpointId = 0;
+  private readonly _cdpProxyProvider = this._services.get<ICdpProxyProvider>(ICdpProxyProvider);
 
   constructor(
     dap: Dap.Api,
@@ -441,7 +442,7 @@ export class DebugAdapter implements IDisposable {
   }
 
   public async _requestCDPProxy() {
-    return await this._services.get<ICdpProxyProvider>(ICdpProxyProvider).proxy();
+    return await this._cdpProxyProvider.proxy();
   }
 
   dispose() {
