@@ -81,6 +81,7 @@ export const launchVirtualTerminalParent = (
   };
 
   launcher.onTargetListChanged(async () => {
+    const trusted = await vscode.workspace.requestWorkspaceTrust();
     const newTargets = new Set<ITarget>();
     for (const target of launcher.targetList()) {
       newTargets.add(target);
@@ -98,7 +99,8 @@ export const launchVirtualTerminalParent = (
         return;
       }
 
-      if (!(await vscode.workspace.requestWorkspaceTrust())) {
+      // Detach from targets if workspace trust was not granted
+      if (!trusted) {
         target.detach();
         return;
       }

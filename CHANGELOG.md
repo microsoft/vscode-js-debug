@@ -5,6 +5,8 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 ## Nightly
 
 - fix: default F5 not working on files outside workspace ([ref](https://github.com/microsoft/vscode/issues/125796))
+- fix: debugging with no launch config fails when tsc task detection is disabled ([ref](https://github.com/microsoft/vscode/issues/69572))
+- fix: race causing lost sessions when attaching to many concurrent processes in the debug terminal ([ref](https://github.com/microsoft/vscode/issues/124060))
 
 ## v1.57 (May 2021)
 
