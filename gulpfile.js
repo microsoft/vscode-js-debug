@@ -321,7 +321,7 @@ gulp.task('package:createVSIX', () =>
 );
 
 gulp.task('nls:bundle-download', async () => {
-  const res = await got.stream('https://github.com/microsoft/vscode-loc/archive/master.zip');
+  const res = await got.stream('https://github.com/microsoft/vscode-loc/archive/main.zip');
   await new Promise((resolve, reject) =>
     res
       .pipe(unzipper.Parse())
