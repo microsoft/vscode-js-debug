@@ -299,11 +299,13 @@ export function createLaunchConfigFromContext(
     if (editor && breakpointLanguages.includes(editor.document.languageId)) {
       useSourceMaps = editor.document.languageId !== 'javascript';
       program = folder
-        ? path.join(
-            '${workspaceFolder}',
-            path.relative(folder.uri.fsPath, editor.document.uri.fsPath),
-          )
+        ? path.relative(folder.uri.fsPath, editor.document.uri.fsPath)
         : editor.document.uri.fsPath;
+
+      if (!path.isAbsolute(program)) {
+        // we don't use path.join here since it destroys the workspaceFolder with ../ (vscode#125796)
+        program = '${workspaceFolder}' + path.sep + program;
+      }
     }
   }
 
