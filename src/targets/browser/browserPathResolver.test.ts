@@ -3,17 +3,20 @@
  *--------------------------------------------------------*/
 
 import { expect } from 'chai';
-import { PathLike, promises as fsPromises } from 'fs';
+import { promises as fsPromises } from 'fs';
 import * as path from 'path';
-import { SinonStub, stub } from 'sinon';
+import { stub } from 'sinon';
 import { IVueFileMapper, VueFileMapper, VueHandling } from '../../adapter/vueFileMapper';
 import { FileGlobList } from '../../common/fileGlobList';
-import { fsModule, IFsUtils, LocalFsUtils } from '../../common/fsUtils';
+import { IFsUtils, LocalFsUtils } from '../../common/fsUtils';
 import { Logger } from '../../common/logging/logger';
+import { upcastPartial } from '../../common/objUtils';
+import { fixDriveLetter } from '../../common/pathUtils';
 import { ISourceMapMetadata, SourceMap } from '../../common/sourceMaps/sourceMap';
+import { urlToRegex } from '../../common/urlUtils';
 import { defaultSourceMapPathOverrides } from '../../configuration';
-import { BrowserSourcePathResolver } from '../../targets/browser/browserPathResolver';
-import { testFixturesDir } from '../test';
+import { BrowserSourcePathResolver, IOptions } from '../../targets/browser/browserPathResolver';
+import { testFixturesDir } from '../../test/test';
 
 export const testVueMapper: IVueFileMapper = {
   lookup: async url => path.join(testFixturesDir, 'web', 'looked up', url),
@@ -25,18 +28,19 @@ export const testVueMapper: IVueFileMapper = {
       : VueHandling.Unhandled,
 };
 
-describe('browserPathResolver.urlToAbsolutePath', () => {
-  let fsExistStub: SinonStub<[PathLike, (cb: boolean) => void], void>;
+describe('BrowserPathResolver', () => {
+  let fsUtils: LocalFsUtils;
 
-  before(() => {
-    fsExistStub = stub(fsModule, 'exists').callsFake((path, cb) => {
+  beforeEach(() => {
+    fsUtils = new LocalFsUtils(fsPromises);
+    stub(fsUtils, 'exists').callsFake(path => {
       switch (path) {
         case 'c:\\Users\\user\\Source\\Repos\\Angular Project\\ClientApp\\src\\app\\app.component.html':
-          return cb(true);
+          return Promise.resolve(true);
         case 'c:\\Users\\user\\Source\\Repos\\Angular Project\\wwwroot\\src\\app\\app.component.html':
-          return cb(false);
+          return Promise.resolve(false);
         default:
-          throw Error(`Unknown path ${path}`);
+          return Promise.resolve(false);
       }
     });
   });
@@ -44,7 +48,7 @@ describe('browserPathResolver.urlToAbsolutePath', () => {
   describe('vue', () => {
     const resolver = new BrowserSourcePathResolver(
       testVueMapper,
-      new LocalFsUtils(fsPromises),
+      fsUtils,
       {
         pathMapping: { '/': path.join(testFixturesDir, 'web') },
         clientID: 'vscode',
@@ -71,7 +75,7 @@ describe('browserPathResolver.urlToAbsolutePath', () => {
           url: 'lookup.vue',
           map: fakeMap,
         }),
-      ).to.equal(path.join(testFixturesDir, 'web', 'looked up', 'lookup.vue'));
+      ).to.equal(fixDriveLetter(path.join(testFixturesDir, 'web', 'looked up', 'lookup.vue')));
     });
 
     it('omits vue paths', async () => {
@@ -89,7 +93,7 @@ describe('browserPathResolver.urlToAbsolutePath', () => {
           url: 'whatever.vue',
           map: fakeMap,
         }),
-      ).to.equal(path.join(testFixturesDir, 'web', 'whatever.vue'));
+      ).to.equal(fixDriveLetter(path.join(testFixturesDir, 'web', 'whatever.vue')));
     });
 
     describe('VueFileMapper', () => {
@@ -144,38 +148,63 @@ describe('browserPathResolver.urlToAbsolutePath', () => {
   }
 
   describe('absolutePathToUrl', () => {
-    const resolver = new BrowserSourcePathResolver(
-      testVueMapper,
-      new LocalFsUtils(fsPromises),
-      {
-        pathMapping: {
-          '/': path.join(testFixturesDir, 'web'),
-          '/sibling': path.join(testFixturesDir, 'sibling-dir'),
+    const resolver = (options: Partial<IOptions> = {}) =>
+      new BrowserSourcePathResolver(
+        testVueMapper,
+        fsUtils,
+        {
+          pathMapping: {
+            '/': path.join(testFixturesDir, 'web'),
+            '/sibling': path.join(testFixturesDir, 'sibling-dir'),
+            'https://example.com/abs': path.join(testFixturesDir, 'abs'),
+          },
+          clientID: 'vscode',
+          baseUrl: 'http://localhost:1234/',
+          sourceMapOverrides: defaultSourceMapPathOverrides(path.join(testFixturesDir, 'web')),
+          localRoot: null,
+          remoteRoot: null,
+          resolveSourceMapLocations: null,
+          remoteFilePrefix: undefined,
+          ...options,
         },
-        clientID: 'vscode',
-        baseUrl: 'http://localhost:1234/',
-        sourceMapOverrides: defaultSourceMapPathOverrides(path.join(testFixturesDir, 'web')),
-        localRoot: null,
-        remoteRoot: null,
-        resolveSourceMapLocations: null,
-        remoteFilePrefix: undefined,
-      },
-      Logger.null,
-    );
+        Logger.null,
+      );
 
     it('selects webRoot correctly', () => {
+      const e1 = 'http://localhost:1234/foo/bar(\\.html)?';
       expect(
-        resolver.absolutePathToUrl(path.join(testFixturesDir, 'web', 'foo', 'bar.html')),
-      ).to.equal('http://localhost:1234/foo/bar.html');
+        resolver().absolutePathToUrlRegexp(path.join(testFixturesDir, 'web', 'foo', 'bar.html')),
+      ).to.equal(urlToRegex(e1, [0, e1.length - 10]));
+
+      const e2 = 'http://localhost:1234/sibling/foo/bar(\\.html)?';
       expect(
-        resolver.absolutePathToUrl(path.join(testFixturesDir, 'sibling-dir', 'foo', 'bar.html')),
-      ).to.equal('http://localhost:1234/sibling/foo/bar.html');
+        resolver().absolutePathToUrlRegexp(
+          path.join(testFixturesDir, 'sibling-dir', 'foo', 'bar.html'),
+        ),
+      ).to.equal(urlToRegex(e2, [0, e2.length - 10]));
     });
 
     it('falls back if not in any webroot', () => {
-      expect(resolver.absolutePathToUrl(path.join(testFixturesDir, 'foo', 'bar.html'))).to.equal(
-        'http://localhost:1234/../foo/bar.html',
-      );
+      const e = 'http://localhost:1234/../foo/bar(\\.html)?';
+      expect(
+        resolver().absolutePathToUrlRegexp(path.join(testFixturesDir, 'foo', 'bar.html')),
+      ).to.equal(urlToRegex(e, [0, e.length - 10]));
+    });
+
+    it('matches any path if no baseUrl is present', () => {
+      expect(
+        resolver({ baseUrl: undefined }).absolutePathToUrlRegexp(
+          path.join(testFixturesDir, 'web', 'foo.js'),
+        ),
+      ).to.equal('[hH][tT][tT][pP][sS]?:\\/\\/[^\\/]+\\/[fF][oO][oO]\\.[jJ][sS]');
+    });
+
+    it('does not mangle absolute pathmapping', () => {
+      expect(
+        resolver({ baseUrl: undefined }).absolutePathToUrlRegexp(
+          path.join(testFixturesDir, 'abs', 'x.js'),
+        ),
+      ).to.equal(urlToRegex('https://example.com/abs/x.js'));
     });
   });
 
@@ -205,16 +234,12 @@ describe('browserPathResolver.urlToAbsolutePath', () => {
       const url = 'webpack:///src/app/app.component.html';
       const absolutePath = await resolver.urlToAbsolutePath({
         url,
-        map: { metadata: { sourceRoot: '', compiledPath: '' } } as any,
+        map: upcastPartial<SourceMap>({ metadata: { sourceMapUrl: '', compiledPath: '' } }),
       });
 
       expect(absolutePath).to.equal(
         `c:\\Users\\user\\Source\\Repos\\Angular Project\\${folder}\\src\\app\\app.component.html`,
       );
     });
-  });
-
-  after(() => {
-    fsExistStub.restore();
   });
 });

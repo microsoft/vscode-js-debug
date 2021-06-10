@@ -50,7 +50,7 @@ export interface ISourcePathResolver {
   /**
    * Attempts to convert an absolute path on disk to a URL for CDP.
    */
-  absolutePathToUrlRegexp(absolutePath: string): Promise<string | undefined>;
+  absolutePathToUrlRegexp(absolutePath: string): Promise<string | undefined> | string | undefined;
 }
 
 // Script tags in html have line/column numbers offset relative to the actual script start.

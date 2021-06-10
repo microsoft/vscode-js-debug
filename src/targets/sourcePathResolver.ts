@@ -22,7 +22,6 @@ import {
   isAbsolute,
   isDataUri,
   isFileUrl,
-  urlToRegex,
 } from '../common/urlUtils';
 import { SourceMapOverrides } from './sourceMapOverrides';
 
@@ -66,15 +65,9 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
   /**
    * @inheritdoc
    */
-  public absolutePathToUrlRegexp(absolutePath: string): Promise<string | undefined> {
-    const url = this.absolutePathToUrl(absolutePath);
-    return Promise.resolve(url ? urlToRegex(url) : undefined);
-  }
-
-  /**
-   * Gets the URL at which the absolute path is expected to exist.
-   */
-  protected abstract absolutePathToUrl(absolutePath: string): string | undefined;
+  public abstract absolutePathToUrlRegexp(
+    absolutePath: string,
+  ): Promise<string | undefined> | string | undefined;
 
   /**
    * Returns whether the source map should be used to resolve a local path,

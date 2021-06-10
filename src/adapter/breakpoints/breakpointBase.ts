@@ -402,15 +402,18 @@ export abstract class Breakpoint {
 
     const promises: Promise<unknown>[] = [];
     for (const workspaceLocation of workspaceLocations) {
-      promises.push(
-        this._manager._sourceContainer.sourcePathResolver
-          .absolutePathToUrlRegexp(workspaceLocation.absolutePath)
-          .then(re => {
-            if (re) {
-              return this._setByUrlRegexp(thread, re, workspaceLocation);
-            }
-          }),
+      const re = this._manager._sourceContainer.sourcePathResolver.absolutePathToUrlRegexp(
+        workspaceLocation.absolutePath,
       );
+      if (re === undefined) {
+        continue;
+      } else if (typeof re === 'string') {
+        promises.push(this._setByUrlRegexp(thread, re, workspaceLocation));
+      } else {
+        promises.push(
+          re.then(re => (re ? this._setByUrlRegexp(thread, re, workspaceLocation) : undefined)),
+        );
+      }
     }
 
     await Promise.all(promises);
