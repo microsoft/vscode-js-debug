@@ -12,7 +12,6 @@ import { AnyChromiumConfiguration } from '../../configuration';
 import { IBrowserVersionMetrics } from '../../telemetry/classification';
 import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
 import { ITargetOrigin } from '../targetOrigin';
-import { ITarget } from '../targets';
 import { BrowserTarget, BrowserTargetType, domDebuggerTypes, jsTypes } from './browserTargets';
 import { FrameModel } from './frames';
 import { ServiceWorkerModel } from './serviceWorkers';
@@ -87,7 +86,7 @@ export class BrowserTargetManager implements IDisposable {
     this.serviceWorkerModel.dispose();
   }
 
-  targetList(): ITarget[] {
+  targetList() {
     return Array.from(this._targets.values()).filter(target => jsTypes.has(target.type()));
   }
 

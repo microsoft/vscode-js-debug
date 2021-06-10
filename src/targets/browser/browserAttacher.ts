@@ -25,6 +25,7 @@ import { VSCodeApi } from '../../ioc-extras';
 import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
 import { ILaunchContext, ILauncher, ILaunchResult, IStopMetadata, ITarget } from '../targets';
 import { BrowserTargetManager } from './browserTargetManager';
+import { BrowserTargetType } from './browserTargets';
 import * as launcher from './launcher';
 
 const localize = nls.loadMessageBundle();
@@ -280,7 +281,15 @@ export class BrowserAttacher<
   }
 
   async restart(): Promise<void> {
-    // no-op
+    if (!this._targetManager) {
+      return;
+    }
+
+    for (const target of this._targetManager.targetList()) {
+      if (target.type() === BrowserTargetType.Page) {
+        target.restart();
+      }
+    }
   }
 
   targetList(): ITarget[] {
