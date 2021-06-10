@@ -13,7 +13,7 @@ import { Logger } from '../../common/logging/logger';
 import { upcastPartial } from '../../common/objUtils';
 import { fixDriveLetter } from '../../common/pathUtils';
 import { ISourceMapMetadata, SourceMap } from '../../common/sourceMaps/sourceMap';
-import { urlToRegex } from '../../common/urlUtils';
+import { resetCaseSensitivePaths, setCaseSensitivePaths, urlToRegex } from '../../common/urlUtils';
 import { defaultSourceMapPathOverrides } from '../../configuration';
 import { BrowserSourcePathResolver, IOptions } from '../../targets/browser/browserPathResolver';
 import { testFixturesDir } from '../../test/test';
@@ -31,6 +31,8 @@ export const testVueMapper: IVueFileMapper = {
 describe('BrowserPathResolver', () => {
   let fsUtils: LocalFsUtils;
 
+  before(() => setCaseSensitivePaths(false));
+
   beforeEach(() => {
     fsUtils = new LocalFsUtils(fsPromises);
     stub(fsUtils, 'exists').callsFake(path => {
@@ -44,6 +46,8 @@ describe('BrowserPathResolver', () => {
       }
     });
   });
+
+  after(() => resetCaseSensitivePaths());
 
   describe('vue', () => {
     const resolver = new BrowserSourcePathResolver(

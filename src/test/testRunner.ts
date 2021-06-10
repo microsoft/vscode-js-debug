@@ -83,7 +83,6 @@ export async function run(): Promise<void> {
     runner.addFile(join(__dirname, 'infra/infra'));
     runner.addFile(join(__dirname, 'breakpoints/breakpointsTest'));
     runner.addFile(join(__dirname, 'browser/framesTest'));
-    runner.addFile(join(__dirname, 'browser/browserPathResolverTest'));
     runner.addFile(join(__dirname, 'browser/blazorSourcePathResolverTest'));
     runner.addFile(join(__dirname, 'evaluate/evaluate'));
     runner.addFile(join(__dirname, 'sources/sourcesTest'));
