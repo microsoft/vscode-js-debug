@@ -16,13 +16,12 @@ import {
 } from '../../common/sourceMaps/sourceMapResolutionUtils';
 import { IUrlResolution } from '../../common/sourcePathResolver';
 import * as urlUtils from '../../common/urlUtils';
-import { AnyLaunchConfiguration, AnyNodeConfiguration, PathMapping } from '../../configuration';
+import { AnyLaunchConfiguration, AnyNodeConfiguration } from '../../configuration';
 import { ILinkedBreakpointLocation } from '../../ui/linkedBreakpointLocation';
 import { ISourcePathResolverOptions, SourcePathResolverBase } from '../sourcePathResolver';
 
 interface IOptions extends ISourcePathResolverOptions {
   basePath?: string;
-  pathMapping: PathMapping;
 }
 
 const localNodeInternalsPrefix = 'node:';

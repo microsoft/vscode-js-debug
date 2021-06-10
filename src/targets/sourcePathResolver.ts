@@ -25,9 +25,11 @@ import {
   urlToRegex,
 } from '../common/urlUtils';
 import { SourceMapOverrides } from './sourceMapOverrides';
+import { PathMapping } from '../configuration';
 
 export interface ISourcePathResolverOptions {
   resolveSourceMapLocations: ReadonlyArray<string> | null;
+  pathMapping: PathMapping;
   sourceMapOverrides: { [key: string]: string };
   localRoot: string | null;
   remoteRoot: string | null;

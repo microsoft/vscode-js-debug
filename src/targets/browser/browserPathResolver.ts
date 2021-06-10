@@ -23,12 +23,10 @@ import {
 import { IUrlResolution } from '../../common/sourcePathResolver';
 import * as utils from '../../common/urlUtils';
 import { urlToRegex } from '../../common/urlUtils';
-import { PathMapping } from '../../configuration';
 import { ISourcePathResolverOptions, SourcePathResolverBase } from '../sourcePathResolver';
 
 export interface IOptions extends ISourcePathResolverOptions {
   baseUrl?: string;
-  pathMapping: PathMapping;
   clientID: string | undefined;
   remoteFilePrefix: string | undefined;
 }

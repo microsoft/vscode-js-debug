@@ -20,7 +20,8 @@
   "${workspaceFolder}/**/*.js",
   "!**/node_modules/**"
 ]</pre></code><h4>outputCapture</h4><p>From where to capture output messages: the default debug API if set to <code>console</code>, or stdout/stderr streams if set to <code>std</code>.</p>
-<h5>Default value:</h4><pre><code>"console"</pre></code><h4>pauseForSourceMap</h4><p>Whether to wait for source maps to load for each incoming script. This has a performance overhead, and might be safely disabled when running off of disk, so long as <code>rootPath</code> is not disabled.</p>
+<h5>Default value:</h4><pre><code>"console"</pre></code><h4>pathMapping</h4><p>A mapping of folders from one path to another. To resolve scripts to their original locations. Typical use is to map scripts in <code>node_modules</code> to their sources that locate in another folder.</p>
+<h5>Default value:</h4><pre><code>{}</pre></code><h4>pauseForSourceMap</h4><p>Whether to wait for source maps to load for each incoming script. This has a performance overhead, and might be safely disabled when running off of disk, so long as <code>rootPath</code> is not disabled.</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>port</h4><p>Debug port to attach to. Default is 9229.</p>
 <h5>Default value:</h4><pre><code>9229</pre></code><h4>processId</h4><p>ID of process to attach to.</p>
 <h5>Default value:</h4><pre><code>undefined</pre></code><h4>remoteRoot</h4><p>Absolute path to the remote directory containing the program.</p>
@@ -68,7 +69,8 @@
   "${workspaceFolder}/**/*.js",
   "!**/node_modules/**"
 ]</pre></code><h4>outputCapture</h4><p>From where to capture output messages: the default debug API if set to <code>console</code>, or stdout/stderr streams if set to <code>std</code>.</p>
-<h5>Default value:</h4><pre><code>"console"</pre></code><h4>pauseForSourceMap</h4><p>Whether to wait for source maps to load for each incoming script. This has a performance overhead, and might be safely disabled when running off of disk, so long as <code>rootPath</code> is not disabled.</p>
+<h5>Default value:</h4><pre><code>"console"</pre></code><h4>pathMapping</h4><p>A mapping of folders from one path to another. To resolve scripts to their original locations. Typical use is to map scripts in <code>node_modules</code> to their sources that locate in another folder.</p>
+<h5>Default value:</h4><pre><code>{}</pre></code><h4>pauseForSourceMap</h4><p>Whether to wait for source maps to load for each incoming script. This has a performance overhead, and might be safely disabled when running off of disk, so long as <code>rootPath</code> is not disabled.</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>profileStartup</h4><p>If true, will start profiling as soon as the process launches</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>program</h4><p>Absolute path to the program. Generated value is guessed by looking at package.json and opened files. Edit this attribute.</p>
 <h5>Default value:</h4><pre><code>""</pre></code><h4>remoteRoot</h4><p>Absolute path to the remote directory containing the program.</p>
@@ -116,7 +118,8 @@
   "${workspaceFolder}/**/*.js",
   "!**/node_modules/**"
 ]</pre></code><h4>outputCapture</h4><p>From where to capture output messages: the default debug API if set to <code>console</code>, or stdout/stderr streams if set to <code>std</code>.</p>
-<h5>Default value:</h4><pre><code>"console"</pre></code><h4>pauseForSourceMap</h4><p>Whether to wait for source maps to load for each incoming script. This has a performance overhead, and might be safely disabled when running off of disk, so long as <code>rootPath</code> is not disabled.</p>
+<h5>Default value:</h4><pre><code>"console"</pre></code><h4>pathMapping</h4><p>A mapping of folders from one path to another. To resolve scripts to their original locations. Typical use is to map scripts in <code>node_modules</code> to their sources that locate in another folder.</p>
+<h5>Default value:</h4><pre><code>{}</pre></code><h4>pauseForSourceMap</h4><p>Whether to wait for source maps to load for each incoming script. This has a performance overhead, and might be safely disabled when running off of disk, so long as <code>rootPath</code> is not disabled.</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>remoteRoot</h4><p>Absolute path to the remote directory containing the program.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>resolveSourceMapLocations</h4><p>A list of minimatch patterns for locations (folders and URLs) in which source maps can be used to resolve local files. This can be used to avoid incorrectly breaking in external source mapped code. Patterns can be prefixed with &quot;!&quot; to exclude them. May be set to an empty array or null to avoid restriction.</p>
 <h5>Default value:</h4><pre><code>[
@@ -162,7 +165,8 @@
 <h5>Default value:</h4><pre><code>[
   "${workspaceFolder}/out/**/*.js"
 ]</pre></code><h4>outputCapture</h4><p>From where to capture output messages: the default debug API if set to <code>console</code>, or stdout/stderr streams if set to <code>std</code>.</p>
-<h5>Default value:</h4><pre><code>"console"</pre></code><h4>pauseForSourceMap</h4><p>Whether to wait for source maps to load for each incoming script. This has a performance overhead, and might be safely disabled when running off of disk, so long as <code>rootPath</code> is not disabled.</p>
+<h5>Default value:</h4><pre><code>"console"</pre></code><h4>pathMapping</h4><p>A mapping of folders from one path to another. To resolve scripts to their original locations. Typical use is to map scripts in <code>node_modules</code> to their sources that locate in another folder.</p>
+<h5>Default value:</h4><pre><code>{}</pre></code><h4>pauseForSourceMap</h4><p>Whether to wait for source maps to load for each incoming script. This has a performance overhead, and might be safely disabled when running off of disk, so long as <code>rootPath</code> is not disabled.</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>remoteRoot</h4><p>Absolute path to the remote directory containing the program.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>rendererDebugOptions</h4><p>Chrome launch options used when attaching to the renderer process, with <code>debugWebviews</code> or <code>debugWebWorkerHost</code>.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>resolveSourceMapLocations</h4><p>A list of minimatch patterns for locations (folders and URLs) in which source maps can be used to resolve local files. This can be used to avoid incorrectly breaking in external source mapped code. Patterns can be prefixed with &quot;!&quot; to exclude them. May be set to an empty array or null to avoid restriction.</p>

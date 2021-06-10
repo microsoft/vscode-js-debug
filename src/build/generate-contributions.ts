@@ -298,6 +298,12 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
     default: [],
     description: refString('base.cascadeTerminateToConfigurations.label'),
   },
+  pathMapping: {
+    type: 'object',
+    additionalProperties: { type: 'string' },
+    description: refString('browser.pathMapping.description'),
+    default: {},
+  },
 };
 
 /**
@@ -358,12 +364,8 @@ const nodeBaseConfigurationAttributes: ConfigurationAttributes<INodeBaseConfigur
     default: 12,
   },
   pathMapping: {
-    type: 'object',
-    items: {
-      type: 'string',
-    },
+    ...baseConfigurationAttributes.pathMapping,
     markdownDescription: refString('node.pathMapping.description'),
-    default: {},
   },
 };
 
@@ -687,9 +689,8 @@ const chromiumBaseConfigurationAttributes: ConfigurationAttributes<IChromiumBase
     default: true,
   },
   pathMapping: {
-    type: 'object',
+    ...baseConfigurationAttributes.pathMapping,
     description: refString('browser.pathMapping.description'),
-    default: {},
   },
   webRoot: {
     type: 'string',
