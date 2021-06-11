@@ -9,6 +9,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: debugging with no launch config fails when tsc task detection is disabled ([ref](https://github.com/microsoft/vscode/issues/69572))
 - fix: race causing lost sessions when attaching to many concurrent processes in the debug terminal ([ref](https://github.com/microsoft/vscode/issues/124060))
 - fix: pathMapping not working if url in browser launch is undefined ([#1003](https://github.com/microsoft/vscode-js-debug/issues/1003))
+- fix: error when trying to set a breakpoint in index.html ([#1028](https://github.com/microsoft/vscode-js-debug/issues/1028))
 
 ## v1.57 (May 2021)
 
