@@ -325,6 +325,8 @@ export function urlToRegex(
   [escapeReStart, escapeReEnd]: [number, number] = [0, aPath.length],
 ) {
   const patterns: string[] = [];
+
+  // Split out the portion of the path that has already been converted to a regex pattern
   const rePrefix = aPath.slice(0, escapeReStart);
   const reSuffix = aPath.slice(escapeReEnd);
   const unescapedPath = aPath.slice(escapeReStart, escapeReEnd);
@@ -339,10 +341,14 @@ export function urlToRegex(
   //  - For case insensitive systems, we generate a regex like [fF][oO][oO]/(?:💩|%F0%9F%92%A9).[jJ][sS]
   //  - If we didn't de-encode it, the percent would be case-insensitized as
   //    well and we would not include the original character in the regex
-  for (const str of [decodeURI(unescapedPath), fileUrlToAbsolutePath(unescapedPath)]) {
+  for (let str of [decodeURI(unescapedPath), fileUrlToAbsolutePath(unescapedPath)]) {
     if (!str) {
       continue;
     }
+
+    // Recombine the decoded portion of the string with the regex suffix/prefix before
+    // potentially converting the whole thing to a case insensitive pattern
+    str = `${rePrefix}${str}${reSuffix}`;
 
     // Loop through each character of the string. Convert the char to a regex,
     // creating a group, and then append that to the match.
@@ -350,7 +356,7 @@ export function urlToRegex(
     let re = '';
     for (let i = 0; i < str.length; i++) {
       const char = str[i];
-      const escapeRegex = true;
+      const escapeRegex = i >= rePrefix.length && i < str.length - reSuffix.length;
 
       if (isCaseSensitive) {
         urlToRegexChar(char, chars, escapeRegex);
@@ -367,7 +373,7 @@ export function urlToRegex(
     // fancy regex above), replace `file:///c:/` or simple `c:/` patterns with
     // an insensitive drive letter.
     patterns.push(
-      `${rePrefix}${re}${reSuffix}`.replace(
+      `${re}`.replace(
         /^(file:\\\/\\\/\\\/)?([a-z]):/i,
         (_, file = '', letter) => `${file}[${letter.toUpperCase()}${letter.toLowerCase()}]:`,
       ),

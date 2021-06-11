@@ -178,21 +178,21 @@ describe('BrowserPathResolver', () => {
       const e1 = 'http://localhost:1234/foo/bar(\\.html)?';
       expect(
         resolver().absolutePathToUrlRegexp(path.join(testFixturesDir, 'web', 'foo', 'bar.html')),
-      ).to.equal(urlToRegex(e1, [0, e1.length - 10]));
+      ).to.equal(urlToRegex(e1, [0, e1.length - 9]));
 
       const e2 = 'http://localhost:1234/sibling/foo/bar(\\.html)?';
       expect(
         resolver().absolutePathToUrlRegexp(
           path.join(testFixturesDir, 'sibling-dir', 'foo', 'bar.html'),
         ),
-      ).to.equal(urlToRegex(e2, [0, e2.length - 10]));
+      ).to.equal(urlToRegex(e2, [0, e2.length - 9]));
     });
 
     it('falls back if not in any webroot', () => {
       const e = 'http://localhost:1234/../foo/bar(\\.html)?';
       expect(
         resolver().absolutePathToUrlRegexp(path.join(testFixturesDir, 'foo', 'bar.html')),
-      ).to.equal(urlToRegex(e, [0, e.length - 10]));
+      ).to.equal(urlToRegex(e, [0, e.length - 9]));
     });
 
     it('matches any path if no baseUrl is present', () => {
