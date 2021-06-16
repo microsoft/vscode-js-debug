@@ -2,13 +2,14 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { Container, inject, injectable } from 'inversify';
 import { Event } from 'vscode';
 import { IDisposable } from '../../common/disposable';
-import Dap from '../../dap/api';
 import { AnyLaunchConfiguration } from '../../configuration';
-import { BasicCpuProfiler } from './basicCpuProfiler';
-import { inject, Container, injectable } from 'inversify';
+import Dap from '../../dap/api';
 import { IContainer } from '../../ioc-extras';
+import { BasicCpuProfiler } from './basicCpuProfiler';
+import { HeapDumpProfiler } from './heapDumpProfiler';
 
 /**
  * Single profile returned from the IProfiler as a RAII.
@@ -63,6 +64,17 @@ export interface IProfilerCtor {
   readonly description?: string;
 
   /**
+   * Whether the profiler captures an instant snapshot versus sampling for a
+   * duration. Defaults to false.
+   */
+  readonly instant?: boolean;
+
+  /**
+   * Whether the resulting file can be edited in VS Code. Defaults to false.
+   */
+  readonly editable?: boolean;
+
+  /**
    * Returns whether this profiler can apply to the given target,
    */
   canApplyTo(options: AnyLaunchConfiguration): boolean;
@@ -83,7 +95,7 @@ export interface IProfilerFactory {
  */
 @injectable()
 export class ProfilerFactory implements IProfilerFactory {
-  public static readonly ctors: ReadonlyArray<IProfilerCtor> = [BasicCpuProfiler];
+  public static readonly ctors: ReadonlyArray<IProfilerCtor> = [BasicCpuProfiler, HeapDumpProfiler];
 
   constructor(@inject(IContainer) private readonly container: Container) {}
 

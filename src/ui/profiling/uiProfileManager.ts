@@ -2,22 +2,22 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { inject, injectable, multiInject } from 'inversify';
+import { homedir } from 'os';
+import { basename, join } from 'path';
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
-import { DebugSessionTracker } from '../debugSessionTracker';
-import { injectable, inject, multiInject } from 'inversify';
 import { ProfilerFactory } from '../../adapter/profiling';
-import { AnyLaunchConfiguration } from '../../configuration';
-import { UiProfileSession } from './uiProfileSession';
 import { Commands } from '../../common/contributionUtils';
-import { basename, join } from 'path';
-import { FS, FsPromises, SessionSubStates } from '../../ioc-extras';
-import { IDisposable, DisposableList } from '../../common/disposable';
-import { ITerminationConditionFactory } from './terminationCondition';
-import { homedir } from 'os';
+import { DisposableList, IDisposable } from '../../common/disposable';
 import { moveFile } from '../../common/fsUtils';
+import { AnyLaunchConfiguration } from '../../configuration';
 import Dap from '../../dap/api';
+import { FS, FsPromises, SessionSubStates } from '../../ioc-extras';
+import { DebugSessionTracker } from '../debugSessionTracker';
 import { ManualTerminationCondition } from './manualTerminationCondition';
+import { ITerminationCondition, ITerminationConditionFactory } from './terminationCondition';
+import { UiProfileSession } from './uiProfileSession';
 
 const localize = nls.loadMessageBundle();
 
@@ -137,9 +137,12 @@ export class UiProfileManager implements IDisposable {
       return;
     }
 
-    const termination = await this.pickTermination(session, args.termination);
-    if (!termination) {
-      return;
+    let termination: ITerminationCondition | undefined;
+    if (!impl.instant) {
+      termination = await this.pickTermination(session, args.termination);
+      if (!termination) {
+        return;
+      }
     }
 
     const uiSession = new UiProfileSession(session, impl, termination);
@@ -149,6 +152,10 @@ export class UiProfileManager implements IDisposable {
 
     this.registerSession(uiSession, args.onCompleteCommand);
     await uiSession.start();
+
+    if (impl.instant) {
+      await uiSession.stop();
+    }
   }
 
   /**
@@ -245,7 +252,10 @@ export class UiProfileManager implements IDisposable {
     const fileUri = vscode.Uri.file(join(directory, filename));
     await moveFile(this.fs, sourceFile, fileUri.fsPath);
 
-    await vscode.commands.executeCommand('vscode.open', fileUri);
+    await vscode.commands.executeCommand(
+      uiSession.impl.editable ? 'vscode.open' : 'revealInExplorer',
+      fileUri,
+    );
   }
 
   /**

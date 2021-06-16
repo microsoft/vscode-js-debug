@@ -2,12 +2,12 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { EventEmitter } from '../../common/events';
 import * as vscode from 'vscode';
-import { DisposableList, IDisposable } from '../../common/disposable';
-import { IProfilerCtor } from '../../adapter/profiling';
-import Dap from '../../dap/api';
 import * as nls from 'vscode-nls';
+import { IProfilerCtor } from '../../adapter/profiling';
+import { DisposableList, IDisposable } from '../../common/disposable';
+import { EventEmitter } from '../../common/events';
+import Dap from '../../dap/api';
 import { ITerminationCondition } from './terminationCondition';
 
 const localize = nls.loadMessageBundle();
@@ -56,10 +56,9 @@ export class UiProfileSession implements IDisposable {
   constructor(
     public readonly session: vscode.DebugSession,
     public readonly impl: IProfilerCtor,
-    private readonly termination: ITerminationCondition,
+    private readonly termination?: ITerminationCondition,
   ) {
     this.disposables.push(
-      termination,
       vscode.debug.onDidReceiveDebugSessionCustomEvent(event => {
         if (event.session === session && event.event === 'profilerStateUpdate') {
           this.onStateUpdate(event.body);
@@ -72,7 +71,10 @@ export class UiProfileSession implements IDisposable {
       }),
     );
 
-    termination.attachTo?.(this);
+    if (termination) {
+      this.disposables.push(termination);
+      termination.attachTo?.(this);
+    }
   }
 
   /**
@@ -80,10 +82,17 @@ export class UiProfileSession implements IDisposable {
    */
   public async start() {
     try {
-      await this.session.customRequest('startProfile', {
-        type: this.impl.type,
-        ...this.termination.customData,
-      });
+      await vscode.window.withProgress(
+        {
+          location: vscode.ProgressLocation.Window,
+          title: localize('progress.profile.start', 'Starting profile...'),
+        },
+        () =>
+          this.session.customRequest('startProfile', {
+            type: this.impl.type,
+            ...this.termination?.customData,
+          }),
+      );
     } catch (e) {
       vscode.window.showErrorMessage(e.message);
       this.stopEmitter.fire(undefined);
@@ -116,7 +125,15 @@ export class UiProfileSession implements IDisposable {
 
     this.setStatus(Category.Overwrite, localize('profile.saving', 'Saving'));
     this.state = State.Saving;
-    await this.session.customRequest('stopProfile', {});
+
+    await vscode.window.withProgress(
+      {
+        location: vscode.ProgressLocation.Window,
+        title: localize('progress.profile.stop', 'Stopping profile...'),
+      },
+      () => this.session.customRequest('stopProfile', {}),
+    );
+
     // this will trigger a profileStateUpdate with running=false
     // to finish up the session.
   }

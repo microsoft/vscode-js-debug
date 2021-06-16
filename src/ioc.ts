@@ -109,6 +109,7 @@ import { IExperimentationService } from './telemetry/experimentationService';
 import { NullExperimentationService } from './telemetry/nullExperimentationService';
 import { NullTelemetryReporter } from './telemetry/nullTelemetryReporter';
 import { ITelemetryReporter } from './telemetry/telemetryReporter';
+import { HeapDumpProfiler } from './adapter/profiling/heapDumpProfiler';
 
 /**
  * Contains IOC container factories for the extension. We use Inverisfy, which
@@ -179,6 +180,7 @@ export const createTargetContainer = (
   container.bind(IConsole).to(Console).inSingletonScope(); // dispose is handled by the Thread
 
   container.bind(BasicCpuProfiler).toSelf();
+  container.bind(HeapDumpProfiler).toSelf();
   container.bind(IProfilerFactory).to(ProfilerFactory).inSingletonScope();
   container.bind(IProfileController).to(ProfileController).inSingletonScope();
 
