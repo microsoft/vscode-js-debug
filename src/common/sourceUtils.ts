@@ -52,6 +52,7 @@ export async function prettyPrintAsSourceMap(
     },
     '',
     [fileName],
+    false,
   );
 }
 

@@ -76,6 +76,7 @@ export class SourceMapFactory implements ISourceMapFactory {
       metadata,
       actualRoot ?? '',
       actualSources,
+      !!basic.names?.length,
     );
   }
 

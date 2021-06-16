@@ -71,13 +71,16 @@ export class RenameProvider implements IRenameProvider {
       return cached;
     }
 
-    const promise = Promise.all([
-      this.sourceMapFactory.load(original.sourceMap.metadata),
-      original.content(),
-    ])
-      .then(([sm, content]) =>
-        sm && content ? this.createFromSourceMap(sm, content) : RenameMapping.None,
-      )
+    const promise = this.sourceMapFactory
+      .load(original.sourceMap.metadata)
+      .then(async sm => {
+        if (!sm?.hasNames) {
+          return RenameMapping.None;
+        }
+
+        const content = await original.content();
+        return content ? this.createFromSourceMap(sm, content) : RenameMapping.None;
+      })
       .catch(() => RenameMapping.None);
 
     this.renames.set(original.url, promise);

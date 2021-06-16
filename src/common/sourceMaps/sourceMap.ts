@@ -3,15 +3,15 @@
  *--------------------------------------------------------*/
 
 import {
-  Position,
-  NullableMappedPosition,
-  NullablePosition,
+  BasicSourceMapConsumer,
   MappedPosition,
   MappingItem,
-  BasicSourceMapConsumer,
+  NullableMappedPosition,
+  NullablePosition,
+  Position,
 } from 'source-map';
-import { completeUrlEscapingRoot } from '../urlUtils';
 import { fixDriveLetterAndSlashes } from '../pathUtils';
+import { completeUrlEscapingRoot } from '../urlUtils';
 
 export interface ISourceMapMetadata {
   sourceMapUrl: string;
@@ -41,6 +41,7 @@ export class SourceMap implements BasicSourceMapConsumer {
     public readonly metadata: Readonly<ISourceMapMetadata>,
     private readonly actualRoot: string,
     public readonly actualSources: ReadonlyArray<string>,
+    public readonly hasNames: boolean,
   ) {
     if (actualSources.length !== original.sources.length) {
       throw new Error(`Expected actualSources.length === original.source.length`);
