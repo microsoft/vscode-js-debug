@@ -499,7 +499,7 @@ export class BreakpointManager {
     params: Dap.SetBreakpointsParams,
     ids: number[],
   ): Promise<Dap.SetBreakpointsResult> {
-    if (!this._sourceMapHandlerInstalled && this._thread && params.breakpoints) {
+    if (!this._sourceMapHandlerInstalled && this._thread && params.breakpoints?.length) {
       await this._installSourceMapHandler(this._thread);
     }
 
