@@ -287,8 +287,8 @@ export function registerDebugTerminalUI(
       launchTerminal(delegateFactory, command, folder, config),
     ),
     vscode.window.registerTerminalProfileProvider('extension.js-debug.debugTerminal', {
-      provideProfileOptions: () =>
-        new Promise(resolve =>
+      provideTerminalProfile: () =>
+        new Promise<vscode.TerminalProfile>(resolve =>
           launchTerminal(delegateFactory, undefined, undefined, undefined, (logger, binary) => {
             const launcher = new ProfileTerminalLauncher(
               binary,
@@ -298,7 +298,7 @@ export function registerDebugTerminalUI(
               services.get(IPortLeaseTracker),
             );
 
-            launcher.onOptionsReady(resolve);
+            launcher.onOptionsReady(options => resolve(new vscode.TerminalProfile(options)));
 
             return launcher;
           }),

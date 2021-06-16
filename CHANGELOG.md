@@ -4,6 +4,12 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly
 
+Nothing (yet)
+
+## v1.58 (June 2021)
+
+### v1.58.0 - 2021-06-16
+
 - feat: reload page on attached restart ([#1004](https://github.com/microsoft/vscode-js-debug/issues/1004))
 - feat: allow taking heap snapshots with profiler ([#1031](https://github.com/microsoft/vscode-js-debug/issues/1031))
 - fix: default F5 not working on files outside workspace ([ref](https://github.com/microsoft/vscode/issues/125796))
@@ -12,6 +18,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: pathMapping not working if url in browser launch is undefined ([#1003](https://github.com/microsoft/vscode-js-debug/issues/1003))
 - fix: error when trying to set a breakpoint in index.html ([#1028](https://github.com/microsoft/vscode-js-debug/issues/1028))
 - fix: only request source content for sourcemaps with renames ([#1033](https://github.com/microsoft/vscode-js-debug/issues/1033))
+- chore: update terminal profile contributions ([ref](https://github.com/microsoft/vscode/issues/120369))
 
 ## v1.57 (May 2021)
 
