@@ -110,7 +110,7 @@ export class BreakpointManager {
     return this._byPath;
   }
 
-  private _sourceMapHandlerWasUpdated = false;
+  private _sourceMapHandlerInstalled = false;
 
   /**
    * User-defined breakpoints by `sourceReference`.
@@ -425,7 +425,7 @@ export class BreakpointManager {
     }
 
     if (this._byPath.size > 0 || this._byRef.size > 0) {
-      this._updateSourceMapHandler(this._thread);
+      this._installSourceMapHandler(this._thread);
     }
   }
 
@@ -465,8 +465,8 @@ export class BreakpointManager {
     this._predictorDisabledForTest = disabled;
   }
 
-  private async _updateSourceMapHandler(thread: Thread) {
-    this._sourceMapHandlerWasUpdated = true;
+  private async _installSourceMapHandler(thread: Thread) {
+    this._sourceMapHandlerInstalled = true;
     const perScriptSm =
       (this.launchConfig as IChromiumBaseConfiguration).perScriptSourcemaps === 'yes';
 
@@ -482,6 +482,11 @@ export class BreakpointManager {
     }
   }
 
+  private async _uninstallSourceMapHandler(thread: Thread) {
+    thread.setScriptSourceMapHandler(false);
+    this._sourceMapHandlerInstalled = false;
+  }
+
   private _setBreakpoint(b: Breakpoint, thread: Thread): void {
     if (!this._enabledFilter(b)) {
       return;
@@ -494,8 +499,8 @@ export class BreakpointManager {
     params: Dap.SetBreakpointsParams,
     ids: number[],
   ): Promise<Dap.SetBreakpointsResult> {
-    if (!this._sourceMapHandlerWasUpdated && this._thread && params.breakpoints) {
-      await this._updateSourceMapHandler(this._thread);
+    if (!this._sourceMapHandlerInstalled && this._thread && params.breakpoints) {
+      await this._installSourceMapHandler(this._thread);
     }
 
     params.source.path = urlUtils.platformPathToPreferredCase(params.source.path);
@@ -585,9 +590,8 @@ export class BreakpointManager {
 
     this._totalBreakpointsCount += result.new.length;
 
-    if (this._thread && this._totalBreakpointsCount === 0 && this._sourceMapHandlerWasUpdated) {
-      this._thread.setScriptSourceMapHandler(false);
-      this._sourceMapHandlerWasUpdated = false;
+    if (this._thread && this._totalBreakpointsCount === 0 && this._sourceMapHandlerInstalled) {
+      this._uninstallSourceMapHandler(this._thread);
     }
 
     const thread = this._thread;
