@@ -494,7 +494,7 @@ export class BreakpointManager {
     params: Dap.SetBreakpointsParams,
     ids: number[],
   ): Promise<Dap.SetBreakpointsResult> {
-    if (!this._sourceMapHandlerWasUpdated && this._thread) {
+    if (!this._sourceMapHandlerWasUpdated && this._thread && params.breakpoints) {
       await this._updateSourceMapHandler(this._thread);
     }
 
@@ -584,6 +584,11 @@ export class BreakpointManager {
     await Promise.all(result.unbound.map(b => b.disable()));
 
     this._totalBreakpointsCount += result.new.length;
+
+    if (this._thread && this._totalBreakpointsCount === 0 && this._sourceMapHandlerWasUpdated) {
+      this._thread.setScriptSourceMapHandler(false);
+      this._sourceMapHandlerWasUpdated = false;
+    }
 
     const thread = this._thread;
     if (thread && result.new.length) {
