@@ -41,23 +41,20 @@ export function installUnhandledErrorReporter(
   };
 }
 
-export const onUncaughtError = (
-  logger: ILogger,
-  telemetryReporter: ITelemetryReporter,
-  src: ErrorType,
-  isVsCode = true,
-) => (error: unknown) => {
-  if (!shouldReportThisError(error)) {
-    return;
-  }
+export const onUncaughtError =
+  (logger: ILogger, telemetryReporter: ITelemetryReporter, src: ErrorType, isVsCode = true) =>
+  (error: unknown) => {
+    if (!shouldReportThisError(error)) {
+      return;
+    }
 
-  telemetryReporter.report('error', {
-    '!error': error,
-    error: isVsCode ? undefined : error,
-    exceptionType: src,
-  });
-  logger.error(LogTag.RuntimeException, 'Unhandled error in debug adapter', error);
-};
+    telemetryReporter.report('error', {
+      '!error': error,
+      error: isVsCode ? undefined : error,
+      exceptionType: src,
+    });
+    logger.error(LogTag.RuntimeException, 'Unhandled error in debug adapter', error);
+  };
 
 const isErrorObjectLike = (err: unknown): err is Error =>
   typeof err === 'object' && !!err && 'stack' in err;

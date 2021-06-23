@@ -33,7 +33,8 @@ export interface ISourcePathResolverOptions {
 }
 
 export abstract class SourcePathResolverBase<T extends ISourcePathResolverOptions>
-  implements ISourcePathResolver {
+  implements ISourcePathResolver
+{
   protected readonly sourceMapOverrides = new SourceMapOverrides(
     this.options.sourceMapOverrides,
     this.logger,

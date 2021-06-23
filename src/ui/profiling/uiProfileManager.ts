@@ -385,7 +385,7 @@ export class UiProfileManager implements IDisposable {
   }
 
   private async pickWithLastDefault<
-    T extends { label: string; description?: string; sortOrder?: number }
+    T extends { label: string; description?: string; sortOrder?: number },
   >(title: string, items: ReadonlyArray<T>, lastLabel?: string): Promise<T | undefined> {
     if (items.length <= 1) {
       return items[0]; // first T or undefined

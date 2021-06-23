@@ -65,7 +65,7 @@ export class DurationTerminationConditionFactory implements ITerminationConditio
         resolve(new DurationTerminationCondition(this.lastDuration * 1000));
       });
 
-      input.onDidHide(() => resolve());
+      input.onDidHide(() => resolve(undefined));
       input.show();
     });
 

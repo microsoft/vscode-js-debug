@@ -56,7 +56,7 @@ export const removePrivatePrefix = (folder: string) =>
   process.platform === 'darwin' ? folder.replace(/^\/private/, '') : folder;
 
 class Stream extends stream.Duplex {
-  _write(chunk: any, encoding: string, callback: (err?: Error) => void): void {
+  _write(chunk: any, encoding: BufferEncoding, callback: (err?: Error) => void): void {
     Promise.resolve()
       .then()
       .then()

@@ -39,7 +39,8 @@ const isAttach = (
 @injectable()
 export abstract class ChromiumDebugConfigurationResolver<T extends AnyChromiumConfiguration>
   extends BaseConfigurationResolver<T>
-  implements vscode.DebugConfigurationProvider {
+  implements vscode.DebugConfigurationProvider
+{
   constructor(
     @inject(ExtensionContext) context: vscode.ExtensionContext,
     @inject(NodeConfigurationResolver)
@@ -183,7 +184,7 @@ export abstract class ChromiumDebugConfigurationResolver<T extends AnyChromiumCo
 
 @injectable()
 export abstract class ChromiumDebugConfigurationProvider<
-  T extends AnyChromiumLaunchConfiguration
+  T extends AnyChromiumLaunchConfiguration,
 > extends BaseConfigurationProvider<T> {
   protected provide() {
     return this.createLaunchConfigFromContext() || this.getDefaultLaunch();

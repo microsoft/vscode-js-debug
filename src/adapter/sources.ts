@@ -930,9 +930,8 @@ export class SourceContainer {
           });
 
           if (sourceMapAbsolutePath) {
-            source.sourceMap.metadata.sourceMapUrl = utils.absolutePathToFileUrl(
-              sourceMapAbsolutePath,
-            );
+            source.sourceMap.metadata.sourceMapUrl =
+              utils.absolutePathToFileUrl(sourceMapAbsolutePath);
           }
 
           sourceMap.map = await this.sourceMapFactory.load(source.sourceMap.metadata);

@@ -26,7 +26,7 @@ describe('variables', () => {
 
     itIntegrates('clear console', async ({ r }) => {
       let complete: () => void;
-      const result = new Promise(f => (complete = f));
+      const result = new Promise<void>(f => (complete = f));
       let chain = Promise.resolve();
       const p = await r.launch(`
         <script>

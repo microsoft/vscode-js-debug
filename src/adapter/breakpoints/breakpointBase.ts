@@ -370,7 +370,7 @@ export abstract class Breakpoint {
   protected updateCdpRefs(
     mutator: (l: ReadonlyArray<BreakpointCdpReference>) => ReadonlyArray<BreakpointCdpReference>,
   ) {
-    const cast = (this as unknown) as { cdpBreakpoints: ReadonlyArray<BreakpointCdpReference> };
+    const cast = this as unknown as { cdpBreakpoints: ReadonlyArray<BreakpointCdpReference> };
     cast.cdpBreakpoints = mutator(this.cdpBreakpoints);
 
     const nextIdSet = new Set<string>();
@@ -442,9 +442,10 @@ export abstract class Breakpoint {
     }
 
     if (this.source.path) {
-      const urlRegexp = await this._manager._sourceContainer.sourcePathResolver.absolutePathToUrlRegexp(
-        this.source.path,
-      );
+      const urlRegexp =
+        await this._manager._sourceContainer.sourcePathResolver.absolutePathToUrlRegexp(
+          this.source.path,
+        );
       if (!urlRegexp) {
         return;
       }

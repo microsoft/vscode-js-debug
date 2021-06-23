@@ -24,9 +24,7 @@ import { createLaunchConfigFromContext } from './nodeDebugConfigurationResolver'
 const localize = nls.loadMessageBundle();
 
 @injectable()
-export class NodeInitialDebugConfigurationProvider extends BaseConfigurationProvider<
-  AnyNodeConfiguration
-> {
+export class NodeInitialDebugConfigurationProvider extends BaseConfigurationProvider<AnyNodeConfiguration> {
   protected provide(folder?: vscode.WorkspaceFolder) {
     return createLaunchConfigFromContext(folder, true);
   }
@@ -56,7 +54,7 @@ export class NodeDynamicDebugConfigurationProvider extends BaseConfigurationProv
     // convert any absolute paths to directories or files to nicer ${workspaceFolder}-based paths
     if (folder) {
       for (const configRaw of configs) {
-        const config = (configRaw as unknown) as { [key: string]: string | undefined };
+        const config = configRaw as unknown as { [key: string]: string | undefined };
         for (const key of keysToRelativize) {
           const value = config[key];
           if (value && path.isAbsolute(value)) {

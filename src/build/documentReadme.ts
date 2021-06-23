@@ -31,7 +31,7 @@ import strings from './strings';
         continue;
       }
 
-      const defaultValue = ((dbg.defaults as unknown) as { [key: string]: unknown })[key];
+      const defaultValue = (dbg.defaults as unknown as { [key: string]: unknown })[key];
       const docDefault = value.docDefault ?? JSON.stringify(defaultValue, null, 2) ?? 'undefined';
       out += `<h4>${key}</h4>`;
       out += `${marked(description)}`;

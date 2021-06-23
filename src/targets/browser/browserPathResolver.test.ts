@@ -66,12 +66,12 @@ describe('BrowserPathResolver', () => {
       Logger.null,
     );
 
-    const fakeMap = ({
+    const fakeMap = {
       metadata: {
         compiledPath: path.join(testFixturesDir, 'web', 'bundle.js'),
         sourceMapUrl: path.join(testFixturesDir, 'web', 'bundle.map.js'),
       } as ISourceMapMetadata,
-    } as unknown) as SourceMap;
+    } as unknown as SourceMap;
 
     it('looks up vue paths', async () => {
       expect(

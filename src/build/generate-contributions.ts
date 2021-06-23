@@ -142,7 +142,7 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
   outFiles: {
     type: ['array'],
     description: refString('outFiles.description'),
-    default: baseDefaults.outFiles,
+    default: [...baseDefaults.outFiles],
     items: {
       type: 'string',
     },

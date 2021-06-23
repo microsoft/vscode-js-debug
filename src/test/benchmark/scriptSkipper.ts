@@ -13,27 +13,27 @@ import { ITarget } from '../../targets/targets';
 import { NullTelemetryReporter } from '../../telemetry/nullTelemetryReporter';
 
 const skipper = new ScriptSkipper(
-  ({ skipFiles: ['<node_internals>/**', '/foo/*.js'] } as unknown) as AnyLaunchConfiguration,
+  { skipFiles: ['<node_internals>/**', '/foo/*.js'] } as unknown as AnyLaunchConfiguration,
   Logger.null,
   new Connection(new NullTransport(), Logger.null, new NullTelemetryReporter()).createSession(''),
-  ({
+  {
     type: () => 'browser',
     id: () => 'a',
     parent: () => undefined,
-  } as Partial<ITarget>) as ITarget,
+  } as Partial<ITarget> as ITarget,
 );
 
-const notSkipped = ({
+const notSkipped = {
   url: 'file:///not-skipped.js',
   absolutePath: '/not-skipped.js',
   scriptIds: () => ['41'],
-} as Partial<Source>) as Source;
+} as Partial<Source> as Source;
 
-const isSkipped = ({
+const isSkipped = {
   url: 'file:///foo/bar.js',
   absolutePath: '/foo/bar.js',
   scriptIds: () => ['42'],
-} as Partial<Source>) as Source;
+} as Partial<Source> as Source;
 
 export default function (api: IBenchmarkApi) {
   api.bench('initializeSkippingValueForSource not skipped', () =>

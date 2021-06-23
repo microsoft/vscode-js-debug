@@ -226,8 +226,8 @@ describe('profiling', () => {
       const terminationPicker = await eventuallyOk(() => {
         // expect(createQuickPick.callCount).to.equal(2);
         expect(createQuickPick.callCount).to.equal(1);
-        const picker: vscode.QuickPick<vscode.QuickPickItem> = createQuickPick.getCall(0)
-          .returnValue;
+        const picker: vscode.QuickPick<vscode.QuickPickItem> =
+          createQuickPick.getCall(0).returnValue;
         expect(picker.items).to.not.be.empty;
         return picker;
       }, 2000);
@@ -271,8 +271,8 @@ describe('profiling', () => {
 
       const breakpointPicker = await eventuallyOk(() => {
         expect(createQuickPick.callCount).to.equal(2);
-        const picker: vscode.QuickPick<vscode.QuickPickItem> = createQuickPick.getCall(1)
-          .returnValue;
+        const picker: vscode.QuickPick<vscode.QuickPickItem> =
+          createQuickPick.getCall(1).returnValue;
         expect(picker.items.length).to.be.greaterThan(0, 'expected to have picker items');
         return picker;
       }, 5000);

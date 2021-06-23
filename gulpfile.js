@@ -219,6 +219,7 @@ async function runWebpack({
           acorn: require.resolve('acorn'),
           'acorn-loose': require.resolve('acorn-loose'),
         },
+        fallback: { path: require.resolve('path-browserify') },
       },
       module: {
         rules: [

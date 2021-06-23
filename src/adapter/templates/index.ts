@@ -75,7 +75,7 @@ export function templateFunctionStr<Args extends string[]>(
     return p.name;
   });
 
-  const { start, end } = (decl.body as unknown) as Node;
+  const { start, end } = decl.body as unknown as Node;
   return (...args) => `(() => {
     ${args.map((a, i) => `let ${params[i]} = ${a}`).join('; ')};
     ${stringified.slice(start + 1, end - 1)}

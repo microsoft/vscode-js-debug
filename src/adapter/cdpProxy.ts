@@ -84,9 +84,11 @@ class DomainReplays {
    * Captures replay for the event on CDP.
    */
   public capture(cdp: Cdp.Api, domain: keyof Cdp.Api, event: string, clearPrevious = false) {
-    (cdp[domain] as {
-      on(event: string, fn: (arg: Record<string, unknown>) => void): void;
-    }).on(event, evt => this.addReplay(domain, event, evt, clearPrevious));
+    (
+      cdp[domain] as {
+        on(event: string, fn: (arg: Record<string, unknown>) => void): void;
+      }
+    ).on(event, evt => this.addReplay(domain, event, evt, clearPrevious));
   }
 
   /**
@@ -283,7 +285,7 @@ export class CdpProxyProvider implements ICdpProxyProvider {
     }
 
     type MethodMap = { [key: string]: (handle: ClientHandle, arg: unknown) => Promise<object> };
-    return ((this.jsDebugApi as unknown) as MethodMap)[method](handle, params);
+    return (this.jsDebugApi as unknown as MethodMap)[method](handle, params);
   }
 }
 

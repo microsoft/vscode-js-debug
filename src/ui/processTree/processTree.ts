@@ -68,7 +68,8 @@ export const processTree: IProcessTree =
  * Analyse the given command line arguments and extract debug port and protocol from it.
  */
 export function analyseArguments(args: string) {
-  const DEBUG_FLAGS_PATTERN = /--inspect(-brk)?(=((\[[0-9a-fA-F:]*\]|[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+|[a-zA-Z0-9\.]*):)?(\d+))?/;
+  const DEBUG_FLAGS_PATTERN =
+    /--inspect(-brk)?(=((\[[0-9a-fA-F:]*\]|[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+|[a-zA-Z0-9\.]*):)?(\d+))?/;
   const DEBUG_PORT_PATTERN = /--inspect-port=(\d+)/;
 
   let address: string | undefined;

@@ -39,8 +39,10 @@ import { WatchDog } from './watchdogSpawn';
  * to create the 'server'.
  */
 @injectable()
-export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfiguration>
-  implements ITerminalLauncherLike {
+export class AutoAttachLauncher
+  extends NodeLauncherBase<ITerminalLaunchConfiguration>
+  implements ITerminalLauncherLike
+{
   private telemetryItems = new Map<number, IProcessTelemetry>();
 
   constructor(
@@ -137,7 +139,7 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
       aaPatterns: autoAttachMode === AutoAttachMode.Smart ? this.readSmartPatterns() : undefined,
     });
 
-    const bootloaderEnv = (debugVars.defined() as unknown) as IBootloaderEnvironment;
+    const bootloaderEnv = debugVars.defined() as unknown as IBootloaderEnvironment;
 
     variables.persistent = true;
     variables.prepend('NODE_OPTIONS', bootloaderEnv.NODE_OPTIONS + ' ');

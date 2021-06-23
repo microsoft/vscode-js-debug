@@ -14,10 +14,14 @@ module.exports = {
     },
   },
   rules: {
+    // Temporary until CDP is moved out, which is where most violations are:
+    '@typescript-eslint/ban-types': 'off',
+
+    '@typescript-eslint/no-var-requires': 'off',
     '@typescript-eslint/no-use-before-define': 'off',
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/no-namespace': 'off',
-    '@typescript-eslint/interface-name-prefix': ['error', { prefixWithI: 'always' }],
+    '@typescript-eslint/explicit-module-boundary-types': 'off',
     'header/header': [
       'error',
       'block',

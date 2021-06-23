@@ -34,10 +34,10 @@ export const getText: (src: string, node: Node | AcornNode) => string = (src, no
   src.slice(getStart(node), getEnd(node));
 
 export const parseProgram = (str: string, strict = false) =>
-  ((strict ? parseStrict : parse)(str, acornOptions) as unknown) as Program;
+  (strict ? parseStrict : parse)(str, acornOptions) as unknown as Program;
 
 export const parseSource: (str: string) => (Statement & AcornNode)[] = str => {
-  const parsed = (parseProgram(str) as unknown) as {
+  const parsed = parseProgram(str) as unknown as {
     body: (Statement & AcornNode)[];
   };
 

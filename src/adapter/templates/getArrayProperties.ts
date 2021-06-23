@@ -13,7 +13,7 @@ export const getArrayProperties = remoteFunction(function (this: unknown[]) {
   const names = Object.getOwnPropertyNames(this);
   for (let i = 0; i < names.length; ++i) {
     const name = names[i];
-    const numeric = ((name as unknown) as number) >>> 0;
+    const numeric = (name as unknown as number) >>> 0;
     // Array index check according to the ES5-15.4.
     if (String(numeric >>> 0) === name && numeric >>> 0 !== 0xffffffff) {
       continue;

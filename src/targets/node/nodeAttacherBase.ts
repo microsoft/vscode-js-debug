@@ -10,6 +10,6 @@ import { NodeLauncherBase } from './nodeLauncherBase';
  * Base class that implements common matters for attachment.
  */
 @injectable()
-export abstract class NodeAttacherBase<T extends AnyNodeConfiguration> extends NodeLauncherBase<
-  T
-> {}
+export abstract class NodeAttacherBase<
+  T extends AnyNodeConfiguration,
+> extends NodeLauncherBase<T> {}

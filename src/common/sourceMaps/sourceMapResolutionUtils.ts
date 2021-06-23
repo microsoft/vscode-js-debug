@@ -136,49 +136,48 @@ export const defaultPathMappingResolver: PathMappingResolver = async (
  * A path mapping resolver that resolves to the nearest folder containing
  * a package.json if there's no more precise match in the mapping.
  */
-export const moduleAwarePathMappingResolver = (
-  fsUtils: IFsUtils,
-  compiledPath: string,
-): PathMappingResolver => async (sourceRoot, pathMapping, logger) => {
-  // 1. Handle cases where we know the path is already absolute on disk.
-  if (process.platform === 'win32' && /^[a-z]:/i.test(sourceRoot)) {
-    return sourceRoot;
-  }
-
-  // 2. It's a unix-style path. Get the root of this package containing the compiled file.
-  const implicit = await utils.nearestDirectoryContaining(
-    fsUtils,
-    path.dirname(compiledPath),
-    'package.json',
-  );
-
-  // 3. If there's no specific root, try to use the base path mappings
-  if (!implicit) {
-    return defaultPathMappingResolver(sourceRoot, pathMapping, logger);
-  }
-
-  // 4. If we can find a root, only use path mapping from within the package
-  const explicit = await defaultPathMappingResolver(
-    sourceRoot,
-    // filter the mapping to directories that could be
-    filterObject(pathMapping, key => key.length >= implicit.length),
-    logger,
-  );
-
-  // 5. On *nix, try at this point to see if the original path given is
-  // absolute on-disk. We'll say it is if there was no specific path mapping
-  // and the sourceRoot points to a subdirectory that exists.
-  if (process.platform !== 'win32' && sourceRoot !== '/' && !explicit) {
-    const possibleStat = await fs.stat(sourceRoot).catch(() => undefined);
-    if (possibleStat?.isDirectory()) {
+export const moduleAwarePathMappingResolver =
+  (fsUtils: IFsUtils, compiledPath: string): PathMappingResolver =>
+  async (sourceRoot, pathMapping, logger) => {
+    // 1. Handle cases where we know the path is already absolute on disk.
+    if (process.platform === 'win32' && /^[a-z]:/i.test(sourceRoot)) {
       return sourceRoot;
     }
-  }
 
-  // 6. If we got a path mapping within the package, use that. Otherise use
-  // the package root as the sourceRoot.
-  return explicit || implicit;
-};
+    // 2. It's a unix-style path. Get the root of this package containing the compiled file.
+    const implicit = await utils.nearestDirectoryContaining(
+      fsUtils,
+      path.dirname(compiledPath),
+      'package.json',
+    );
+
+    // 3. If there's no specific root, try to use the base path mappings
+    if (!implicit) {
+      return defaultPathMappingResolver(sourceRoot, pathMapping, logger);
+    }
+
+    // 4. If we can find a root, only use path mapping from within the package
+    const explicit = await defaultPathMappingResolver(
+      sourceRoot,
+      // filter the mapping to directories that could be
+      filterObject(pathMapping, key => key.length >= implicit.length),
+      logger,
+    );
+
+    // 5. On *nix, try at this point to see if the original path given is
+    // absolute on-disk. We'll say it is if there was no specific path mapping
+    // and the sourceRoot points to a subdirectory that exists.
+    if (process.platform !== 'win32' && sourceRoot !== '/' && !explicit) {
+      const possibleStat = await fs.stat(sourceRoot).catch(() => undefined);
+      if (possibleStat?.isDirectory()) {
+        return sourceRoot;
+      }
+    }
+
+    // 6. If we got a path mapping within the package, use that. Otherise use
+    // the package root as the sourceRoot.
+    return explicit || implicit;
+  };
 
 function pathMappingPatternMatchesPath(pattern: string, scriptPath: string): boolean {
   if (pattern === scriptPath) {

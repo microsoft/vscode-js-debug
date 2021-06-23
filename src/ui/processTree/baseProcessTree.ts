@@ -2,9 +2,9 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { IProcessTree, IProcess } from './processTree';
-import { spawn as defaultSpawn, ChildProcessWithoutNullStreams } from 'child_process';
+import { ChildProcessWithoutNullStreams, spawn as defaultSpawn } from 'child_process';
 import split2 from 'split2';
+import { IProcess, IProcessTree } from './processTree';
 
 /**
  * Base process tree that others can extend.
@@ -37,11 +37,10 @@ export abstract class BaseProcessTree implements IProcessTree {
       proc.on('close', (code, signal) => {
         if (code === 0) {
           resolve(value);
-        } else if (code > 0) {
-          reject(new Error(`process terminated with exit code: ${code}`));
-        }
-        if (signal) {
+        } else if (signal) {
           reject(new Error(`process terminated with signal: ${signal}`));
+        } else if (code) {
+          reject(new Error(`process terminated with exit code: ${code}`));
         }
       });
     });

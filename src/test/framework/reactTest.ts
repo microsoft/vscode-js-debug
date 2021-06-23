@@ -27,7 +27,7 @@ describe('react', () => {
   afterEach(() => {
     if (devServerProc) {
       console.log('Killing ' + devServerProc.pid);
-      killTree(devServerProc.pid, Logger.null);
+      killTree(devServerProc.pid!, Logger.null);
     }
   });
 

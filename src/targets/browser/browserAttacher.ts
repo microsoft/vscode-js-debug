@@ -32,8 +32,9 @@ const localize = nls.loadMessageBundle();
 
 @injectable()
 export class BrowserAttacher<
-  T extends AnyChromiumAttachConfiguration = AnyChromiumAttachConfiguration
-> implements ILauncher {
+  T extends AnyChromiumAttachConfiguration = AnyChromiumAttachConfiguration,
+> implements ILauncher
+{
   private _attemptTimer: NodeJS.Timer | undefined;
   private _connection: CdpConnection | undefined;
   private _targetManager: BrowserTargetManager | undefined;

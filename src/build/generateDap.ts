@@ -58,7 +58,7 @@ async function generate() {
   const typesSet = new Set<string>();
 
   function generateType(prop: JSONSchema4): string {
-    const valueEnum = ((prop as unknown) as { _enum?: string[] })._enum;
+    const valueEnum = (prop as unknown as { _enum?: string[] })._enum;
     if (valueEnum) {
       return `${valueEnum.map(value => `'${value}'`).join(' | ')}`;
     }

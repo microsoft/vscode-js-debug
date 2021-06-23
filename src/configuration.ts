@@ -749,17 +749,14 @@ export type AnyTerminalConfiguration =
  */
 export type ResolvingConfiguration<T> = IMandatedConfiguration & Partial<T>;
 
-export type ResolvingExtensionHostConfiguration = ResolvingConfiguration<
-  IExtensionHostLaunchConfiguration
->;
+export type ResolvingExtensionHostConfiguration =
+  ResolvingConfiguration<IExtensionHostLaunchConfiguration>;
 export type ResolvingNodeAttachConfiguration = ResolvingConfiguration<INodeAttachConfiguration>;
 export type ResolvingNodeLaunchConfiguration = ResolvingConfiguration<INodeLaunchConfiguration>;
-export type ResolvingTerminalDelegateConfiguration = ResolvingConfiguration<
-  ITerminalDelegateConfiguration
->;
-export type ResolvingTerminalLaunchConfiguration = ResolvingConfiguration<
-  ITerminalLaunchConfiguration
->;
+export type ResolvingTerminalDelegateConfiguration =
+  ResolvingConfiguration<ITerminalDelegateConfiguration>;
+export type ResolvingTerminalLaunchConfiguration =
+  ResolvingConfiguration<ITerminalLaunchConfiguration>;
 export type ResolvingTerminalConfiguration =
   | ResolvingTerminalDelegateConfiguration
   | ResolvingTerminalLaunchConfiguration;

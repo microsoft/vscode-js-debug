@@ -29,8 +29,9 @@ function setupCoverage() {
 export async function run(): Promise<void> {
   const nyc = process.env.COVERAGE ? setupCoverage() : null;
 
-  const mochaOpts = {
+  const mochaOpts: Mocha.MochaOptions = {
     timeout: 10 * 1000,
+    color: true,
     ...JSON.parse(process.env.PWA_TEST_OPTIONS || '{}'),
   };
 
@@ -38,9 +39,9 @@ export async function run(): Promise<void> {
     mochaOpts.grep = 'node runtime'; // may eventually want a more dynamic system
   }
 
-  const grep = mochaOpts.grep || mochaOpts.g;
+  const grep = mochaOpts.grep || (mochaOpts as Record<string, unknown>).g;
   if (grep) {
-    mochaOpts.grep = new RegExp(grep, 'i');
+    mochaOpts.grep = new RegExp(String(grep), 'i');
   }
 
   // Paths are relative to Mocha
@@ -68,8 +69,6 @@ export async function run(): Promise<void> {
   }
 
   const runner = new Mocha(mochaOpts);
-
-  runner.useColors(true);
 
   // todo: retry failing tests https://github.com/microsoft/vscode-pwa/issues/28
   if (process.env.RETRY_TESTS) {

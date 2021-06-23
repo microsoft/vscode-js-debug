@@ -66,23 +66,25 @@ export async function getWSEndpoint(
   throw new Error('Could not find any debuggable target');
 }
 
-const makeRetryGetWSEndpoint = (isNode: boolean) => async (
-  browserURL: string,
-  cancellationToken: CancellationToken,
-  logger: ILogger,
-): Promise<string> => {
-  while (true) {
-    try {
-      return await getWSEndpoint(browserURL, cancellationToken, logger, isNode);
-    } catch (e) {
-      if (cancellationToken.isCancellationRequested) {
-        throw new Error(`Could not connect to debug target at ${browserURL}: ${e.message}`);
-      }
+const makeRetryGetWSEndpoint =
+  (isNode: boolean) =>
+  async (
+    browserURL: string,
+    cancellationToken: CancellationToken,
+    logger: ILogger,
+  ): Promise<string> => {
+    while (true) {
+      try {
+        return await getWSEndpoint(browserURL, cancellationToken, logger, isNode);
+      } catch (e) {
+        if (cancellationToken.isCancellationRequested) {
+          throw new Error(`Could not connect to debug target at ${browserURL}: ${e.message}`);
+        }
 
-      await delay(200);
+        await delay(200);
+      }
     }
-  }
-};
+  };
 
 /**
  * Attempts to retrieve the debugger websocket URL for a Node process listening

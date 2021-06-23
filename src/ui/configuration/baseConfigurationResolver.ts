@@ -22,7 +22,8 @@ import { IDebugConfigurationResolver } from './configurationProvider';
  */
 @injectable()
 export abstract class BaseConfigurationResolver<T extends AnyLaunchConfiguration>
-  implements IDebugConfigurationResolver {
+  implements IDebugConfigurationResolver
+{
   /**
    * @inheritdoc
    */

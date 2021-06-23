@@ -36,7 +36,8 @@ export interface IDapInitializeParamsWithExtensions extends Dap.InitializeParams
 
 @injectable()
 export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
-  implements ILauncher {
+  implements ILauncher
+{
   private _connectionForTest: CdpConnection | undefined;
   private _targetManager: BrowserTargetManager | undefined;
   private _launchParams: T | undefined;

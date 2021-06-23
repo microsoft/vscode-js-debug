@@ -327,7 +327,7 @@ describe('node runtime', () => {
 
       child = spawn('node', ['--inspect', join(testFixturesDir, 'test')]);
       await delay(500); // give it a moment to boot
-      const handle = await r.attachNode(child.pid);
+      const handle = await r.attachNode(child.pid!);
       await waitForPause(handle);
       handle.assertLog({ substring: true });
     });
@@ -369,7 +369,7 @@ describe('node runtime', () => {
 
       child = spawn('node', ['--inspect', join(testFixturesDir, 'test')]);
       await delay(500); // give it a moment to boot
-      const handle = await r.attachNode(child.pid);
+      const handle = await r.attachNode(child.pid!);
       handle.load();
 
       const worker = await r.worker();
@@ -393,7 +393,7 @@ describe('node runtime', () => {
 
       child = spawn('node', ['--inspect', join(testFixturesDir, 'test')]);
       await delay(500); // give it a moment to boot
-      const handle = await r.attachNode(child.pid);
+      const handle = await r.attachNode(child.pid!);
       handle.load();
 
       const worker = await r.worker();

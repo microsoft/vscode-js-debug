@@ -167,7 +167,7 @@ function inspectOrQueue(env: IBootloaderInfo, ownId: string): boolean {
   }
 
   // todo: update node.js typings
-  const cast = (inspector as unknown) as typeof inspector & { waitForDebugger?(): void };
+  const cast = inspector as unknown as typeof inspector & { waitForDebugger?(): void };
   if (cast.waitForDebugger) {
     cast.waitForDebugger();
   } else {

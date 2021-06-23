@@ -96,8 +96,8 @@ async function generate() {
     a.domain.toUpperCase() < b.domain.toUpperCase() ? -1 : 1;
   const domains = jsProtocol.domains
     .concat(browserProtocol.domains)
-    .concat((nodeCustom.domains as unknown) as IProtocolDomain[])
-    .concat((jsDebugCustom.domains as unknown) as IProtocolDomain[])
+    .concat(nodeCustom.domains as unknown as IProtocolDomain[])
+    .concat(jsDebugCustom.domains as unknown as IProtocolDomain[])
     .sort(compareDomains);
   const result = [];
   const interfaceSeparator = createSeparator();

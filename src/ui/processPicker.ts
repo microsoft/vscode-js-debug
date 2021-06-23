@@ -139,7 +139,7 @@ const decodePidAndPort = (encoded: string) => {
   return { pid: Number(pid), port: port ? Number(port) : undefined };
 };
 
-async function listProcesses(): Promise<IProcessItem> {
+async function listProcesses(): Promise<IProcessItem | undefined> {
   const nodeProcessPattern = /^(?:node|iojs)$/i;
   let seq = 0; // default sort key
 
@@ -151,7 +151,7 @@ async function listProcesses(): Promise<IProcessItem> {
   quickPick.show();
 
   let hasPicked = false;
-  const itemPromise = new Promise<IProcessItem>(resolve => {
+  const itemPromise = new Promise<IProcessItem | undefined>(resolve => {
     quickPick.onDidAccept(() => resolve(quickPick.selectedItems[0]));
     quickPick.onDidHide(() => resolve(undefined));
   });

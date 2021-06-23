@@ -159,7 +159,6 @@ export default class Connection {
       const response = {
         seq: 0,
         type: 'response' as const,
-        // eslint-disable-next-line @typescript-eslint/camelcase
         request_seq: msg.seq,
         command: msg.command,
         success: true,
