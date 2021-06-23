@@ -127,6 +127,12 @@ export interface IBaseConfiguration extends IMandatedConfiguration {
   sourceMaps: boolean;
 
   /**
+   * Whether to use the "names" mapping in sourcemaps. This requires requesting
+   * source content, which can be slow with certain debuggers.
+   */
+  sourceMapRenames: boolean;
+
+  /**
    * A set of mappings for rewriting the locations of source files from what
    * the sourcemap says, to their locations on disk.
    */
@@ -802,6 +808,7 @@ export const baseDefaults: IBaseConfiguration = {
   skipFiles: [],
   smartStep: true,
   sourceMaps: true,
+  sourceMapRenames: true,
   pauseForSourceMap: true,
   resolveSourceMapLocations: null,
   rootPath: '${workspaceFolder}',

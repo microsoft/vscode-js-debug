@@ -196,6 +196,11 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
     description: refString('browser.sourceMaps.description'),
     default: true,
   },
+  sourceMapRenames: {
+    type: 'boolean',
+    default: true,
+    description: refString('browser.sourceMapRenames.description'),
+  },
   sourceMapPathOverrides: {
     type: 'object',
     description: refString('node.sourceMapPathOverrides.description'),

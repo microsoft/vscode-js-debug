@@ -90,6 +90,8 @@ const strings = {
   'browser.sourceMapPathOverrides.description':
     'A set of mappings for rewriting the locations of source files from what the sourcemap says, to their locations on disk. See README for details.',
   'browser.sourceMaps.description': 'Use JavaScript source maps (if they exist).',
+  'browser.sourceMapRenames.description':
+    'Whether to use the "names" mapping in sourcemaps. This requires requesting source content, which can be slow with certain debuggers.',
   'browser.timeout.description':
     'Retry for this number of milliseconds to connect to the browser. Default is 10000 ms.',
   'browser.url.description': 'Will search for a tab with this exact url and attach to it, if found',

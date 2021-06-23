@@ -40,7 +40,8 @@
   "webpack://?:*/*": "${workspaceFolder}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${workspaceFolder}/*"
-}</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
+}</pre></code><h4>sourceMapRenames</h4><p>Whether to use the &quot;names&quot; mapping in sourcemaps. This requires requesting source content, which can be slow with certain debuggers.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
 <h5>Default value:</h4><pre><code>10000</pre></code><h4>timeouts</h4><p>Timeouts for several debugger operations.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
@@ -91,7 +92,8 @@
   "webpack://?:*/*": "${workspaceFolder}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${workspaceFolder}/*"
-}</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
+}</pre></code><h4>sourceMapRenames</h4><p>Whether to use the &quot;names&quot; mapping in sourcemaps. This requires requesting source content, which can be slow with certain debuggers.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>stopOnEntry</h4><p>Automatically stop program after launch.</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
 <h5>Default value:</h4><pre><code>10000</pre></code><h4>timeouts</h4><p>Timeouts for several debugger operations.</p>
@@ -135,7 +137,8 @@
   "webpack://?:*/*": "${workspaceFolder}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${workspaceFolder}/*"
-}</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
+}</pre></code><h4>sourceMapRenames</h4><p>Whether to use the &quot;names&quot; mapping in sourcemaps. This requires requesting source content, which can be slow with certain debuggers.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
 <h5>Default value:</h4><pre><code>10000</pre></code><h4>timeouts</h4><p>Timeouts for several debugger operations.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
@@ -181,7 +184,8 @@
   "webpack://?:*/*": "${workspaceFolder}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${workspaceFolder}/*"
-}</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
+}</pre></code><h4>sourceMapRenames</h4><p>Whether to use the &quot;names&quot; mapping in sourcemaps. This requires requesting source content, which can be slow with certain debuggers.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
 <h5>Default value:</h4><pre><code>10000</pre></code><h4>timeouts</h4><p>Timeouts for several debugger operations.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
@@ -224,7 +228,8 @@
   "webpack://?:*/*": "${webRoot}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${webRoot}/*"
-}</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
+}</pre></code><h4>sourceMapRenames</h4><p>Whether to use the &quot;names&quot; mapping in sourcemaps. This requires requesting source content, which can be slow with certain debuggers.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
 <h5>Default value:</h4><pre><code>10000</pre></code><h4>timeouts</h4><p>Timeouts for several debugger operations.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
@@ -269,7 +274,8 @@
   "webpack://?:*/*": "${webRoot}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${webRoot}/*"
-}</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
+}</pre></code><h4>sourceMapRenames</h4><p>Whether to use the &quot;names&quot; mapping in sourcemaps. This requires requesting source content, which can be slow with certain debuggers.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>targetSelection</h4><p>Whether to attach to all targets that match the URL filter (&quot;automatic&quot;) or ask to pick one (&quot;pick&quot;).</p>
 <h5>Default value:</h4><pre><code>"automatic"</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
 <h5>Default value:</h4><pre><code>10000</pre></code><h4>timeouts</h4><p>Timeouts for several debugger operations.</p>
@@ -321,7 +327,8 @@
   "webpack://?:*/*": "${webRoot}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${webRoot}/*"
-}</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
+}</pre></code><h4>sourceMapRenames</h4><p>Whether to use the &quot;names&quot; mapping in sourcemaps. This requires requesting source content, which can be slow with certain debuggers.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
 <h5>Default value:</h4><pre><code>10000</pre></code><h4>timeouts</h4><p>Timeouts for several debugger operations.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
@@ -367,7 +374,8 @@
   "webpack://?:*/*": "${webRoot}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${webRoot}/*"
-}</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
+}</pre></code><h4>sourceMapRenames</h4><p>Whether to use the &quot;names&quot; mapping in sourcemaps. This requires requesting source content, which can be slow with certain debuggers.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>targetSelection</h4><p>Whether to attach to all targets that match the URL filter (&quot;automatic&quot;) or ask to pick one (&quot;pick&quot;).</p>
 <h5>Default value:</h4><pre><code>"automatic"</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
 <h5>Default value:</h4><pre><code>10000</pre></code><h4>timeouts</h4><p>Timeouts for several debugger operations.</p>

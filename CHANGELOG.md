@@ -4,7 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly
 
-Nothing (yet)
+- feat: allow disabling sourcemap renames ([#1033](https://github.com/microsoft/vscode-js-debug/issues/1033))
 
 ## v1.58 (June 2021)
 
