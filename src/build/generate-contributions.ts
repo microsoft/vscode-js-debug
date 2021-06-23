@@ -82,20 +82,20 @@ type Menus = {
   }[];
 };
 
-const forSomeDebugTypes = (
+const forSomeContextKeys = (
   types: Iterable<string>,
   contextKey: string,
   andExpr: string | undefined,
 ) => [...types].map(d => `${contextKey} == ${d}` + (andExpr ? ` && ${andExpr}` : '')).join(' || ');
 
 const forAnyDebugType = (contextKey: string, andExpr?: string) =>
-  forSomeDebugTypes(allDebugTypes, contextKey, andExpr);
+  forSomeContextKeys(allDebugTypes, contextKey, andExpr);
 
 const forBrowserDebugType = (contextKey: string, andExpr?: string) =>
-  forSomeDebugTypes([DebugType.Chrome, DebugType.Edge], contextKey, andExpr);
+  forSomeContextKeys([DebugType.Chrome, DebugType.Edge], contextKey, andExpr);
 
 const forNodeDebugType = (contextKey: string, andExpr?: string) =>
-  forSomeDebugTypes([DebugType.Node, DebugType.ExtensionHost, 'node'], contextKey, andExpr);
+  forSomeContextKeys([DebugType.Node, DebugType.ExtensionHost, 'node'], contextKey, andExpr);
 
 /**
  * Opaque type for a string passed through refString, ensuring all templates
@@ -1383,6 +1383,19 @@ const keybindings = [
   },
 ];
 
+const viewsWelcome = [
+  {
+    view: 'debug',
+    contents: refString('debug.terminal.welcomeWithLink'),
+    when: forSomeContextKeys(commonLanguages, 'debugStartLanguage', '!isWeb'),
+  },
+  {
+    view: 'debug',
+    contents: refString('debug.terminal.welcome'),
+    when: forSomeContextKeys(commonLanguages, 'debugStartLanguage', 'isWeb'),
+  },
+];
+
 if (require.main === module) {
   process.stdout.write(
     JSON.stringify({
@@ -1408,6 +1421,7 @@ if (require.main === module) {
           title: 'JavaScript Debugger',
           properties: configurationSchema,
         },
+        viewsWelcome,
       },
     }),
   );

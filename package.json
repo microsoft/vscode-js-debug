@@ -192,18 +192,6 @@
         }
       ]
     },
-    "viewsWelcome": [
-      {
-        "view": "debug",
-        "contents": "%debug.terminal.welcomeWithLink%",
-        "when": "debugStartLanguage == javascript && !isWeb || debugStartLanguage == typescript && !isWeb"
-      },
-      {
-        "view": "debug",
-        "contents": "%debug.terminal.welcome%",
-        "when": "debugStartLanguage == javascript && isWeb || debugStartLanguage == typescript && isWeb"
-      }
-    ],
     "terminal": {
       "profiles": [
         {
