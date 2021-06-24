@@ -11,6 +11,15 @@
     "**/testdata": true,
     "**/.dynamic-testWorkspace/defaultSearchExcluded": true
   },
+  "files.exclude": {
+    "**/.git": true,
+    "**/.svn": true,
+    "**/.hg": true,
+    "**/CVS": true,
+    "**/.DS_Store": true,
+    "**/.dynamic-testWorkspace": true,
+    "**/.vscode-test": true,
+  },
   "[typescript]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
