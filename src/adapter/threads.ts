@@ -670,7 +670,7 @@ export class Thread implements IVariableStoreDelegate {
       }
     } else {
       const wantsPause =
-        event.reason === 'exception'
+        event.reason === 'exception' || event.reason === 'promiseRejection'
           ? await this.exceptionPause.shouldPauseAt(event)
           : await this._breakpointManager.shouldPauseAt(
               event,
