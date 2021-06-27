@@ -75,7 +75,7 @@ const warningMessages: ReadonlyArray<IWarningMessage> = [
     inclusiveMax: new Semver(16, 3, 99),
     message: localize(
       'warning.16bpIssue',
-      'Some breakpoints might not work in your version of Node.js. We suggest temporarily downgrading to Node 14. Details: https://aka.ms/AAcsvqm',
+      'Some breakpoints might not work in your version of Node.js. We recommend upgrading for the latest bug, performance, and security fixes. Details: https://aka.ms/AAcsvqm',
     ),
   },
   {
