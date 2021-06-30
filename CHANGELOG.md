@@ -4,11 +4,15 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly
 
+Nothing (yet)
+
+## v1.58 (June 2021)
+
+### v1.58.1 - 2021-06-30
+
 - feat: allow disabling sourcemap renames ([#1033](https://github.com/microsoft/vscode-js-debug/issues/1033))
 - fix: show welcome view for all common languages ([#1039](https://github.com/microsoft/vscode-js-debug/issues/1039))
 - fix: apply skipFile exception checking for promise rejections
-
-## v1.58 (June 2021)
 
 ### v1.58.0 - 2021-06-16
 
