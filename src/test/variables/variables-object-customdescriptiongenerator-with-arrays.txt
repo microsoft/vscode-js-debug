@@ -3,5 +3,10 @@
     > 1: Foo
     2: 5
     3: 'test'
+    > [[Prototype]]: Object
+    > __proto__ (get): ƒ __proto__()
+    > __proto__ (set): ƒ __proto__()
     length: 4
-    > __proto__: I'm an array
+    > [[Prototype]]: I'm an array
+    > __proto__ (get): ƒ __proto__()
+    > __proto__ (set): ƒ __proto__()

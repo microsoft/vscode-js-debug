@@ -1,3 +1,5 @@
 > result: {a: 1}
     a: 1
-    > __proto__: Object
+    > [[Prototype]]: Object
+    > __proto__ (get): ƒ __proto__()
+    > __proto__ (set): ƒ __proto__()

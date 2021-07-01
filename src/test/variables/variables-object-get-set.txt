@@ -3,4 +3,6 @@
     > accessor (set): () => {}
     > getter (get): () => {}
     > setter (set): () => {}
-    > __proto__: Object
+    > [[Prototype]]: Object
+    > __proto__ (get): ƒ __proto__()
+    > __proto__ (set): ƒ __proto__()

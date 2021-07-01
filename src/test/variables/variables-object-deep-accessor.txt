@@ -1,3 +1,5 @@
 > result: Bar
     > getter (get): ƒ getter() {}
-    > __proto__: Foo
+    > [[Prototype]]: Foo
+    > __proto__ (get): ƒ __proto__()
+    > __proto__ (set): ƒ __proto__()
