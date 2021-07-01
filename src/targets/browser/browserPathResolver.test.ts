@@ -13,7 +13,12 @@ import { Logger } from '../../common/logging/logger';
 import { upcastPartial } from '../../common/objUtils';
 import { fixDriveLetter } from '../../common/pathUtils';
 import { ISourceMapMetadata, SourceMap } from '../../common/sourceMaps/sourceMap';
-import { resetCaseSensitivePaths, setCaseSensitivePaths, urlToRegex } from '../../common/urlUtils';
+import {
+  absolutePathToFileUrl,
+  resetCaseSensitivePaths,
+  setCaseSensitivePaths,
+  urlToRegex,
+} from '../../common/urlUtils';
 import { defaultSourceMapPathOverrides } from '../../configuration';
 import { BrowserSourcePathResolver, IOptions } from '../../targets/browser/browserPathResolver';
 import { testFixturesDir } from '../../test/test';
@@ -196,11 +201,11 @@ describe('BrowserPathResolver', () => {
     });
 
     it('matches any path if no baseUrl is present', () => {
-      expect(
-        resolver({ baseUrl: undefined }).absolutePathToUrlRegexp(
-          path.join(testFixturesDir, 'web', 'foo.js'),
-        ),
-      ).to.equal('[hH][tT][tT][pP][sS]?:\\/\\/[^\\/]+\\/[fF][oO][oO]\\.[jJ][sS]');
+      const filePath = path.join(testFixturesDir, 'web', 'foo.js');
+      expect(resolver({ baseUrl: undefined }).absolutePathToUrlRegexp(filePath)).to.equal(
+        urlToRegex(absolutePathToFileUrl(filePath)) +
+          '|[hH][tT][tT][pP][sS]?:\\/\\/[^\\/]+\\/[fF][oO][oO]\\.[jJ][sS]',
+      );
     });
 
     it('does not mangle absolute pathmapping', () => {
