@@ -57,7 +57,6 @@ export class Binder implements IDisposable {
   private _onTargetListChangedEmitter = new EventEmitter<void>();
   readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
   private _dap: Promise<Dap.Api>;
-  private _dapInitializeParams?: Dap.InitializeParams;
   private _targetOrigin: ITargetOrigin;
   private _launchParams?: AnyLaunchConfiguration;
   private _asyncStackPolicy?: IAsyncStackPolicy;
@@ -94,7 +93,6 @@ export class Binder implements IDisposable {
         if (clientCapabilities.clientID === 'vscode') {
           filterErrorsReportedToTelemetry();
         }
-        this._dapInitializeParams = clientCapabilities;
 
         setTimeout(() => {
           dap.initialized({});
@@ -405,7 +403,7 @@ export class Binder implements IDisposable {
 
     // todo: move scriptskipper into services collection
     const debugAdapter = new DebugAdapter(dap, this._asyncStackPolicy, launchParams, container);
-    const thread = debugAdapter.createThread(cdp, target, this._dapInitializeParams);
+    const thread = debugAdapter.createThread(cdp, target);
 
     const startThread = async () => {
       await debugAdapter.launchBlocker();
