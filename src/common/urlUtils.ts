@@ -345,6 +345,10 @@ export function urlToRegex(
   aPath: string,
   [escapeReStart, escapeReEnd]: [number, number] = [0, aPath.length],
 ) {
+  if (escapeReEnd <= escapeReStart) {
+    return aPath;
+  }
+
   const patterns: string[] = [];
 
   // Split out the portion of the path that has already been converted to a regex pattern

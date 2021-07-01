@@ -233,8 +233,12 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
     if (transform.needsWildcard) {
       url = wildcardHostname + url;
       startRegexEscape = wildcardHostname.length;
+      endRegexEscape += wildcardHostname.length;
     }
 
-    return urlToRegex(url, [startRegexEscape, endRegexEscape]);
+    const urlRegex = urlToRegex(url, [startRegexEscape, endRegexEscape]);
+    return transform.needsWildcard
+      ? `${urlToRegex(utils.absolutePathToFileUrl(absolutePath))}|${urlRegex}`
+      : urlRegex;
   }
 }

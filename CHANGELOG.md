@@ -8,6 +8,10 @@ Nothing (yet)
 
 ## v1.58 (June 2021)
 
+### v1.58.2 - 2021-07-01
+
+- fix: breakpoints not being set when debugging file uris ([#1035](https://github.com/microsoft/vscode-js-debug/issues/1035))
+
 ### v1.58.1 - 2021-06-30
 
 - feat: allow disabling sourcemap renames ([#1033](https://github.com/microsoft/vscode-js-debug/issues/1033))
