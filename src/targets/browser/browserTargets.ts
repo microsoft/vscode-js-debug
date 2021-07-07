@@ -144,14 +144,10 @@ export class BrowserTarget implements ITarget, IThreadDelegate {
   }
 
   async runIfWaitingForDebugger() {
-    const todo = [this._cdp.Runtime.runIfWaitingForDebugger({})];
-
-    if ('debugWebviews' in this.launchConfig) {
-      // a vscode renderer attachment
-      todo.push(this._cdp.Runtime.evaluate({ expression: signalReadyExpr() }));
-    }
-
-    await Promise.all(todo);
+    await Promise.all([
+      this._cdp.Runtime.runIfWaitingForDebugger({}),
+      this._cdp.Runtime.evaluate({ expression: signalReadyExpr() }),
+    ]);
   }
 
   parent(): ITarget | undefined {
