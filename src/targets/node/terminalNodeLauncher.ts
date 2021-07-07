@@ -132,8 +132,7 @@ export class TerminalNodeLauncher extends NodeLauncherBase<ITerminalLaunchConfig
     const terminal = await this.createTerminal({
       name: runData.params.name,
       cwd: runData.params.cwd,
-      // todo: add icon once https://github.com/microsoft/vscode/issues/125137 is fixed
-      // iconPath: new vscode.ThemeIcon("debug"),
+      iconPath: new vscode.ThemeIcon('debug'),
       env: hideDebugInfoFromConsole(binary, env).defined(),
     });
     this.terminalCreatedEmitter.fire(terminal);
