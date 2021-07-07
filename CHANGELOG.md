@@ -4,7 +4,8 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly
 
-Nothing (yet)
+- fix: pausing on first line of worker_thread when created with empty env ([ref](https://github.com/microsoft/vscode/issues/125451))
+- chore: adopt new terminal icon
 
 ## v1.58 (June 2021)
 

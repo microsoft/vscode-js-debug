@@ -2,7 +2,6 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { IThreadDelegate } from '../../adapter/threads';
 import Cdp from '../../cdp/api';
 import { EventEmitter } from '../../common/events';
 import { ILogger } from '../../common/logging';
@@ -13,7 +12,7 @@ import { ITargetOrigin } from '../targetOrigin';
 import { ITarget } from '../targets';
 import { NodeTarget } from './nodeTarget';
 
-export class NodeWorkerTarget implements ITarget, IThreadDelegate {
+export class NodeWorkerTarget implements ITarget {
   public readonly onNameChanged = new EventEmitter<void>().event;
   private attached = false;
   private isWaitingForDebugger = true;

@@ -15,6 +15,7 @@ import { AnyLaunchConfiguration } from '../configuration';
 import Dap from '../dap/api';
 import * as errors from '../dap/errors';
 import { disposeContainer } from '../ioc-extras';
+import { ITarget } from '../targets/targets';
 import { ITelemetryReporter } from '../telemetry/telemetryReporter';
 import { IAsyncStackPolicy } from './asyncStackPolicy';
 import { BreakpointManager } from './breakpoints';
@@ -31,7 +32,7 @@ import { BasicCpuProfiler } from './profiling/basicCpuProfiler';
 import { ScriptSkipper } from './scriptSkipper/implementation';
 import { IScriptSkipper } from './scriptSkipper/scriptSkipper';
 import { ISourceWithMap, SourceContainer, SourceFromMap } from './sources';
-import { IThreadDelegate, Thread } from './threads';
+import { Thread } from './threads';
 import { VariableStore } from './variables';
 
 const localize = nls.loadMessageBundle();
@@ -304,12 +305,12 @@ export class DebugAdapter implements IDisposable {
     return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
   }
 
-  createThread(cdp: Cdp.Api, delegate: IThreadDelegate): Thread {
+  createThread(cdp: Cdp.Api, target: ITarget): Thread {
     this._thread = new Thread(
       this.sourceContainer,
       cdp,
       this.dap,
-      delegate,
+      target,
       this._services.get(IRenameProvider),
       this._services.get(ILogger),
       this._services.get(IEvaluator),

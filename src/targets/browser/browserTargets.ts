@@ -3,7 +3,6 @@
  *--------------------------------------------------------*/
 
 import { URL } from 'url';
-import { IThreadDelegate } from '../../adapter/threads';
 import Cdp from '../../cdp/api';
 import { EventEmitter } from '../../common/events';
 import { ILogger } from '../../common/logging';
@@ -55,7 +54,7 @@ const stoppableTypes = restartableTypes;
 
 export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
 
-export class BrowserTarget implements ITarget, IThreadDelegate {
+export class BrowserTarget implements ITarget {
   readonly parentTarget: BrowserTarget | undefined;
   private _manager: BrowserTargetManager;
   private _cdp: Cdp.Api;
