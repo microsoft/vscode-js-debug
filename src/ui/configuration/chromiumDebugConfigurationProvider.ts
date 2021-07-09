@@ -8,7 +8,9 @@ import { basename, join } from 'path';
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
 import { DebugType } from '../../common/contributionUtils';
+import { isPortOpen } from '../../common/findOpenPort';
 import { existsWithoutDeref } from '../../common/fsUtils';
+import { some } from '../../common/promiseUtil';
 import {
   AnyChromiumConfiguration,
   AnyChromiumLaunchConfiguration,
@@ -142,7 +144,7 @@ export abstract class ChromiumDebugConfigurationResolver<T extends AnyChromiumCo
     }
 
     // if there's a port configured and something's there, we can connect to it regardless
-    if (cast.port) {
+    if (cast.port && !(await isPortOpen(cast.port))) {
       return config;
     }
 
@@ -154,12 +156,17 @@ export abstract class ChromiumDebugConfigurationResolver<T extends AnyChromiumCo
             cast.runtimeArgs?.includes('--headless') ? '.headless-profile' : '.profile',
           );
 
-    const lockfile =
-      process.platform === 'win32'
-        ? join(userDataDir, 'lockfile')
-        : join(userDataDir, 'SingletonLock');
+    // Warn if there's an existing instance, so we probably can't launch it in debug mode:
+    const platformLock = join(
+      userDataDir,
+      process.platform === 'win32' ? 'lockfile' : 'SingletonLock',
+    );
+    const lockfileExists = await some([
+      existsWithoutDeref(this.fs, platformLock),
+      existsWithoutDeref(this.fs, join(userDataDir, 'code.lock')),
+    ]);
 
-    if (await existsWithoutDeref(this.fs, lockfile)) {
+    if (lockfileExists) {
       const debugAnyway = localize('existingBrowser.debugAnyway', 'Debug Anyway');
       const result = await vscode.window.showErrorMessage(
         localize(
@@ -169,8 +176,8 @@ export abstract class ChromiumDebugConfigurationResolver<T extends AnyChromiumCo
             ? localize('existingBrowser.location.default', 'an old debug session')
             : localize('existingBrowser.location.userDataDir', 'the configured userDataDir'),
         ),
+        { modal: true },
         debugAnyway,
-        localize('cancel', 'Cancel'),
       );
 
       if (result !== debugAnyway) {
