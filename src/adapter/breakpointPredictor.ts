@@ -16,7 +16,7 @@ import { ISearchStrategy } from '../common/sourceMaps/sourceMapRepository';
 import { ISourcePathResolver } from '../common/sourcePathResolver';
 import { getOptimalCompiledPosition } from '../common/sourceUtils';
 import * as urlUtils from '../common/urlUtils';
-import { AnyLaunchConfiguration } from '../configuration';
+import { AnyLaunchConfiguration, PathMapping } from '../configuration';
 import Dap from '../dap/api';
 import { logPerf } from '../telemetry/performance';
 
@@ -26,7 +26,12 @@ export interface IWorkspaceLocation {
   columnNumber: number; // 1-based
 }
 
-type DiscoveredMetadata = ISourceMapMetadata & { sourceUrl: string; resolvedPath: string };
+type DiscoveredMetadata = ISourceMapMetadata & {
+  sourceUrl: string;
+  resolvedPath: string;
+  // is the meta for source map or path map
+  type: 'source' | 'path';
+};
 type MetadataMap = Map<string, Set<DiscoveredMetadata>>;
 
 const longPredictionWarning = 10 * 1000;
@@ -162,6 +167,7 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
   private readonly longParseEmitter = new EventEmitter<void>();
   private sourcePathToCompiled?: Promise<MetadataMap>;
   private cache?: CorrelatedCache<number, { sourceUrl: string; resolvedPath: string }[]>;
+  private readonly pathMapping: PathMapping;
 
   /**
    * Event that fires if it takes a long time to predict sourcemaps.
@@ -182,6 +188,8 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
         path.join(launchConfig.__workspaceCachePath, 'bp-predict.json'),
       );
     }
+
+    this.pathMapping = launchConfig.pathMapping;
   }
 
   private async createInitialMapping(): Promise<MetadataMap> {
@@ -218,8 +226,9 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
     try {
       await this.repo.streamChildrenWithSourcemaps(this.outFiles, async metadata => {
         const cached = await this.cache?.lookup(metadata.compiledPath, metadata.mtime);
+
         if (cached) {
-          cached.forEach(c => addDiscovery({ ...c, ...metadata }));
+          cached.forEach(c => addDiscovery({ ...c, ...metadata, type: 'source' }));
           return;
         }
 
@@ -240,7 +249,12 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
             continue;
           }
 
-          const discovery = { ...metadata, resolvedPath, sourceUrl: url };
+          const discovery: DiscoveredMetadata = {
+            ...metadata,
+            resolvedPath,
+            sourceUrl: url,
+            type: 'source',
+          };
           discovered.push(discovery);
           addDiscovery(discovery);
         }
@@ -253,6 +267,40 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
       });
     } catch (error) {
       this.logger.warn(LogTag.RuntimeException, 'Error reading sourcemaps from disk', { error });
+    }
+
+    // search for files that path mapping affects, and add break point predictions for them
+    // if they don't have source mapping data
+    if (this.pathMapping && Object.keys(this.pathMapping).length > 0) {
+      await this.repo.streamChildrenWithPathMaps(
+        this.pathMapping,
+        async metadata => {
+          const cached = await this.cache?.lookup(metadata.compiledPath, -1);
+          if (cached) {
+            cached.forEach(c => addDiscovery({ ...c, ...metadata, type: 'path' }));
+            return;
+          }
+
+          const sourceMapped = await this.cache?.lookup(metadata.compiledPath);
+
+          // If a file that has sourcemap meta info, then use that for breakpoint prediction, and not
+          // the path map info
+          if (!sourceMapped) {
+            const sourceUrl = path.relative(metadata.compiledPath, metadata.sourceMapUrl);
+            addDiscovery({
+              compiledPath: metadata.compiledPath,
+              resolvedPath: metadata.sourceMapUrl,
+              sourceUrl,
+              sourceMapUrl: '',
+              type: 'path',
+            });
+          }
+        },
+        // search for normal .js files and node's ES6 module .mjs
+        // other extensions like .ts etc should have sourcemap info and should not
+        // be subjected to breakpoint prediction with path maps.
+        '**/*.{js,mjs}',
+      );
     }
 
     clearTimeout(warnLongRuntime);
@@ -288,14 +336,20 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
       return;
     }
 
-    const sourceMaps = await Promise.all(
-      [...set].map(metadata =>
-        this.sourceMapFactory
-          .load(metadata)
-          .then(map => ({ map, metadata }))
-          .catch(() => undefined),
-      ),
-    );
+    const byPathMap = [...set].filter(s => s.type === 'path');
+
+    const bySourceMap = [...set].filter(s => s.type === 'source');
+    const sourceMaps =
+      bySourceMap.length > 0
+        ? await Promise.all(
+            bySourceMap.map(metadata =>
+              this.sourceMapFactory
+                .load(metadata)
+                .then(map => ({ map, metadata }))
+                .catch(() => undefined),
+            ),
+          )
+        : [];
 
     for (const b of params.breakpoints ?? []) {
       const key = `${params.source.path}:${b.line}:${b.column || 1}`;
@@ -305,6 +359,14 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
 
       const locations: IWorkspaceLocation[] = [];
       this.predictedLocations.set(key, locations);
+
+      for (const pathMapMeta of byPathMap) {
+        locations.push({
+          absolutePath: pathMapMeta.compiledPath,
+          lineNumber: b.line,
+          columnNumber: b.column || 1,
+        });
+      }
 
       for (const sourceMapLoad of sourceMaps) {
         if (!sourceMapLoad) {

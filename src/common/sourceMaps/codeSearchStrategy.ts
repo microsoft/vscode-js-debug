@@ -2,14 +2,15 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { injectable } from 'inversify';
 import type * as vscodeType from 'vscode';
-import { LogTag, ILogger } from '../logging';
+import { PathMapping } from '../../configuration';
+import { FileGlobList } from '../fileGlobList';
+import { ILogger, LogTag } from '../logging';
 import { forceForwardSlashes } from '../pathUtils';
 import { NodeSearchStrategy } from './nodeSearchStrategy';
 import { ISourceMapMetadata } from './sourceMap';
 import { createMetadataForFile, ISearchStrategy } from './sourceMapRepository';
-import { injectable } from 'inversify';
-import { FileGlobList } from '../fileGlobList';
 
 /**
  * A source map repository that uses VS Code's proposed search API to
@@ -44,6 +45,37 @@ export class CodeSearchStrategy implements ISearchStrategy {
   ): Promise<T[]> {
     // see https://github.com/microsoft/vscode/issues/101889
     return this.nodeStrategy.streamAllChildren(files, onChild);
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public async streamChildrenWithPathMaps<T>(
+    pathMapping: PathMapping,
+    onChild: (child: Required<ISourceMapMetadata>) => Promise<T>,
+    pattern = '**',
+  ): Promise<T[]> {
+    const todo: Promise<T>[] = [];
+
+    // process pathMapping config
+    const mappedPaths = Object.keys(pathMapping);
+    for (const path of mappedPaths) {
+      const files = await this.vscode.workspace.findFiles(
+        new this.vscode.RelativePattern(path, pattern),
+      );
+      for (const file of files) {
+        const sourceMapUrl = file.path.replace(path, pathMapping[path]);
+        todo.push(
+          onChild({
+            compiledPath: file.path,
+            mtime: -1,
+            sourceMapUrl,
+          }),
+        );
+      }
+    }
+
+    return (await Promise.all(todo)).filter((t): t is T => t !== undefined);
   }
 
   /**

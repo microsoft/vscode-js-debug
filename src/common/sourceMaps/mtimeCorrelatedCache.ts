@@ -3,9 +3,9 @@
  *--------------------------------------------------------*/
 import { mkdirSync } from 'fs';
 import { dirname } from 'path';
-import { debounce } from '../objUtils';
 import { IDisposable } from '../disposable';
 import { readfile, writeFile } from '../fsUtils';
+import { debounce } from '../objUtils';
 
 export class CorrelatedCache<C, V> implements IDisposable {
   private cacheData?: Promise<{ [key: string]: { correlation: C; value: V } }>;
@@ -26,10 +26,12 @@ export class CorrelatedCache<C, V> implements IDisposable {
   /**
    * Gets the value from the map if it exists and the correlation matches.
    */
-  public async lookup(key: string, correlation: C): Promise<V | undefined> {
+  public async lookup(key: string, correlation?: C): Promise<V | undefined> {
     const data = await this.getData();
     const entry = data[key];
-    return entry && entry.correlation === correlation ? entry.value : undefined;
+    return entry && (correlation === undefined || entry.correlation === correlation)
+      ? entry.value
+      : undefined;
   }
 
   /**
