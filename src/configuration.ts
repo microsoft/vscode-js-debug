@@ -213,6 +213,14 @@ export interface IBaseConfiguration extends IMandatedConfiguration {
    * e.g.: "function () { return {...this, extraProperty: 'otherProperty' } }"
    */
   customPropertiesGenerator?: string;
+
+  /**
+   * A mapping of folder paths. In the context of Chrome, these are "path"
+   * portions of the URL to absolute paths on disk. In the context of
+   * Node.js, they are mappings from absolute paths to other absolute paths,
+   * which is useful when debugging hard linked files.
+   */
+  pathMapping: PathMapping;
 }
 
 export interface IExtensionHostBaseConfiguration extends INodeBaseConfiguration {
@@ -426,7 +434,7 @@ export interface INodeLaunchConfiguration extends INodeBaseConfiguration, IConfi
   attachSimplePort: null | number;
 
   /**
-   * Configures how debug process are killed when stopping the sesssion. Can be:
+   * Configures how debug process are killed when stopping the session. Can be:
    *  - forceful (default): forcefully tears down the process tree. Sends
    *    SIGKILL on posix, or `taskkill.exe /F` on Windows.
    *  - polite: gracefully tears down the process tree. It's possible that
@@ -448,12 +456,6 @@ export interface IChromiumBaseConfiguration extends IBaseConfiguration {
    * Controls whether to skip the network cache for each request.
    */
   disableNetworkCache: boolean;
-
-  /**
-   * A mapping of URLs/paths to local folders, to resolve scripts
-   * in Chrome to scripts on disk
-   */
-  pathMapping: PathMapping;
 
   /**
    * This specifies the workspace absolute path to the webserver root. Used to
@@ -816,6 +818,7 @@ export const baseDefaults: IBaseConfiguration = {
   sourceMapPathOverrides: defaultSourceMapPathOverrides('${workspaceFolder}'),
   enableContentValidation: true,
   cascadeTerminateToConfigurations: [],
+  pathMapping: {},
   // Should always be determined upstream;
   __workspaceFolder: '',
   __autoExpandGetters: false,
@@ -897,7 +900,6 @@ export const chromeAttachConfigDefaults: IChromeAttachConfiguration = {
   address: 'localhost',
   port: 0,
   disableNetworkCache: true,
-  pathMapping: {},
   url: null,
   restart: false,
   urlFilter: '',
@@ -1070,6 +1072,10 @@ export function removeOptionalWorkspaceFolderUsages<T extends AnyLaunchConfigura
   if ('resolveSourceMapLocations' in cast) {
     cast.resolveSourceMapLocations =
       cast.resolveSourceMapLocations?.filter(o => !o.includes(token)) ?? null;
+  }
+
+  if ('pathMapping' in cast) {
+    cast.pathMapping = filterValues(cast.pathMapping, v => v.includes(token));
   }
 
   if ('cwd' in cast && cast.cwd?.includes(token)) {
