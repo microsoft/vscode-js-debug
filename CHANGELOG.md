@@ -5,6 +5,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 ## Nightly
 
 - fix: pausing on first line of worker_thread when created with empty env ([ref](https://github.com/microsoft/vscode/issues/125451))
+- fix: exclude electron from chrome attach reload ([#1058](https://github.com/microsoft/vscode-js-debug/issues/1058))
 - chore: adopt new terminal icon
 
 ## v1.58 (June 2021)

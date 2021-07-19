@@ -3,8 +3,8 @@
  *--------------------------------------------------------*/
 
 import { inject, injectable, optional } from 'inversify';
-import { CancellationToken } from 'vscode';
 import type * as vscodeType from 'vscode';
+import { CancellationToken } from 'vscode';
 import * as nls from 'vscode-nls';
 import CdpConnection from '../../cdp/connection';
 import { NeverCancelled } from '../../common/cancellation';
@@ -287,7 +287,8 @@ export class BrowserAttacher<
     }
 
     for (const target of this._targetManager.targetList()) {
-      if (target.type() === BrowserTargetType.Page) {
+      // fix: exclude devtools from reload (#1058)
+      if (target.type() === BrowserTargetType.Page && !target.name().startsWith('devtools://')) {
         target.restart();
       }
     }
