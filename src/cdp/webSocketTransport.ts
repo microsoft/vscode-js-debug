@@ -4,7 +4,7 @@
 
 import type { CancellationToken } from 'vscode';
 import WebSocket from 'ws';
-import { timeoutPromise } from '../common/cancellation';
+import { CancellationTokenSource, timeoutPromise } from '../common/cancellation';
 import { EventEmitter } from '../common/events';
 import { HrTime } from '../common/hrnow';
 import { isLoopback } from '../common/urlUtils';
@@ -28,25 +28,33 @@ export class WebSocketTransport implements ITransport {
     const isSecure = !url.startsWith('ws://');
     const targetAddressIsLoopback = await isLoopback(url);
 
-    const ws = new WebSocket(url, [], {
-      headers: { host: 'localhost' },
-      perMessageDeflate: false,
-      maxPayload: 256 * 1024 * 1024, // 256Mb
-      rejectUnauthorized: !(isSecure && targetAddressIsLoopback),
-      followRedirects: true,
-    });
+    while (true) {
+      try {
+        const ws = new WebSocket(url, [], {
+          headers: { host: 'localhost' },
+          perMessageDeflate: false,
+          maxPayload: 256 * 1024 * 1024, // 256Mb
+          rejectUnauthorized: !(isSecure && targetAddressIsLoopback),
+          followRedirects: true,
+        });
 
-    return timeoutPromise(
-      new Promise<WebSocketTransport>((resolve, reject) => {
-        ws.addEventListener('open', () => resolve(new WebSocketTransport(ws)));
-        ws.addEventListener('error', errorEvent => reject(errorEvent.error)); // Parameter is an ErrorEvent. See https://github.com/websockets/ws/blob/master/doc/ws.md#websocketonerror
-      }),
-      cancellationToken,
-      `Could not open ${url}`,
-    ).catch(err => {
-      ws.close();
-      throw err;
-    });
+        return await timeoutPromise(
+          new Promise<WebSocketTransport>((resolve, reject) => {
+            ws.addEventListener('open', () => resolve(new WebSocketTransport(ws)));
+            ws.addEventListener('error', errorEvent => reject(errorEvent.error)); // Parameter is an ErrorEvent. See https://github.com/websockets/ws/blob/master/doc/ws.md#websocketonerror
+          }),
+          CancellationTokenSource.withTimeout(2000, cancellationToken).token,
+          `Could not open ${url}`,
+        ).catch(err => {
+          ws.close();
+          throw err;
+        });
+      } catch (err) {
+        if (cancellationToken.isCancellationRequested) {
+          throw err;
+        }
+      }
+    }
   }
 
   constructor(ws: WebSocket) {
