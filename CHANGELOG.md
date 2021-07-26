@@ -4,6 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly
 
+- feat: support $returnValue in conditional breakpoints ([ref](https://github.com/microsoft/vscode/issues/129328))
 - fix: pausing on first line of worker_thread when created with empty env ([ref](https://github.com/microsoft/vscode/issues/125451))
 - fix: exclude electron from chrome attach reload ([#1058](https://github.com/microsoft/vscode-js-debug/issues/1058))
 - fix: retry websocket connections instead of waiting for timeout
