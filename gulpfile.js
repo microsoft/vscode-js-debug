@@ -312,9 +312,15 @@ gulp.task('package:copy-extension-files', () =>
   ).pipe(gulp.dest(distDir)),
 );
 
+const vsceUrls = {
+  baseContentUrl: 'https://github.com/microsoft/vscode-js-debug/blob/main',
+  baseImagesUrl: 'https://github.com/microsoft/vscode-js-debug/raw/main',
+};
+
 /** Create a VSIX package using the vsce command line tool */
 gulp.task('package:createVSIX', () =>
   vsce.createVSIX({
+    ...vsceUrls,
     cwd: distDir,
     useYarn: true,
     packagePath: path.join(distDir, `${extensionName}.vsix`),
@@ -420,6 +426,7 @@ gulp.task(
 /** Publishes the build extension to the marketplace */
 gulp.task('publish:vsce', () =>
   vsce.publish({
+    ...vsceUrls,
     noVerify: true, // for proposed API usage
     pat: process.env.MARKETPLACE_TOKEN,
     useYarn: true,
