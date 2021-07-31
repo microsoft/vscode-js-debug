@@ -1,17 +1,18 @@
 <h1>
-  <img alt="vscode-js-debug" src="resources/readme/logo-with-text.png" width="500">
-  <br>
-  <a href="https://marketplace.visualstudio.com/items?itemName=ms-vscode.js-debug-nightly" alt="Click to visit marketplace">
-    <img src="https://vsmarketplacebadge.apphb.com/version-short/ms-vscode.js-debug-nightly.svg">
-    <img src="https://vsmarketplacebadge.apphb.com/rating-star/ms-vscode.js-debug-nightly.svg">
+  <img alt="vscode-js-debug" src="resources/readme/logo-with-text.png" width="300">
+  <a>
+  <h1>
+  <ref="https://marketplace.visualstudio.com/items?itemName=ms-vscode.js-debug-nightly" alt="Click to visit marketplace"/ref h1>
+    <img src="https://vsmarketplacebadge.apphb.com/version-short/ms-vscode.js-debug-nightly.svg"/img>
+    <img src="https://vsmarketplacebadge.apphb.com/rating-star/ms-vscode.js-debug-nightly.svg"/img>
   </a>
-</h1>
+  </h1>
 
 This is a [DAP](https://microsoft.github.io/debug-adapter-protocol/)-based JavaScript debugger. It debugs Node.js, Chrome, Edge, WebView2, VS Code extensions, and more. It has been the default JavaScript debugger in Visual Studio Code since 1.46, and is gradually rolling out in Visual Studio proper.
 
 ### Nightly Extension
 
-The shipped version of VS Code includes the js-debug version at the time of its release, however you may want to install our nightly build to get the latest fixes and features. The nightly build runs at 5PM PST on each day that there are changes ([see pipeline](https://dev.azure.com/vscode/VS%20Code%20debug%20adapters/_build?definitionId=28)). To get the build:
+The shipped version of VS Code includes the js-debug version at the time of its release, however you may want to install our nightly build to get the latest fixes and features. The nightly build runs at 5PM PST on each day that there are changes [see pipeline](https://dev.azure.com/vscode/VS%20Code%20debug%20adapters/_build?definitionId=28)). To get the build:
 
 1. Open the extensions view (ctrl+shift+x) and search for `@builtin @id:ms-vscode.js-debug`
 2. Right click on the `JavaScript Debugger` extension and `Disable` it.
