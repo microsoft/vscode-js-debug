@@ -2,9 +2,9 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { IProcess } from './processTree';
-import { BaseProcessTree } from './baseProcessTree';
 import { join } from 'path';
+import { BaseProcessTree } from './baseProcessTree';
+import { IProcess } from './processTree';
 
 export class WindowsProcessTree extends BaseProcessTree {
   /**

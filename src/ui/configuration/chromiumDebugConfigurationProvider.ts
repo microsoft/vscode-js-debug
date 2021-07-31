@@ -161,9 +161,9 @@ export abstract class ChromiumDebugConfigurationResolver<T extends AnyChromiumCo
       userDataDir,
       process.platform === 'win32' ? 'lockfile' : 'SingletonLock',
     );
-    const lockfileExists = await some([
+    const lockfileExists = await some<unknown>([
       existsWithoutDeref(this.fs, platformLock),
-      existsWithoutDeref(this.fs, join(userDataDir, 'code.lock')),
+      this.isVsCodeLocked(join(userDataDir, 'code.lock')),
     ]);
 
     if (lockfileExists) {
@@ -186,6 +186,16 @@ export abstract class ChromiumDebugConfigurationResolver<T extends AnyChromiumCo
     }
 
     return { ...config, userDataDir };
+  }
+
+  private async isVsCodeLocked(filepath: string) {
+    try {
+      const pid = Number(await this.fs.readFile(filepath, 'utf-8'));
+      process.kill(pid, 0); // throws if the process does not exist
+      return true;
+    } catch {
+      return false;
+    }
   }
 }
 

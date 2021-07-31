@@ -2,11 +2,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { WindowsProcessTree } from './windowsProcessTree';
+import { promises as fsPromises } from 'fs';
+import { LocalFsUtils } from '../../common/fsUtils';
 import { DarwinProcessTree } from './darwinProcessTree';
 import { PosixProcessTree } from './posixProcessTree';
-import { LocalFsUtils } from '../../common/fsUtils';
-import { promises as fsPromises } from 'fs';
+import { WindowsProcessTree } from './windowsProcessTree';
 
 /**
  * IProcess is parsed from the {@link IProcessTree}

@@ -2,8 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { IProcess } from './processTree';
 import { DarwinProcessTree } from './darwinProcessTree';
+import { IProcess } from './processTree';
 
 export class PosixProcessTree extends DarwinProcessTree {
   /**
