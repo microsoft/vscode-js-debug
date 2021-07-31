@@ -1,9 +1,9 @@
 <h1>
-  <img alt="vscode-js-debug" src="resources/readme/logo-with-text.png" width="500">
+  <imgalt="vscode-js-debug" src="resources/readme/logo-with-text.png" width="500">
   <br>
-  <a href="https://marketplace.visualstudio.com/items?itemName=ms-vscode.js-debug-nightly" alt="Click to visit marketplace">
-    <img src="https://vsmarketplacebadge.apphb.com/version-short/ms-vscode.js-debug-nightly.svg">
-    <img src="https://vsmarketplacebadge.apphb.com/rating-star/ms-vscode.js-debug-nightly.svg">
+  <alt="https://marketplace.visualstudio.com/items?itemName=ms-vscode.js-debug-nightly" alt="Click to visit marketplace">
+  <img src="https://vsmarketplacebadge.apphb.com/version-short/ms-vscode.js-debug-nightly.svg">
+  <img src="https://vsmarketplacebadge.apphb.com/rating-star/ms-vscode.js-debug-nightly.svg">
   </a>
 </h1>
 
