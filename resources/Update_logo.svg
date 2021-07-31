@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<xml version="1.0" encoding="UTF-8" standalone="yes"/xml>
 <svg
    xmlns:dc="http://purl.org/dc/elements/1.1/"
    xmlns:cc="http://creativecommons.org/ns#"
@@ -10,24 +10,24 @@
    viewBox="0 0 52.916665 52.916668"
    height="200"
    width="200">
-  <defs
-     id="defs2" />
-  <metadata
-     id="metadata5">
+  <defs>
+     <id="defs2"/svg>
+  <metadata>
+     <id="metadata5">
     <rdf:RDF>
-      <cc:Work
-         rdf:about="">
+      <cc:Work>
+         <rdf:about=/""/*>
         <dc:format>image/svg+xml</dc:format>
-        <dc:type
+        <dc:type>
            rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
         <dc:title></dc:title>
       </cc:Work>
     </rdf:RDF>
   </metadata>
-  <g
-     transform="translate(0,-244.08332)"
-     id="layer1">
-    <rect
+  <g>
+     <transform="translate(0,-244.08332)">
+     <id="layer1">
+    <rect>
        style="stroke-width:0.32142162;fill:#f7df1e;fill-opacity:1"
        y="244.08331"
        x="-2.220446e-16"
