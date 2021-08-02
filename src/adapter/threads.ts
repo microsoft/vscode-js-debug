@@ -1120,7 +1120,7 @@ export class Thread implements IVariableStoreDelegate {
 
       // see https://github.com/microsoft/vscode/issues/103027
       const runtimeScriptOffset = event.url.endsWith('#vscode-extension')
-        ? { lineOffset: 2, columnOffset: 0 }
+        ? { lineOffset: 1, columnOffset: 0 }
         : undefined;
 
       let resolvedSourceMapUrl: string | undefined;
