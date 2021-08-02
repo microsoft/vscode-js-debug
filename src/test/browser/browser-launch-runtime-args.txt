@@ -1,5 +1,10 @@
 > result: (2) [678, 456]
     0: 678
     1: 456
+    > [[Prototype]]: Object
+    > __proto__ (get): ƒ __proto__()
+    > __proto__ (set): ƒ __proto__()
     length: 2
-    > __proto__: Array(0)
+    > [[Prototype]]: Array(0)
+    > __proto__ (get): ƒ __proto__()
+    > __proto__ (set): ƒ __proto__()
