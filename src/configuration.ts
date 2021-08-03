@@ -926,7 +926,7 @@ export const chromeLaunchConfigDefaults: IChromeLaunchConfiguration = {
   urlFilter: '*',
   includeDefaultArgs: true,
   runtimeArgs: null,
-  runtimeExecutable: 'stable',
+  runtimeExecutable: '*',
   userDataDir: true,
   browserLaunchLocation: 'workspace',
   profileStartup: false,

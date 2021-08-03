@@ -8,7 +8,7 @@ import { createServer } from 'net';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { CancellationToken } from 'vscode';
-import { IBrowserFinder, isQuality } from 'vscode-js-debug-browsers';
+import { IBrowserFinder } from 'vscode-js-debug-browsers';
 import CdpConnection from '../../cdp/connection';
 import { WebSocketTransport } from '../../cdp/webSocketTransport';
 import { NeverCancelled } from '../../common/cancellation';
@@ -154,15 +154,7 @@ export class EdgeLauncher extends BrowserLauncher<IEdgeLaunchConfiguration> {
    * @inheritdoc
    */
   protected async findBrowserPath(executablePath: string): Promise<string> {
-    let resolvedPath: string | undefined;
-
-    if (isQuality(executablePath)) {
-      const found = await this.browserFinder.findWhere(r => r.quality === executablePath);
-      resolvedPath = found?.path;
-    } else {
-      resolvedPath = executablePath;
-    }
-
+    const resolvedPath = await this.findBrowserByExe(this.browserFinder, executablePath);
     if (!resolvedPath || !(await canAccess(this.fs, resolvedPath))) {
       throw new ProtocolError(
         browserNotFound(

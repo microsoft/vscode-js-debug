@@ -1418,13 +1418,15 @@ if (require.main === module) {
           description: refString('workspaceTrust.description'),
         },
       },
-      activationEvents: [
-        ...[...allCommands].map(cmd => `onCommand:${cmd}`),
-        ...[...debuggers.map(dbg => dbg.type), ...preferredDebugTypes.keys()].map(
-          t => `onDebugResolve:${t}`,
-        ),
-        `onWebviewPanel:${Contributions.DiagnosticsView}`,
-      ],
+      activationEvents: Array.from(
+        new Set([
+          ...[...allCommands].map(cmd => `onCommand:${cmd}`),
+          ...[...debuggers.map(dbg => dbg.type), ...preferredDebugTypes.values()].map(
+            t => `onDebugResolve:${t}`,
+          ),
+          `onWebviewPanel:${Contributions.DiagnosticsView}`,
+        ]),
+      ),
       contributes: {
         menus,
         breakpoints: breakpointLanguages.map(language => ({ language })),

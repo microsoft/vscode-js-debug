@@ -167,11 +167,10 @@ export const browserNotFound = (
   available: ReadonlyArray<string>,
 ) =>
   createUserError(
-    requested === 'stable' && !available.length
+    requested === '*' && !available.length
       ? localize(
           'noBrowserInstallFound',
-          'Unable to find a {0} installation on your system. Try installing it, or providing an absolute path to the browser in the "runtimeExecutable" in your launch.json.',
-          browserType,
+          'Unable to find an installation of the browser on your system. Try installing it, or providing an absolute path to the browser in the "runtimeExecutable" in your launch.json.',
         )
       : localize(
           'browserVersionNotFound',

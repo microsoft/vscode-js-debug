@@ -2,18 +2,18 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { inject, injectable, tagged } from 'inversify';
+import { IBrowserFinder } from 'vscode-js-debug-browsers';
 import { DebugType } from '../../common/contributionUtils';
-import { IChromeLaunchConfiguration, AnyLaunchConfiguration } from '../../configuration';
-import { injectable, inject, tagged } from 'inversify';
-import { BrowserLauncher } from './browserLauncher';
-import { StoragePath, FS, FsPromises, BrowserFinder, IInitializeParams } from '../../ioc-extras';
-import { ILogger } from '../../common/logging';
 import { canAccess } from '../../common/fsUtils';
+import { ILogger } from '../../common/logging';
+import { ISourcePathResolver } from '../../common/sourcePathResolver';
+import { AnyLaunchConfiguration, IChromeLaunchConfiguration } from '../../configuration';
+import Dap from '../../dap/api';
 import { browserNotFound } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
-import { IBrowserFinder, isQuality } from 'vscode-js-debug-browsers';
-import { ISourcePathResolver } from '../../common/sourcePathResolver';
-import Dap from '../../dap/api';
+import { BrowserFinder, FS, FsPromises, IInitializeParams, StoragePath } from '../../ioc-extras';
+import { BrowserLauncher } from './browserLauncher';
 
 @injectable()
 export class ChromeLauncher extends BrowserLauncher<IChromeLaunchConfiguration> {
@@ -46,15 +46,7 @@ export class ChromeLauncher extends BrowserLauncher<IChromeLaunchConfiguration> 
    * @inheritdoc
    */
   protected async findBrowserPath(executablePath: string): Promise<string> {
-    let resolvedPath: string | undefined;
-
-    if (isQuality(executablePath)) {
-      const found = await this.browserFinder.findWhere(r => r.quality === executablePath);
-      resolvedPath = found?.path;
-    } else {
-      resolvedPath = executablePath;
-    }
-
+    const resolvedPath = await this.findBrowserByExe(this.browserFinder, executablePath);
     if (!resolvedPath || !(await canAccess(this.fs, resolvedPath))) {
       throw new ProtocolError(
         browserNotFound(
