@@ -4,7 +4,13 @@
 
 import { tmpdir } from 'os';
 import * as vscode from 'vscode';
-import { allDebugTypes, Commands, registerCommand } from './common/contributionUtils';
+import {
+  allDebugTypes,
+  Commands,
+  DebugType,
+  preferredDebugTypes,
+  registerCommand,
+} from './common/contributionUtils';
 import { extensionId } from './configuration';
 import { createGlobalContainer } from './ioc';
 import { IExtensionContribution } from './ioc-extras';
@@ -45,28 +51,27 @@ export function activate(context: vscode.ExtensionContext) {
     registerCommand(vscode.commands, Commands.ToggleSkipping, toggleSkippingFile),
   );
 
-  context.subscriptions.push(
-    ...services
-      .getAll<IDebugConfigurationResolver>(IDebugConfigurationResolver)
-      .map(provider =>
-        vscode.debug.registerDebugConfigurationProvider(
-          provider.type,
-          provider as vscode.DebugConfigurationProvider,
-        ),
-      ),
+  const debugResolvers = services.getAll<IDebugConfigurationResolver>(IDebugConfigurationResolver);
+  for (const resolver of debugResolvers) {
+    const cast = resolver as vscode.DebugConfigurationProvider;
+    context.subscriptions.push(
+      vscode.debug.registerDebugConfigurationProvider(resolver.type, cast),
+    );
 
-    ...services
-      .getAll<IDebugConfigurationProvider>(IDebugConfigurationProvider)
-      .map(provider =>
-        vscode.debug.registerDebugConfigurationProvider(
-          provider.type,
-          provider as vscode.DebugConfigurationProvider,
-          vscode.DebugConfigurationProviderTriggerKind !== undefined
-            ? provider.triggerKind
-            : undefined,
-        ),
-      ),
-  );
+    const preferred = preferredDebugTypes.get(resolver.type as DebugType);
+    if (preferred) {
+      context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider(preferred, cast));
+    }
+  }
+
+  const debugProviders = services.getAll<IDebugConfigurationProvider>(IDebugConfigurationProvider);
+  for (const provider of debugProviders) {
+    vscode.debug.registerDebugConfigurationProvider(
+      provider.type,
+      provider as vscode.DebugConfigurationProvider,
+      vscode.DebugConfigurationProviderTriggerKind !== undefined ? provider.triggerKind : undefined,
+    );
+  }
 
   const sessionManager = new VSCodeSessionManager(services);
   context.subscriptions.push(

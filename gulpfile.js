@@ -8,7 +8,6 @@ const gulp = require('gulp');
 const minimist = require('minimist');
 const nls = require('vscode-nls-dev');
 const path = require('path');
-const replace = require('gulp-replace');
 const sourcemaps = require('gulp-sourcemaps');
 const tsb = require('gulp-tsb');
 const rename = require('gulp-rename');
@@ -38,13 +37,6 @@ const buildSrcDir = `${buildDir}/src`;
 const distDir = 'dist';
 const distSrcDir = `${distDir}/src`;
 const nodeTargetsDir = `targets/node`;
-
-/**
- * If --drop-in is set, commands and debug types will be set to 'chrome' and
- * 'node', rendering them incompatible with the base debuggers. Useful
- * to only set this to true to publish, and develop as namespaced extensions.
- */
-const namespace = process.argv.includes('--drop-in') ? '' : 'pwa-';
 
 /**
  * Whether we're running a nightly build.
@@ -86,7 +78,6 @@ async function readJson(file) {
   return JSON.parse(contents);
 }
 
-const replaceNamespace = () => replace(/NAMESPACE\((.*?)\)/g, `${namespace}$1`);
 const tsProject = tsb.create('./tsconfig.json');
 
 gulp.task('clean-assertions', () => del(['src/test/**/*.txt.actual']));
@@ -99,7 +90,6 @@ gulp.task('compile:ts', () =>
   tsProject
     .src()
     .pipe(sourcemaps.init())
-    .pipe(replaceNamespace())
     .pipe(tsProject())
     .pipe(
       sourcemaps.write('.', {
@@ -162,7 +152,7 @@ gulp.task('compile:dynamic', async () => {
 
 gulp.task('compile:static', () =>
   merge(
-    gulp.src(['LICENSE', 'package.json']).pipe(replaceNamespace()),
+    gulp.src(['LICENSE', 'package.json']),
     gulp.src(['resources/**/*', 'README.md', 'src/**/*.sh'], { base: '.' }),
   ).pipe(gulp.dest(buildDir)),
 );
