@@ -43,7 +43,9 @@ export abstract class BaseConfigurationResolver<T extends AnyLaunchConfiguration
     config: vscode.DebugConfiguration,
     token?: vscode.CancellationToken,
   ): Promise<T | null | undefined> {
-    config.type = this.getType(); // ensure type is set for aliased configurations
+    if (config.type) {
+      config.type = this.getType(); // ensure type is set for aliased configurations
+    }
 
     if ('__pendingTargetId' in config) {
       return config as T;
