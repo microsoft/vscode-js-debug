@@ -1076,6 +1076,10 @@ export function removeOptionalWorkspaceFolderUsages<T extends AnyLaunchConfigura
     cast.cwd = undefined;
   }
 
+  if ('webRoot' in cast && cast.webRoot?.includes(token)) {
+    cast.webRoot = '/';
+  }
+
   return cast as T;
 }
 

@@ -5,6 +5,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 ## Nightly Only
 
 - fix: fall back to any installed browser version if stable is not available ([ref](https://github.com/microsoft/vscode/issues/129013))
+- fix: workspaceFolder error in workspace launch configs ([ref](https://github.com/microsoft/vscode/issues/128922))
 
 ## v1.60 (August 2021)
 
