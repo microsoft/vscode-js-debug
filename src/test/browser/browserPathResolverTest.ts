@@ -99,9 +99,6 @@ describe('browserPathResolver.urlToAbsolutePath', () => {
           streamChildrenWithSourcemaps() {
             return Promise.resolve([]);
           },
-          streamChildrenWithPathMaps() {
-            return Promise.resolve([]);
-          },
           streamAllChildren(_files, onChild) {
             return Promise.all([
               onChild(path.join(testFixturesDir, 'web', 'a.vue')),

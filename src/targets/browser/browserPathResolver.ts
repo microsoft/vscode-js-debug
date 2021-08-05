@@ -8,17 +8,14 @@ import { URL } from 'url';
 import { IVueFileMapper, VueHandling } from '../../adapter/vueFileMapper';
 import { IFsUtils } from '../../common/fsUtils';
 import { ILogger } from '../../common/logging';
-import {
-  fixDriveLetterAndSlashes,
-  isSubdirectoryOf,
-  properRelative,
-  properResolve,
-} from '../../common/pathUtils';
+import { reverseObject } from '../../common/objUtils';
+import { fixDriveLetterAndSlashes, properRelative, properResolve } from '../../common/pathUtils';
 import { SourceMap } from '../../common/sourceMaps/sourceMap';
 import {
-  defaultPathMappingResolver,
+  diskToUrlPathMappingResolver,
   getComputedSourceRoot,
   getFullSourceEntry,
+  urlToDiskPathMappingResolver,
 } from '../../common/sourceMaps/sourceMapResolutionUtils';
 import { IUrlResolution } from '../../common/sourcePathResolver';
 import * as utils from '../../common/urlUtils';
@@ -38,6 +35,11 @@ const enum Suffix {
 
 @injectable()
 export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> {
+  private readonly pathmapRemoteToLocal = urlToDiskPathMappingResolver(this.options.pathMapping);
+  private readonly pathmapLocalToRemote = diskToUrlPathMappingResolver(
+    reverseObject(this.options.pathMapping),
+  );
+
   constructor(
     @inject(IVueFileMapper) private readonly vueMapper: IVueFileMapper,
     @inject(IFsUtils) private readonly fsUtils: IFsUtils,
@@ -49,22 +51,17 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
 
   absolutePathToUrl(absolutePath: string): string | undefined {
     absolutePath = path.normalize(absolutePath);
-    const { baseUrl, pathMapping } = this.options;
+    const { baseUrl } = this.options;
     if (!baseUrl) {
       return utils.absolutePathToFileUrl(absolutePath);
     }
 
-    const defaultMapping = ['/', pathMapping['/']] as const;
-    const bestMatch =
-      Object.entries(pathMapping)
-        .sort(([, directoryA], [, directoryB]) => directoryB.length - directoryA.length)
-        .find(([, directory]) => isSubdirectoryOf(directory, absolutePath)) || defaultMapping;
-    if (!bestMatch) {
-      return utils.absolutePathToFileUrl(absolutePath);
-    }
-
-    let urlPath = utils.platformPathToUrlPath(path.relative(bestMatch[1], absolutePath));
-    const urlPrefix = bestMatch[0].replace(/\/$|^\//g, '');
+    const bestMatch = this.pathmapLocalToRemote(absolutePath) || {
+      pattern: this.options.pathMapping['/'],
+      match: '/',
+    };
+    let urlPath = utils.platformPathToUrlPath(path.relative(bestMatch.pattern, absolutePath));
+    const urlPrefix = bestMatch.match.replace(/\/$|^\//g, '');
     if (urlPrefix) {
       urlPath = urlPrefix + '/' + urlPath;
     }
@@ -125,11 +122,7 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
       .split(/[\/\\]/);
     while (pathParts.length > 0) {
       const joinedPath = '/' + pathParts.join('/');
-      const clientPath = await defaultPathMappingResolver(
-        joinedPath,
-        this.options.pathMapping,
-        this.logger,
-      );
+      const clientPath = this.pathmapRemoteToLocal(joinedPath)?.mapped;
       if (clientPath) {
         if (!extname && (await this.fsUtils.exists(clientPath + Suffix.Html))) {
           return clientPath + Suffix.Html;
@@ -194,8 +187,7 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
         await getComputedSourceRoot(
           map.sourceRoot,
           map.metadata.compiledPath,
-          pathMapping,
-          defaultPathMappingResolver,
+          this.pathmapRemoteToLocal,
           this.logger,
         ),
         url,

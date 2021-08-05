@@ -61,6 +61,28 @@ export function mapValues<T, R>(
 }
 
 /**
+ * Maps the object keys and values.
+ */
+export function mapKeyValue<T, R>(
+  obj: Readonly<{ [key: string]: T }>,
+  generator: (key: string, value: T) => [string, R],
+): { [key: string]: R } {
+  const next: { [key: string]: R } = {};
+  for (const key of Object.keys(obj)) {
+    const [mappedKey, mappedValue] = generator(key, obj[key]);
+    next[mappedKey] = mappedValue;
+  }
+
+  return next;
+}
+
+/**
+ * Reverses the keys and values in the string object.
+ */
+export const reverseObject = (obj: Readonly<{ [key: string]: string }>) =>
+  mapKeyValue(obj, (k, v) => [v, k]);
+
+/**
  * Maps the object keys.
  */
 export function mapKeys<T>(

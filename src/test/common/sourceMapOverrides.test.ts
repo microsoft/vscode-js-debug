@@ -7,8 +7,8 @@ import * as path from 'path';
 import { Logger } from '../../common/logging/logger';
 import { fixDriveLetter } from '../../common/pathUtils';
 import {
-  defaultPathMappingResolver,
   getComputedSourceRoot,
+  urlToDiskPathMappingResolver,
 } from '../../common/sourceMaps/sourceMapResolutionUtils';
 
 describe('SourceMapOverrides', () => {
@@ -25,8 +25,7 @@ describe('SourceMapOverrides', () => {
         await getComputedSourceRoot(
           'file:///' + ABS_SOURCEROOT,
           genPath,
-          PATH_MAPPING,
-          defaultPathMappingResolver,
+          urlToDiskPathMappingResolver(PATH_MAPPING),
           Logger.null,
         ),
       ).to.equal(ABS_SOURCEROOT);
@@ -37,8 +36,7 @@ describe('SourceMapOverrides', () => {
         await getComputedSourceRoot(
           '/src',
           genPath,
-          PATH_MAPPING,
-          defaultPathMappingResolver,
+          urlToDiskPathMappingResolver(PATH_MAPPING),
           Logger.null,
         ),
       ).to.equal(resolve('/project/webroot/src'));
@@ -49,8 +47,7 @@ describe('SourceMapOverrides', () => {
         await getComputedSourceRoot(
           '/foo/bar',
           genPath,
-          {},
-          defaultPathMappingResolver,
+          urlToDiskPathMappingResolver({}),
           Logger.null,
         ),
       ).to.equal('/foo/bar');
@@ -61,8 +58,7 @@ describe('SourceMapOverrides', () => {
         await getComputedSourceRoot(
           'c:\\foo\\bar',
           genPath,
-          {},
-          defaultPathMappingResolver,
+          urlToDiskPathMappingResolver({}),
           Logger.null,
         ),
       ).to.equal('c:\\foo\\bar');
@@ -73,8 +69,7 @@ describe('SourceMapOverrides', () => {
         await getComputedSourceRoot(
           '../../src',
           genPath,
-          PATH_MAPPING,
-          defaultPathMappingResolver,
+          urlToDiskPathMappingResolver(PATH_MAPPING),
           Logger.null,
         ),
       ).to.equal(ABS_SOURCEROOT);
@@ -85,8 +80,7 @@ describe('SourceMapOverrides', () => {
         await getComputedSourceRoot(
           'src',
           genPath,
-          PATH_MAPPING,
-          defaultPathMappingResolver,
+          urlToDiskPathMappingResolver(PATH_MAPPING),
           Logger.null,
         ),
       ).to.equal(resolve('/project/webroot/code/src'));
@@ -97,8 +91,7 @@ describe('SourceMapOverrides', () => {
         await getComputedSourceRoot(
           '../src',
           GEN_URL,
-          PATH_MAPPING,
-          defaultPathMappingResolver,
+          urlToDiskPathMappingResolver(PATH_MAPPING),
           Logger.null,
         ),
       ).to.equal(resolve('/project/webroot/src'));
@@ -109,8 +102,7 @@ describe('SourceMapOverrides', () => {
         await getComputedSourceRoot(
           '',
           genPath,
-          PATH_MAPPING,
-          defaultPathMappingResolver,
+          urlToDiskPathMappingResolver(PATH_MAPPING),
           Logger.null,
         ),
       ).to.equal(resolve('/project/webroot/code'));
@@ -121,8 +113,7 @@ describe('SourceMapOverrides', () => {
         await getComputedSourceRoot(
           '',
           GEN_URL,
-          PATH_MAPPING,
-          defaultPathMappingResolver,
+          urlToDiskPathMappingResolver(PATH_MAPPING),
           Logger.null,
         ),
       ).to.equal(resolve('/project/webroot/code'));
@@ -133,8 +124,7 @@ describe('SourceMapOverrides', () => {
         await getComputedSourceRoot(
           '',
           'eval://123',
-          PATH_MAPPING,
-          defaultPathMappingResolver,
+          urlToDiskPathMappingResolver(PATH_MAPPING),
           Logger.null,
         ),
       ).to.equal(resolve(WEBROOT));

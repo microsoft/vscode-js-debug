@@ -7,8 +7,13 @@ import { promises as fsPromises } from 'fs';
 import { join, resolve } from 'path';
 import { LocalFsUtils } from '../../common/fsUtils';
 import { Logger } from '../../common/logging/logger';
-import { resetCaseSensitivePaths, setCaseSensitivePaths } from '../../common/urlUtils';
+import {
+  absolutePathToFileUrl,
+  resetCaseSensitivePaths,
+  setCaseSensitivePaths,
+} from '../../common/urlUtils';
 import { NodeSourcePathResolver } from '../../targets/node/nodeSourcePathResolver';
+import { testWorkspace } from '../test';
 
 const fsUtils = new LocalFsUtils(fsPromises);
 
@@ -97,6 +102,11 @@ describe('node source path resolver', () => {
     });
 
     it('applies pathMapping option', async () => {
+      const src = join(testWorkspace, 'src');
+      const src2 = join(testWorkspace, 'src2');
+      const lib = join(testWorkspace, 'lib');
+      const lib2 = join(testWorkspace, 'lib2');
+
       const r = new NodeSourcePathResolver(
         {
           realPath: fsUtils.realPath,
@@ -107,22 +117,25 @@ describe('node source path resolver', () => {
         {
           ...defaultOptions,
           pathMapping: {
-            '/src': '/lib',
+            [src]: lib,
+            [src2]: lib2,
           },
         },
         Logger.null,
       );
 
-      expect(await r.urlToAbsolutePath({ url: 'file:///src/index.js' })).to.equal('/lib/index.js');
-      expect(await r.urlToAbsolutePath({ url: 'file:///src/not-exist.js' })).to.equal(
-        '/src/not-exist.js',
-      );
-      expect(await r.urlToAbsolutePath({ url: 'file:///src2/index.js' })).to.equal(
-        '/src2/index.js',
-      );
-      expect(await r.urlToAbsolutePath({ url: 'file:///test/src/index.js' })).to.equal(
-        '/test/src/index.js',
-      );
+      expect(
+        await r.urlToAbsolutePath({ url: absolutePathToFileUrl(join(src, 'index.js')) }),
+      ).to.equal(join(lib, 'index.js'));
+      expect(
+        await r.urlToAbsolutePath({ url: absolutePathToFileUrl(join(src2, 'index.js')) }),
+      ).to.equal(join(lib2, 'index.js'));
+      expect(
+        await r.urlToAbsolutePath({ url: absolutePathToFileUrl(join(testWorkspace, 'index.js')) }),
+      ).to.equal(join(testWorkspace, 'index.js'));
+      expect(
+        await r.urlToAbsolutePath({ url: absolutePathToFileUrl(join(src, 'nested', 'index.js')) }),
+      ).to.equal(join(lib, 'nested', 'index.js'));
     });
 
     describe('source map filtering', () => {

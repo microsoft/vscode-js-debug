@@ -2,7 +2,6 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { PathMapping } from '../../configuration';
 import { FileGlobList } from '../fileGlobList';
 import { readfile, stat } from '../fsUtils';
 import { parseSourceMappingUrl } from '../sourceUtils';
@@ -28,17 +27,6 @@ export interface ISearchStrategy {
   streamChildrenWithSourcemaps<T>(
     files: FileGlobList,
     onChild: (child: Required<ISourceMapMetadata>) => T | Promise<T>,
-  ): Promise<T[]>;
-
-  /**
-   * Recursively finds all children that match the pathMap setting, calling
-   * `onChild` when children are found and returning promise that resolves
-   * once all children have been discovered.
-   */
-  streamChildrenWithPathMaps<T>(
-    pathMapping: PathMapping,
-    onChild: (child: Required<ISourceMapMetadata>) => T | Promise<T>,
-    pattern?: string,
   ): Promise<T[]>;
 
   /**

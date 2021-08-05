@@ -2,12 +2,12 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { IDisposable } from '../events';
 import { injectable } from 'inversify';
 import * as os from 'os';
-import { ILogger, ILogItem, ILogSink, ILoggerSetupOptions, LogLevel, LogTag, allLogTags } from '.';
-import { TestLogSink } from './testLogSink';
+import { allLogTags, ILogger, ILoggerSetupOptions, ILogItem, ILogSink, LogLevel, LogTag } from '.';
 import { packageName, packageVersion } from '../../configuration';
+import { IDisposable } from '../events';
+import { TestLogSink } from './testLogSink';
 
 /**
  * Implementation of ILogger for the extension.

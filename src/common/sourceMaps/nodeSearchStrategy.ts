@@ -2,14 +2,14 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import globStream from 'glob-stream';
-import { inject, injectable } from 'inversify';
-import { PathMapping } from '../../configuration';
-import { FileGlobList } from '../fileGlobList';
-import { ILogger, LogTag } from '../logging';
-import { fixDriveLetterAndSlashes, forceForwardSlashes } from '../pathUtils';
 import { ISourceMapMetadata } from './sourceMap';
-import { createMetadataForFile, ISearchStrategy } from './sourceMapRepository';
+import { ISearchStrategy, createMetadataForFile } from './sourceMapRepository';
+import globStream from 'glob-stream';
+import { LogTag, ILogger } from '../logging';
+import { forceForwardSlashes, fixDriveLetterAndSlashes } from '../pathUtils';
+import { injectable, inject } from 'inversify';
+import { FileGlobList } from '../fileGlobList';
+
 /**
  * A source map repository that uses globbing to find candidate files.
  */
@@ -36,16 +36,6 @@ export class NodeSearchStrategy implements ISearchStrategy {
     );
 
     return (await Promise.all(todo)).filter((t): t is T => t !== undefined);
-  }
-
-  /**
-   * @inheritdoc
-   */
-  public async streamChildrenWithPathMaps<T>(
-    _pathMapping: PathMapping,
-    _onChild: (child: Required<ISourceMapMetadata>) => T | Promise<T>,
-  ): Promise<T[]> {
-    return Promise.resolve([]);
   }
 
   /**

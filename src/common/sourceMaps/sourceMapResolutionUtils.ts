@@ -10,7 +10,13 @@ import { PathMapping } from '../../configuration';
 import { IFsUtils } from '../fsUtils';
 import { ILogger, LogTag } from '../logging';
 import { filterObject } from '../objUtils';
-import { fixDriveLetterAndSlashes, properJoin, properResolve } from '../pathUtils';
+import {
+  fixDriveLetter,
+  fixDriveLetterAndSlashes,
+  forceForwardSlashes,
+  properJoin,
+  properResolve,
+} from '../pathUtils';
 
 export function getFullSourceEntry(sourceRoot: string | undefined, sourcePath: string): string {
   if (!sourceRoot) {
@@ -30,7 +36,6 @@ export function getFullSourceEntry(sourceRoot: string | undefined, sourcePath: s
 export async function getComputedSourceRoot(
   sourceRoot: string,
   generatedPath: string,
-  pathMapping: PathMapping,
   resolver: PathMappingResolver,
   logger: ILogger,
 ): Promise<string> {
@@ -45,7 +50,7 @@ export async function getComputedSourceRoot(
       // sourceRoot is like "/src", should be like http://localhost/src, resolve to a local path using pathMaping.
       // If path mappings do not apply (e.g. node), assume that sourceRoot is actually a local absolute path.
       // Technically not valid but it's easy to end up with paths like this.
-      absSourceRoot = (await resolver(sourceRoot, pathMapping, logger)) || sourceRoot;
+      absSourceRoot = (await resolver(sourceRoot))?.mapped || sourceRoot;
 
       // If no pathMapping (node), use sourceRoot as is.
       // But we also should handle an absolute sourceRoot for chrome? Does CDT handle that? No it does not, it interprets it as "localhost/full path here"
@@ -55,8 +60,8 @@ export async function getComputedSourceRoot(
     } else {
       // generatedPath is a URL so runtime script is not on disk, resolve the sourceRoot location on disk.
       const generatedUrlPath = new URL(generatedPath).pathname;
-      const mappedPath = await resolver(generatedUrlPath, pathMapping, logger);
-      const mappedDirname = path.dirname(mappedPath);
+      const mappedPath = await resolver(generatedUrlPath);
+      const mappedDirname = path.dirname(mappedPath?.mapped || generatedUrlPath);
       absSourceRoot = properJoin(mappedDirname, sourceRoot);
     }
 
@@ -69,8 +74,8 @@ export async function getComputedSourceRoot(
   } else {
     // No sourceRoot and runtime script is not on disk, resolve the sourceRoot location on disk
     const urlPathname = new URL(generatedPath).pathname || '/placeholder.js'; // could be debugadapter://123, no other info.
-    const mappedPath = await resolver(urlPathname, pathMapping, logger);
-    const scriptPathDirname = mappedPath ? path.dirname(mappedPath) : '';
+    const mappedPath = await resolver(urlPathname);
+    const scriptPathDirname = mappedPath ? path.dirname(mappedPath.mapped) : '';
     absSourceRoot = scriptPathDirname;
     logger.verbose(
       LogTag.SourceMapParsing,
@@ -94,42 +99,71 @@ export async function getComputedSourceRoot(
  */
 export type PathMappingResolver = (
   scriptUrlOrPath: string,
-  pathMapping: PathMapping,
-  logger: ILogger,
-) => Promise<string>;
+) => Promise<PathMapInfo | undefined> | PathMapInfo | undefined;
+
+type PathMapInfo = { pattern: string; mapped: string; match: string };
 
 /**
- * Default path mapping resolver. Applies the mapping by running a key
- * check in memory.
+ * Applies path mapping to an object like `{ 'C:/Foo': '/foo' }`
  */
-export const defaultPathMappingResolver: PathMappingResolver = async (
-  scriptUrlPath,
-  pathMapping,
-  logger,
-) => {
-  if (!scriptUrlPath || !scriptUrlPath.startsWith('/')) {
-    return '';
+export const diskToUrlPathMappingResolver = (pathMapping: PathMapping) => {
+  const mapping = Object.entries(pathMapping)
+    .filter(([key]) => !!key)
+    .sort(([keyA], [keyB]) => keyB.length - keyA.length)
+    .map(([key, value]) => [forceForwardSlashes(fixDriveLetter(key)), value] as const);
+
+  if (mapping.length === 0) {
+    return () => undefined;
   }
 
-  const mappingKeys = Object.keys(pathMapping).sort((a, b) => b.length - a.length);
-  for (let pattern of mappingKeys) {
-    // empty pattern match nothing use / to match root
-    if (!pattern) {
-      continue;
+  return (scriptUrlOrPath: string) => {
+    if (!path.isAbsolute(scriptUrlOrPath)) {
+      return undefined;
     }
 
-    const mappingRHS = pathMapping[pattern];
-    if (pattern[0] !== '/') {
-      logger.verbose(LogTag.SourceMapParsing, `Keys should be absolute: ${pattern}`);
-      pattern = '/' + pattern;
+    scriptUrlOrPath = forceForwardSlashes(fixDriveLetterAndSlashes(scriptUrlOrPath));
+
+    for (const [pattern, match] of mapping) {
+      if (pathMappingPatternMatchesPath(pattern, scriptUrlOrPath)) {
+        return { pattern, match, mapped: toClientPath(pattern, match, scriptUrlOrPath) };
+      }
     }
 
-    if (pathMappingPatternMatchesPath(pattern, scriptUrlPath)) {
-      return toClientPath(pattern, mappingRHS, scriptUrlPath);
-    }
+    return undefined;
+  };
+};
+
+/**
+ * Applies path mapping to an object like `{ 'C:/Foo': 'D:/bar' }`
+ */
+export const diskToDiskPathMappingResolver = diskToUrlPathMappingResolver;
+
+/**
+ * Applies path mapping to an object like `{ '/foo': 'C:/Foo' }`
+ */
+export const urlToDiskPathMappingResolver = (pathMapping: PathMapping) => {
+  const mapping = Object.entries(pathMapping)
+    .filter(([key]) => !!key)
+    .sort(([keyA], [keyB]) => keyB.length - keyA.length)
+    .map(([key, value]) => [key.startsWith('/') ? key : `/${key}`, value] as const);
+
+  if (mapping.length === 0) {
+    return () => undefined;
   }
 
-  return '';
+  return (scriptUrlOrPath: string) => {
+    if (!scriptUrlOrPath || !scriptUrlOrPath.startsWith('/')) {
+      return undefined;
+    }
+
+    for (const [pattern, match] of mapping) {
+      if (pathMappingPatternMatchesPath(pattern, scriptUrlOrPath)) {
+        return { pattern, match, mapped: toClientPath(pattern, match, scriptUrlOrPath) };
+      }
+    }
+
+    return undefined;
+  };
 };
 
 /**
@@ -139,45 +173,46 @@ export const defaultPathMappingResolver: PathMappingResolver = async (
 export const moduleAwarePathMappingResolver = (
   fsUtils: IFsUtils,
   compiledPath: string,
-): PathMappingResolver => async (sourceRoot, pathMapping, logger) => {
-  // 1. Handle cases where we know the path is already absolute on disk.
-  if (process.platform === 'win32' && /^[a-z]:/i.test(sourceRoot)) {
-    return sourceRoot;
-  }
-
-  // 2. It's a unix-style path. Get the root of this package containing the compiled file.
-  const implicit = await utils.nearestDirectoryContaining(
-    fsUtils,
-    path.dirname(compiledPath),
-    'package.json',
-  );
-
-  // 3. If there's no specific root, try to use the base path mappings
-  if (!implicit) {
-    return defaultPathMappingResolver(sourceRoot, pathMapping, logger);
-  }
-
-  // 4. If we can find a root, only use path mapping from within the package
-  const explicit = await defaultPathMappingResolver(
-    sourceRoot,
-    // filter the mapping to directories that could be
-    filterObject(pathMapping, key => key.length >= implicit.length),
-    logger,
-  );
-
-  // 5. On *nix, try at this point to see if the original path given is
-  // absolute on-disk. We'll say it is if there was no specific path mapping
-  // and the sourceRoot points to a subdirectory that exists.
-  if (process.platform !== 'win32' && sourceRoot !== '/' && !explicit) {
-    const possibleStat = await fs.stat(sourceRoot).catch(() => undefined);
-    if (possibleStat?.isDirectory()) {
-      return sourceRoot;
+  pathMapping: PathMapping,
+): PathMappingResolver => {
+  const defaultResolver = urlToDiskPathMappingResolver(pathMapping);
+  return async sourceRoot => {
+    // 1. Handle cases where we know the path is already absolute on disk.
+    if (process.platform === 'win32' && /^[a-z]:/i.test(sourceRoot)) {
+      return undefined;
     }
-  }
 
-  // 6. If we got a path mapping within the package, use that. Otherise use
-  // the package root as the sourceRoot.
-  return explicit || implicit;
+    // 2. It's a unix-style path. Get the root of this package containing the compiled file.
+    const implicit = await utils.nearestDirectoryContaining(
+      fsUtils,
+      path.dirname(compiledPath),
+      'package.json',
+    );
+
+    // 3. If there's no specific root, try to use the base path mappings
+    if (!implicit) {
+      return defaultResolver(sourceRoot);
+    }
+
+    // 4. If we can find a root, only use path mapping from within the package
+    const explicit = urlToDiskPathMappingResolver(
+      filterObject(pathMapping, key => key.length >= implicit.length),
+    )(sourceRoot);
+
+    // 5. On *nix, try at this point to see if the original path given is
+    // absolute on-disk. We'll say it is if there was no specific path mapping
+    // and the sourceRoot points to a subdirectory that exists.
+    if (process.platform !== 'win32' && sourceRoot !== '/' && !explicit) {
+      const possibleStat = await fs.stat(sourceRoot).catch(() => undefined);
+      if (possibleStat?.isDirectory()) {
+        return { mapped: implicit, pattern: sourceRoot, match: sourceRoot };
+      }
+    }
+
+    // 6. If we got a path mapping within the package, use that. Otherise use
+    // the package root as the sourceRoot.
+    return explicit || { mapped: implicit, pattern: sourceRoot, match: sourceRoot };
+  };
 };
 
 function pathMappingPatternMatchesPath(pattern: string, scriptPath: string): boolean {

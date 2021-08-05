@@ -6,10 +6,11 @@ import * as path from 'path';
 import { URL } from 'url';
 import { IFsUtils } from '../../common/fsUtils';
 import { ILogger } from '../../common/logging';
+import { reverseObject } from '../../common/objUtils';
 import { fixDriveLetterAndSlashes, properResolve } from '../../common/pathUtils';
 import { SourceMap } from '../../common/sourceMaps/sourceMap';
 import {
-  defaultPathMappingResolver,
+  diskToDiskPathMappingResolver,
   getComputedSourceRoot,
   getFullSourceEntry,
   moduleAwarePathMappingResolver,
@@ -27,7 +28,10 @@ interface IOptions extends ISourcePathResolverOptions {
 const localNodeInternalsPrefix = 'node:';
 
 export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
-  private hasPathMapping: boolean;
+  private readonly pathmapRemoteToLocal = diskToDiskPathMappingResolver(this.options.pathMapping);
+  private readonly pathmapLocalToRemote = diskToDiskPathMappingResolver(
+    reverseObject(this.options.pathMapping),
+  );
 
   public static shouldWarnAboutSymlinks(config: AnyLaunchConfiguration) {
     return 'runtimeArgs' in config && !config.runtimeArgs?.includes('--preserve-symlinks');
@@ -51,7 +55,6 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
     protected readonly logger: ILogger,
   ) {
     super(options, logger);
-    this.hasPathMapping = Object.keys(this.options.pathMapping).length > 0;
   }
 
   /**
@@ -76,22 +79,9 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
    * @param scriptPath remote path
    * @returns mapped path
    */
-  private async rebaseRemoteWithPathMapping(scriptPath: string): Promise<string> {
-    const mapped = this.rebaseRemoteToLocal(scriptPath);
-
-    if (this.hasPathMapping) {
-      const mapped2 = await defaultPathMappingResolver(
-        mapped,
-        this.options.pathMapping,
-        this.logger,
-      );
-
-      if (mapped2 && (await this.fsUtils.exists(mapped2))) {
-        return mapped2;
-      }
-    }
-
-    return mapped;
+  public rebaseRemoteToLocal(scriptPath: string) {
+    const local = super.rebaseRemoteToLocal(scriptPath);
+    return this.pathmapRemoteToLocal(local)?.mapped || local;
   }
 
   /**
@@ -118,7 +108,7 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
 
     const absolutePath = urlUtils.fileUrlToAbsolutePath(url);
     if (absolutePath) {
-      return await this.rebaseRemoteWithPathMapping(absolutePath);
+      return this.rebaseRemoteToLocal(absolutePath);
     }
 
     // It's possible the source might be an HTTP if using the `sourceURL`
@@ -140,7 +130,7 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
     }
 
     const withBase = properResolve(this.options.basePath ?? '', url);
-    return await this.rebaseRemoteWithPathMapping(withBase);
+    return this.rebaseRemoteToLocal(withBase);
   }
 
   /**
@@ -154,6 +144,8 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
    * @override
    */
   public async absolutePathToUrlRegexp(absolutePath: string): Promise<string | undefined> {
+    absolutePath = this.pathmapLocalToRemote(absolutePath)?.mapped || absolutePath;
+
     let realPath = absolutePath;
     try {
       realPath = await this.fsUtils.realPath(absolutePath);
@@ -196,14 +188,17 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
             ? this.rebaseRemoteToLocal(map.sourceRoot) || map.sourceRoot
             : map.sourceRoot,
           map.metadata.compiledPath,
-          { '/': this.options.basePath },
-          moduleAwarePathMappingResolver(this.fsUtils, map.metadata.compiledPath),
+          moduleAwarePathMappingResolver(
+            this.fsUtils,
+            map.metadata.compiledPath,
+            this.options.pathMapping,
+          ),
           this.logger,
         ),
         url,
       );
     }
 
-    return await this.rebaseRemoteWithPathMapping(url);
+    return this.rebaseRemoteToLocal(url);
   }
 }
