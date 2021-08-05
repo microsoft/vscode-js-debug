@@ -27,7 +27,7 @@ export class BlazorSourcePathResolver extends BrowserSourcePathResolver {
     }
   }
 
-  public absolutePathToUrlRegexp(absolutePath: string): Promise<string | undefined> {
+  public absolutePathToUrlRegexp(absolutePath: string) {
     if (this.options.remoteFilePrefix) {
       // Sample values:
       // absolutePath = C:\\Users\\digeff\\AppData\\Local\\Temp\\97D4F6178D8AD3159C555FA5FACA1ABA807E\\7\\~~\\C$\\workspace\\BlazorApp\\Pages\\Counter.razor
@@ -49,13 +49,13 @@ export class BlazorSourcePathResolver extends BrowserSourcePathResolver {
           absolutePath,
           dotnetUrlRegexp,
         });
-        return Promise.resolve(dotnetUrlRegexp);
+        return dotnetUrlRegexp;
       }
     } else {
       // Blazor files have a file:/// url. Override the default absolutePathToUrlRegexp which returns an http based regexp
       const fileUrl = utils.absolutePathToFileUrl(absolutePath);
       const fileRegexp = utils.urlToRegex(fileUrl);
-      return Promise.resolve(fileRegexp);
+      return fileRegexp;
     }
 
     return super.absolutePathToUrlRegexp(absolutePath);

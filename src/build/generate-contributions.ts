@@ -11,6 +11,7 @@ import {
   Contributions,
   DebugType,
   IConfigurationTypes,
+  preferredDebugTypes,
 } from '../common/contributionUtils';
 import { knownToolToken } from '../common/knownTools';
 import { mapValues, sortKeys, walkObject } from '../common/objUtils';
@@ -82,20 +83,20 @@ type Menus = {
   }[];
 };
 
-const forSomeDebugTypes = (
+const forSomeContextKeys = (
   types: Iterable<string>,
   contextKey: string,
   andExpr: string | undefined,
 ) => [...types].map(d => `${contextKey} == ${d}` + (andExpr ? ` && ${andExpr}` : '')).join(' || ');
 
 const forAnyDebugType = (contextKey: string, andExpr?: string) =>
-  forSomeDebugTypes(allDebugTypes, contextKey, andExpr);
+  forSomeContextKeys(allDebugTypes, contextKey, andExpr);
 
 const forBrowserDebugType = (contextKey: string, andExpr?: string) =>
-  forSomeDebugTypes([DebugType.Chrome, DebugType.Edge], contextKey, andExpr);
+  forSomeContextKeys([DebugType.Chrome, DebugType.Edge], contextKey, andExpr);
 
 const forNodeDebugType = (contextKey: string, andExpr?: string) =>
-  forSomeDebugTypes([DebugType.Node, DebugType.ExtensionHost, 'node'], contextKey, andExpr);
+  forSomeContextKeys([DebugType.Node, DebugType.ExtensionHost, 'node'], contextKey, andExpr);
 
 /**
  * Opaque type for a string passed through refString, ensuring all templates
@@ -142,7 +143,7 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
   outFiles: {
     type: ['array'],
     description: refString('outFiles.description'),
-    default: baseDefaults.outFiles,
+    default: [...baseDefaults.outFiles],
     items: {
       type: 'string',
     },
@@ -195,6 +196,11 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
     type: 'boolean',
     description: refString('browser.sourceMaps.description'),
     default: true,
+  },
+  sourceMapRenames: {
+    type: 'boolean',
+    default: true,
+    description: refString('browser.sourceMapRenames.description'),
   },
   sourceMapPathOverrides: {
     type: 'object',
@@ -1042,39 +1048,50 @@ export const debuggers = [
 function buildDebuggers() {
   // eslint-disable-next-line
   const output: any[] = [];
-  for (const d of debuggers) {
-    let entry = output.find(o => o.type === d.type);
-    if (!entry) {
-      // eslint-disable-next-line
-      const { request, configurationAttributes, required, defaults, ...rest } = d;
-      entry = {
-        ...rest,
-        aiKey: appInsightsKey,
-        configurationAttributes: {},
-        configurationSnippets: [],
-      };
-      output.push(entry);
+  const ensureEntryForType = (type: string, d: typeof debuggers[0]) => {
+    let entry = output.find(o => o.type === type);
+    if (entry) {
+      return entry;
     }
 
-    entry.configurationSnippets.push(...d.configurationSnippets);
-    entry.configurationAttributes[d.request] = {
-      required: d.required,
-      properties: mapValues(
-        d.configurationAttributes as { [key: string]: DescribedAttribute<unknown> },
-        ({ docDefault: _, ...attrs }) => attrs,
-      ),
+    // eslint-disable-next-line
+    const { request, configurationAttributes, required, defaults, ...rest } = d;
+    entry = {
+      ...rest,
+      type,
+      aiKey: appInsightsKey,
+      configurationAttributes: {},
+      configurationSnippets: [],
     };
+    output.push(entry);
+    return entry;
+  };
+
+  for (const d of debuggers) {
+    const primary = ensureEntryForType(d.type, d);
+    const entries = [primary];
+    const preferred = preferredDebugTypes.get(d.type);
+    if (preferred) {
+      entries.unshift(ensureEntryForType(preferred, d));
+    }
+
+    entries[0].configurationSnippets.push(...d.configurationSnippets);
+
+    for (const entry of entries) {
+      entry.configurationAttributes[d.request] = {
+        required: d.required,
+        properties: mapValues(
+          d.configurationAttributes as { [key: string]: DescribedAttribute<unknown> },
+          ({ docDefault: _, ...attrs }) => attrs,
+        ),
+      };
+    }
   }
 
   return walkObject(output, sortKeys);
 }
 
 const configurationSchema: ConfigurationAttributes<IConfigurationTypes> = {
-  [Configuration.UsePreviewDebugger]: {
-    type: 'boolean',
-    default: true,
-    description: refString('configuration.usePreview'),
-  },
   [Configuration.NpmScriptLens]: {
     enum: ['top', 'all', 'never'],
     default: 'top',
@@ -1387,6 +1404,19 @@ const keybindings = [
   },
 ];
 
+const viewsWelcome = [
+  {
+    view: 'debug',
+    contents: refString('debug.terminal.welcomeWithLink'),
+    when: forSomeContextKeys(commonLanguages, 'debugStartLanguage', '!isWeb'),
+  },
+  {
+    view: 'debug',
+    contents: refString('debug.terminal.welcome'),
+    when: forSomeContextKeys(commonLanguages, 'debugStartLanguage', 'isWeb'),
+  },
+];
+
 if (require.main === module) {
   process.stdout.write(
     JSON.stringify({
@@ -1397,11 +1427,15 @@ if (require.main === module) {
           description: refString('workspaceTrust.description'),
         },
       },
-      activationEvents: [
-        ...[...allCommands].map(cmd => `onCommand:${cmd}`),
-        ...debuggers.map(dbg => `onDebugResolve:${dbg.type}`),
-        `onWebviewPanel:${Contributions.DiagnosticsView}`,
-      ],
+      activationEvents: Array.from(
+        new Set([
+          ...[...allCommands].map(cmd => `onCommand:${cmd}`),
+          ...[...debuggers.map(dbg => dbg.type), ...preferredDebugTypes.values()].map(
+            t => `onDebugResolve:${t}`,
+          ),
+          `onWebviewPanel:${Contributions.DiagnosticsView}`,
+        ]),
+      ),
       contributes: {
         menus,
         breakpoints: breakpointLanguages.map(language => ({ language })),
@@ -1412,6 +1446,7 @@ if (require.main === module) {
           title: 'JavaScript Debugger',
           properties: configurationSchema,
         },
+        viewsWelcome,
       },
     }),
   );

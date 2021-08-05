@@ -3,7 +3,6 @@
  *--------------------------------------------------------*/
 
 import { URL } from 'url';
-import { IThreadDelegate } from '../../adapter/threads';
 import Cdp from '../../cdp/api';
 import { EventEmitter } from '../../common/events';
 import { ILogger } from '../../common/logging';
@@ -55,7 +54,7 @@ const stoppableTypes = restartableTypes;
 
 export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
 
-export class BrowserTarget implements ITarget, IThreadDelegate {
+export class BrowserTarget implements ITarget {
   readonly parentTarget: BrowserTarget | undefined;
   private _manager: BrowserTargetManager;
   private _cdp: Cdp.Api;
@@ -144,14 +143,10 @@ export class BrowserTarget implements ITarget, IThreadDelegate {
   }
 
   async runIfWaitingForDebugger() {
-    const todo = [this._cdp.Runtime.runIfWaitingForDebugger({})];
-
-    if ('debugWebviews' in this.launchConfig) {
-      // a vscode renderer attachment
-      todo.push(this._cdp.Runtime.evaluate({ expression: signalReadyExpr() }));
-    }
-
-    await Promise.all(todo);
+    await Promise.all([
+      this._cdp.Runtime.runIfWaitingForDebugger({}),
+      this._cdp.Runtime.evaluate({ expression: signalReadyExpr() }),
+    ]);
   }
 
   parent(): ITarget | undefined {

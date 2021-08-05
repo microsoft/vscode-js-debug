@@ -26,7 +26,8 @@ const localize = nls.loadMessageBundle();
 @injectable()
 export class EdgeDebugConfigurationResolver
   extends ChromiumDebugConfigurationResolver<AnyEdgeConfiguration>
-  implements vscode.DebugConfigurationProvider {
+  implements vscode.DebugConfigurationProvider
+{
   /**
    * @override
    */
@@ -66,9 +67,7 @@ export class EdgeDebugConfigurationResolver
 }
 
 @injectable()
-export class EdgeDebugConfigurationProvider extends ChromiumDebugConfigurationProvider<
-  IEdgeLaunchConfiguration
-> {
+export class EdgeDebugConfigurationProvider extends ChromiumDebugConfigurationProvider<IEdgeLaunchConfiguration> {
   protected getType() {
     return DebugType.Edge as const;
   }

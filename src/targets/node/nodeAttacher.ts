@@ -70,7 +70,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
         } else {
           inspectorURL = await retryGetNodeEndpoint(
             `http://${runData.params.address}:${runData.params.port}`,
-            restarting
+            restarting && runData.params.timeout > 0
               ? CancellationTokenSource.withTimeout(runData.params.timeout).token
               : runData.context.cancellationToken,
             this.logger,

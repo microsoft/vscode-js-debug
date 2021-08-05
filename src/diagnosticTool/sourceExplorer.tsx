@@ -75,10 +75,10 @@ export const Source: FunctionComponent<{
     `sourceBreadCrumbs${source.uniqueId}`,
     [source.uniqueId],
   );
-  const breadcrumbs = useMemo(() => rawBreadcrumbs.map(b => allSources.get(b)).filter(truthy), [
-    allSources,
-    rawBreadcrumbs,
-  ]);
+  const breadcrumbs = useMemo(
+    () => rawBreadcrumbs.map(b => allSources.get(b)).filter(truthy),
+    [allSources, rawBreadcrumbs],
+  );
   const [expanded, setExpanded] = usePersistedState(`sourceExpanded${source.uniqueId}`, false);
   const dump = useDump();
   const toggleExpand = useCallback(() => setExpanded(!expanded), [expanded]);

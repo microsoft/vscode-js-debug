@@ -57,7 +57,6 @@ export class Binder implements IDisposable {
   private _onTargetListChangedEmitter = new EventEmitter<void>();
   readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
   private _dap: Promise<Dap.Api>;
-  private _dapInitializeParams?: Dap.InitializeParams;
   private _targetOrigin: ITargetOrigin;
   private _launchParams?: AnyLaunchConfiguration;
   private _asyncStackPolicy?: IAsyncStackPolicy;
@@ -94,7 +93,6 @@ export class Binder implements IDisposable {
         if (clientCapabilities.clientID === 'vscode') {
           filterErrorsReportedToTelemetry();
         }
-        this._dapInitializeParams = clientCapabilities;
 
         setTimeout(() => {
           dap.initialized({});
@@ -244,12 +242,12 @@ export class Binder implements IDisposable {
   }
 
   private reportBootTelemetry(rawParams: AnyLaunchConfiguration) {
-    const defaults = (applyDefaults({
+    const defaults = applyDefaults({
       type: rawParams.type,
       request: rawParams.request,
       name: '<string>',
       __workspaceFolder: '<workspace>',
-    } as AnyResolvingConfiguration) as unknown) as { [key: string]: unknown };
+    } as AnyResolvingConfiguration) as unknown as { [key: string]: unknown };
 
     // Sanitization function that strips non-default strings from the launch
     // config, to avoid unnecessarily collecting information about the workspace.
@@ -275,7 +273,7 @@ export class Binder implements IDisposable {
       os: `${os.platform()} ${os.arch()}`,
       nodeVersion: process.version,
       adapterVersion: packageVersion,
-      parameters: mapValues((rawParams as unknown) as { [key: string]: unknown }, sanitizer),
+      parameters: mapValues(rawParams as unknown as { [key: string]: unknown }, sanitizer),
     });
   }
 
@@ -405,7 +403,7 @@ export class Binder implements IDisposable {
 
     // todo: move scriptskipper into services collection
     const debugAdapter = new DebugAdapter(dap, this._asyncStackPolicy, launchParams, container);
-    const thread = debugAdapter.createThread(cdp, target, this._dapInitializeParams);
+    const thread = debugAdapter.createThread(cdp, target);
 
     const startThread = async () => {
       await debugAdapter.launchBlocker();

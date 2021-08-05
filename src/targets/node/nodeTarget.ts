@@ -3,7 +3,6 @@
  *--------------------------------------------------------*/
 
 import { basename } from 'path';
-import { IThreadDelegate } from '../../adapter/threads';
 import Cdp from '../../cdp/api';
 import Connection from '../../cdp/connection';
 import { EventEmitter } from '../../common/events';
@@ -28,7 +27,7 @@ export interface INodeTargetLifecycleHooks {
   close?(target: NodeTarget): void;
 }
 
-export class NodeTarget implements ITarget, IThreadDelegate {
+export class NodeTarget implements ITarget {
   private _cdp: Cdp.Api;
   private _targetName: string;
   private _serialize: Promise<Cdp.Api | undefined> = Promise.resolve(undefined);

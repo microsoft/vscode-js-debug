@@ -6,6 +6,7 @@ import { inject, injectable } from 'inversify';
 import Cdp from '../../../cdp/api';
 import { AnyLaunchConfiguration } from '../../../configuration';
 import Dap from '../../../dap/api';
+import { IEvaluator } from '../../evaluator';
 import { ExpressionCondition } from './expression';
 import { HitCondition } from './hitCount';
 import { LogPointCompiler } from './logPoint';
@@ -51,6 +52,7 @@ export class BreakpointConditionFactory implements IBreakpointConditionFactory {
 
   constructor(
     @inject(LogPointCompiler) private readonly logPointCompiler: LogPointCompiler,
+    @inject(IEvaluator) private readonly evaluator: IEvaluator,
     @inject(AnyLaunchConfiguration) launchConfig: AnyLaunchConfiguration,
   ) {
     this.breakOnError = launchConfig.__breakOnConditionalError;
@@ -58,7 +60,7 @@ export class BreakpointConditionFactory implements IBreakpointConditionFactory {
 
   public getConditionFor(params: Dap.SourceBreakpoint): IBreakpointCondition {
     if (params.condition) {
-      return new ExpressionCondition(params, params.condition, this.breakOnError);
+      return ExpressionCondition.parse(params, params.condition, this.breakOnError, this.evaluator);
     }
 
     if (params.logMessage) {

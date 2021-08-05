@@ -3,15 +3,61 @@
  *--------------------------------------------------------*/
 
 import { IBreakpointCondition } from '.';
+import Cdp from '../../../cdp/api';
+import { getSyntaxErrorIn } from '../../../common/sourceUtils';
 import { Dap } from '../../../dap/api';
-import { SimpleCondition } from './simple';
+import { invalidBreakPointCondition } from '../../../dap/errors';
+import { ProtocolError } from '../../../dap/protocolError';
+import { IEvaluator, PreparedCallFrameExpr } from '../../evaluator';
 
 /**
  * Conditional breakpoint using a user-defined expression.
  */
-export class ExpressionCondition extends SimpleCondition implements IBreakpointCondition {
-  constructor(params: Dap.SourceBreakpoint, breakCondition: string, breakOnError: boolean) {
-    super(params, breakOnError ? wrapBreakCondition(breakCondition) : breakCondition);
+export class ExpressionCondition implements IBreakpointCondition {
+  public static parse(
+    params: Dap.SourceBreakpoint,
+    breakCondition: string,
+    breakOnError: boolean,
+    evaluator: IEvaluator,
+  ) {
+    if (breakOnError) {
+      breakCondition = wrapBreakCondition(breakCondition);
+    }
+
+    const err = breakCondition && getSyntaxErrorIn(breakCondition);
+    if (err) {
+      throw new ProtocolError(invalidBreakPointCondition(params, err.message));
+    }
+
+    const { canEvaluateDirectly, invoke } = evaluator.prepare(breakCondition);
+    return new ExpressionCondition(canEvaluateDirectly ? breakCondition : invoke);
+  }
+
+  private readonly invoke?: PreparedCallFrameExpr;
+
+  /** @inheritdoc */
+  public readonly breakCondition: string | undefined;
+
+  constructor(breakCondition: string | PreparedCallFrameExpr) {
+    if (typeof breakCondition === 'function') {
+      this.invoke = breakCondition;
+    } else {
+      this.breakCondition = breakCondition;
+    }
+  }
+
+  /** @inheritdoc */
+  public async shouldStayPaused(details: Cdp.Debugger.PausedEvent) {
+    if (!this.invoke) {
+      return Promise.resolve(true);
+    }
+
+    const evaluated = await this.invoke({
+      callFrameId: details.callFrames[0].callFrameId,
+      returnByValue: true,
+    });
+
+    return evaluated?.result.value === true;
   }
 }
 

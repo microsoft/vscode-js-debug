@@ -166,7 +166,7 @@ export class ChildProcessBrowserProcess implements IBrowserProcess {
    * @inheritdoc
    */
   public kill() {
-    killTree(this.cp.pid, this.logger);
+    killTree(this.cp.pid as number, this.logger);
   }
 }
 

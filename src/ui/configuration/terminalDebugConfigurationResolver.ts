@@ -19,7 +19,8 @@ import { DebugType, runCommand, Commands } from '../../common/contributionUtils'
  */
 export class TerminalDebugConfigurationResolver
   extends BaseConfigurationResolver<ITerminalLaunchConfiguration>
-  implements vscode.DebugConfigurationProvider {
+  implements vscode.DebugConfigurationProvider
+{
   protected async resolveDebugConfigurationAsync(
     folder: vscode.WorkspaceFolder | undefined,
     config: ResolvedConfiguration<ITerminalLaunchConfiguration>,

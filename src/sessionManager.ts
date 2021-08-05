@@ -111,7 +111,8 @@ export class RootSession<TSessionImpl extends IDebugSessionLike> extends Session
 }
 
 export class SessionManager<TSessionImpl extends IDebugSessionLike>
-  implements IDisposable, IBinderDelegate {
+  implements IDisposable, IBinderDelegate
+{
   private _disposables: IDisposable[] = [];
   private _sessions = new Map<string, Session<TSessionImpl>>();
 

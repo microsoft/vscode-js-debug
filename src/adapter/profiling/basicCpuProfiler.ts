@@ -2,18 +2,18 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { IProfiler, StartProfileParams, IProfile } from '.';
+import { inject, injectable } from 'inversify';
 import * as nls from 'vscode-nls';
-import { injectable, inject } from 'inversify';
+import { IProfile, IProfiler, StartProfileParams } from '.';
 import Cdp from '../../cdp/api';
 import { ICdpApi } from '../../cdp/connection';
 import { EventEmitter } from '../../common/events';
+import { AnyLaunchConfiguration } from '../../configuration';
+import Dap from '../../dap/api';
 import { profileCaptureError } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
 import { FS, FsPromises } from '../../ioc-extras';
 import { SourceContainer } from '../sources';
-import { AnyLaunchConfiguration } from '../../configuration';
-import Dap from '../../dap/api';
 
 const localize = nls.loadMessageBundle();
 
@@ -40,6 +40,7 @@ export class BasicCpuProfiler implements IProfiler<IBasicProfileParams> {
     'profile.cpu.description',
     'Generates a .cpuprofile file you can open in the Chrome devtools',
   );
+  public static readonly editable = true;
 
   public static canApplyTo() {
     return true; // this API is stable in all targets

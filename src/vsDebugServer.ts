@@ -14,6 +14,7 @@ import 'reflect-metadata';
 import { Readable, Writable } from 'stream';
 import { DebugConfiguration } from 'vscode';
 import * as nls from 'vscode-nls';
+import { DebugType } from './common/contributionUtils';
 import { getDeferred, IDeferred } from './common/promiseUtil';
 import { IPseudoAttachConfiguration } from './configuration';
 import DapConnection from './dap/connection';
@@ -63,7 +64,7 @@ class VsDebugServer implements ISessionLauncher<VSDebugSession> {
       'root',
       localize('session.rootSessionName', 'JavaScript debug adapter'),
       deferredConnection.promise,
-      { type: 'pwa-chrome', name: 'root', request: 'launch' },
+      { type: DebugType.Chrome, name: 'root', request: 'launch' },
     );
     if (inputStream && outputStream) {
       this.launchRootFromExisting(deferredConnection, rootSession, inputStream, outputStream);
@@ -108,7 +109,9 @@ class VsDebugServer implements ISessionLauncher<VSDebugSession> {
 
     this.sessionServer.createChildDebugServer(session).then(({ server, connectionPromise }) => {
       connectionPromise.then(x => deferredConnection.resolve(x));
-      childAttachConfig.__jsDebugChildServer = (server.address() as net.AddressInfo).port.toString();
+      childAttachConfig.__jsDebugChildServer = (
+        server.address() as net.AddressInfo
+      ).port.toString();
 
       // Custom message currently not part of DAP
       parentSession.connection._send({

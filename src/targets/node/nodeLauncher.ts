@@ -114,6 +114,15 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
         runData.params,
         runData.params.runtimeExecutable || undefined,
       );
+
+      const warning = binary.warning;
+      if (warning) {
+        runData.context.dap.output({
+          category: 'stderr',
+          output: warning.message,
+        });
+      }
+
       const callbackFile = new CallbackFile<IProcessTelemetry>();
       let env = await this.resolveEnvironment(runData, binary, {
         fileCallback: callbackFile.path,

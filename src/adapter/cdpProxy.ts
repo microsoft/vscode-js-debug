@@ -66,7 +66,11 @@ class DomainReplays {
   /**
    * Adds a message to be replayed.
    */
-  public addReplay(domain: keyof Cdp.Api, event: string, params: unknown) {
+  public addReplay(domain: keyof Cdp.Api, event: string, params: unknown, clearPrevious = false) {
+    if (clearPrevious) {
+      this.clearEvent(domain, event);
+    }
+
     const obj = { event: `${domain}.${event}`, params: params as Record<string, unknown> };
     const arr = this.replays.get(domain);
     if (arr) {
@@ -79,10 +83,12 @@ class DomainReplays {
   /**
    * Captures replay for the event on CDP.
    */
-  public capture(cdp: Cdp.Api, domain: keyof Cdp.Api, event: string) {
-    (cdp[domain] as {
-      on(event: string, fn: (arg: Record<string, unknown>) => void): void;
-    }).on(event, evt => this.addReplay(domain, event, evt));
+  public capture(cdp: Cdp.Api, domain: keyof Cdp.Api, event: string, clearPrevious = false) {
+    (
+      cdp[domain] as {
+        on(event: string, fn: (arg: Record<string, unknown>) => void): void;
+      }
+    ).on(event, evt => this.addReplay(domain, event, evt, clearPrevious));
   }
 
   /**
@@ -97,10 +103,20 @@ class DomainReplays {
     this.replays.set(domain, arr.filter(filterFn));
   }
 
+  public clearEvent<TKey extends keyof Cdp.Api>(domain: TKey, event: string) {
+    const arr = this.replays.get(domain);
+    if (arr) {
+      this.replays.set(
+        domain,
+        arr.filter(e => e.event !== event),
+      );
+    }
+  }
+
   /**
    * Removes all replay info for a domain.
    */
-  public clear(domain: keyof Cdp.Api) {
+  public clearDomain(domain: keyof Cdp.Api) {
     this.replays.delete(domain);
   }
 
@@ -150,6 +166,10 @@ export class CdpProxyProvider implements ICdpProxyProvider {
     @inject(ILogger) private readonly logger: ILogger,
   ) {
     this.replay.capture(cdp, 'CSS', 'styleSheetAdded');
+    this.replay.capture(cdp, 'Debugger', 'paused', true);
+    cdp.Debugger.on('resumed', () => {
+      this.replay.clearEvent('Debugger', 'paused');
+    });
 
     cdp.CSS.on('fontsUpdated', evt => {
       if (evt.font) {
@@ -245,7 +265,7 @@ export class CdpProxyProvider implements ICdpProxyProvider {
           .forEach(m => client.send({ method: m.event, params: m.params }));
         break;
       case 'disable':
-        this.replay.clear(domain as keyof Cdp.Api);
+        this.replay.clearDomain(domain as keyof Cdp.Api);
         break;
       default:
       // no-op
@@ -265,7 +285,7 @@ export class CdpProxyProvider implements ICdpProxyProvider {
     }
 
     type MethodMap = { [key: string]: (handle: ClientHandle, arg: unknown) => Promise<object> };
-    return ((this.jsDebugApi as unknown) as MethodMap)[method](handle, params);
+    return (this.jsDebugApi as unknown as MethodMap)[method](handle, params);
   }
 }
 

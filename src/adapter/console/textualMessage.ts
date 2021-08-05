@@ -17,7 +17,8 @@ import { IConsoleMessage } from './consoleMessage';
 const localize = nls.loadMessageBundle();
 
 export abstract class TextualMessage<T extends { stackTrace?: Cdp.Runtime.StackTrace }>
-  implements IConsoleMessage {
+  implements IConsoleMessage
+{
   protected readonly stackTrace = once((thread: Thread) =>
     this.event.stackTrace ? StackTrace.fromRuntime(thread, this.event.stackTrace) : undefined,
   );

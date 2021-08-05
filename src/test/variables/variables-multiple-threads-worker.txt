@@ -1,6 +1,6 @@
 stderr> > {foo: {…}}
 stderr>     > arg0: {foo: {…}}
-stderr>     
+stderr>
 <anonymous> @ ${workspaceFolder}/web/worker.html:4:11
 ◀ postMessage ▶
 <anonymous> @ ${workspaceFolder}/web/worker.js:10:5
@@ -8,13 +8,13 @@ stderr>
 <anonymous> @ ${workspaceFolder}/web/worker.html:8:10
 stderr> > {foo: {…}}
 stderr>     > arg0: {foo: {…}}
-stderr>     
+stderr>
 <anonymous> @ ${workspaceFolder}/web/worker.js:1:9
 ◀ Worker Created ▶
 <anonymous> @ ${workspaceFolder}/web/worker.html:2:12
 stderr> > {foo: {…}}
 stderr>     > arg0: {foo: {…}}
-stderr>     
+stderr>
 <anonymous> @ ${workspaceFolder}/web/worker.js:4:11
 ◀ Worker.postMessage ▶
 <anonymous> @ ${workspaceFolder}/web/worker.html:8:10

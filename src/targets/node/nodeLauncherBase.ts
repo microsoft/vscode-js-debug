@@ -13,7 +13,7 @@ import Cdp from '../../cdp/api';
 import Connection from '../../cdp/connection';
 import { RawPipeTransport } from '../../cdp/rawPipeTransport';
 import { WorkerTransport } from '../../cdp/workerTransport';
-import { CancellationTokenSource } from '../../common/cancellation';
+import { CancellationTokenSource, NeverCancelled } from '../../common/cancellation';
 import { AutoAttachMode } from '../../common/contributionUtils';
 import { ObservableMap } from '../../common/datastructure/observableMap';
 import { DisposableList } from '../../common/disposable';
@@ -211,13 +211,15 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
     }
 
     // relaunch the program, releasing the initial cancellation token:
-    const cts = CancellationTokenSource.withTimeout(this.run.params.timeout);
     await this.launchProgram({
       ...this.run,
       params: newParams ? this.resolveParams(newParams) ?? this.run.params : this.run.params,
       context: {
         ...this.run.context,
-        cancellationToken: cts.token,
+        cancellationToken:
+          this.run.params.timeout > 0
+            ? CancellationTokenSource.withTimeout(this.run.params.timeout).token
+            : NeverCancelled,
       },
     });
   }

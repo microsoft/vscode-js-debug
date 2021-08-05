@@ -72,7 +72,7 @@ export class SubprocessProgram implements IProgram {
 
   public stop(): Promise<IStopMetadata> {
     this.killed = true;
-    killTree(this.child.pid, this.logger, this.killBehavior);
+    killTree(this.child.pid as number, this.logger, this.killBehavior);
     return this.stopped;
   }
 }

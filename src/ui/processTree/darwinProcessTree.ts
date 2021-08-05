@@ -2,11 +2,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { IProcess } from './processTree';
-import { BaseProcessTree } from './baseProcessTree';
-import { spawnAsync, ChildProcessError } from '../../common/processUtils';
 import { isAbsolute } from 'path';
 import { LocalFsUtils } from '../../common/fsUtils';
+import { ChildProcessError, spawnAsync } from '../../common/processUtils';
+import { BaseProcessTree } from './baseProcessTree';
+import { IProcess } from './processTree';
 
 export class DarwinProcessTree extends BaseProcessTree {
   public constructor(private readonly fsUtils: LocalFsUtils) {

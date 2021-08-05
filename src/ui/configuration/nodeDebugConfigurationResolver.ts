@@ -299,11 +299,13 @@ export function createLaunchConfigFromContext(
     if (editor && breakpointLanguages.includes(editor.document.languageId)) {
       useSourceMaps = editor.document.languageId !== 'javascript';
       program = folder
-        ? path.join(
-            '${workspaceFolder}',
-            path.relative(folder.uri.fsPath, editor.document.uri.fsPath),
-          )
+        ? path.relative(folder.uri.fsPath, editor.document.uri.fsPath)
         : editor.document.uri.fsPath;
+
+      if (!path.isAbsolute(program)) {
+        // we don't use path.join here since it destroys the workspaceFolder with ../ (vscode#125796)
+        program = '${workspaceFolder}' + path.sep + program;
+      }
     }
   }
 
@@ -336,7 +338,7 @@ export function createLaunchConfigFromContext(
 
     let dir = '';
     const tsConfig = loadJSON<ITSConfig>(folder, 'tsconfig.json');
-    if (tsConfig && tsConfig.compilerOptions && tsConfig.compilerOptions.outDir) {
+    if (tsConfig?.compilerOptions?.outDir && canDetectTsBuildTask()) {
       const outDir = tsConfig.compilerOptions.outDir;
       if (!path.isAbsolute(outDir)) {
         dir = outDir;
@@ -353,6 +355,11 @@ export function createLaunchConfigFromContext(
   }
 
   return config;
+}
+
+function canDetectTsBuildTask() {
+  const value = vscode.workspace.getConfiguration().get('typescript.tsc.autoDetect');
+  return value !== 'off' && value !== 'watch';
 }
 
 function configureMern(config: ResolvingNodeConfiguration) {
@@ -372,7 +379,7 @@ function isTranspiledLanguage(languagId: string): boolean {
   return languagId === 'typescript' || languagId === 'coffeescript';
 }
 
-function loadJSON<T>(folder: vscode.WorkspaceFolder | undefined, file: string): T | void {
+function loadJSON<T>(folder: vscode.WorkspaceFolder | undefined, file: string): T | undefined {
   if (folder) {
     try {
       const content = fs.readFileSync(path.join(folder.uri.fsPath, file), 'utf8');

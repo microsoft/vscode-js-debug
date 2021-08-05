@@ -11,7 +11,7 @@ import { getCaseSensitivePaths } from '../../common/urlUtils';
 import { defaultSourceMapPathOverrides } from '../../configuration';
 import { BlazorSourcePathResolver } from '../../targets/browser/blazorSourcePathResolver';
 import { testFixturesDir } from '../test';
-import { testVueMapper } from './browserPathResolverTest';
+import { testVueMapper } from '../../targets/browser/browserPathResolver.test';
 
 function createBlazorSourcePathResolver(
   remoteFilePrefix: string | undefined,

@@ -743,20 +743,22 @@ describe('breakpoints', () => {
     });
   });
 
-  itIntegrates('restart frame', async ({ r }) => {
-    const p = await r.launchUrl('restart.html');
-    const source: Dap.Source = {
-      path: p.workspacePath('web/restart.js'),
-    };
-    await p.dap.setBreakpoints({ source, breakpoints: [{ line: 6, column: 0 }] });
-    p.load();
-    const { threadId } = p.log(await p.dap.once('stopped'));
-    const stack = await p.logger.logStackTrace(threadId);
-    p.dap.restartFrame({ frameId: stack[0].id });
+  // Todo: this feature has been removed from Chrome: https://chromium.googlesource.com/v8/v8/+/93f85699e22df958618206dbf94a790cf0bad8c4
+  // it's still supported in the debugger for now, but eventually as Node updates we'll drop support
+  // itIntegrates('restart frame', async ({ r }) => {
+  //   const p = await r.launchUrl('restart.html');
+  //   const source: Dap.Source = {
+  //     path: p.workspacePath('web/restart.js'),
+  //   };
+  //   await p.dap.setBreakpoints({ source, breakpoints: [{ line: 6, column: 0 }] });
+  //   p.load();
+  //   const { threadId } = p.log(await p.dap.once('stopped'));
+  //   const stack = await p.logger.logStackTrace(threadId);
+  //   p.dap.restartFrame({ frameId: stack[0].id });
 
-    await waitForPause(p);
-    p.assertLog();
-  });
+  //   await waitForPause(p);
+  //   p.assertLog();
+  // });
 
   describe('lazy async stack', () => {
     itIntegrates('sets stack on pause', async ({ r }) => {

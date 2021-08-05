@@ -21,7 +21,8 @@ import { BaseConfigurationResolver } from './baseConfigurationResolver';
 @injectable()
 export class ExtensionHostConfigurationResolver
   extends BaseConfigurationResolver<IExtensionHostLaunchConfiguration>
-  implements vscode.DebugConfigurationProvider {
+  implements vscode.DebugConfigurationProvider
+{
   protected async resolveDebugConfigurationAsync(
     folder: vscode.WorkspaceFolder | undefined,
     config: ResolvingExtensionHostConfiguration,

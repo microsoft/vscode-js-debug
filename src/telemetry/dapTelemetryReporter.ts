@@ -52,7 +52,7 @@ export class DapTelemetryReporter implements ITelemetryReporter {
     const fn = this.loggers[key];
     // Weirdly, TS doesn't seem to be infer that args is the
     // same Parameters<Fn[K]> that fn (Fn[K]) is.
-    ((fn as unknown) as (...args: unknown[]) => void)(...args);
+    (fn as unknown as (...args: unknown[]) => void)(...args);
   }
 
   /**

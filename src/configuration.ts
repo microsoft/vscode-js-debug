@@ -127,6 +127,12 @@ export interface IBaseConfiguration extends IMandatedConfiguration {
   sourceMaps: boolean;
 
   /**
+   * Whether to use the "names" mapping in sourcemaps. This requires requesting
+   * source content, which can be slow with certain debuggers.
+   */
+  sourceMapRenames: boolean;
+
+  /**
    * A set of mappings for rewriting the locations of source files from what
    * the sourcemap says, to their locations on disk.
    */
@@ -751,17 +757,14 @@ export type AnyTerminalConfiguration =
  */
 export type ResolvingConfiguration<T> = IMandatedConfiguration & Partial<T>;
 
-export type ResolvingExtensionHostConfiguration = ResolvingConfiguration<
-  IExtensionHostLaunchConfiguration
->;
+export type ResolvingExtensionHostConfiguration =
+  ResolvingConfiguration<IExtensionHostLaunchConfiguration>;
 export type ResolvingNodeAttachConfiguration = ResolvingConfiguration<INodeAttachConfiguration>;
 export type ResolvingNodeLaunchConfiguration = ResolvingConfiguration<INodeLaunchConfiguration>;
-export type ResolvingTerminalDelegateConfiguration = ResolvingConfiguration<
-  ITerminalDelegateConfiguration
->;
-export type ResolvingTerminalLaunchConfiguration = ResolvingConfiguration<
-  ITerminalLaunchConfiguration
->;
+export type ResolvingTerminalDelegateConfiguration =
+  ResolvingConfiguration<ITerminalDelegateConfiguration>;
+export type ResolvingTerminalLaunchConfiguration =
+  ResolvingConfiguration<ITerminalLaunchConfiguration>;
 export type ResolvingTerminalConfiguration =
   | ResolvingTerminalDelegateConfiguration
   | ResolvingTerminalLaunchConfiguration;
@@ -807,6 +810,7 @@ export const baseDefaults: IBaseConfiguration = {
   skipFiles: [],
   smartStep: true,
   sourceMaps: true,
+  sourceMapRenames: true,
   pauseForSourceMap: true,
   resolveSourceMapLocations: null,
   rootPath: '${workspaceFolder}',
@@ -924,7 +928,7 @@ export const chromeLaunchConfigDefaults: IChromeLaunchConfiguration = {
   urlFilter: '*',
   includeDefaultArgs: true,
   runtimeArgs: null,
-  runtimeExecutable: 'stable',
+  runtimeExecutable: '*',
   userDataDir: true,
   browserLaunchLocation: 'workspace',
   profileStartup: false,
@@ -1076,6 +1080,10 @@ export function removeOptionalWorkspaceFolderUsages<T extends AnyLaunchConfigura
 
   if ('cwd' in cast && cast.cwd?.includes(token)) {
     cast.cwd = undefined;
+  }
+
+  if ('webRoot' in cast && cast.webRoot?.includes(token)) {
+    cast.webRoot = '/';
   }
 
   return cast as T;

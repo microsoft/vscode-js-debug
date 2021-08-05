@@ -90,6 +90,8 @@ const strings = {
   'browser.sourceMapPathOverrides.description':
     'A set of mappings for rewriting the locations of source files from what the sourcemap says, to their locations on disk. See README for details.',
   'browser.sourceMaps.description': 'Use JavaScript source maps (if they exist).',
+  'browser.sourceMapRenames.description':
+    'Whether to use the "names" mapping in sourcemaps. This requires requesting source content, which can be slow with certain debuggers.',
   'browser.timeout.description':
     'Retry for this number of milliseconds to connect to the browser. Default is 10000 ms.',
   'browser.url.description': 'Will search for a tab with this exact url and attach to it, if found',
@@ -275,7 +277,6 @@ const strings = {
     'Where a "Run" and "Debug" code lens should be shown in your npm scripts. It may be on "all", scripts, on "top" of the script section, or "never".',
   'configuration.terminalOptions':
     'Default launch options for the JavaScript debug terminal and npm scripts.',
-  'configuration.usePreview': 'Use the new in-preview JavaScript debugger for Node.js and Chrome.',
   'configuration.suggestPrettyPrinting':
     'Whether to suggest pretty printing JavaScript code that looks minified when you step into it.',
   'configuration.automaticallyTunnelRemoteServer':
@@ -297,7 +298,7 @@ const strings = {
     'Auto attach to every Node.js process launched in the terminal.',
   'configuration.autoAttachMode.disabled': 'Auto attach is disabled and not shown in status bar.',
   'configuration.breakOnConditionalError':
-    'Whether to stop when conditional breakpoints throw an error. Note: your launch.json `type` must be prefixed with `pwa-` to use this, such as `pwa-node`.',
+    'Whether to stop when conditional breakpoints throw an error.',
   'configuration.unmapMissingSources':
     "Configures whether sourcemapped file where the original file can't be read will automatically be unmapped. If this is false (default), a prompt is shown.",
   'configuration.defaultRuntimeExecutables':

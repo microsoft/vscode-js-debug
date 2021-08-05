@@ -32,7 +32,8 @@ const enum Protocol {
 
 @injectable()
 export class TerminalLinkHandler
-  implements vscode.TerminalLinkProvider<ITerminalLink>, IDisposable {
+  implements vscode.TerminalLinkProvider<ITerminalLink>, IDisposable
+{
   private readonly enabledTerminals = new WeakSet<vscode.Terminal>();
   private readonly disposable = new DisposableList();
   private notifiedCantOpenOnWeb = false;

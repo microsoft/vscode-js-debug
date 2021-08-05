@@ -18,7 +18,8 @@ import { AnyLaunchConfiguration, IChromiumBaseConfiguration, OutputSource } from
 import Dap from '../dap/api';
 import * as errors from '../dap/errors';
 import * as ProtocolError from '../dap/protocolError';
-import { IBreakpointPathAndId } from '../targets/targets';
+import { NodeWorkerTarget } from '../targets/node/nodeWorkerTarget';
+import { ITarget } from '../targets/targets';
 import { BreakpointManager, EntryBreakpointMode } from './breakpoints';
 import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
 import { ICompletions } from './completions';
@@ -99,15 +100,6 @@ export type Script = {
   resolvedSource?: Source;
 };
 
-export interface IThreadDelegate {
-  name(): string;
-  supportsCustomBreakpoints(): boolean;
-  scriptUrlToUrl(url: string): string;
-  executionContextName(description: Cdp.Runtime.ExecutionContextDescription): string;
-  initialize(): Promise<void>;
-  entryBreakpoint?: IBreakpointPathAndId;
-}
-
 export type ScriptWithSourceMapHandler = (
   script: Script,
   sources: Source[],
@@ -148,7 +140,6 @@ export class Thread implements IVariableStoreDelegate {
   private _pausedVariables?: VariableStore;
   private _pausedForSourceMapScriptId?: string;
   private _executionContexts: Map<number, ExecutionContext> = new Map();
-  private _delegate: IThreadDelegate;
   readonly replVariables: VariableStore;
   private _sourceContainer: SourceContainer;
   private _pauseOnSourceMapBreakpointId?: Cdp.Debugger.BreakpointId;
@@ -180,7 +171,7 @@ export class Thread implements IVariableStoreDelegate {
     sourceContainer: SourceContainer,
     cdp: Cdp.Api,
     dap: Dap.Api,
-    delegate: IThreadDelegate,
+    private readonly target: ITarget,
     renameProvider: IRenameProvider,
     private readonly logger: ILogger,
     private readonly evaluator: IEvaluator,
@@ -191,7 +182,6 @@ export class Thread implements IVariableStoreDelegate {
     private readonly exceptionPause: IExceptionPauseService,
   ) {
     this._dap = new DeferredContainer(dap);
-    this._delegate = delegate;
     this._sourceContainer = sourceContainer;
     this._cdp = cdp;
     this.id = Thread._lastThreadId++;
@@ -212,7 +202,7 @@ export class Thread implements IVariableStoreDelegate {
   }
 
   name(): string {
-    return this._delegate.name();
+    return this.target.name();
   }
 
   pausedDetails(): IPausedDetails | undefined {
@@ -390,7 +380,7 @@ export class Thread implements IVariableStoreDelegate {
 
     const prefix = params.text.slice(0, params.column).trim();
     return [...this._executionContexts.values()]
-      .map(c => `cd ${this._delegate.executionContextName(c.description)}`)
+      .map(c => `cd ${this.target.executionContextName(c.description)}`)
       .filter(label => label.startsWith(prefix))
       .map(label => ({ label, start: 0, length: params.text.length }));
   }
@@ -410,7 +400,7 @@ export class Thread implements IVariableStoreDelegate {
     if (args.context === 'repl' && args.expression.startsWith('cd ')) {
       const contextName = args.expression.substring('cd '.length).trim();
       for (const ec of this._executionContexts.values()) {
-        if (this._delegate.executionContextName(ec.description) === contextName) {
+        if (this.target.executionContextName(ec.description) === contextName) {
           this._selectedContext = ec;
           return {
             result: `[${contextName}]`,
@@ -507,7 +497,7 @@ export class Thread implements IVariableStoreDelegate {
     } else {
       const contextName =
         this._selectedContext && this.defaultExecutionContext() !== this._selectedContext
-          ? `\x1b[33m[${this._delegate.executionContextName(this._selectedContext.description)}] `
+          ? `\x1b[33m[${this.target.executionContextName(this._selectedContext.description)}] `
           : '';
       const resultVar = await this.replVariables.createVariable(response.result, 'repl');
       return {
@@ -566,7 +556,7 @@ export class Thread implements IVariableStoreDelegate {
       this.logger.info(LogTag.RuntimeLaunch, 'Running with noDebug, so debug domains are disabled');
     }
 
-    this._delegate.initialize();
+    this.target.initialize();
 
     this._dap.with(dap =>
       dap.thread({
@@ -627,6 +617,8 @@ export class Thread implements IVariableStoreDelegate {
     const hitBreakpoints = (event.hitBreakpoints ?? []).filter(
       bp => bp !== this._pauseOnSourceMapBreakpointId,
     );
+    // "Break on start" is not actually a by-spec reason in CDP, it's added on from Node.js, so cast `as string`:
+    // https://github.com/nodejs/node/blob/9cbf6af5b5ace0cc53c1a1da3234aeca02522ec6/src/node_contextify.cc#L913
     const isInspectBrk = (event.reason as string) === 'Break on start';
     const location = event.callFrames[0].location;
     const scriptId = event.data?.scriptId || location.scriptId;
@@ -659,7 +651,7 @@ export class Thread implements IVariableStoreDelegate {
         await this._breakpointManager.shouldPauseAt(
           event,
           hitBreakpoints,
-          this._delegate.entryBreakpoint,
+          this.target.entryBreakpoint,
           true,
         )
       ) {
@@ -670,12 +662,12 @@ export class Thread implements IVariableStoreDelegate {
       }
     } else {
       const wantsPause =
-        event.reason === 'exception'
+        event.reason === 'exception' || event.reason === 'promiseRejection'
           ? await this.exceptionPause.shouldPauseAt(event)
           : await this._breakpointManager.shouldPauseAt(
               event,
               hitBreakpoints,
-              this._delegate.entryBreakpoint,
+              this.target.entryBreakpoint,
               false,
             );
 
@@ -684,15 +676,18 @@ export class Thread implements IVariableStoreDelegate {
       }
     }
 
-    // "Break on start" is not actually a by-spec reason in CDP, it's added on from Node.js, so cast `as string`:
-    // https://github.com/nodejs/node/blob/9cbf6af5b5ace0cc53c1a1da3234aeca02522ec6/src/node_contextify.cc#L913
-    if (
-      isInspectBrk &&
-      (('continueOnAttach' in this.launchConfig && this.launchConfig.continueOnAttach) ||
-        this.launchConfig.type === DebugType.ExtensionHost)
-    ) {
-      this.resume();
-      return;
+    if (isInspectBrk) {
+      if (
+        // Continue if continueOnAttach is requested...
+        ('continueOnAttach' in this.launchConfig && this.launchConfig.continueOnAttach) ||
+        // Or if we're debugging an extension host...
+        this.launchConfig.type === DebugType.ExtensionHost ||
+        // Or if the target is a worker_thread https://github.com/microsoft/vscode/issues/125451
+        this.target instanceof NodeWorkerTarget
+      ) {
+        this.resume();
+        return;
+      }
     }
 
     // We store pausedDetails in a local variable to avoid race conditions while awaiting this._smartStepper.shouldSmartStep
@@ -873,7 +868,7 @@ export class Thread implements IVariableStoreDelegate {
   }
 
   async updateCustomBreakpoint(id: CustomBreakpointId, enabled: boolean): Promise<void> {
-    if (!this._delegate.supportsCustomBreakpoints()) return;
+    if (!this.target.supportsCustomBreakpoints()) return;
     const breakpoint = customBreakpoints().get(id);
     if (!breakpoint) return;
     // Do not fail for custom breakpoints, to account for
@@ -997,7 +992,7 @@ export class Thread implements IVariableStoreDelegate {
       default:
         if (event.hitBreakpoints && event.hitBreakpoints.length) {
           let isStopOnEntry = false; // By default we assume breakpoints aren't stop on entry
-          const userEntryBp = this._delegate.entryBreakpoint;
+          const userEntryBp = this.target.entryBreakpoint;
           if (userEntryBp && event.hitBreakpoints.includes(userEntryBp.cdpId)) {
             isStopOnEntry = true; // But if it matches the entry breakpoint id, then it's probably stop on entry
             const entryBreakpointSource = this._sourceContainer.source({
@@ -1098,7 +1093,7 @@ export class Thread implements IVariableStoreDelegate {
       return;
     }
 
-    if (event.url) event.url = this._delegate.scriptUrlToUrl(event.url);
+    if (event.url) event.url = this.target.scriptUrlToUrl(event.url);
 
     let urlHashMap = this._scriptSources.get(event.url);
     if (!urlHashMap) {
@@ -1125,7 +1120,7 @@ export class Thread implements IVariableStoreDelegate {
 
       // see https://github.com/microsoft/vscode/issues/103027
       const runtimeScriptOffset = event.url.endsWith('#vscode-extension')
-        ? { lineOffset: 2, columnOffset: 0 }
+        ? { lineOffset: 1, columnOffset: 0 }
         : undefined;
 
       let resolvedSourceMapUrl: string | undefined;

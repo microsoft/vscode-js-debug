@@ -129,9 +129,10 @@ export class TerminalNodeLauncher extends NodeLauncherBase<ITerminalLaunchConfig
       fileCallback: this.callbackFile,
     });
 
-    const terminal = vscode.window.createTerminal({
+    const terminal = await this.createTerminal({
       name: runData.params.name,
       cwd: runData.params.cwd,
+      iconPath: new vscode.ThemeIcon('debug'),
       env: hideDebugInfoFromConsole(binary, env).defined(),
     });
     this.terminalCreatedEmitter.fire(terminal);
@@ -148,6 +149,13 @@ export class TerminalNodeLauncher extends NodeLauncherBase<ITerminalLaunchConfig
         this.onProgramTerminated(result);
       }
     });
+  }
+
+  /**
+   * Creates a terminal with the requested options.
+   */
+  protected createTerminal(options: vscode.TerminalOptions) {
+    return Promise.resolve(vscode.window.createTerminal(options));
   }
 
   /**

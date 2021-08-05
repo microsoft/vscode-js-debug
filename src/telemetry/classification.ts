@@ -28,15 +28,12 @@ interface IGDPRProperty {
 
 type ClassifiedEvent<T extends IGDPRProperty> = { [K in keyof T]?: unknown };
 
-type StrictPropertyCheck<
-  TEvent,
-  TClassifiedEvent,
-  TError
-> = keyof TEvent extends keyof TClassifiedEvent
-  ? keyof TClassifiedEvent extends keyof TEvent
-    ? TEvent
-    : TError
-  : TError;
+type StrictPropertyCheck<TEvent, TClassifiedEvent, TError> =
+  keyof TEvent extends keyof TClassifiedEvent
+    ? keyof TClassifiedEvent extends keyof TEvent
+      ? TEvent
+      : TError
+    : TError;
 
 /******************************************************************************
  * Classifications
@@ -191,7 +188,7 @@ export const createLoggers = (sendEvent: (event: Dap.OutputEventParams) => void)
    */
   function publicLog2<
     E extends ClassifiedEvent<T> = never,
-    T extends { [_ in keyof T]: IPropertyData | IGDPRProperty | undefined } = never
+    T extends { [_ in keyof T]: IPropertyData | IGDPRProperty | undefined } = never,
   >(
     name: string,
     props: StrictPropertyCheck<

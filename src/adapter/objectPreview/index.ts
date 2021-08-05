@@ -133,7 +133,7 @@ function renderArrayPreview(preview: ObjectPreview.ArrayPreview, characterBudget
   let lastIndex = -1;
   for (const prop of preview.properties) {
     if (!propsBuilder.checkBudget()) break;
-    if (isNaN((prop.name as unknown) as number)) continue;
+    if (isNaN(prop.name as unknown as number)) continue;
     const index = parseInt(prop.name, 10);
     if (index > lastIndex + 1) propsBuilder.appendEllipsis();
     lastIndex = index;
@@ -144,7 +144,7 @@ function renderArrayPreview(preview: ObjectPreview.ArrayPreview, characterBudget
   // Named
   for (const prop of preview.properties) {
     if (!propsBuilder.checkBudget()) break;
-    if (!isNaN((prop.name as unknown) as number)) continue;
+    if (!isNaN(prop.name as unknown as number)) continue;
     propsBuilder.append(renderPropertyPreview(prop, propsBuilder.budget(), prop.name));
   }
   if (preview.overflow) propsBuilder.appendEllipsis();

@@ -12,6 +12,7 @@ import {
   DebugType,
   readConfig,
 } from '../../common/contributionUtils';
+import { copyFile } from '../../common/fsUtils';
 import { ILogger } from '../../common/logging';
 import { forceForwardSlashes } from '../../common/pathUtils';
 import { AnyLaunchConfiguration, ITerminalLaunchConfiguration } from '../../configuration';
@@ -39,8 +40,10 @@ import { WatchDog } from './watchdogSpawn';
  * to create the 'server'.
  */
 @injectable()
-export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfiguration>
-  implements ITerminalLauncherLike {
+export class AutoAttachLauncher
+  extends NodeLauncherBase<ITerminalLaunchConfiguration>
+  implements ITerminalLauncherLike
+{
   private telemetryItems = new Map<number, IProcessTelemetry>();
 
   constructor(
@@ -137,7 +140,7 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
       aaPatterns: autoAttachMode === AutoAttachMode.Smart ? this.readSmartPatterns() : undefined,
     });
 
-    const bootloaderEnv = (debugVars.defined() as unknown) as IBootloaderEnvironment;
+    const bootloaderEnv = debugVars.defined() as unknown as IBootloaderEnvironment;
 
     variables.persistent = true;
     variables.prepend('NODE_OPTIONS', bootloaderEnv.NODE_OPTIONS + ' ');
@@ -192,8 +195,8 @@ export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfigur
     }
 
     await Promise.all([
-      this.fs.copyFile(bootloaderDefaultPath, bootloaderPath),
-      this.fs.copyFile(watchdogPath, path.join(storagePath, 'watchdog.bundle.js')),
+      copyFile(this.fs, bootloaderDefaultPath, bootloaderPath),
+      copyFile(this.fs, watchdogPath, path.join(storagePath, 'watchdog.bundle.js')),
     ]);
 
     const p = forceForwardSlashes(bootloaderPath);

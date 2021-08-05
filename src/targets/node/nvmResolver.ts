@@ -185,7 +185,8 @@ export class NvmResolver implements INvmResolver {
    */
   private parseVersionString(versionString: string): IVersionStringData {
     // Pattern: (flavor?)/(v?)X.X.X/(arch?)
-    const versionRegex = /^(([\w-]+)\/)?(v?(\d+(\.\d+(\.\d+)?)?))(\/((x86)|(32)|((x)?64)|(arm\w*)|(ppc\w*)))?$/i;
+    const versionRegex =
+      /^(([\w-]+)\/)?(v?(\d+(\.\d+(\.\d+)?)?))(\/((x86)|(32)|((x)?64)|(arm\w*)|(ppc\w*)))?$/i;
 
     const match = versionRegex.exec(versionString);
     if (!match) {

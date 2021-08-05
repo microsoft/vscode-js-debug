@@ -133,10 +133,7 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
     return this.rebaseRemoteToLocal(withBase);
   }
 
-  /**
-   * @override
-   */
-  protected absolutePathToUrl(absolutePath: string) {
+  private absolutePathToUrl(absolutePath: string) {
     return urlUtils.absolutePathToFileUrl(this.rebaseLocalToRemote(path.normalize(absolutePath)));
   }
 
@@ -154,7 +151,7 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
     }
 
     if (urlUtils.comparePathsWithoutCasing(realPath, absolutePath)) {
-      return super.absolutePathToUrlRegexp(absolutePath);
+      return urlUtils.urlToRegex(this.absolutePathToUrl(absolutePath));
     }
 
     this.linkedBp?.warn();

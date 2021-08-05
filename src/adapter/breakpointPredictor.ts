@@ -218,10 +218,10 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
     try {
       await this.repo.streamChildrenWithSourcemaps(this.outFiles, async metadata => {
         const cached = await this.cache?.lookup(metadata.compiledPath, metadata.mtime);
-        // if (cached) {
-        //   cached.forEach(c => addDiscovery({ ...c, ...metadata }));
-        //   return;
-        // }
+        if (cached) {
+          cached.forEach(c => addDiscovery({ ...c, ...metadata }));
+          return;
+        }
 
         let map: SourceMap;
         try {

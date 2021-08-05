@@ -317,6 +317,27 @@ const createReGroup = (patterns: ReadonlySet<string>): string => {
   }
 };
 
+const charToUrlReGroupSet = new Set<string>();
+const charRangeToUrlReGroup = (str: string, start: number, end: number, escapeRegex: boolean) => {
+  let re = '';
+
+  // Loop through each character of the string. Convert the char to a regex,
+  // creating a group, and then append that to the match.
+  for (let i = start; i < end; i++) {
+    const char = str[i];
+    if (isCaseSensitive) {
+      urlToRegexChar(char, charToUrlReGroupSet, escapeRegex);
+    } else {
+      urlToRegexChar(char.toLowerCase(), charToUrlReGroupSet, escapeRegex);
+      urlToRegexChar(char.toUpperCase(), charToUrlReGroupSet, escapeRegex);
+    }
+
+    re += createReGroup(charToUrlReGroupSet);
+    charToUrlReGroupSet.clear();
+  }
+  return re;
+};
+
 /**
  * Converts and escape the file URL to a regular expression.
  */
@@ -324,7 +345,16 @@ export function urlToRegex(
   aPath: string,
   [escapeReStart, escapeReEnd]: [number, number] = [0, aPath.length],
 ) {
+  if (escapeReEnd <= escapeReStart) {
+    return aPath;
+  }
+
   const patterns: string[] = [];
+
+  // Split out the portion of the path that has already been converted to a regex pattern
+  const rePrefix = charRangeToUrlReGroup(aPath, 0, escapeReStart, false);
+  const reSuffix = charRangeToUrlReGroup(aPath, escapeReEnd, aPath.length, false);
+  const unescapedPath = aPath.slice(escapeReStart, escapeReEnd);
 
   // aPath will often (always?) be provided as a file URI, or URL. Decode it
   // --we'll reencode it as we go--and also create a match for its absolute
@@ -336,35 +366,18 @@ export function urlToRegex(
   //  - For case insensitive systems, we generate a regex like [fF][oO][oO]/(?:💩|%F0%9F%92%A9).[jJ][sS]
   //  - If we didn't de-encode it, the percent would be case-insensitized as
   //    well and we would not include the original character in the regex
-  for (const str of [decodeURI(aPath), fileUrlToAbsolutePath(aPath)]) {
+  for (const str of [decodeURI(unescapedPath), fileUrlToAbsolutePath(unescapedPath)]) {
     if (!str) {
       continue;
     }
 
-    // Loop through each character of the string. Convert the char to a regex,
-    // creating a group, and then append that to the match.
-    const chars = new Set<string>();
-    let re = '';
-    for (let i = 0; i < str.length; i++) {
-      const char = str[i];
-      const escapeRegex = i >= escapeReStart && i < escapeReEnd;
-
-      if (isCaseSensitive) {
-        urlToRegexChar(char, chars, escapeRegex);
-      } else {
-        urlToRegexChar(char.toLowerCase(), chars, escapeRegex);
-        urlToRegexChar(char.toUpperCase(), chars, escapeRegex);
-      }
-
-      re += createReGroup(chars);
-      chars.clear();
-    }
+    const re = charRangeToUrlReGroup(str, 0, str.length, true);
 
     // If we're on windows but not case sensitive (i.e. we didn't expand a
     // fancy regex above), replace `file:///c:/` or simple `c:/` patterns with
     // an insensitive drive letter.
     patterns.push(
-      re.replace(
+      `${rePrefix}${re}${reSuffix}`.replace(
         /^(file:\\\/\\\/\\\/)?([a-z]):/i,
         (_, file = '', letter) => `${file}[${letter.toUpperCase()}${letter.toLowerCase()}]:`,
       ),
@@ -451,9 +464,10 @@ export const createTargetFilterForConfig = (
 /**
  * Requires that the target is also a 'page'.
  */
-export const requirePageTarget = <T>(
-  filter: (t: T) => boolean,
-): ((t: T & { type: string }) => boolean) => t => t.type === BrowserTargetType.Page && filter(t);
+export const requirePageTarget =
+  <T>(filter: (t: T) => boolean): ((t: T & { type: string }) => boolean) =>
+  t =>
+    t.type === BrowserTargetType.Page && filter(t);
 
 /**
  * The "isURL" from chrome-debug-core. In js-debug we use `new URL()` to see

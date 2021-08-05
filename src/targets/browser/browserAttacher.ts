@@ -3,8 +3,8 @@
  *--------------------------------------------------------*/
 
 import { inject, injectable, optional } from 'inversify';
-import { CancellationToken } from 'vscode';
 import type * as vscodeType from 'vscode';
+import { CancellationToken } from 'vscode';
 import * as nls from 'vscode-nls';
 import CdpConnection from '../../cdp/connection';
 import { NeverCancelled } from '../../common/cancellation';
@@ -25,14 +25,16 @@ import { VSCodeApi } from '../../ioc-extras';
 import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
 import { ILaunchContext, ILauncher, ILaunchResult, IStopMetadata, ITarget } from '../targets';
 import { BrowserTargetManager } from './browserTargetManager';
+import { BrowserTargetType } from './browserTargets';
 import * as launcher from './launcher';
 
 const localize = nls.loadMessageBundle();
 
 @injectable()
 export class BrowserAttacher<
-  T extends AnyChromiumAttachConfiguration = AnyChromiumAttachConfiguration
-> implements ILauncher {
+  T extends AnyChromiumAttachConfiguration = AnyChromiumAttachConfiguration,
+> implements ILauncher
+{
   private _attemptTimer: NodeJS.Timer | undefined;
   private _connection: CdpConnection | undefined;
   private _targetManager: BrowserTargetManager | undefined;
@@ -280,7 +282,16 @@ export class BrowserAttacher<
   }
 
   async restart(): Promise<void> {
-    // no-op
+    if (!this._targetManager) {
+      return;
+    }
+
+    for (const target of this._targetManager.targetList()) {
+      // fix: exclude devtools from reload (#1058)
+      if (target.type() === BrowserTargetType.Page && !target.name().startsWith('devtools://')) {
+        target.restart();
+      }
+    }
   }
 
   targetList(): ITarget[] {

@@ -98,16 +98,14 @@ describe('process tree', () => {
           pid: 540,
           ppid: 1,
           command: 'sh',
-          args:
-            '/home/connor/.vscode-server-insiders/bin/bbf00d8ea6aa7e825ca3393364d746fe401d3299/server.sh --host=127.0.0.1 --enable-remote-auto-shutdown --port=0',
+          args: '/home/connor/.vscode-server-insiders/bin/bbf00d8ea6aa7e825ca3393364d746fe401d3299/server.sh --host=127.0.0.1 --enable-remote-auto-shutdown --port=0',
         },
         {
           pid: 548,
           ppid: 540,
           command:
             '/home/connor/.vscode-server-insiders/bin/bbf00d8ea6aa7e825ca3393364d746fe401d3299/node',
-          args:
-            '/home/connor/.vscode-server-insiders/bin/bbf00d8ea6aa7e825ca3393364d746fe401d3299/out/vs/server/main.js --host=127.0.0.1 --enable-remote-auto-shutdown --port=0',
+          args: '/home/connor/.vscode-server-insiders/bin/bbf00d8ea6aa7e825ca3393364d746fe401d3299/out/vs/server/main.js --host=127.0.0.1 --enable-remote-auto-shutdown --port=0',
         },
         { pid: 6557, ppid: 6434, command: 'sshd:', args: 'connor@notty' },
         { pid: 6558, ppid: 6557, command: 'bash', args: '' },

@@ -15,6 +15,7 @@ import { AnyLaunchConfiguration } from '../configuration';
 import Dap from '../dap/api';
 import * as errors from '../dap/errors';
 import { disposeContainer } from '../ioc-extras';
+import { ITarget } from '../targets/targets';
 import { ITelemetryReporter } from '../telemetry/telemetryReporter';
 import { IAsyncStackPolicy } from './asyncStackPolicy';
 import { BreakpointManager } from './breakpoints';
@@ -31,7 +32,7 @@ import { BasicCpuProfiler } from './profiling/basicCpuProfiler';
 import { ScriptSkipper } from './scriptSkipper/implementation';
 import { IScriptSkipper } from './scriptSkipper/scriptSkipper';
 import { ISourceWithMap, SourceContainer, SourceFromMap } from './sources';
-import { IThreadDelegate, Thread } from './threads';
+import { Thread } from './threads';
 import { VariableStore } from './variables';
 
 const localize = nls.loadMessageBundle();
@@ -47,6 +48,7 @@ export class DebugAdapter implements IDisposable {
   private _thread: Thread | undefined;
   private _configurationDoneDeferred: IDeferred<void>;
   private lastBreakpointId = 0;
+  private readonly _cdpProxyProvider = this._services.get<ICdpProxyProvider>(ICdpProxyProvider);
 
   constructor(
     dap: Dap.Api,
@@ -303,16 +305,12 @@ export class DebugAdapter implements IDisposable {
     return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
   }
 
-  createThread(
-    cdp: Cdp.Api,
-    delegate: IThreadDelegate,
-    initializeParams?: Dap.InitializeParams,
-  ): Thread {
+  createThread(cdp: Cdp.Api, target: ITarget): Thread {
     this._thread = new Thread(
       this.sourceContainer,
       cdp,
       this.dap,
-      delegate,
+      target,
       this._services.get(IRenameProvider),
       this._services.get(ILogger),
       this._services.get(IEvaluator),
@@ -322,13 +320,6 @@ export class DebugAdapter implements IDisposable {
       this._services.get(IConsole),
       this._services.get(IExceptionPauseService),
     );
-    if (initializeParams) {
-      // We won't get notified of an initialize message:
-      // that was already caught by the caller.
-      setTimeout(() => {
-        this._onInitialize(initializeParams);
-      }, 0);
-    }
 
     const profile = this._services.get<IProfileController>(IProfileController);
     profile.connect(this.dap, this._thread);
@@ -441,7 +432,7 @@ export class DebugAdapter implements IDisposable {
   }
 
   public async _requestCDPProxy() {
-    return await this._services.get<ICdpProxyProvider>(ICdpProxyProvider).proxy();
+    return await this._cdpProxyProvider.proxy();
   }
 
   dispose() {

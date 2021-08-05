@@ -216,4 +216,13 @@ describe('NodeBinary', () => {
     expect(b2.has(Capability.UseSpacesInRequirePath)).to.be.true;
     expect(b2.has(Capability.UseSpacesInRequirePath, false)).to.be.true;
   });
+
+  it('includes warnings', () => {
+    const b1 = new NodeBinary('', new Semver(12, 0, 0));
+    expect(b1.warning).to.be.undefined;
+    const b2 = new NodeBinary('', new Semver(16, 0, 0));
+    expect(b2.warning?.message).include('breakpoint');
+    const b3 = new NodeBinary('', new Semver(16, 10, 0));
+    expect(b3.warning).to.be.undefined;
+  });
 });

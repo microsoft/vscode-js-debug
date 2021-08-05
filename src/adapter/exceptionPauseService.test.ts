@@ -30,7 +30,7 @@ describe('ExceptionPauseService', () => {
     ep = new ExceptionPauseService(
       upcastPartial<IEvaluator>({ prepare: prepareEval }),
       upcastPartial<ScriptSkipper>({ isScriptSkipped }),
-      (stubDap as unknown) as Dap.Api,
+      stubDap as unknown as Dap.Api,
       upcastPartial<AnyLaunchConfiguration>({}),
     );
   });

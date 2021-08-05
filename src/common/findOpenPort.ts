@@ -96,22 +96,22 @@ export function acquirePortNumber(port: number, ct: CancellationToken = NeverCan
  * Tester that can be passed into findOpenPort to create a TCP server.
  * @returns the listening server
  */
-export const makeAcquireTcpServer = (
-  onSocket: (socket: net.Socket) => void,
-): PortTesterFn<net.Server> => (port, ct) => {
-  const server = net.createServer(onSocket);
-  server.listen(port, '127.0.0.1');
-  return waitForServerToListen(server, ct);
-};
+export const makeAcquireTcpServer =
+  (onSocket: (socket: net.Socket) => void): PortTesterFn<net.Server> =>
+  (port, ct) => {
+    const server = net.createServer(onSocket);
+    server.listen(port, '127.0.0.1');
+    return waitForServerToListen(server, ct);
+  };
 
 /**
  * Tester that can be passed into findOpenPort to create a WebSocket server.
  * @returns the listening server
  */
-export const makeAcquireWebSocketServer = (
-  options?: WebSocket.ServerOptions,
-): PortTesterFn<WebSocket.Server> => (port, ct) =>
-  waitForServerToListen(new WebSocket.Server({ host: '127.0.0.1', ...options, port }), ct);
+export const makeAcquireWebSocketServer =
+  (options?: WebSocket.ServerOptions): PortTesterFn<WebSocket.Server> =>
+  (port, ct) =>
+    waitForServerToListen(new WebSocket.Server({ host: '127.0.0.1', ...options, port }), ct);
 
 interface IServerLike {
   on(event: 'error', handler: (err: Error) => void): void;

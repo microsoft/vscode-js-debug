@@ -46,7 +46,7 @@ export class BreakpointTerminationConditionFactory implements ITerminationCondit
 
     const chosen = await new Promise<ReadonlyArray<BreakpointPickItem> | undefined>(resolve => {
       quickPick.onDidAccept(() => resolve(quickPick.selectedItems));
-      quickPick.onDidHide(() => resolve());
+      quickPick.onDidHide(() => resolve(undefined));
       quickPick.onDidChangeActive(async active => {
         if (!active.length) {
           return;
@@ -115,28 +115,26 @@ export class BreakpointTerminationConditionFactory implements ITerminationCondit
     const getLines = memoize((f: string) => this.getFileLines(f));
 
     const candidates = await Promise.all(
-      codeBps.map(
-        async (codeBp, i): Promise<BreakpointPickItem | undefined> => {
-          const dapBp = dapBps[i];
-          if (!dapBp || !dapBp.id) {
-            return; // does not apply to this session
-          }
+      codeBps.map(async (codeBp, i): Promise<BreakpointPickItem | undefined> => {
+        const dapBp = dapBps[i];
+        if (!dapBp || !dapBp.id) {
+          return; // does not apply to this session
+        }
 
-          const location = codeBp.location;
-          const folder = vscode.workspace.getWorkspaceFolder(location.uri);
-          const labelPath = folder
-            ? path.relative(folder.uri.fsPath, location.uri.fsPath)
-            : location.uri.fsPath;
-          const lines = await getLines(location.uri.fsPath);
+        const location = codeBp.location;
+        const folder = vscode.workspace.getWorkspaceFolder(location.uri);
+        const labelPath = folder
+          ? path.relative(folder.uri.fsPath, location.uri.fsPath)
+          : location.uri.fsPath;
+        const lines = await getLines(location.uri.fsPath);
 
-          return {
-            id: dapBp.id,
-            label: `${labelPath}:${location.range.start.line}:${location.range.start.character}`,
-            location,
-            description: lines?.[location.range.start.line]?.trim(),
-          };
-        },
-      ),
+        return {
+          id: dapBp.id,
+          label: `${labelPath}:${location.range.start.line}:${location.range.start.character}`,
+          location,
+          description: lines?.[location.range.start.line]?.trim(),
+        };
+      }),
     );
 
     return candidates.filter(truthy);

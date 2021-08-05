@@ -33,6 +33,8 @@ const enum Suffix {
   Index = 'index.html',
 }
 
+const wildcardHostname = 'https?:\\/\\/[^\\/]+\\/';
+
 @injectable()
 export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> {
   private readonly pathmapRemoteToLocal = urlToDiskPathMappingResolver(this.options.pathMapping);
@@ -49,24 +51,26 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
     super(options, logger);
   }
 
-  absolutePathToUrl(absolutePath: string): string | undefined {
+  /** @override */
+  private absolutePathToUrlPath(absolutePath: string): { url: string; needsWildcard: boolean } {
     absolutePath = path.normalize(absolutePath);
     const { baseUrl } = this.options;
-    if (!baseUrl) {
-      return utils.absolutePathToFileUrl(absolutePath);
-    }
-
     const bestMatch = this.pathmapLocalToRemote(absolutePath) || {
       pattern: this.options.pathMapping['/'],
       match: '/',
     };
+
     let urlPath = utils.platformPathToUrlPath(path.relative(bestMatch.pattern, absolutePath));
     const urlPrefix = bestMatch.match.replace(/\/$|^\//g, '');
     if (urlPrefix) {
       urlPath = urlPrefix + '/' + urlPath;
     }
 
-    return utils.completeUrlEscapingRoot(baseUrl, urlPath);
+    if (!baseUrl && !utils.isValidUrl(urlPath)) {
+      return { url: urlPath, needsWildcard: true };
+    }
+
+    return { url: utils.completeUrlEscapingRoot(baseUrl, urlPath), needsWildcard: false };
   }
 
   public async urlToAbsolutePath({ url, map }: IUrlResolution): Promise<string | undefined> {
@@ -200,12 +204,12 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
   /**
    * @override
    */
-  public absolutePathToUrlRegexp(absolutePath: string): Promise<string | undefined> {
-    let url = this.absolutePathToUrl(absolutePath);
-    if (!url) {
-      return Promise.resolve(undefined);
-    }
+  public absolutePathToUrlRegexp(absolutePath: string) {
+    const transform = this.absolutePathToUrlPath(absolutePath);
+    let url = transform.url;
 
+    // Make "index" paths optional since some servers, like vercel's serve,
+    // allow omitting them.
     let endRegexEscape = absolutePath.length;
     if (url.endsWith(Suffix.Index)) {
       endRegexEscape = url.length - Suffix.Index.length - 1;
@@ -215,6 +219,17 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
       url = url.slice(0, endRegexEscape) + `(\\.html)?`;
     }
 
-    return Promise.resolve(urlToRegex(url, [0, endRegexEscape]));
+    // If there's no base URL, allow the URL to match _any_ protocol
+    let startRegexEscape = 0;
+    if (transform.needsWildcard) {
+      url = wildcardHostname + url;
+      startRegexEscape = wildcardHostname.length;
+      endRegexEscape += wildcardHostname.length;
+    }
+
+    const urlRegex = urlToRegex(url, [startRegexEscape, endRegexEscape]);
+    return transform.needsWildcard
+      ? `${urlToRegex(utils.absolutePathToFileUrl(absolutePath))}|${urlRegex}`
+      : urlRegex;
   }
 }

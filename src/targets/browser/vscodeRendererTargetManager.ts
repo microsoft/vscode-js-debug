@@ -7,6 +7,7 @@ import Cdp from '../../cdp/api';
 import CdpConnection from '../../cdp/connection';
 import { ILogger } from '../../common/logging';
 import { ISourcePathResolver } from '../../common/sourcePathResolver';
+import { createTargetFilterForConfig, TargetFilter } from '../../common/urlUtils';
 import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
 import { ITargetOrigin } from '../targetOrigin';
 import { BrowserTargetManager } from './browserTargetManager';
@@ -45,6 +46,33 @@ export class VSCodeRendererTargetManager extends BrowserTargetManager {
       targetOrigin,
     );
   }
+
+  private readonly baseFilter = createTargetFilterForConfig(this.launchParams);
+
+  /**
+   * Target filter for interested attachments.
+   */
+  public readonly filter: TargetFilter = target => {
+    const { debugWebWorkerExtHost, debugWebviews } = this.launchParams as IRendererAttachParams;
+    if (debugWebWorkerExtHost) {
+      if (target.type === BrowserTargetType.Worker && target.title === 'DebugWorkerExtensionHost') {
+        return true;
+      }
+
+      if (
+        target.type === BrowserTargetType.Page &&
+        target.title.includes('[Extension Development Host]')
+      ) {
+        return true;
+      }
+    }
+
+    if (debugWebviews && target.type === BrowserTargetType.IFrame && this.baseFilter(target)) {
+      return true;
+    }
+
+    return false;
+  };
 
   /**
    * @inheritdoc
@@ -89,7 +117,7 @@ export class VSCodeRendererTargetManager extends BrowserTargetManager {
     const target = super.attachedToTarget(
       targetInfo,
       sessionId,
-      waitingForDebugger,
+      waitingForDebugger || this.filter(targetInfo),
       parentTarget,
       false,
     );

@@ -3,20 +3,20 @@
  *--------------------------------------------------------*/
 
 import { execSync } from 'child_process';
+import { promises as fsPromises } from 'fs';
 import { basename } from 'path';
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
+import { Configuration, readConfig } from '../common/contributionUtils';
+import { LocalFsUtils } from '../common/fsUtils';
+import { isSubdirectoryOf } from '../common/pathUtils';
+import { nearestDirectoryContaining } from '../common/urlUtils';
 import {
   INodeAttachConfiguration,
   nodeAttachConfigDefaults,
   ResolvingNodeAttachConfiguration,
 } from '../configuration';
-import { processTree, analyseArguments } from './processTree/processTree';
-import { readConfig, Configuration } from '../common/contributionUtils';
-import { nearestDirectoryContaining } from '../common/urlUtils';
-import { isSubdirectoryOf } from '../common/pathUtils';
-import { LocalFsUtils } from '../common/fsUtils';
-import { promises as fsPromises } from 'fs';
+import { analyseArguments, processTree } from './processTree/processTree';
 
 const INSPECTOR_PORT_DEFAULT = 9229;
 
@@ -139,11 +139,11 @@ const decodePidAndPort = (encoded: string) => {
   return { pid: Number(pid), port: port ? Number(port) : undefined };
 };
 
-async function listProcesses(): Promise<IProcessItem> {
+async function listProcesses(): Promise<IProcessItem | undefined> {
   const nodeProcessPattern = /^(?:node|iojs)$/i;
   let seq = 0; // default sort key
 
-  const quickPick = await vscode.window.createQuickPick<IProcessItem>();
+  const quickPick = vscode.window.createQuickPick<IProcessItem>();
   quickPick.placeholder = localize('pickNodeProcess', 'Pick the node.js process to attach to');
   quickPick.matchOnDescription = true;
   quickPick.matchOnDetail = true;
@@ -151,7 +151,7 @@ async function listProcesses(): Promise<IProcessItem> {
   quickPick.show();
 
   let hasPicked = false;
-  const itemPromise = new Promise<IProcessItem>(resolve => {
+  const itemPromise = new Promise<IProcessItem | undefined>(resolve => {
     quickPick.onDidAccept(() => resolve(quickPick.selectedItems[0]));
     quickPick.onDidHide(() => resolve(undefined));
   });

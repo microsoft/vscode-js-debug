@@ -13,7 +13,8 @@ import * as vscode from 'vscode';
  */
 @injectable()
 export abstract class BaseConfigurationProvider<T extends AnyLaunchConfiguration>
-  implements IDebugConfigurationProvider {
+  implements IDebugConfigurationProvider
+{
   /**
    * @inheritdoc
    */

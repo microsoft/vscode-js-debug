@@ -23,7 +23,8 @@ import { injectable } from 'inversify';
 @injectable()
 export class ChromeDebugConfigurationResolver
   extends ChromiumDebugConfigurationResolver<AnyChromeConfiguration>
-  implements vscode.DebugConfigurationProvider {
+  implements vscode.DebugConfigurationProvider
+{
   /**
    * @override
    */
@@ -56,9 +57,7 @@ export class ChromeDebugConfigurationResolver
 }
 
 @injectable()
-export class ChromeDebugConfigurationProvider extends ChromiumDebugConfigurationProvider<
-  IChromeLaunchConfiguration
-> {
+export class ChromeDebugConfigurationProvider extends ChromiumDebugConfigurationProvider<IChromeLaunchConfiguration> {
   protected getType() {
     return DebugType.Chrome as const;
   }

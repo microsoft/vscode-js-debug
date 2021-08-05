@@ -25,6 +25,25 @@ export async function canAccess({ access }: FsPromises, file: string | undefined
   }
 }
 
+export async function copyFile(fs: FsPromises, fromPath: string, toPath: string) {
+  // Beautiful try-catch's. First try to copy the file simply, if that fails see
+  // if it exists, and if so delete and re-copy it. This fixes a NixOS issue, #1057
+  try {
+    await fs.copyFile(fromPath, toPath);
+  } catch (eOriginal) {
+    try {
+      if (await canAccess(fs, toPath)) {
+        await fs.unlink(toPath);
+        await fs.copyFile(fromPath, toPath);
+      } else {
+        throw eOriginal;
+      }
+    } catch {
+      throw eOriginal;
+    }
+  }
+}
+
 /**
  * Returns whether the user can access the given file path.
  */

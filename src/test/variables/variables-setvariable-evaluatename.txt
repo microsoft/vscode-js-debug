@@ -11,8 +11,13 @@ undefined
     b[1]
     b[2]
     b[3]
+    b["[[Prototype]]"]
+    b.__proto__
+    b.__proto__
     b.length
     b.prop
+    b["[[Prototype]]"]
+    b.__proto__
     b.__proto__
   c
     c._b
@@ -24,10 +29,21 @@ undefined
       c.e.nested
         c.e.nested[0]
           c.e.nested[0].obj
+          c.e.nested[0]["[[Prototype]]"]
           c.e.nested[0].__proto__
-        c.e.nested.length
+          c.e.nested[0].__proto__
+        c.e.nested["[[Prototype]]"]
         c.e.nested.__proto__
+        c.e.nested.__proto__
+        c.e.nested.length
+        c.e.nested["[[Prototype]]"]
+        c.e.nested.__proto__
+        c.e.nested.__proto__
+      c.e["[[Prototype]]"]
+      c.e.__proto__
       c.e.__proto__
     c["Symbol(wut)"]
+    c["[[Prototype]]"]
+    c.__proto__
     c.__proto__
   this

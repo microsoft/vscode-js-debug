@@ -10,7 +10,8 @@ import { IExtensionContribution } from '../ioc-extras';
 
 @injectable()
 export class JsDebugPortAttributesProvider
-  implements IExtensionContribution, PortAttributesProvider {
+  implements IExtensionContribution, PortAttributesProvider
+{
   constructor(@inject(IPortLeaseTracker) private readonly leaseTracker: IPortLeaseTracker) {}
 
   /**
