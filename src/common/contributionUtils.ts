@@ -171,7 +171,8 @@ export interface ICommandTypes {
   [Commands.StartWithStopOnEntry](): void;
   [Commands.RequestCDPProxy](
     sessionId: string,
-  ): { address: string; port: number; family: string } | null;
+    forwardToUi?: boolean,
+  ): { host: string; port: number; path: string } | undefined;
   [Commands.OpenEdgeDevTools](): void;
 }
 

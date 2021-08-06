@@ -7,9 +7,9 @@ import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
 import { Configuration, readConfig } from '../common/contributionUtils';
 import Dap from '../dap/api';
+import { DebugSessionTunnels } from './debugSessionTunnels';
 
 const localize = nls.loadMessageBundle();
-const sessionTunnels = new Map<string, vscode.Tunnel>();
 
 const isTunnelForPort = (port: number) => (tunnel: vscode.TunnelDescription) =>
   typeof tunnel.localAddress === 'string'
@@ -51,6 +51,7 @@ const tunnelRemoteServerIfNecessary = async (args: Dap.LaunchBrowserInCompanionE
 
 const launchCompanionBrowser = async (
   session: vscode.DebugSession,
+  sessionTunnels: DebugSessionTunnels,
   args: Dap.LaunchBrowserInCompanionEventParams,
 ) => {
   if (vscode.env.uiKind === vscode.UIKind.Web) {
@@ -65,18 +66,13 @@ const launchCompanionBrowser = async (
   try {
     const [, tunnel] = await Promise.all([
       tunnelRemoteServerIfNecessary(args),
-      Promise.resolve(
-        vscode.workspace.openTunnel({
-          remoteAddress: { port: args.serverPort, host: 'localhost' },
-          localAddressPort: args.serverPort,
+      sessionTunnels
+        .request(session.id, {
+          localPort: args.serverPort,
           label: 'Browser Debug Tunnel',
-        }),
-      ).catch(() => undefined),
+        })
+        .catch(() => undefined),
     ]);
-
-    if (tunnel) {
-      sessionTunnels.set(session.id, tunnel);
-    }
 
     await vscode.commands.executeCommand('js-debug-companion.launchAndAttach', {
       proxyUri: tunnel ? `127.0.0.1:${tunnel.remoteAddress.port}` : `127.0.0.1:${args.serverPort}`,
@@ -89,26 +85,24 @@ const launchCompanionBrowser = async (
 
 const killCompanionBrowser = (
   session: vscode.DebugSession,
+  tunnels: DebugSessionTunnels,
   { launchId }: Dap.KillCompanionBrowserEventParams,
 ) => {
   vscode.commands.executeCommand('js-debug-companion.kill', { launchId });
-  disposeSessionTunnel(session);
-};
-
-const disposeSessionTunnel = (session: vscode.DebugSession) => {
-  sessionTunnels.get(session.id)?.dispose();
-  sessionTunnels.delete(session.id);
+  tunnels.destroySession(session.id);
 };
 
 export function registerCompanionBrowserLaunch(context: vscode.ExtensionContext) {
+  const tunnels = new DebugSessionTunnels();
+
   context.subscriptions.push(
-    vscode.debug.onDidTerminateDebugSession(disposeSessionTunnel),
+    tunnels,
     vscode.debug.onDidReceiveDebugSessionCustomEvent(async event => {
       switch (event.event) {
         case 'launchBrowserInCompanion':
-          return launchCompanionBrowser(event.session, event.body);
+          return launchCompanionBrowser(event.session, tunnels, event.body);
         case 'killCompanionBrowser':
-          return killCompanionBrowser(event.session, event.body);
+          return killCompanionBrowser(event.session, tunnels, event.body);
         default:
         // ignored
       }
