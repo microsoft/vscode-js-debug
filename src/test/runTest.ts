@@ -19,14 +19,18 @@ async function main() {
     process.env.PWA_TEST_OPTIONS = JSON.stringify(minimist(process.argv.slice(2)));
 
     // Download VS Code, unzip it and run the integration test
+    const basedir = path.resolve(__dirname, '../../..');
+
     await runTests({
       extensionDevelopmentPath,
       extensionTestsPath,
       version: process.env.JSDBG_TEST_VERSION,
       launchArgs: [
-        path.resolve(__dirname, '../../..'),
-        '--disable-extensions',
+        basedir,
+        `--extensions-dir=${path.resolve(basedir, 'node_modules/.code-extensions')}`,
+        '--disable-extension=ms-vscode.js-debug',
         '--disable-user-env-probe',
+        '--disable-workspace-trust',
       ],
     });
   } catch (err) {

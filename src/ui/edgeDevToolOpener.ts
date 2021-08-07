@@ -32,13 +32,6 @@ export class EdgeDevToolOpener implements IExtensionContribution {
   public register(context: vscode.ExtensionContext) {
     context.subscriptions.push(
       registerCommand(vscode.commands, Commands.OpenEdgeDevTools, async () => {
-        if (!vscode.extensions.all.some(e => e.id === toolExtensionId)) {
-          return vscode.commands.executeCommand(
-            'workbench.extensions.action.showExtensionsWithIds',
-            [toolExtensionId],
-          );
-        }
-
         const session =
           vscode.debug.activeDebugSession && qualifies(vscode.debug.activeDebugSession)
             ? vscode.debug.activeDebugSession
@@ -54,7 +47,18 @@ export class EdgeDevToolOpener implements IExtensionContribution {
           return;
         }
 
-        return vscode.commands.executeCommand(commandId, session.id);
+        try {
+          return await vscode.commands.executeCommand(commandId, session.id);
+        } catch (e) {
+          if (e instanceof Error && /command .+ not found/.test(e.message)) {
+            return vscode.commands.executeCommand(
+              'workbench.extensions.action.showExtensionsWithIds',
+              [toolExtensionId],
+            );
+          } else {
+            throw e;
+          }
+        }
       }),
     );
   }

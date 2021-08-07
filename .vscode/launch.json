@@ -53,7 +53,7 @@
     },
     {
       "name": "Extension",
-      "type": "extensionHost",
+      "type": "pwa-extensionHost",
       "request": "launch",
       "skipFiles": [
         "<node_internals>/**"

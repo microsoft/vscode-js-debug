@@ -2,17 +2,17 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { testWorkspace, ITestHandle } from '../test';
-import { itIntegrates, eventuallyOk } from '../testIntegrationUtils';
 import { expect } from 'chai';
-import { join } from 'path';
 import { promises as fs } from 'fs';
-import { delay } from '../../common/promiseUtil';
-import { stub, SinonSpy } from 'sinon';
+import { join } from 'path';
+import { SinonSpy, stub } from 'sinon';
 import * as vscode from 'vscode';
-import { DebugType, runCommand, Commands } from '../../common/contributionUtils';
-import { EventEmitter } from '../../common/events';
+import { Commands, DebugType, runCommand } from '../../common/contributionUtils';
 import { DisposableList } from '../../common/disposable';
+import { EventEmitter } from '../../common/events';
+import { delay } from '../../common/promiseUtil';
+import { ITestHandle, testWorkspace } from '../test';
+import { eventuallyOk, itIntegrates } from '../testIntegrationUtils';
 
 describe('profiling', () => {
   const cwd = join(testWorkspace, 'simpleNode');
@@ -212,20 +212,19 @@ describe('profiling', () => {
       vscode.commands.executeCommand(Commands.StartProfile, session.id);
 
       // we skip this step while "cpu" is the only profile:
-      // const typePicker = await eventuallyOk(() => {
-      //   expect(createQuickPick.callCount).to.equal(1);
-      //   const picker: vscode.QuickPick<vscode.QuickPickItem> = createQuickPick.getCall(0)
-      //     .returnValue;
-      //   expect(picker.items).to.not.be.empty;
-      //   return picker;
-      // }, 2000);
+      const typePicker = await eventuallyOk(() => {
+        expect(createQuickPick.callCount).to.equal(1);
+        const picker: vscode.QuickPick<vscode.QuickPickItem> =
+          createQuickPick.getCall(0).returnValue;
+        expect(picker.items).to.not.be.empty;
+        return picker;
+      }, 2000);
 
-      // typePicker.selectedItems = typePicker.items.filter(i => /CPU/i.test(i.label));
-      // acceptQuickPick.fire();
+      typePicker.selectedItems = typePicker.items.filter(i => /CPU/i.test(i.label));
+      acceptQuickPick.fire();
 
       const terminationPicker = await eventuallyOk(() => {
-        // expect(createQuickPick.callCount).to.equal(2);
-        expect(createQuickPick.callCount).to.equal(1);
+        expect(createQuickPick.callCount).to.equal(2);
         const picker: vscode.QuickPick<vscode.QuickPickItem> =
           createQuickPick.getCall(0).returnValue;
         expect(picker.items).to.not.be.empty;

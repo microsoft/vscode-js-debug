@@ -111,7 +111,7 @@ describe('NodeDebugConfigurationProvider', () => {
       result.cwd = result.cwd!.toLowerCase();
 
       expect(result).to.containSubset({
-        type: 'pwa-node',
+        type: DebugType.Node,
         cwd: testFixturesDir.toLowerCase(),
         name: 'Launch Program',
         program: join('${workspaceFolder}', 'hello.js'),
@@ -129,7 +129,7 @@ describe('NodeDebugConfigurationProvider', () => {
       result.cwd = result.cwd!.toLowerCase();
 
       expect(result).to.containSubset({
-        type: 'pwa-node',
+        type: DebugType.Node,
         cwd: testFixturesDir.toLowerCase(),
         name: 'Launch Program',
         program: join('${workspaceFolder}', 'hello.js'),

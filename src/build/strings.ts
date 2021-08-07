@@ -275,7 +275,6 @@ const strings = {
     'Where a "Run" and "Debug" code lens should be shown in your npm scripts. It may be on "all", scripts, on "top" of the script section, or "never".',
   'configuration.terminalOptions':
     'Default launch options for the JavaScript debug terminal and npm scripts.',
-  'configuration.usePreview': 'Use the new in-preview JavaScript debugger for Node.js and Chrome.',
   'configuration.suggestPrettyPrinting':
     'Whether to suggest pretty printing JavaScript code that looks minified when you step into it.',
   'configuration.automaticallyTunnelRemoteServer':
@@ -297,7 +296,7 @@ const strings = {
     'Auto attach to every Node.js process launched in the terminal.',
   'configuration.autoAttachMode.disabled': 'Auto attach is disabled and not shown in status bar.',
   'configuration.breakOnConditionalError':
-    'Whether to stop when conditional breakpoints throw an error. Note: your launch.json `type` must be prefixed with `pwa-` to use this, such as `pwa-node`.',
+    'Whether to stop when conditional breakpoints throw an error.',
   'configuration.unmapMissingSources':
     "Configures whether sourcemapped file where the original file can't be read will automatically be unmapped. If this is false (default), a prompt is shown.",
   'configuration.defaultRuntimeExecutables':

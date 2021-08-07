@@ -6,7 +6,7 @@ import * as fs from 'fs';
 import { inject, injectable } from 'inversify';
 import * as path from 'path';
 import { CancellationToken } from 'vscode';
-import { Quality } from 'vscode-js-debug-browsers';
+import { IBrowserFinder, isQuality, Quality } from 'vscode-js-debug-browsers';
 import CdpConnection from '../../cdp/connection';
 import { timeoutPromise } from '../../common/cancellation';
 import { DisposableList } from '../../common/disposable';
@@ -280,6 +280,23 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
     }
 
     cdp.Page.bringToFront({});
+  }
+
+  protected async findBrowserByExe(
+    finder: IBrowserFinder,
+    executablePath: string,
+  ): Promise<string | undefined> {
+    if (executablePath === '*') {
+      // try to find the stable browser, but if that fails just get any browser
+      // that's available on the system
+      const found =
+        (await finder.findWhere(r => r.quality === Quality.Stable)) || (await finder.findAll())[0];
+      return found?.path;
+    } else if (isQuality(executablePath)) {
+      return (await finder.findWhere(r => r.quality === executablePath))?.path;
+    } else {
+      return executablePath;
+    }
   }
 
   targetList(): ITarget[] {

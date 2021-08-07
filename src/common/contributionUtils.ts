@@ -19,7 +19,7 @@ export const enum Contributions {
 
 export const enum Commands {
   AddCustomBreakpoints = 'extension.js-debug.addCustomBreakpoints',
-  AttachProcess = 'extension.NAMESPACE(node-debug).attachNodeProcess',
+  AttachProcess = 'extension.pwa-node-debug.attachNodeProcess',
   AutoAttachClearVariables = 'extension.js-debug.clearAutoAttachVariables',
   AutoAttachSetVariables = 'extension.js-debug.setAutoAttachVariables',
   AutoAttachToProcess = 'extension.js-debug.autoAttachToProcess',
@@ -41,12 +41,19 @@ export const enum Commands {
   OpenEdgeDevTools = 'extension.js-debug.openEdgeDevTools',
 }
 
+export const preferredDebugTypes: ReadonlyMap<DebugType, string> = new Map([
+  [DebugType.Node, 'node'],
+  [DebugType.Chrome, 'chrome'],
+  [DebugType.ExtensionHost, 'extensionHost'],
+  [DebugType.Edge, 'msedge'],
+]);
+
 export const enum DebugType {
-  ExtensionHost = 'NAMESPACE(extensionHost)',
+  ExtensionHost = 'pwa-extensionHost',
   Terminal = 'node-terminal',
-  Node = 'NAMESPACE(node)',
-  Chrome = 'NAMESPACE(chrome)',
-  Edge = 'NAMESPACE(msedge)',
+  Node = 'pwa-node',
+  Chrome = 'pwa-chrome',
+  Edge = 'pwa-msedge',
 }
 
 // constructing it this way makes sure we can't forget to add a type:
@@ -104,7 +111,6 @@ export const enum AutoAttachMode {
   Always = 'always',
 }
 export const enum Configuration {
-  UsePreviewDebugger = 'debug.javascript.usePreview',
   NpmScriptLens = 'debug.javascript.codelens.npmScripts',
   TerminalDebugConfig = 'debug.javascript.terminalOptions',
   PickAndAttachDebugOptions = 'debug.javascript.pickAndAttachOptions',
@@ -126,7 +132,6 @@ export type DebugByLinkState = 'on' | 'off' | 'always';
  * Type map for {@link Configuration} properties.
  */
 export interface IConfigurationTypes {
-  [Configuration.UsePreviewDebugger]: boolean;
   [Configuration.NpmScriptLens]: 'all' | 'top' | 'never';
   [Configuration.TerminalDebugConfig]: Partial<ITerminalLaunchConfiguration>;
   [Configuration.PickAndAttachDebugOptions]: Partial<INodeAttachConfiguration>;
@@ -166,7 +171,8 @@ export interface ICommandTypes {
   [Commands.StartWithStopOnEntry](): void;
   [Commands.RequestCDPProxy](
     sessionId: string,
-  ): { address: string; port: number; family: string } | null;
+    forwardToUi?: boolean,
+  ): { host: string; port: number; path: string } | undefined;
   [Commands.OpenEdgeDevTools](): void;
 }
 

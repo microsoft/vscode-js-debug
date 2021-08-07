@@ -205,7 +205,7 @@ export class CdpProxyProvider implements ICdpProxyProvider {
     this.logger.info(LogTag.ProxyActivity, 'activated cdp proxy');
 
     server.on('connection', client => {
-      const clientHandle = new ClientHandle(client);
+      const clientHandle = new ClientHandle(client, this.logger);
       this.logger.info(LogTag.ProxyActivity, 'accepted proxy connection', { id: clientHandle.id });
 
       client.on('close', () => {
@@ -295,7 +295,7 @@ class ClientHandle implements IDisposable {
   private readonly disposables = new DisposableList();
   public readonly id = connectionIdCounter++;
 
-  constructor(readonly webSocket: WebSocket) {}
+  constructor(readonly webSocket: WebSocket, private readonly logger: ILogger) {}
 
   pushDisposable(d: IDisposable): void {
     this.disposables.push(d);
@@ -307,6 +307,7 @@ class ClientHandle implements IDisposable {
   }
 
   public send(message: CdpProtocol.Message) {
+    this.logger.verbose(LogTag.ProxyActivity, 'send proxy message', message);
     this.webSocket.send(JSON.stringify(message));
   }
 }

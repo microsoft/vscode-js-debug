@@ -926,7 +926,7 @@ export const chromeLaunchConfigDefaults: IChromeLaunchConfiguration = {
   urlFilter: '*',
   includeDefaultArgs: true,
   runtimeArgs: null,
-  runtimeExecutable: 'stable',
+  runtimeExecutable: '*',
   userDataDir: true,
   browserLaunchLocation: 'workspace',
   profileStartup: false,
@@ -1074,6 +1074,10 @@ export function removeOptionalWorkspaceFolderUsages<T extends AnyLaunchConfigura
 
   if ('cwd' in cast && cast.cwd?.includes(token)) {
     cast.cwd = undefined;
+  }
+
+  if ('webRoot' in cast && cast.webRoot?.includes(token)) {
+    cast.webRoot = '/';
   }
 
   return cast as T;

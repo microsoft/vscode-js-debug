@@ -11,7 +11,7 @@ import { DebugType } from '../../common/contributionUtils';
 import { DisposableList } from '../../common/disposable';
 import { ILogger, LogTag } from '../../common/logging';
 import { ISourcePathResolver } from '../../common/sourcePathResolver';
-import { createTargetFilterForConfig, TargetFilter } from '../../common/urlUtils';
+import { TargetFilter } from '../../common/urlUtils';
 import {
   AnyLaunchConfiguration,
   applyDefaults,
@@ -21,8 +21,6 @@ import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
 import { ISourcePathResolverFactory } from '../sourcePathResolverFactory';
 import { ILaunchContext } from '../targets';
 import { BrowserAttacher } from './browserAttacher';
-import { BrowserTargetManager } from './browserTargetManager';
-import { BrowserTargetType } from './browserTargets';
 import { VSCodeRendererTargetManager } from './vscodeRendererTargetManager';
 
 export interface IRendererAttachParams extends IChromeAttachConfiguration {
@@ -106,26 +104,8 @@ export class VSCodeRendererAttacher extends BrowserAttacher<IRendererAttachParam
     return new Connection(new RawPipeTransport(this.logger, pipe), this.logger, telemetryReporter);
   }
 
-  protected async getTargetFilter(
-    _manager: BrowserTargetManager,
-    params: IRendererAttachParams,
-  ): Promise<TargetFilter> {
-    const baseFilter = createTargetFilterForConfig(params);
-    return target => {
-      if (
-        params.debugWebWorkerExtHost &&
-        target.type === BrowserTargetType.Worker &&
-        target.title === 'WorkerExtensionHost'
-      ) {
-        return true;
-      }
-
-      if (params.debugWebviews && target.type === BrowserTargetType.IFrame && baseFilter(target)) {
-        return true;
-      }
-
-      return false;
-    };
+  protected async getTargetFilter(manager: VSCodeRendererTargetManager): Promise<TargetFilter> {
+    return manager.filter;
   }
 
   /**

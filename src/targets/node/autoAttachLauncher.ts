@@ -12,6 +12,7 @@ import {
   DebugType,
   readConfig,
 } from '../../common/contributionUtils';
+import { copyFile } from '../../common/fsUtils';
 import { ILogger } from '../../common/logging';
 import { forceForwardSlashes } from '../../common/pathUtils';
 import { AnyLaunchConfiguration, ITerminalLaunchConfiguration } from '../../configuration';
@@ -194,8 +195,8 @@ export class AutoAttachLauncher
     }
 
     await Promise.all([
-      this.fs.copyFile(bootloaderDefaultPath, bootloaderPath),
-      this.fs.copyFile(watchdogPath, path.join(storagePath, 'watchdog.bundle.js')),
+      copyFile(this.fs, bootloaderDefaultPath, bootloaderPath),
+      copyFile(this.fs, watchdogPath, path.join(storagePath, 'watchdog.bundle.js')),
     ]);
 
     const p = forceForwardSlashes(bootloaderPath);

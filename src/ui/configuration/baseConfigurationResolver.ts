@@ -7,6 +7,7 @@ import { isAbsolute } from 'path';
 import * as vscode from 'vscode';
 import { Configuration, DebugType, readConfig } from '../../common/contributionUtils';
 import { fulfillLoggerOptions } from '../../common/logging';
+import { truthy } from '../../common/objUtils';
 import {
   AnyLaunchConfiguration,
   removeOptionalWorkspaceFolderUsages,
@@ -43,6 +44,10 @@ export abstract class BaseConfigurationResolver<T extends AnyLaunchConfiguration
     config: vscode.DebugConfiguration,
     token?: vscode.CancellationToken,
   ): Promise<T | null | undefined> {
+    if (config.type) {
+      config.type = this.getType(); // ensure type is set for aliased configurations
+    }
+
     if ('__pendingTargetId' in config) {
       return config as T;
     }
@@ -100,17 +105,16 @@ export abstract class BaseConfigurationResolver<T extends AnyLaunchConfiguration
     } else {
       // otherwise, try to manually figure out an appropriate __workspaceFolder
       // if we don't already have it.
-      if (!config.__workspaceFolder) {
-        config.__workspaceFolder =
-          this.getSuggestedWorkspaceFolders(config)
-            .filter((f): f is string => !!f && f !== '${workspaceFolder}')
-            .map(f =>
-              isAbsolute(f)
-                ? vscode.workspace.getWorkspaceFolder(vscode.Uri.file(f))?.uri.fsPath
-                : f,
-            )
-            .find((f): f is string => !!f) || '';
-      }
+      config.__workspaceFolder ||=
+        this.getSuggestedWorkspaceFolders(config)
+          .filter(truthy)
+          .filter(f => f !== '${workspaceFolder}')
+          .map(f =>
+            isAbsolute(f) ? vscode.workspace.getWorkspaceFolder(vscode.Uri.file(f))?.uri.fsPath : f,
+          )
+          .find(truthy) ||
+        vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ||
+        '';
 
       // If we found it, replace appropriately. Otherwise remove the 'optional'
       // usages, there's a chance we can still make it work.
