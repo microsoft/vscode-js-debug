@@ -1,5 +1,5 @@
 <h1>
-  <img alt="vscode-js-debug" src="resources/readme/logo-with-text.png" width="500">
+  <img alt="vscode-js-debug" src="resources/readme/logo-with-text.png" width="509x">
   <br>
   <a href="https://marketplace.visualstudio.com/items?itemName=ms-vscode.js-debug-nightly" alt="Click to visit marketplace">
     <img src="https://vsmarketplacebadge.apphb.com/version-short/ms-vscode.js-debug-nightly.svg">
