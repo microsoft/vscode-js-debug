@@ -4,8 +4,11 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly Only
 
+Note that the current nightly _requires_ VS Code Insiders.
+
 - fix: fall back to any installed browser version if stable is not available ([ref](https://github.com/microsoft/vscode/issues/129013))
 - fix: workspaceFolder error in workspace launch configs ([ref](https://github.com/microsoft/vscode/issues/128922))
+- fix: console logs being slow when run without debugging ([#1068](https://github.com/microsoft/vscode-js-debug/issues/1068))
 
 ## v1.60 (August 2021)
 

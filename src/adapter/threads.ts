@@ -795,6 +795,11 @@ export class Thread implements IVariableStoreDelegate {
       return undefined;
     }
 
+    // Locations are never possible if the debugger is not enabled.
+    if (this.launchConfig.noDebug) {
+      return undefined;
+    }
+
     const script = this._sourceContainer.scriptsById.get(rawLocation.scriptId);
     if (!script) {
       return this.rawLocationToUiLocationWithWaiting(rawLocation);
