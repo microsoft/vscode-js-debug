@@ -20,8 +20,26 @@ Evaluating#4: setTimeout(() => { throw new Error('hello'); })
 {
     allThreadsContinued : false
 }
+Pausing on uncaught rejections
+Evaluating#5: new Promise((res, rej) => rej(new Error('oh no!')))
+{
+    allThreadsStopped : false
+    description : Paused on promise rejection
+    reason : exception
+    threadId : <number>
+}
+{
+    breakMode : all
+    details : {
+        stackTrace :   at eval5.js:1:31     at new Promise (<anonymous>)     at eval5.js:1:1
+    }
+    exceptionId : Error: oh no!
+}
+{
+    allThreadsContinued : false
+}
 Pausing on caught exceptions
-Evaluating#5: setTimeout(() => { throw new Error('hello'); })
+Evaluating#6: setTimeout(() => { throw new Error('hello'); })
 {
     allThreadsStopped : false
     description : Paused on exception
@@ -31,14 +49,14 @@ Evaluating#5: setTimeout(() => { throw new Error('hello'); })
 {
     breakMode : all
     details : {
-        stackTrace :   at eval5.js:1:26
+        stackTrace :   at eval6.js:1:26
     }
     exceptionId : Error: hello
 }
 {
     allThreadsContinued : false
 }
-Evaluating#6: setTimeout(() => { try { throw new Error('hello'); } catch (e) {}})
+Evaluating#7: setTimeout(() => { try { throw new Error('hello'); } catch (e) {}})
 {
     allThreadsStopped : false
     description : Paused on exception
@@ -48,9 +66,27 @@ Evaluating#6: setTimeout(() => { try { throw new Error('hello'); } catch (e) {}}
 {
     breakMode : all
     details : {
-        stackTrace :   at eval6.js:1:32
+        stackTrace :   at eval7.js:1:32
     }
     exceptionId : Error: hello
+}
+{
+    allThreadsContinued : false
+}
+Pausing on caught rejections
+Evaluating#8: new Promise((res, rej) => rej(new Error('oh no!'))).catch(err => {})
+{
+    allThreadsStopped : false
+    description : Paused on promise rejection
+    reason : exception
+    threadId : <number>
+}
+{
+    breakMode : all
+    details : {
+        stackTrace :   at eval8.js:1:31     at new Promise (<anonymous>)     at eval8.js:1:1
+    }
+    exceptionId : Error: oh no!
 }
 {
     allThreadsContinued : false

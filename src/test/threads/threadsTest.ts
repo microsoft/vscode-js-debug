@@ -247,12 +247,21 @@ describe('threads', () => {
       p.evaluate(`setTimeout(() => { throw new Error('hello'); })`);
       await waitForPauseOnException(p);
 
+      p.log('Pausing on uncaught rejections');
+      p.evaluate(`new Promise((res, rej) => rej(new Error('oh no!')))`);
+      await waitForPauseOnException(p);
+
       p.log('Pausing on caught exceptions');
       await p.dap.setExceptionBreakpoints({ filters: ['all'] });
       p.evaluate(`setTimeout(() => { throw new Error('hello'); })`);
       await waitForPauseOnException(p);
       p.evaluate(`setTimeout(() => { try { throw new Error('hello'); } catch (e) {}})`);
       await waitForPauseOnException(p);
+
+      p.log('Pausing on caught rejections');
+      p.evaluate(`new Promise((res, rej) => rej(new Error('oh no!'))).catch(err => {})`);
+      await waitForPauseOnException(p);
+
       p.assertLog();
     });
 

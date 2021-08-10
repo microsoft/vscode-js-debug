@@ -112,7 +112,10 @@ export class ExceptionPauseService implements IExceptionPauseService {
    * @inheritdoc
    */
   public async shouldPauseAt(evt: Cdp.Debugger.PausedEvent) {
-    if (evt.reason !== 'exception' || this.state.cdp === PauseOnExceptionsState.None) {
+    if (
+      (evt.reason !== 'exception' && evt.reason !== 'promiseRejection') ||
+      this.state.cdp === PauseOnExceptionsState.None
+    ) {
       return false;
     }
 
