@@ -1,0 +1,13 @@
+
+setExpression a: {
+    value : 42
+    variablesReference : <number>
+}
+
+setExpression a: {
+    value : 'hello world'
+    variablesReference : <number>
+}
+
+ Vars:
+stdout> 42 hello world

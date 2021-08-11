@@ -17,7 +17,7 @@ import { fileUrlToAbsolutePath } from '../common/urlUtils';
 import { AnyLaunchConfiguration, IChromiumBaseConfiguration, OutputSource } from '../configuration';
 import Dap from '../dap/api';
 import * as errors from '../dap/errors';
-import * as ProtocolError from '../dap/protocolError';
+import { ProtocolError } from '../dap/protocolError';
 import { NodeWorkerTarget } from '../targets/node/nodeWorkerTarget';
 import { ITarget } from '../targets/targets';
 import { BreakpointManager, EntryBreakpointMode } from './breakpoints';
@@ -385,16 +385,21 @@ export class Thread implements IVariableStoreDelegate {
       .map(label => ({ label, start: 0, length: params.text.length }));
   }
 
-  async evaluate(args: Dap.EvaluateParams): Promise<Dap.EvaluateResult | Dap.Error> {
+  async evaluate(args: Dap.EvaluateParams): Promise<Dap.EvaluateResult> {
     let callFrameId: Cdp.Debugger.CallFrameId | undefined;
     let stackFrame: StackFrame | undefined;
     if (args.frameId !== undefined) {
       stackFrame = this._pausedDetails
         ? this._pausedDetails.stackTrace.frame(args.frameId)
         : undefined;
-      if (!stackFrame) return this._stackFrameNotFoundError();
+      if (!stackFrame) {
+        throw new ProtocolError(this._stackFrameNotFoundError());
+      }
+
       callFrameId = stackFrame.callFrameId();
-      if (!callFrameId) return this._evaluateOnAsyncFrameError();
+      if (!callFrameId) {
+        throw new ProtocolError(this._evaluateOnAsyncFrameError());
+      }
     }
 
     if (args.context === 'repl' && args.expression.startsWith('cd ')) {
@@ -455,18 +460,22 @@ export class Thread implements IVariableStoreDelegate {
 
     const response = await responsePromise;
     if (!response)
-      return errors.createSilentError(localize('error.evaluateDidFail', 'Unable to evaluate'));
+      throw new ProtocolError(
+        errors.createSilentError(localize('error.evaluateDidFail', 'Unable to evaluate')),
+      );
     if (response.exceptionDetails) {
       let text = response.exceptionDetails.exception
         ? objectPreview.previewException(response.exceptionDetails.exception).title
         : response.exceptionDetails.text;
       if (!text.startsWith('Uncaught')) text = 'Uncaught ' + text;
-      return errors.createSilentError(text);
+      throw new ProtocolError(errors.createSilentError(text));
     }
 
     const variableStore = callFrameId ? this._pausedVariables : this.replVariables;
     if (!variableStore) {
-      return errors.createSilentError(localize('error.evaluateDidFail', 'Unable to evaluate'));
+      throw new ProtocolError(
+        errors.createSilentError(localize('error.evaluateDidFail', 'Unable to evaluate')),
+      );
     }
 
     const variable =
@@ -487,13 +496,13 @@ export class Thread implements IVariableStoreDelegate {
     responsePromise:
       | Promise<Cdp.Runtime.EvaluateResult | undefined>
       | Promise<Cdp.Debugger.EvaluateOnCallFrameResult | undefined>,
-  ): Promise<Dap.EvaluateResult | Dap.Error> {
+  ): Promise<Dap.EvaluateResult> {
     const response = await responsePromise;
     if (!response) return { result: '', variablesReference: 0 };
 
     if (response.exceptionDetails) {
       const formattedException = await new ExceptionMessage(response.exceptionDetails).toDap(this);
-      throw new ProtocolError.ProtocolError(errors.replError(formattedException.output));
+      throw new ProtocolError(errors.replError(formattedException.output));
     } else {
       const contextName =
         this._selectedContext && this.defaultExecutionContext() !== this._selectedContext

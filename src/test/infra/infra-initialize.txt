@@ -46,7 +46,7 @@
     supportsModulesRequest : false
     supportsRestartFrame : true
     supportsRestartRequest : true
-    supportsSetExpression : false
+    supportsSetExpression : true
     supportsSetVariable : true
     supportsStepBack : false
     supportsStepInTargetsRequest : false

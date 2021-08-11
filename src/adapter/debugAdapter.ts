@@ -14,6 +14,7 @@ import * as urlUtils from '../common/urlUtils';
 import { AnyLaunchConfiguration } from '../configuration';
 import Dap from '../dap/api';
 import * as errors from '../dap/errors';
+import { ProtocolError } from '../dap/protocolError';
 import { disposeContainer } from '../ioc-extras';
 import { ITarget } from '../targets/targets';
 import { ITelemetryReporter } from '../telemetry/telemetryReporter';
@@ -80,9 +81,10 @@ export class DebugAdapter implements IDisposable {
     this.dap.on('disableSourcemap', params => this._onDisableSourcemap(params));
     this.dap.on('source', params => this._onSource(params));
     this.dap.on('threads', () => this._onThreads());
-    this.dap.on('stackTrace', params => this._onStackTrace(params));
+    this.dap.on('stackTrace', params => this._withThread(thread => thread.stackTrace(params)));
     this.dap.on('variables', params => this._onVariables(params));
     this.dap.on('setVariable', params => this._onSetVariable(params));
+    this.dap.on('setExpression', params => this._onSetExpression(params));
     this.dap.on('continue', () => this._withThread(thread => thread.resume()));
     this.dap.on('pause', () => this._withThread(thread => thread.pause()));
     this.dap.on('next', () => this._withThread(thread => thread.stepOver()));
@@ -175,7 +177,7 @@ export class DebugAdapter implements IDisposable {
       supportsLoadedSourcesRequest: true,
       supportsLogPoints: true,
       supportsTerminateThreadsRequest: false,
-      supportsSetExpression: false,
+      supportsSetExpression: true,
       supportsTerminateRequest: false,
       completionTriggerCharacters: ['.', '[', '"', "'"],
       supportsBreakpointLocationsRequest: true,
@@ -262,11 +264,6 @@ export class DebugAdapter implements IDisposable {
     return { threads };
   }
 
-  async _onStackTrace(params: Dap.StackTraceParams): Promise<Dap.StackTraceResult | Dap.Error> {
-    if (!this._thread) return this._threadNotAvailableError();
-    return this._thread.stackTrace(params);
-  }
-
   _findVariableStore(variablesReference: number): VariableStore | undefined {
     if (!this._thread) return;
 
@@ -282,6 +279,20 @@ export class DebugAdapter implements IDisposable {
     return { variables: await variableStore.getVariables(params) };
   }
 
+  async _onSetExpression(params: Dap.SetExpressionParams): Promise<Dap.SetExpressionResult> {
+    if (!this._thread) {
+      throw new ProtocolError(errors.threadNotAvailable());
+    }
+
+    const { result, ...rest } = await this._thread.evaluate({
+      expression: `${params.expression} = ${sourceUtils.wrapObjectLiteral(params.value)}`,
+      context: 'repl',
+      frameId: params.frameId,
+    });
+
+    return { value: result, ...rest };
+  }
+
   async _onSetVariable(params: Dap.SetVariableParams): Promise<Dap.SetVariableResult | Dap.Error> {
     const variableStore = this._findVariableStore(params.variablesReference);
     if (!variableStore)
@@ -290,8 +301,11 @@ export class DebugAdapter implements IDisposable {
     return variableStore.setVariable(params);
   }
 
-  _withThread<T>(callback: (thread: Thread) => Promise<T>): Promise<T | Dap.Error> {
-    if (!this._thread) return Promise.resolve(this._threadNotAvailableError());
+  _withThread<T>(callback: (thread: Thread) => Promise<T>): Promise<T> {
+    if (!this._thread) {
+      throw new ProtocolError(errors.threadNotAvailable());
+    }
+
     return callback(this._thread);
   }
 
@@ -299,10 +313,6 @@ export class DebugAdapter implements IDisposable {
     if (!this._thread) return;
     const details = this._thread.pausedDetails();
     if (details) await this._thread.refreshStackTrace();
-  }
-
-  _threadNotAvailableError(): Dap.Error {
-    return errors.createSilentError(localize('error.threadNotFound', 'Thread not found'));
   }
 
   createThread(cdp: Cdp.Api, target: ITarget): Thread {

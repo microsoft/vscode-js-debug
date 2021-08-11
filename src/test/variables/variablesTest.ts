@@ -230,7 +230,7 @@ describe('variables', () => {
   });
 
   describe('setVariable', () => {
-    itIntegrates.skip('basic', async ({ r }) => {
+    itIntegrates('basic', async ({ r }) => {
       const p = await r.launchAndLoad('blank');
       const v = await p.logger.evaluateAndLog(`window.x = ({foo: 42}); x`);
 
@@ -259,6 +259,46 @@ describe('variables', () => {
         }),
         '\nsetVariable failure: ',
       );
+      p.assertLog();
+    });
+
+    itIntegrates('setExpression', async ({ r }) => {
+      const p = await r.launchAndLoad('blank');
+      p.cdp.Runtime.evaluate({
+        expression: `
+        (function foo() {
+          let a = { b: 1 }
+          let c = 'e';
+          debugger;
+          console.log(a.b, c);
+        })()
+      `,
+      });
+
+      const paused = await p.dap.once('stopped');
+      const stack = await p.dap.stackTrace({ threadId: paused.threadId! });
+
+      p.log(
+        await p.dap.setExpression({
+          expression: 'a.b',
+          value: '42',
+          frameId: stack.stackFrames[0].id,
+        }),
+        '\nsetExpression a: ',
+      );
+
+      p.log(
+        await p.dap.setExpression({
+          expression: 'c',
+          value: '"hello " + "world"',
+          frameId: stack.stackFrames[0].id,
+        }),
+        '\nsetExpression a: ',
+      );
+
+      p.dap.continue({ threadId: paused.threadId! });
+      p.log('\n Vars:');
+      await p.logger.logOutput(await p.dap.once('output'));
       p.assertLog();
     });
 

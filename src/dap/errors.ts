@@ -31,6 +31,7 @@ export const enum ErrorCodes {
   TargetPageNotFound,
   BrowserAttachFailed,
   TaskCancelled,
+  ThreadNotAvailable,
 }
 
 export function reportToConsole(dap: Dap.Api, error: string) {
@@ -222,6 +223,12 @@ export const invalidBreakPointCondition = (params: Dap.SourceBreakpoint, error: 
       error,
     ),
     ErrorCodes.InvalidBreakpointCondition,
+  );
+
+export const threadNotAvailable = () =>
+  createSilentError(
+    localize('error.threadNotFound', 'Thread not found'),
+    ErrorCodes.ThreadNotAvailable,
   );
 
 // use the compiledUrl instead of the source map url here, since the source

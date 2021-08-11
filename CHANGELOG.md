@@ -10,6 +10,7 @@ Note that the current nightly _requires_ VS Code Insiders.
 - fix: workspaceFolder error in workspace launch configs ([ref](https://github.com/microsoft/vscode/issues/128922))
 - fix: console logs being slow when run without debugging ([#1068](https://github.com/microsoft/vscode-js-debug/issues/1068))
 - fix: not pausing on unhandled promise rejections ([ref](https://github.com/microsoft/vscode/issues/130265))
+- feat: support setExpression for updating WATCH view variables ([#1075](https://github.com/microsoft/vscode-js-debug/issues/1075))
 
 ## v1.60 (August 2021)
 
