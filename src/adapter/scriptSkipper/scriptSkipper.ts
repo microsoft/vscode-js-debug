@@ -3,3 +3,7 @@
  *--------------------------------------------------------*/
 
 export const IScriptSkipper = Symbol('IScriptSkipper');
+
+export interface IScriptSkipper {
+  isScriptSkipped(url: string): boolean;
+}

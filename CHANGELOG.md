@@ -11,6 +11,7 @@ Note that the current nightly _requires_ VS Code Insiders.
 - fix: console logs being slow when run without debugging ([#1068](https://github.com/microsoft/vscode-js-debug/issues/1068))
 - fix: not pausing on unhandled promise rejections ([ref](https://github.com/microsoft/vscode/issues/130265))
 - feat: support setExpression for updating WATCH view variables ([#1075](https://github.com/microsoft/vscode-js-debug/issues/1075))
+- feat: integrate skipFiles with smartStepping to step through blackbox failures ([#1085](https://github.com/microsoft/vscode-js-debug/issues/1085))
 
 ## v1.60 (August 2021)
 

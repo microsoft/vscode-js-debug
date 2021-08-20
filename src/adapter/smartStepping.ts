@@ -2,41 +2,57 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { inject, injectable } from 'inversify';
 import { ILogger, LogTag } from '../common/logging';
 import { AnyLaunchConfiguration } from '../configuration';
 import { isSourceWithMap, UnmappedReason } from './sources';
 import { StackFrame } from './stackTrace';
 import { ExpectedPauseReason, IPausedDetails, PausedReason, StepDirection } from './threads';
 
-export async function shouldSmartStepStackFrame(stackFrame: StackFrame): Promise<boolean> {
+export const enum StackFrameStepOverReason {
+  NotStepped,
+  SmartStep,
+  Blackboxed,
+}
+
+export async function shouldStepOverStackFrame(
+  stackFrame: StackFrame,
+): Promise<StackFrameStepOverReason> {
   const uiLocation = await stackFrame.uiLocation();
   if (!uiLocation) {
-    return false;
+    return StackFrameStepOverReason.NotStepped;
+  }
+
+  if (uiLocation.source.blackboxed()) {
+    return StackFrameStepOverReason.Blackboxed;
   }
 
   if (!isSourceWithMap(uiLocation.source)) {
-    return false;
+    return StackFrameStepOverReason.NotStepped;
   }
 
   if (!uiLocation.isMapped && uiLocation.unmappedReason === UnmappedReason.MapPositionMissing) {
-    return true;
+    return StackFrameStepOverReason.SmartStep;
   }
 
-  return false;
+  return StackFrameStepOverReason.NotStepped;
 }
 
 const neverStepReasons: ReadonlySet<PausedReason> = new Set(['breakpoint', 'exception', 'entry']);
+
+const smartStepBackoutThreshold = 16;
 
 /**
  * The SmartStepper is a device that controls stepping through code that lacks
  * sourcemaps when running in an application with source maps.
  */
+@injectable()
 export class SmartStepper {
   private _smartStepCount = 0;
 
   constructor(
-    private readonly launchConfig: AnyLaunchConfiguration,
-    private readonly logger: ILogger,
+    @inject(AnyLaunchConfiguration) private readonly launchConfig: AnyLaunchConfiguration,
+    @inject(ILogger) private readonly logger: ILogger,
   ) {}
 
   private resetSmartStepCount(): void {
@@ -63,13 +79,16 @@ export class SmartStepper {
     }
 
     const frame = (await pausedDetails.stackTrace.loadFrames(1))[0];
-    const should = await shouldSmartStepStackFrame(frame);
-    if (!should) {
+    const should = await shouldStepOverStackFrame(frame);
+    if (should === StackFrameStepOverReason.NotStepped) {
       this.resetSmartStepCount();
       return;
     }
 
-    this._smartStepCount++;
+    if (this._smartStepCount++ > smartStepBackoutThreshold) {
+      return StepDirection.Out;
+    }
+
     return reason?.reason === 'step' ? reason.direction : StepDirection.In;
   }
 }

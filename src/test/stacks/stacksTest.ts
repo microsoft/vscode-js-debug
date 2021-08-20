@@ -284,15 +284,6 @@ describe('stacks', () => {
         expression: 'window.callBack(() => { debugger });\nconsole.log("out");',
       });
 
-      p.logger.logAsConsole('# at debugger:\n');
-      const s1 = await waitForPausedThenDelayStackTrace(p, false);
-      await p.dap.next({ threadId: s1.threadId! });
-
-      p.logger.logAsConsole('# after debugger:\n');
-      const s2 = await waitForPausedThenDelayStackTrace(p, false);
-      await p.dap.next({ threadId: s2.threadId! });
-
-      p.logger.logAsConsole('# should have stepped out:\n');
       await waitForPause(p);
       await evaluate;
       p.assertLog();

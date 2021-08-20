@@ -9,7 +9,7 @@ import { Base0Position } from '../common/positions';
 import Dap from '../dap/api';
 import { asyncScopesNotAvailable } from '../dap/errors';
 import { ProtocolError } from '../dap/protocolError';
-import { shouldSmartStepStackFrame } from './smartStepping';
+import { shouldStepOverStackFrame, StackFrameStepOverReason } from './smartStepping';
 import { IPreferredUiLocation, SourceConstants } from './sources';
 import { RawLocation, Thread } from './threads';
 import { IExtraProperty, IScopeRef } from './variables';
@@ -330,14 +330,18 @@ export class StackFrame {
   async toDap(format?: Dap.StackFrameFormat): Promise<Dap.StackFrame> {
     const uiLocation = await this.uiLocation();
     const source = uiLocation ? await uiLocation.source.toDap() : undefined;
-    const isSmartStepped = await shouldSmartStepStackFrame(this);
+    const isSmartStepped = await shouldStepOverStackFrame(this);
     const presentationHint = this._isAsyncSeparator
       ? 'label'
       : isSmartStepped
       ? 'deemphasize'
       : 'normal';
-    if (isSmartStepped && source)
-      source.origin = localize('smartStepSkipLabel', 'Skipped by smartStep');
+    if (isSmartStepped && source) {
+      source.origin =
+        isSmartStepped === StackFrameStepOverReason.SmartStep
+          ? localize('smartStepSkipLabel', 'Skipped by smartStep')
+          : localize('source.skipFiles', 'Skipped by skipFiles');
+    }
 
     const line = (uiLocation || this._rawLocation).lineNumber;
     const column = (uiLocation || this._rawLocation).columnNumber;

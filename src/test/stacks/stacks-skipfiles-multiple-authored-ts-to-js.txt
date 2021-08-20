@@ -1,16 +1,9 @@
-# at debugger:
+{
+    allThreadsStopped : false
+    description : Paused on debugger statement
+    reason : pause
+    threadId : <number>
+}
 <anonymous> @ <eval>/VM<xx>:1:25
 bar @ ${workspaceFolder}/web/browserify/module2.ts:3:3 <hidden: Skipped by skipFiles>
 <anonymous> @ <eval>/VM<xx>:1:8
-# after debugger:
-<anonymous> @ <eval>/VM<xx>:1:34
-bar @ ${workspaceFolder}/web/browserify/module2.ts:3:3 <hidden: Skipped by skipFiles>
-<anonymous> @ <eval>/VM<xx>:1:8
-# should have stepped out:
-{
-    allThreadsStopped : false
-    description : Paused
-    reason : step
-    threadId : <number>
-}
-<anonymous> @ <eval>/VM<xx>:2:1

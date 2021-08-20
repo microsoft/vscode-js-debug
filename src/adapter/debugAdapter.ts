@@ -32,6 +32,7 @@ import { IProfileController } from './profileController';
 import { BasicCpuProfiler } from './profiling/basicCpuProfiler';
 import { ScriptSkipper } from './scriptSkipper/implementation';
 import { IScriptSkipper } from './scriptSkipper/scriptSkipper';
+import { SmartStepper } from './smartStepping';
 import { ISourceWithMap, SourceContainer, SourceFromMap } from './sources';
 import { Thread } from './threads';
 import { VariableStore } from './variables';
@@ -329,6 +330,7 @@ export class DebugAdapter implements IDisposable {
       this.breakpointManager,
       this._services.get(IConsole),
       this._services.get(IExceptionPauseService),
+      this._services.get(SmartStepper),
     );
 
     const profile = this._services.get<IProfileController>(IProfileController);

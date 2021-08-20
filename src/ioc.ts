@@ -110,6 +110,7 @@ import { NullExperimentationService } from './telemetry/nullExperimentationServi
 import { NullTelemetryReporter } from './telemetry/nullTelemetryReporter';
 import { ITelemetryReporter } from './telemetry/telemetryReporter';
 import { HeapDumpProfiler } from './adapter/profiling/heapDumpProfiler';
+import { SmartStepper } from './adapter/smartStepping';
 
 /**
  * Contains IOC container factories for the extension. We use Inverisfy, which
@@ -174,6 +175,7 @@ export const createTargetContainer = (
   container.bind(Diagnostics).toSelf().inSingletonScope();
 
   container.bind(IScriptSkipper).to(ScriptSkipper).inSingletonScope();
+  container.bind(SmartStepper).toSelf().inSingletonScope();
   container.bind(IExceptionPauseService).to(ExceptionPauseService).inSingletonScope();
   container.bind(ICompletions).to(Completions).inSingletonScope();
   container.bind(IEvaluator).to(Evaluator).inSingletonScope();

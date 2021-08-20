@@ -150,7 +150,6 @@ export class Thread implements IVariableStoreDelegate {
   // url => (hash => Source)
   private _scriptSources = new Map<string, Map<string, Source>>();
   private _sourceMapLoads = new Map<string, Promise<IUiLocation[]>>();
-  private readonly _smartStepper: SmartStepper;
   private _expectedPauseReason?: ExpectedPauseReason;
   private readonly _sourceScripts = new WeakMap<Source, Set<Script>>();
   private readonly _pausedDetailsEvent = new WeakMap<IPausedDetails, Cdp.Debugger.PausedEvent>();
@@ -180,6 +179,7 @@ export class Thread implements IVariableStoreDelegate {
     private readonly _breakpointManager: BreakpointManager,
     private readonly console: IConsole,
     private readonly exceptionPause: IExceptionPauseService,
+    private readonly _smartStepper: SmartStepper,
   ) {
     this._dap = new DeferredContainer(dap);
     this._sourceContainer = sourceContainer;
@@ -193,7 +193,6 @@ export class Thread implements IVariableStoreDelegate {
       launchConfig.customDescriptionGenerator,
       launchConfig.customPropertiesGenerator,
     );
-    this._smartStepper = new SmartStepper(this.launchConfig, logger);
     this._initialize();
   }
 
