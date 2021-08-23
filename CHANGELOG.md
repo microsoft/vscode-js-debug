@@ -2,9 +2,9 @@
 
 This changelog records changes to stable releases since 1.50.2. "TBA" changes here may be available in the [nightly release](https://github.com/microsoft/vscode-js-debug/#nightly-extension) before they're in stable. Note that the minor version (`v1.X.0`) corresponds to the VS Code version js-debug is shipped in, but the patch version (`v1.50.X`) is not meaningful.
 
-## Nightly Only
+## v1.60 (August 2021)
 
-Note that the current nightly _requires_ VS Code Insiders.
+### v1.60.1 - 2021-08-23
 
 - fix: fall back to any installed browser version if stable is not available ([ref](https://github.com/microsoft/vscode/issues/129013))
 - fix: workspaceFolder error in workspace launch configs ([ref](https://github.com/microsoft/vscode/issues/128922))
@@ -14,8 +14,6 @@ Note that the current nightly _requires_ VS Code Insiders.
 - feat: integrate skipFiles with smartStepping to step through blackbox failures ([#1085](https://github.com/microsoft/vscode-js-debug/issues/1085))
 - fix: extension host not always being torn down when stopping debugging ([ref](https://github.com/microsoft/vscode/issues/126911))
 - fix: args list not updating when session is restarted ([ref](https://github.com/microsoft/vscode/issues/128058))
-
-## v1.60 (August 2021)
 
 ### v1.60.0 - 2021-08-03
 
