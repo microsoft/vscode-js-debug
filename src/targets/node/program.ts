@@ -84,13 +84,14 @@ export class SubprocessProgram implements IProgram {
 export class StubProgram implements IProgram {
   public readonly stopped: Promise<IStopMetadata>;
   protected stopDefer!: (data: IStopMetadata) => void;
+  protected telemetry?: IProcessTelemetry;
 
   constructor() {
     this.stopped = new Promise(resolve => (this.stopDefer = resolve));
   }
 
   public gotTelemetery() {
-    // no-op
+    this.telemetry = this.telemetry;
   }
 
   public stop() {

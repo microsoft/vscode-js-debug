@@ -6,7 +6,7 @@ import { injectable } from 'inversify';
 import { getSourceSuffix } from '../../adapter/templates';
 import Cdp from '../../cdp/api';
 import { DebugType } from '../../common/contributionUtils';
-import { LogTag } from '../../common/logging';
+import { ILogger, LogTag } from '../../common/logging';
 import { Semver } from '../../common/semver';
 import {
   AnyLaunchConfiguration,
@@ -14,11 +14,28 @@ import {
   KillBehavior,
 } from '../../configuration';
 import { retryGetNodeEndpoint } from '../browser/spawn/endpoints';
+import { killTree } from './killTree';
 import { NodeAttacherBase } from './nodeAttacherBase';
 import { NodeBinary } from './nodeBinaryProvider';
 import { IRunData } from './nodeLauncherBase';
 import { TerminalProcess, WatchDogProgram } from './program';
 import { WatchDog } from './watchdogSpawn';
+
+/**
+ * Special program for the EH because even this it's an "attach" we should
+ * still kill it at the end. See vscode#126911
+ */
+class ExtensionHostProgram extends WatchDogProgram {
+  constructor(wd: WatchDog, private readonly logger: ILogger) {
+    super(wd);
+
+    this.stopped.then(() => {
+      if (this.telemetry) {
+        killTree(this.telemetry.processId, this.logger, KillBehavior.Polite);
+      }
+    });
+  }
+}
 
 /**
  * Attaches to an instance of VS Code for extension debugging.
@@ -67,7 +84,7 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostAttach
       dynamicAttach: true,
     });
 
-    const program = (this.program = new WatchDogProgram(wd));
+    const program = (this.program = new ExtensionHostProgram(wd, this.logger));
     this.program.stopped.then(result => {
       if (program === this.program) {
         this.onProgramTerminated(result);

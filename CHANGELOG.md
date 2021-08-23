@@ -12,6 +12,7 @@ Note that the current nightly _requires_ VS Code Insiders.
 - fix: not pausing on unhandled promise rejections ([ref](https://github.com/microsoft/vscode/issues/130265))
 - feat: support setExpression for updating WATCH view variables ([#1075](https://github.com/microsoft/vscode-js-debug/issues/1075))
 - feat: integrate skipFiles with smartStepping to step through blackbox failures ([#1085](https://github.com/microsoft/vscode-js-debug/issues/1085))
+- fix: extension host not always being torn down when stopping debugging ([ref](https://github.com/microsoft/vscode/issues/126911))
 
 ## v1.60 (August 2021)
 

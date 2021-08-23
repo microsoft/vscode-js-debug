@@ -521,7 +521,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
     cdp: Cdp.Api,
     run: IRunData<T>,
   ): Promise<IProcessTelemetry | void> {
-    for (let retries = 0; retries < 5; retries++) {
+    for (let retries = 0; retries < 8; retries++) {
       const telemetry = await cdp.Runtime.evaluate({
         contextId: 1,
         returnByValue: true,
@@ -543,7 +543,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
 
       if (typeof telemetry.result.value !== 'object') {
         this.logger.info(LogTag.RuntimeTarget, 'Process not yet defined, will retry');
-        await delay(20);
+        await delay(50 * 2 ** retries);
         continue;
       }
 
