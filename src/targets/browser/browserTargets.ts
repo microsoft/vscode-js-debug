@@ -78,6 +78,13 @@ export class BrowserTarget implements ITarget {
   /**
    * @inheritdoc
    */
+  public get independentLifeycle() {
+    return restartableTypes.has(this.type());
+  }
+
+  /**
+   * @inheritdoc
+   */
   public get supplementalConfig() {
     const type = this.type();
     return {

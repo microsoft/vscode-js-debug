@@ -38,6 +38,12 @@ export interface ITarget {
    */
   readonly supplementalConfig?: Record<string, unknown>;
 
+  /**
+   * Whether the lifecycle for this target can be stopped, restarted, etc.
+   * independently of its parents.
+   */
+  readonly independentLifeycle?: boolean;
+
   id(): string;
   name(): string;
   onNameChanged: IEvent<void>;

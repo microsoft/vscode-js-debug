@@ -40,6 +40,7 @@ class VsCodeSessionLauncher implements ISessionLauncher<vscode.DebugSession> {
         consoleMode: vscode.DebugConsoleMode.MergeWithParent,
         noDebug: parentSession.debugSession.configuration.noDebug,
         compact: parentSession instanceof RootSession, // don't compact workers/child processes
+        lifecycleManagedByParent: target.independentLifeycle ? false : true,
       },
     );
   }
