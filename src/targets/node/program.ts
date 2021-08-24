@@ -90,8 +90,8 @@ export class StubProgram implements IProgram {
     this.stopped = new Promise(resolve => (this.stopDefer = resolve));
   }
 
-  public gotTelemetery() {
-    this.telemetry = this.telemetry;
+  public gotTelemetery(telemetry: IProcessTelemetry) {
+    this.telemetry = telemetry;
   }
 
   public stop() {
