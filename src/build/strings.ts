@@ -106,7 +106,7 @@ const strings = {
   'browser.perScriptSourcemaps.description':
     'Whether scripts are loaded individually with unique sourcemaps containing the basename of the source file. This can be set to optimize sourcemap handling when dealing with lots of small scripts. If set to "auto", we\'ll detect known cases where this is appropriate.',
   'browser.userDataDir.description':
-    'By default, the browser is launched with a separate user profile in a temp folder. Use this option to override it. Set to false to launch with your default user profile. A new browser can\'t be launched if an instance is already running from `userDataDir`.',
+    "By default, the browser is launched with a separate user profile in a temp folder. Use this option to override it. Set to false to launch with your default user profile. A new browser can't be launched if an instance is already running from `userDataDir`.",
   'browser.inspectUri.description':
     "Format to use to rewrite the inspectUri: It's a template string that interpolates keys in `{curlyBraces}`. Available keys are:\n" +
     ' - `url.*` is the parsed address of the running application. For instance, `{url.port}`, `{url.hostname}`\n' +

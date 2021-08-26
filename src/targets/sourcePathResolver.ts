@@ -111,9 +111,16 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
       return caseSensitive ? value : value.toLowerCase();
     };
 
-    const l = match([processMatchInput(sourcePath)], this.resolveLocations.map(processMatchInput), {
-      dot: true,
-    });
+    const rebased = this.rebaseRemoteToLocal(sourcePath);
+    const testPatterns = rebased !== sourcePath ? [sourcePath, rebased] : [sourcePath];
+
+    const l = match(
+      testPatterns.map(processMatchInput),
+      this.resolveLocations.map(processMatchInput),
+      {
+        dot: true,
+      },
+    );
 
     return l.length > 0;
   }
