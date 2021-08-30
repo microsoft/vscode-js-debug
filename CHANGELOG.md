@@ -5,6 +5,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 ## Nightly Only
 
 - fix: sourcemap locations not resolving on remotes ([ref](https://github.com/microsoft/vscode/issues/131729))
+- feat: add node_internals to skipFiles by default ([#1091](https://github.com/microsoft/vscode-js-debug/issues/1091))
 
 ## v1.60 (August 2021)
 

@@ -837,6 +837,7 @@ const nodeBaseDefaults: INodeBaseConfiguration = {
   resolveSourceMapLocations: ['**', '!**/node_modules/**'],
   autoAttachChildProcesses: true,
   runtimeSourcemapPausePatterns: [],
+  skipFiles: ['<node_internals>/**'],
 };
 
 export const terminalBaseDefaults: ITerminalLaunchConfiguration = {
