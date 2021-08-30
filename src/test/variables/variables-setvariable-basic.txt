@@ -1,21 +1,15 @@
 > result: {foo: 42}
     foo: 42
     > [[Prototype]]: Object
-    > __proto__ (get): ƒ __proto__()
-    > __proto__ (set): ƒ __proto__()
 
 Setting "foo" to "{bar: 17}"
 > <result>: Object
     bar: 17
     > [[Prototype]]: Object
-    > __proto__ (get): ƒ __proto__()
-    > __proto__ (set): ƒ __proto__()
 
 Original
 > result: {foo: 42}
     > foo: {bar: 17}
     > [[Prototype]]: Object
-    > __proto__ (get): ƒ __proto__()
-    > __proto__ (set): ƒ __proto__()
 
 setVariable failure: ReferenceError: baz is not defined

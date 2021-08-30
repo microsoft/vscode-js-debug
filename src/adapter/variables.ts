@@ -435,8 +435,20 @@ export class VariableStore {
     const propertiesMap = new Map<string, AnyPropertyDescriptor>();
     const propertySymbols: AnyPropertyDescriptor[] = [];
     for (const property of accessorsProperties.result) {
-      if (property.symbol) propertySymbols.push(property);
-      else propertiesMap.set(property.name, property);
+      if (property.symbol) {
+        propertySymbols.push(property);
+        continue;
+      }
+
+      // Handle updated prototype representation in recent V8 (vscode#130365)
+      if (
+        property.name === '__proto__' &&
+        ownProperties.internalProperties?.some(p => p.name === '[[Prototype]]')
+      ) {
+        continue;
+      }
+
+      propertiesMap.set(property.name, property);
     }
     for (const property of ownProperties.result) {
       if (property.get || property.set) continue;

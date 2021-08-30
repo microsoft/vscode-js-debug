@@ -9,53 +9,33 @@
         [[FunctionLocation]]: @ <eval>/VM<xx>:1
         > [[Prototype]]: ƒ ()
         > [[Scopes]]: Scopes[1]
-        > __proto__: function () { [native code] }
-        > __proto__ (set): ƒ __proto__()
     > [[Prototype]]: Object
         > foo (set): ƒ foo(x) {}
         > [[Prototype]]: Object
-        > __proto__: Object
-        > __proto__ (set): ƒ __proto__()
-    > __proto__: Object
         > foo (set): ƒ foo(x) {}
         > [[Prototype]]: Object
-        > __proto__: Object
-        > __proto__ (set): ƒ __proto__()
-    > __proto__ (set): ƒ __proto__()
         > arguments (get): ƒ ()
         > arguments (set): ƒ ()
         > caller (get): ƒ ()
         > caller (set): ƒ ()
         length: 1
-        name: 'set __proto__'
         > [[Prototype]]: ƒ ()
         > [[Scopes]]: Scopes[0]
-        > __proto__: function () { [native code] }
-        > __proto__ (set): ƒ __proto__()
 
 > result: {}
     foo: 42
     > [[Prototype]]: Object
         foo: 42
         > [[Prototype]]: Object
-        > __proto__: Object
-        > __proto__ (set): ƒ __proto__()
-    > __proto__: Object
         foo: 42
         > [[Prototype]]: Object
-        > __proto__: Object
-        > __proto__ (set): ƒ __proto__()
-    > __proto__ (set): ƒ __proto__()
         > arguments (get): ƒ ()
         > arguments (set): ƒ ()
         > caller (get): ƒ ()
         > caller (set): ƒ ()
         length: 1
-        name: 'set __proto__'
         > [[Prototype]]: ƒ ()
         > [[Scopes]]: Scopes[0]
-        > __proto__: function () { [native code] }
-        > __proto__ (set): ƒ __proto__()
 
 > result: {}
     > foo (get): ƒ foo() { throw 'wat'; }
@@ -68,50 +48,30 @@
         [[FunctionLocation]]: @ <eval>/VM<xx>:1
         > [[Prototype]]: ƒ ()
         > [[Scopes]]: Scopes[1]
-        > __proto__: function () { [native code] }
-        > __proto__ (set): ƒ __proto__()
     > [[Prototype]]: Object
         > foo (get): ƒ foo() { throw 'wat'; }
         > [[Prototype]]: Object
-        > __proto__: Object
-        > __proto__ (set): ƒ __proto__()
-    > __proto__: Object
         > foo (get): ƒ foo() { throw 'wat'; }
         > [[Prototype]]: Object
-        > __proto__: Object
-        > __proto__ (set): ƒ __proto__()
-    > __proto__ (set): ƒ __proto__()
         > arguments (get): ƒ ()
         > arguments (set): ƒ ()
         > caller (get): ƒ ()
         > caller (set): ƒ ()
         length: 1
-        name: 'set __proto__'
         > [[Prototype]]: ƒ ()
         > [[Scopes]]: Scopes[0]
-        > __proto__: function () { [native code] }
-        > __proto__ (set): ƒ __proto__()
 
 > result: {}
     > [[Prototype]]: Object
         normalObject: true
         > [[Prototype]]: Object
-        > __proto__: Object
-        > __proto__ (set): ƒ __proto__()
-    > __proto__: Object
         normalObject: true
         > [[Prototype]]: Object
-        > __proto__: Object
-        > __proto__ (set): ƒ __proto__()
-    > __proto__ (set): ƒ __proto__()
         > arguments (get): ƒ ()
         > arguments (set): ƒ ()
         > caller (get): ƒ ()
         > caller (set): ƒ ()
         length: 1
-        name: 'set __proto__'
         > [[Prototype]]: ƒ ()
         > [[Scopes]]: Scopes[0]
-        > __proto__: function () { [native code] }
-        > __proto__ (set): ƒ __proto__()
 

@@ -6,8 +6,6 @@ return { a: { b: true } }:
 > result: {a: {…}}
     > a: {b: true}
     > [[Prototype]]: Object
-    > __proto__ (get): ƒ __proto__()
-    > __proto__ (set): ƒ __proto__()
 return undefined:
 
 result: undefined

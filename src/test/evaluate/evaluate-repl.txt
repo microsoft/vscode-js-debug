@@ -13,8 +13,6 @@ result: 1234567890n
 > result: {foo: 3}
     foo: 3
     > [[Prototype]]: Object
-    > __proto__ (get): ƒ __proto__()
-    > __proto__ (set): ƒ __proto__()
 
 <error>: Uncaught ReferenceError: baz is not defined
 
@@ -22,8 +20,6 @@ result: 1234567890n
     > size (get): ƒ size()
     > [[Entries]]: Array(1)
     > [[Prototype]]: Map
-    > __proto__ (get): ƒ __proto__()
-    > __proto__ (set): ƒ __proto__()
 
 result: 42
 stderr> Uncaught Error: bar

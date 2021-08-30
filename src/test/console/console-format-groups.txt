@@ -20,8 +20,6 @@ Evaluating: 'console.group({ complex: true })'
 stdout> > {complex: true}
 stdout>     complex: true
 stdout>     > [[Prototype]]: Object
-stdout>     > __proto__ (get): ƒ __proto__()
-stdout>     > __proto__ (set): ƒ __proto__()
 
 Evaluating: 'console.log('in complex')'
 stdout> in complex

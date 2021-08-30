@@ -502,7 +502,7 @@ declare module 'vscode' {
 		constructor(anchorLine: number, anchorCharacter: number, activeLine: number, activeCharacter: number);
 
 		/**
-		 * A selection is reversed if {@link Selection.active active}.isBefore({@link Selection.anchor anchor}).
+		 * A selection is reversed if its {@link Selection.anchor anchor} is the {@link Selection.end end} position.
 		 */
 		isReversed: boolean;
 	}
@@ -6420,6 +6420,17 @@ declare module 'vscode' {
 		 */
 		static Test: TaskGroup;
 
+		/**
+		 * Whether the task that is part of this group is the default for the group.
+		 * This property cannot be set through API, and is controlled by a user's task configurations.
+		 */
+		readonly isDefault?: boolean;
+
+		/**
+		 * The ID of the task group. Is one of TaskGroup.Clean.id, TaskGroup.Build.id, TaskGroup.Rebuild.id, or TaskGroup.Test.id.
+		 */
+		readonly id: string;
+
 		private constructor(id: string, label: string);
 	}
 
@@ -8181,6 +8192,11 @@ declare module 'vscode' {
 		export const appRoot: string;
 
 		/**
+		 * The environment in which the app is hosted in. i.e. 'desktop', 'codespaces', 'web'.
+		 */
+		export const appHost: string;
+
+		/**
 		 * The custom uri scheme the editor registers to in the operating system.
 		 */
 		export const uriScheme: string;
@@ -9484,6 +9500,13 @@ declare module 'vscode' {
 		 * The icon path or {@link ThemeIcon} for the terminal.
 		 */
 		iconPath?: Uri | { light: Uri; dark: Uri } | ThemeIcon;
+
+		/**
+		 * The icon {@link ThemeColor} for the terminal.
+		 * The `terminal.ansi*` theme keys are
+		 * recommended for the best contrast and consistency across themes.
+		 */
+		color?: ThemeColor;
 	}
 
 	/**
@@ -9505,6 +9528,13 @@ declare module 'vscode' {
 		 * The icon path or {@link ThemeIcon} for the terminal.
 		 */
 		iconPath?: Uri | { light: Uri; dark: Uri } | ThemeIcon;
+
+		/**
+		 * The icon {@link ThemeColor} for the terminal.
+		 * The standard `terminal.ansi*` theme keys are
+		 * recommended for the best contrast and consistency across themes.
+		 */
+		color?: ThemeColor;
 	}
 
 	/**
@@ -9975,7 +10005,8 @@ declare module 'vscode' {
 		buttons: readonly QuickInputButton[];
 
 		/**
-		 * An event signaling when a button was triggered.
+		 * An event signaling when a button in the title bar was triggered.
+		 * This event does not fire for buttons on a {@link QuickPickItem}.
 		 */
 		readonly onDidTriggerButton: Event<QuickInputButton>;
 
@@ -11673,7 +11704,7 @@ declare module 'vscode' {
 		readonly executionOrder?: number;
 
 		/**
-		 * If the exclusive finished successfully.
+		 * If the execution finished successfully.
 		 */
 		readonly success?: boolean;
 
@@ -13921,7 +13952,7 @@ declare module 'vscode' {
 
 		/**
 		 * A collection of "top-level" {@link TestItem} instances, which can in
-		 * turn have their own {@link TestItem.children | children} to form the
+		 * turn have their own {@link TestItem.children children} to form the
 		 * "test tree."
 		 *
 		 * The extension controls when to add tests. For example, extensions should

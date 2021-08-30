@@ -2,9 +2,5 @@
     0: 678
     1: 456
     > [[Prototype]]: Object
-    > __proto__ (get): ƒ __proto__()
-    > __proto__ (set): ƒ __proto__()
     length: 2
     > [[Prototype]]: Array(0)
-    > __proto__ (get): ƒ __proto__()
-    > __proto__ (set): ƒ __proto__()

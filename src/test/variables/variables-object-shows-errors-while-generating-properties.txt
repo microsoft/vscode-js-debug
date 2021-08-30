@@ -2,8 +2,6 @@
     > getter (get): ƒ getter() {}
     realProp: 'cc3'
     > [[Prototype]]: Foo
-    > __proto__ (get): ƒ __proto__()
-    > __proto__ (set): ƒ __proto__()
 
 Failed properties customization: Error: Some error while generating properties
     at Bar.<anonymous> (<anonymous>:3:47)

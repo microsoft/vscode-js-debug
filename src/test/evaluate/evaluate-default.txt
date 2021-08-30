@@ -19,16 +19,12 @@ result: 3
     1: 2
     2: 3
     > [[Prototype]]: Object
-    > __proto__ (get): ƒ __proto__()
-    > __proto__ (set): ƒ __proto__()
     > buffer (get): ƒ buffer()
     > byteLength (get): ƒ byteLength()
     > byteOffset (get): ƒ byteOffset()
     > length (get): ƒ length()
     > Symbol(Symbol.toStringTag) (get): ƒ [Symbol.toStringTag]()
     > [[Prototype]]: TypedArray
-    > __proto__ (get): ƒ __proto__()
-    > __proto__ (set): ƒ __proto__()
 
 > result: ArrayBuffer(3)
     > byteLength (get): ƒ byteLength()
@@ -36,8 +32,6 @@ result: 3
     > [[Int8Array]]: Int8Array(3)
     > [[Prototype]]: ArrayBuffer
     > [[Uint8Array]]: Uint8Array(3)
-    > __proto__ (get): ƒ __proto__()
-    > __proto__ (set): ƒ __proto__()
 
 > result: Proxy {a: 1}
     > [[Handler]]: Object
@@ -55,26 +49,17 @@ result: 3
         [[FunctionLocation]]: @ <eval>/VM<xx>:1
         > [[Prototype]]: ƒ ()
         > [[Scopes]]: Scopes[1]
-        > __proto__ (get): ƒ __proto__()
-        > __proto__ (set): ƒ __proto__()
     > [[Prototype]]: Object
         > foo (set): ƒ foo(x) {}
         > [[Prototype]]: Object
-        > __proto__ (get): ƒ __proto__()
-        > __proto__ (set): ƒ __proto__()
-    > __proto__ (get): ƒ __proto__()
         > Object
-    > __proto__ (set): ƒ __proto__()
         > arguments (get): ƒ ()
         > arguments (set): ƒ ()
         > caller (get): ƒ ()
         > caller (set): ƒ ()
         length: 1
-        name: 'set __proto__'
         > [[Prototype]]: ƒ ()
         > [[Scopes]]: Scopes[0]
-        > __proto__ (get): ƒ __proto__()
-        > __proto__ (set): ƒ __proto__()
 
 > result: {}
     > foo (get): ƒ foo() { return 42 }
@@ -82,21 +67,14 @@ result: 3
     > [[Prototype]]: Object
         > foo (get): ƒ foo() { return 42 }
         > [[Prototype]]: Object
-        > __proto__ (get): ƒ __proto__()
-        > __proto__ (set): ƒ __proto__()
-    > __proto__ (get): ƒ __proto__()
         > Object
-    > __proto__ (set): ƒ __proto__()
         > arguments (get): ƒ ()
         > arguments (set): ƒ ()
         > caller (get): ƒ ()
         > caller (set): ƒ ()
         length: 1
-        name: 'set __proto__'
         > [[Prototype]]: ƒ ()
         > [[Scopes]]: Scopes[0]
-        > __proto__ (get): ƒ __proto__()
-        > __proto__ (set): ƒ __proto__()
 
 > result: {}
     > foo (get): ƒ foo() { throw 'wat'; }
@@ -109,26 +87,17 @@ result: 3
         [[FunctionLocation]]: @ <eval>/VM<xx>:1
         > [[Prototype]]: ƒ ()
         > [[Scopes]]: Scopes[1]
-        > __proto__ (get): ƒ __proto__()
-        > __proto__ (set): ƒ __proto__()
     > [[Prototype]]: Object
         > foo (get): ƒ foo() { throw 'wat'; }
         > [[Prototype]]: Object
-        > __proto__ (get): ƒ __proto__()
-        > __proto__ (set): ƒ __proto__()
-    > __proto__ (get): ƒ __proto__()
         > Object
-    > __proto__ (set): ƒ __proto__()
         > arguments (get): ƒ ()
         > arguments (set): ƒ ()
         > caller (get): ƒ ()
         > caller (set): ƒ ()
         length: 1
-        name: 'set __proto__'
         > [[Prototype]]: ƒ ()
         > [[Scopes]]: Scopes[0]
-        > __proto__ (get): ƒ __proto__()
-        > __proto__ (set): ƒ __proto__()
 
 Evaluating#1: setTimeout(() => { throw new Error('bar')}, 0)
 stderr> Uncaught Error: bar

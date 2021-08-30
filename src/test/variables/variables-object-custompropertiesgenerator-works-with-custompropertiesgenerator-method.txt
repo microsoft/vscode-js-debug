@@ -4,5 +4,3 @@
     > getter (get): ƒ getter() {}
     realProp: 'cc3'
     > [[Prototype]]: Foo
-    > __proto__ (get): ƒ __proto__()
-    > __proto__ (set): ƒ __proto__()

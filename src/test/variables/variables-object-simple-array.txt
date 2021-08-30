@@ -3,10 +3,6 @@
     1: 2  // type=number
     2: 3  // type=number
     > [[Prototype]]: Object  // type=object
-    > __proto__ (get): ƒ __proto__()  // type=function
-    > __proto__ (set): ƒ __proto__()  // type=function
     foo: 1  // type=number
     length: 3  // type=number
     > [[Prototype]]: Array(0)  // type=Array
-    > __proto__ (get): ƒ __proto__()  // type=function
-    > __proto__ (set): ƒ __proto__()  // type=function

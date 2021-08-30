@@ -2,10 +2,6 @@
     > 0: meta
     > 1: title
     > [[Prototype]]: Object
-    > __proto__ (get): ƒ __proto__()
-    > __proto__ (set): ƒ __proto__()
     > foo: meta
     > length (get): ƒ length()
     > [[Prototype]]: HTMLCollection
-    > __proto__ (get): ƒ __proto__()
-    > __proto__ (set): ƒ __proto__()

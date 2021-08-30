@@ -2,9 +2,5 @@ stdout> > [32mobjects: (2) [Foo, Foo][0m
 stdout>     > 0: Foo {value: 1}
 stdout>     > 1: Foo {value: 2}
 stdout>     > [[Prototype]]: Object
-stdout>     > __proto__ (get): ƒ __proto__()
-stdout>     > __proto__ (set): ƒ __proto__()
 stdout>     length: 2
 stdout>     > [[Prototype]]: Array(0)
-stdout>     > __proto__ (get): ƒ __proto__()
-stdout>     > __proto__ (set): ƒ __proto__()

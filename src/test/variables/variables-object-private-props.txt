@@ -1,5 +1,3 @@
 > result: A {#foo: 'bar'}
     #foo: 'bar'
     > [[Prototype]]: Object
-    > __proto__ (get): ƒ __proto__()
-    > __proto__ (set): ƒ __proto__()

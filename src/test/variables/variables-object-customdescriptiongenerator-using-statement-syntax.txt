@@ -1,5 +1,3 @@
 > result: using statement: Instance of bar
     > getter (get): ƒ getter() {}
     > [[Prototype]]: using statement: Instance of bar
-    > __proto__ (get): ƒ __proto__()
-    > __proto__ (set): using statement: ƒ __proto__()

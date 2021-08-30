@@ -887,6 +887,85 @@ declare module 'vscode' {
 
 	//#endregion
 
+	//#region Terminal state event https://github.com/microsoft/vscode/issues/127717
+
+	/**
+	 * Represents the state of a {@link Terminal}.
+	 */
+	export interface TerminalState {
+		/**
+		 * Whether the {@link Terminal} has been interacted with. Interaction means that the
+		 * terminal has sent data to the process which depending on the terminal's _mode_. By
+		 * default input is sent when a key is pressed or when a command or extension sends text,
+		 * but based on the terminal's mode it can also happen on:
+		 *
+		 * - a pointer click event
+		 * - a pointer scroll event
+		 * - a pointer move event
+		 * - terminal focus in/out
+		 *
+		 * For more information on events that can send data see "DEC Private Mode Set (DECSET)" on
+		 * https://invisible-island.net/xterm/ctlseqs/ctlseqs.html
+		 */
+		readonly interactedWith: boolean;
+	}
+
+	export interface Terminal {
+		/**
+		 * The current state of the {@link Terminal}.
+		 */
+		readonly state: TerminalState;
+	}
+
+	export namespace window {
+		/**
+		 * An {@link Event} which fires when a {@link Terminal.state terminal's state} has changed.
+		 */
+		export const onDidChangeTerminalState: Event<Terminal>;
+	}
+
+	//#endregion
+
+	//#region Terminal location https://github.com/microsoft/vscode/issues/45407
+
+	export interface TerminalOptions {
+		location?: TerminalLocation | TerminalEditorLocationOptions | TerminalSplitLocationOptions;
+	}
+
+	export interface ExtensionTerminalOptions {
+		location?: TerminalLocation | TerminalEditorLocationOptions | TerminalSplitLocationOptions;
+	}
+
+	export enum TerminalLocation {
+		Panel = 1,
+		Editor = 2,
+	}
+
+	export interface TerminalEditorLocationOptions {
+		/**
+		 * A view column in which the {@link Terminal terminal} should be shown in the editor area.
+		 * Use {@link ViewColumn.Active active} to open in the active editor group, other values are
+		 * adjusted to be `Min(column, columnCount + 1)`, the
+		 * {@link ViewColumn.Active active}-column is not adjusted. Use
+		 * {@linkcode ViewColumn.Beside} to open the editor to the side of the currently active one.
+		 */
+		viewColumn: ViewColumn;
+		/**
+		 * An optional flag that when `true` will stop the {@link Terminal} from taking focus.
+		 */
+		preserveFocus?: boolean;
+	}
+
+	export interface TerminalSplitLocationOptions {
+		/**
+		 * The parent terminal to split this terminal beside. This works whether the parent terminal
+		 * is in the panel or the editor area.
+		 */
+		parentTerminal: Terminal;
+	}
+
+	//#endregion
+
 	//#region Terminal name change event https://github.com/microsoft/vscode/issues/114898
 
 	export interface Pseudoterminal {
@@ -907,22 +986,6 @@ declare module 'vscode' {
 		 * ```
 		 */
 		onDidChangeName?: Event<string>;
-	}
-
-	//#endregion
-
-	//#region Terminal color support https://github.com/microsoft/vscode/issues/128228
-	export interface TerminalOptions {
-		/**
-		 * Supports all ThemeColor keys, terminal.ansi* is recommended for contrast/consistency
-		 */
-		color?: ThemeColor;
-	}
-	export interface ExtensionTerminalOptions {
-		/**
-		 * Supports all ThemeColor keys, terminal.ansi* is recommended for contrast/consistency
-		 */
-		color?: ThemeColor;
 	}
 
 	//#endregion
@@ -975,9 +1038,7 @@ declare module 'vscode' {
 		 * JSON.parse(await (items.get('text/treeitems')!.asString()))
 		 * ```
 		 */
-		// todo@API no Map
-		// @ts-ignore
-		items: Map<string, TreeDataTransferItem>;
+		items: { get: (mimeType: string) => TreeDataTransferItem | undefined };
 	}
 
 	export interface DragAndDropController<T> extends Disposable {
@@ -1001,20 +1062,6 @@ declare module 'vscode' {
 		group?: string;
 	}
 	//#endregion
-
-	export class TaskGroup2 {
-		static Clean: TaskGroup2;
-		static Build: TaskGroup2;
-		static Rebuild: TaskGroup2;
-		static Test: TaskGroup2;
-		readonly isDefault?: boolean;
-		readonly id: string;
-		private constructor(id: string, label: string);
-	}
-
-	export class Task2 extends Task {
-		group?: TaskGroup2;
-	}
 
 	//#region Custom editor move https://github.com/microsoft/vscode/issues/86146
 
@@ -1806,6 +1853,71 @@ declare module 'vscode' {
 	}
 	//#endregion
 
+	//#region non-error test output https://github.com/microsoft/vscode/issues/129201
+	interface TestRun {
+		/**
+		 * Appends raw output from the test runner. On the user's request, the
+		 * output will be displayed in a terminal. ANSI escape sequences,
+		 * such as colors and text styles, are supported.
+		 *
+		 * @param output Output text to append.
+		 * @param location Indicate that the output was logged at the given
+		 * location.
+		 * @param test Test item to associate the output with.
+		 */
+		appendOutput(output: string, location?: Location, test?: TestItem): void;
+	}
+	//#endregion
+
+	//#region test tags https://github.com/microsoft/vscode/issues/129456
+	/**
+	 * Tags can be associated with {@link TestItem TestItems} and
+	 * {@link TestRunProfile TestRunProfiles}. A profile with a tag can only
+	 * execute tests that include that tag in their {@link TestItem.tags} array.
+	 */
+	export class TestTag {
+		/**
+		 * Unique ID of the test tag.
+		 */
+		readonly id: string;
+
+		/**
+		 * Human-readable name of the tag. If present, the tag will be visible as
+		 * a filter option in the UI.
+		 */
+		readonly label?: string;
+
+		/**
+		 * Creates a new TestTag instance.
+		 * @param id Unique ID of the test tag.
+		 * @param label Human-readable name of the tag.  If present, the tag will
+		 * be visible as a filter option in the UI.
+		 */
+		constructor(id: string, label?: string);
+	}
+
+	export interface TestRunProfile {
+		/**
+		 * Associated tag for the profile. If this is set, only {@link TestItem}
+		 * instances with the same tag will be eligible to execute in this profile.
+		 */
+		tag?: TestTag;
+	}
+
+	export interface TestItem {
+		/**
+		 * Tags associated with this test item. May be used in combination with
+		 * {@link TestRunProfile.tags}, or simply as an organizational feature.
+		 */
+		tags: readonly TestTag[];
+	}
+
+	export interface TestController {
+		createRunProfile(label: string, kind: TestRunProfileKind, runHandler: (request: TestRunRequest, token: CancellationToken) => Thenable<void> | void, isDefault?: boolean, tag?: TestTag): TestRunProfile;
+	}
+
+	//#endregion
+
 	//#region proposed test APIs https://github.com/microsoft/vscode/issues/107467
 	export namespace tests {
 		/**
@@ -2163,16 +2275,18 @@ declare module 'vscode' {
 	//#region https://github.com/Microsoft/vscode/issues/15178
 
 	// TODO@API must be a class
+	// TODO@API @lramos15 Call this XYZTabs
 	export interface OpenEditorInfo {
+		//viewColumn: ViewColumn; // todo @lramos15
 		name: string;
-		resource: Uri;
+		resource: Uri; // make optional @lramos15
 		isActive: boolean;
 	}
 
 	export namespace window {
 		export const openEditors: ReadonlyArray<OpenEditorInfo>;
 
-		// todo@API proper event type
+		// todo@API @lramos15 proper event type {}
 		export const onDidChangeOpenEditors: Event<void>;
 	}
 
@@ -2293,6 +2407,25 @@ declare module 'vscode' {
 		 * How the completion was triggered.
 		 */
 		readonly triggerKind: InlineCompletionTriggerKind;
+
+		/**
+		 * Provides information about the currently selected item in the autocomplete widget if it is visible.
+		 *
+		 * If set, provided inline completions must extend the text of the selected item
+		 * and use the same range, otherwise they are not shown as preview.
+		 * As an example, if the document text is `console.` and the selected item is `.log` replacing the `.` in the document,
+		 * the inline completion must also replace `.` and start with `.log`, for example `.log()`.
+		 *
+		 * Inline completion providers are requested again whenever the selected item changes.
+		 *
+		 * The user must configure `"editor.suggest.preview": true` for this feature.
+		*/
+		readonly selectedCompletionInfo: SelectedCompletionInfo | undefined;
+	}
+
+	export interface SelectedCompletionInfo {
+		range: Range;
+		text: string;
 	}
 
 	/**
@@ -2320,9 +2453,9 @@ declare module 'vscode' {
 
 	export class InlineCompletionItem {
 		/**
-		 * The text to insert.
-		 * If the text contains a line break, the range must end at the end of a line.
-		 * If existing text should be replaced, the existing text must be a prefix of the text to insert.
+		 * The text to replace the range with.
+		 *
+		 * The text the range refers to should be a prefix of this value and must be a subword (`AB` and `BEF` are subwords of `ABCDEF`, but `Ab` is not).
 		*/
 		text: string;
 
@@ -2330,8 +2463,8 @@ declare module 'vscode' {
 		 * The range to replace.
 		 * Must begin and end on the same line.
 		 *
-		 * Prefer replacements over insertions to avoid cache invalidation.
-		 * Instead of reporting a completion that extends a word,
+		 * Prefer replacements over insertions to avoid cache invalidation:
+		 * Instead of reporting a completion that inserts an extension at the end of a word,
 		 * the whole word should be replaced with the extended word.
 		*/
 		range?: Range;
@@ -2742,26 +2875,32 @@ declare module 'vscode' {
 	}
 
 	interface LanguageStatusItem {
+		readonly id: string;
 		selector: DocumentSelector;
-		text: string;
-		detail: string | MarkdownString
 		severity: LanguageStatusSeverity;
+		name: string | undefined;
+		text: string;
+		detail: string;
+		command: Command | undefined;
 		dispose(): void;
 	}
 
 	namespace languages {
-		export function createLanguageStatusItem(selector: DocumentSelector): LanguageStatusItem;
+		export function createLanguageStatusItem(id: string, selector: DocumentSelector): LanguageStatusItem;
 	}
 
 	//#endregion
 
-	//#region https://github.com/microsoft/vscode/issues/129053
-
-	export namespace env {
-		/**
-		 * The environment in which the app is embedded in. i.e. 'desktop', 'codespaces', 'web'.
-		 */
-		export const embedderIdentifier: string;
+	//#region https://github.com/microsoft/vscode/issues/88716
+	export interface QuickPickItem {
+		buttons?: QuickInputButton[];
+	}
+	export interface QuickPick<T extends QuickPickItem> extends QuickInput {
+		readonly onDidTriggerItemButton: Event<QuickPickItemButtonEvent<T>>;
+	}
+	export interface QuickPickItemButtonEvent<T extends QuickPickItem> {
+		button: QuickInputButton;
+		item: T;
 	}
 
 	//#endregion
