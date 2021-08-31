@@ -112,6 +112,11 @@ export class SubprocessProgramLauncher implements IProgramLauncher {
 // which still seems to be a thing according to the issue tracker.
 // From: https://github.com/microsoft/vscode-node-debug/blob/47747454bc6e8c9e48d8091eddbb7ffb54a19bbe/src/node/nodeDebug.ts#L1120
 const formatArguments = (executable: string, args: ReadonlyArray<string>) => {
+  if (process.platform === 'win32' && executable.endsWith('.ps1')) {
+    args = ['-File', executable, ...args];
+    executable = 'powershell.exe';
+  }
+
   if (process.platform !== 'win32' || !executable.includes(' ')) {
     return { executable, args, shell: false };
   }
