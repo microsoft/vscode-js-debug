@@ -12,6 +12,11 @@ import { IExtensionContribution } from '../ioc-extras';
 export class JsDebugPortAttributesProvider
   implements IExtensionContribution, PortAttributesProvider
 {
+  /** Cache of used ports (#1092) */
+  private cachedResolutions: string[] = new Array(16).fill('');
+  /** Index counter for the next cached resolution index in the list */
+  private cachedResolutionIndex = 0;
+
   constructor(@inject(IPortLeaseTracker) private readonly leaseTracker: IPortLeaseTracker) {}
 
   /**
@@ -31,12 +36,20 @@ export class JsDebugPortAttributesProvider
   /**
    * @inheritdoc
    */
-  public async providePortAttributes(port: number) {
-    if (await this.leaseTracker.isRegistered(port)) {
-      return {
-        port,
-        autoForwardAction: PortAutoForwardAction.Ignore,
-      };
+  public async providePortAttributes(port: number, pid: number | undefined) {
+    if (pid && this.cachedResolutions.includes(`${port}:${pid}`)) {
+      return { port, autoForwardAction: PortAutoForwardAction.Ignore };
     }
+
+    if (!(await this.leaseTracker.isRegistered(port))) {
+      return undefined;
+    }
+
+    if (pid) {
+      const index = this.cachedResolutionIndex++ % this.cachedResolutions.length;
+      this.cachedResolutions[index] = `${port}:${pid}`;
+    }
+
+    return { port, autoForwardAction: PortAutoForwardAction.Ignore };
   }
 }
