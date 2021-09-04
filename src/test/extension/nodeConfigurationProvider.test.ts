@@ -361,6 +361,26 @@ describe('NodeDebugConfigurationProvider', () => {
       ]);
     });
 
+    it('does not resolve in node_modules', async () => {
+      createFileTree(testFixturesDir, {
+        'a/node_modules/c/hello.js': '',
+        'a/node_modules/c/package.json': '{}',
+        'a/package.json': '{}',
+      });
+
+      const result = await provider.resolveDebugConfiguration(folder, {
+        type: DebugType.Node,
+        name: '',
+        request: 'launch',
+        program: 'a/node_modules/c/hello.js',
+      });
+
+      expect(result?.outFiles).to.deep.equal([
+        '${workspaceFolder}/a/**/*.js',
+        '!**/node_modules/**',
+      ]);
+    });
+
     it('does not resolve outside the workspace folder', async () => {
       createFileTree(testFixturesDir, {
         'a/b/c/hello.js': '',

@@ -14,7 +14,7 @@ import { EnvironmentVars } from '../../common/environmentVars';
 import { findOpenPort } from '../../common/findOpenPort';
 import { IFsUtils, LocalFsUtils } from '../../common/fsUtils';
 import { forceForwardSlashes, isSubdirectoryOf } from '../../common/pathUtils';
-import { nearestDirectoryContaining } from '../../common/urlUtils';
+import { nearestDirectoryWhere } from '../../common/urlUtils';
 import {
   AnyNodeConfiguration,
   applyNodeDefaults,
@@ -219,11 +219,11 @@ async function guessOutFiles(
     return;
   }
 
-  const root = await nearestDirectoryContaining(
-    fsUtils,
+  const root = await nearestDirectoryWhere(
     path.dirname(programLocation),
-    'package.json',
+    async p => !p.includes('node_modules') && (await fsUtils.exists(path.join(p, 'package.json'))),
   );
+
   if (root && isSubdirectoryOf(folder.uri.fsPath, root)) {
     const rel = forceForwardSlashes(path.relative(folder.uri.fsPath, root));
     config.outFiles = resolveVariableInConfig(
