@@ -41,6 +41,7 @@ export const launchVirtualTerminalParent = (
   delegate: DelegateLauncherFactory,
   launcher: ITerminalLauncherLike,
   options: Partial<ITerminalLaunchConfiguration> = {},
+  filterTarget: (target: ITarget) => boolean = () => true,
 ) => {
   const telemetry = new DapTelemetryReporter();
   const baseDebugOptions: Partial<ITerminalLaunchConfiguration> = {
@@ -92,6 +93,12 @@ export const launchVirtualTerminalParent = (
       }
 
       const delegateId = delegate.addDelegate(target, dap, target.parent());
+
+      // Skip targets the consumer asked to filter out.
+      if (!filterTarget(target)) {
+        target.detach();
+        return;
+      }
 
       // Check that we didn't detach from the parent session.
       if (target.targetInfo.openerId && !target.parent()) {
@@ -269,11 +276,23 @@ export function registerDebugTerminalUI(
     });
 
     try {
-      await launchVirtualTerminalParent(delegate, launcher, {
-        command,
-        ...defaultConfig,
-        __workspaceFolder: workspaceFolder?.uri.fsPath,
-      });
+      await launchVirtualTerminalParent(
+        delegate,
+        launcher,
+        {
+          command,
+          ...defaultConfig,
+          __workspaceFolder: workspaceFolder?.uri.fsPath,
+        },
+        () => {
+          for (const [terminal, rec] of terminals) {
+            if (rec.launcher === launcher && terminal.state.interactedWith) {
+              return true;
+            }
+          }
+          return false;
+        },
+      );
     } catch (e) {
       vscode.window.showErrorMessage(e.message);
     }

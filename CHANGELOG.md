@@ -10,6 +10,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: don't incorrectly scope sourcemap resolution to node_modules ([#1100](https://github.com/microsoft/vscode-js-debug/issues/1100))
 - feat: add node_internals to skipFiles by default ([#1091](https://github.com/microsoft/vscode-js-debug/issues/1091))
 - feat: allow using a .ps1 script as a runtimeExectuable ([#1093](https://github.com/microsoft/vscode-js-debug/issues/1093))
+- feat: avoid attaching to scripts in .rc files ([ref](https://github.com/microsoft/vscode/issues/127717))
 
 ## v1.60 (August 2021)
 

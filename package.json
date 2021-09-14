@@ -38,7 +38,7 @@
     "prepare": "husky install",
     "package": "gulp package",
     "publish": "gulp publish",
-    "updatetypes": "cd src/typings && vscode-dts dev && vscode-dts master",
+    "updatetypes": "cd src/typings && npx vscode-dts dev && npx vscode-dts master",
     "updatenodeapi": "python src/build/getNodePdl.py && prettier --write src/build/nodeCustom.ts",
     "generateapis": "node out/src/build/generateDap.js && node out/src/build/generateCdp.js",
     "test": "gulp && npm-run-all --parallel test:unit test:types test:golden test:lint",
