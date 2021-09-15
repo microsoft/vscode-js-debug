@@ -152,7 +152,10 @@ export class AutoAttachLauncher
 
   private readSmartPatterns() {
     const configured = readConfig(vscode.workspace, Configuration.AutoAttachSmartPatterns);
-    const allFolders = `{${vscode.workspace.workspaceFolders?.map(f => f.uri.fsPath).join(',')}}`;
+    const allFolders =
+      vscode.workspace.workspaceFolders?.length === 1
+        ? vscode.workspace.workspaceFolders[0].uri.fsPath
+        : `{${vscode.workspace.workspaceFolders?.map(f => f.uri.fsPath).join(',')}}`;
     return configured
       ?.map(c => c.replace('${workspaceFolder}', allFolders))
       .map(forceForwardSlashes);
