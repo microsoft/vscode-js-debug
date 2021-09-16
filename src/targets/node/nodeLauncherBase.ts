@@ -307,6 +307,10 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
       // environments. Bootloader will replace this with actual node executable used if any.
       execPath: await findInPath(fs.promises, 'node', process.env),
       onlyEntrypoint: !params.autoAttachChildProcesses,
+      verbose:
+        params.trace === true || (typeof params.trace === 'object' && params.trace.stdio)
+          ? true
+          : undefined,
       autoAttachMode: AutoAttachMode.Always,
       mandatePortTracking: this.portLeaseTracker.isMandated ? true : undefined,
       ...additionalOptions,

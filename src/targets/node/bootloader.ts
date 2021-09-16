@@ -36,6 +36,7 @@ const jsDebugRegisteredToken = '$jsDebugIsRegistered';
 
     const env = new BootloaderEnvironment(process.env);
     const inspectorOptions = env.inspectorOptions;
+    bootloaderLogger.enabled = !!inspectorOptions?.verbose;
     bootloaderLogger.info(LogTag.RuntimeLaunch, 'Bootloader imported', {
       env: inspectorOptions,
       args: process.argv,

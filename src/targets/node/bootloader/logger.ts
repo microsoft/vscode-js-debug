@@ -5,5 +5,10 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 
 export const bootloaderLogger = {
-  info: (..._args: unknown[]) => undefined,
+  enabled: false,
+  info: (...args: unknown[]) => {
+    if (bootloaderLogger.enabled) {
+      console.log(...args);
+    }
+  },
 };

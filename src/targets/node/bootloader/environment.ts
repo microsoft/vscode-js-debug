@@ -81,6 +81,11 @@ export interface IBootloaderInfo {
    * Whether the process is running in a remote environment.
    */
   mandatePortTracking?: boolean;
+
+  /**
+   * Whether to log verbosely.
+   */
+  verbose?: boolean;
 }
 
 export interface IBootloaderEnvironment {
