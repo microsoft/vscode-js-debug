@@ -286,7 +286,7 @@ export function registerDebugTerminalUI(
         },
         () => {
           for (const [terminal, rec] of terminals) {
-            if (rec.launcher === launcher && terminal.state.interactedWith) {
+            if (rec.launcher === launcher && terminal.state.isInteractedWith) {
               return true;
             }
           }
