@@ -1102,6 +1102,11 @@ export class Thread implements IVariableStoreDelegate {
       return;
     }
 
+    // normalize paths paths that old Electron versions can add (#1099)
+    if (urlUtils.isAbsolute(event.url)) {
+      event.url = urlUtils.absolutePathToFileUrl(event.url);
+    }
+
     if (this._sourceContainer.scriptsById.has(event.scriptId)) {
       return;
     }
