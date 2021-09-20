@@ -673,8 +673,12 @@ describe('node runtime', () => {
       });
       handle.load();
 
-      handle.log(await handle.dap.once('stopped'));
-      handle.dap.evaluate({ expression: 'require("inspector").close()' });
+      const { threadId } = handle.log(await handle.dap.once('stopped'));
+      const stack = await handle.dap.stackTrace({ threadId });
+      handle.dap.evaluate({
+        expression: 'require("inspector").close()',
+        frameId: stack.stackFrames[0].id,
+      });
       handle.log(await handle.dap.once('terminated'));
       handle.assertLog({ substring: true });
     });

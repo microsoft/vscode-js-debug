@@ -12,30 +12,12 @@
     > [[Prototype]]: Object
         > foo (set): ƒ foo(x) {}
         > [[Prototype]]: Object
-        > foo (set): ƒ foo(x) {}
-        > [[Prototype]]: Object
-        > arguments (get): ƒ ()
-        > arguments (set): ƒ ()
-        > caller (get): ƒ ()
-        > caller (set): ƒ ()
-        length: 1
-        > [[Prototype]]: ƒ ()
-        > [[Scopes]]: Scopes[0]
 
 > result: {}
     foo: 42
     > [[Prototype]]: Object
         foo: 42
         > [[Prototype]]: Object
-        foo: 42
-        > [[Prototype]]: Object
-        > arguments (get): ƒ ()
-        > arguments (set): ƒ ()
-        > caller (get): ƒ ()
-        > caller (set): ƒ ()
-        length: 1
-        > [[Prototype]]: ƒ ()
-        > [[Scopes]]: Scopes[0]
 
 > result: {}
     > foo (get): ƒ foo() { throw 'wat'; }
@@ -51,27 +33,9 @@
     > [[Prototype]]: Object
         > foo (get): ƒ foo() { throw 'wat'; }
         > [[Prototype]]: Object
-        > foo (get): ƒ foo() { throw 'wat'; }
-        > [[Prototype]]: Object
-        > arguments (get): ƒ ()
-        > arguments (set): ƒ ()
-        > caller (get): ƒ ()
-        > caller (set): ƒ ()
-        length: 1
-        > [[Prototype]]: ƒ ()
-        > [[Scopes]]: Scopes[0]
 
 > result: {}
     > [[Prototype]]: Object
         normalObject: true
         > [[Prototype]]: Object
-        normalObject: true
-        > [[Prototype]]: Object
-        > arguments (get): ƒ ()
-        > arguments (set): ƒ ()
-        > caller (get): ƒ ()
-        > caller (set): ƒ ()
-        length: 1
-        > [[Prototype]]: ƒ ()
-        > [[Scopes]]: Scopes[0]
 

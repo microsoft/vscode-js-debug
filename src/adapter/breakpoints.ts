@@ -525,6 +525,13 @@ export class BreakpointManager {
       await promise;
     }
 
+    const thread = this._thread;
+    if (thread?.debuggerReady.hasSettled() === false) {
+      const promise = thread.debuggerReady.promise;
+      this.addLaunchBlocker(promise);
+      await promise;
+    }
+
     // Creates new breakpoints for the parameters, unsetting any previous
     // breakpoints that don't still exist in the params.
     const mergeInto = (previous: UserDefinedBreakpoint[]): ISetBreakpointResult => {
@@ -594,7 +601,6 @@ export class BreakpointManager {
       this._uninstallSourceMapHandler(this._thread);
     }
 
-    const thread = this._thread;
     if (thread && result.new.length) {
       // This will add itself to the launch blocker if needed:
       this.ensureModuleEntryBreakpoint(thread, params.source);

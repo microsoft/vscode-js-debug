@@ -52,14 +52,6 @@ result: 3
     > [[Prototype]]: Object
         > foo (set): ƒ foo(x) {}
         > [[Prototype]]: Object
-        > Object
-        > arguments (get): ƒ ()
-        > arguments (set): ƒ ()
-        > caller (get): ƒ ()
-        > caller (set): ƒ ()
-        length: 1
-        > [[Prototype]]: ƒ ()
-        > [[Scopes]]: Scopes[0]
 
 > result: {}
     > foo (get): ƒ foo() { return 42 }
@@ -67,14 +59,6 @@ result: 3
     > [[Prototype]]: Object
         > foo (get): ƒ foo() { return 42 }
         > [[Prototype]]: Object
-        > Object
-        > arguments (get): ƒ ()
-        > arguments (set): ƒ ()
-        > caller (get): ƒ ()
-        > caller (set): ƒ ()
-        length: 1
-        > [[Prototype]]: ƒ ()
-        > [[Scopes]]: Scopes[0]
 
 > result: {}
     > foo (get): ƒ foo() { throw 'wat'; }
@@ -90,14 +74,6 @@ result: 3
     > [[Prototype]]: Object
         > foo (get): ƒ foo() { throw 'wat'; }
         > [[Prototype]]: Object
-        > Object
-        > arguments (get): ƒ ()
-        > arguments (set): ƒ ()
-        > caller (get): ƒ ()
-        > caller (set): ƒ ()
-        length: 1
-        > [[Prototype]]: ƒ ()
-        > [[Scopes]]: Scopes[0]
 
 Evaluating#1: setTimeout(() => { throw new Error('bar')}, 0)
 stderr> Uncaught Error: bar

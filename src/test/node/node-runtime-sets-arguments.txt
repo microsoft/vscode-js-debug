@@ -9,3 +9,4 @@
     1: 'very fancy'
     2: '--arguments'
     length: 3
+    > __proto__: Array(0)

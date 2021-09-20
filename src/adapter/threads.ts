@@ -157,6 +157,8 @@ export class Thread implements IVariableStoreDelegate {
   private readonly _dap: DeferredContainer<Dap.Api>;
   private disposed = false;
 
+  public debuggerReady = getDeferred<void>();
+
   /**
    * Details set when a "step in" is issued. Used allow async stepping in
    * sourcemapped worker scripts.
@@ -614,6 +616,7 @@ export class Thread implements IVariableStoreDelegate {
     // There is a bug in Chrome that does not retain debugger id
     // across cross-process navigations. Refresh it upon clearing contexts.
     this._cdp.Debugger.enable({}).then(response => {
+      this.debuggerReady.resolve();
       if (response) {
         Thread._allThreadsByDebuggerId.set(response.debuggerId, this);
       }
