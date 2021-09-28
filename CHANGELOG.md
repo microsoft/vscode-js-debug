@@ -4,6 +4,12 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly Only
 
+Nothing (yet)
+
+## v1.61 (September 2021)
+
+### v1.61.0 - 2021-09-28
+
 - fix: sourcemap locations not resolving on remotes ([ref](https://github.com/microsoft/vscode/issues/131729))
 - fix: remove redundant `__proto__` prop on recent V8 versions ([ref](https://github.com/microsoft/vscode/issues/130365))
 - fix: debug ports being auto forwarded after detach ([#1092](https://github.com/microsoft/vscode-js-debug/issues/1092))
