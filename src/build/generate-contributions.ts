@@ -1059,11 +1059,13 @@ function buildDebuggers() {
   };
 
   for (const d of debuggers) {
+    const preferred = preferredDebugTypes.get(d.type);
     const primary = ensureEntryForType(d.type, d);
     const entries = [primary];
-    const preferred = preferredDebugTypes.get(d.type);
     if (preferred) {
-      entries.unshift(ensureEntryForType(preferred, d));
+      const entry = ensureEntryForType(preferred, d);
+      delete entry.languages;
+      entries.unshift(entry);
     }
 
     entries[0].configurationSnippets.push(...d.configurationSnippets);

@@ -9,6 +9,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: debug ports being auto forwarded after detach ([#1092](https://github.com/microsoft/vscode-js-debug/issues/1092))
 - fix: don't incorrectly scope sourcemap resolution to node_modules ([#1100](https://github.com/microsoft/vscode-js-debug/issues/1100))
 - fix: sourcemaps not working in preloads in older Electron versions ([#1099](https://github.com/microsoft/vscode-js-debug/issues/1099))
+- fix: duplicate entries in launch.json creator ([ref](https://github.com/microsoft/vscode/issues/132932))
 - feat: add node_internals to skipFiles by default ([#1091](https://github.com/microsoft/vscode-js-debug/issues/1091))
 - feat: allow using a .ps1 script as a runtimeExectuable ([#1093](https://github.com/microsoft/vscode-js-debug/issues/1093))
 - feat: avoid attaching to scripts in .rc files ([ref](https://github.com/microsoft/vscode/issues/127717))
