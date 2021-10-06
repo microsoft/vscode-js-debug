@@ -4,7 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly Only
 
-Nothing (yet)
+- fix: update path handling when debugging vscode webviews ([ref](https://github.com/microsoft/vscode/issues/133867))
 
 ## v1.61 (September 2021)
 
