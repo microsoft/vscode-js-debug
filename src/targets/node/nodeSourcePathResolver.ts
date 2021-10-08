@@ -69,6 +69,9 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
    * @override
    */
   public async urlToAbsolutePath({ url, map }: IUrlResolution): Promise<string | undefined> {
+    // https://github.com/microsoft/vscode-js-debug/issues/529
+    url = url.replace(/\?.+/, '');
+
     url = this.normalizeSourceMapUrl(url);
 
     // Allow debugging of externally loaded Node internals
