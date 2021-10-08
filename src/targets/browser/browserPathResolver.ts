@@ -153,8 +153,6 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
       return undefined;
     }
 
-    url = this.normalizeSourceMapUrl(url);
-
     switch (this.vueMapper.getVueHandling(url)) {
       case VueHandling.Omit:
         return undefined;
@@ -167,6 +165,8 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
       default:
       // fall through
     }
+
+    url = this.normalizeSourceMapUrl(url);
 
     const { pathMapping } = this.options;
     const fullSourceEntry = getFullSourceEntry(map.sourceRoot, url);
