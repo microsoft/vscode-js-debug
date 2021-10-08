@@ -5,6 +5,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 ## Nightly Only
 
 - fix: update path handling when debugging vscode webviews ([ref](https://github.com/microsoft/vscode/issues/133867))
+- fix: allow webpacked path with special characters to map ([#1080](https://github.com/microsoft/vscode-js-debug/issues/1080))
 
 ## v1.61 (September 2021)
 

@@ -1015,4 +1015,17 @@ describe('breakpoints', () => {
 
     handle.assertLog({ process: removeNodeInternalsStackLines });
   });
+
+  itIntegrates('normalizes webpack nul byte (#1080)', async ({ r }) => {
+    const cwd = join(testWorkspace, 'webpackNulByte');
+    const handle = await r.runScript(join(cwd, 'build/greeter.js'), { cwd });
+    await handle.dap.setBreakpoints({
+      source: { path: join(cwd, 'src/#hello/world.ts') },
+      breakpoints: [{ line: 1, column: 0 }],
+    });
+
+    handle.load();
+    await waitForPause(handle);
+    handle.assertLog({ substring: true });
+  });
 });

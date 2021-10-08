@@ -32,6 +32,8 @@ export interface ISourcePathResolverOptions {
   remoteRoot: string | null;
 }
 
+const nullByteRe = /\x00/;
+
 export abstract class SourcePathResolverBase<T extends ISourcePathResolverOptions>
   implements ISourcePathResolver
 {
@@ -167,6 +169,19 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
       `Mapped localToRemote: ${localPath} -> ${remotePath}`,
     );
     return remotePath;
+  }
+
+  /**
+   * Normalizes a source map URL for further processing. Should be called
+   * before introspecting a URL included with a sourcemap.
+   */
+  protected normalizeSourceMapUrl(url: string) {
+    // https://github.com/microsoft/vscode-js-debug/issues/529
+    url = url.replace(/\?.+/, '');
+    // https://github.com/microsoft/vscode-js-debug/issues/1080#issuecomment-938200168
+    url = url.replace(nullByteRe, '');
+
+    return url;
   }
 
   private canMapPath(candidate: string) {

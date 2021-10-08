@@ -1,0 +1,1 @@
+{"version":3,"file":"greeter.js","mappings":";;;;;AAAA,OAAO,CAAC,GAAG,CAAC,aAAa,CAAC,CAAC","sources":["webpack://bug-breakpoint/./src/\u0000#hello/world.ts"],"sourcesContent":["console.log('hello world');\n"],"names":[],"sourceRoot":""}

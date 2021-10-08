@@ -2,14 +2,14 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { injectable } from 'inversify';
 import type * as vscodeType from 'vscode';
-import { LogTag, ILogger } from '../logging';
+import { FileGlobList } from '../fileGlobList';
+import { ILogger, LogTag } from '../logging';
 import { forceForwardSlashes } from '../pathUtils';
 import { NodeSearchStrategy } from './nodeSearchStrategy';
 import { ISourceMapMetadata } from './sourceMap';
 import { createMetadataForFile, ISearchStrategy } from './sourceMapRepository';
-import { injectable } from 'inversify';
-import { FileGlobList } from '../fileGlobList';
 
 /**
  * A source map repository that uses VS Code's proposed search API to
