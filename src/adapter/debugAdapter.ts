@@ -93,7 +93,7 @@ export class DebugAdapter implements IDisposable {
     this.dap.on('stepOut', () => this._withThread(thread => thread.stepOut()));
     this.dap.on('restartFrame', params => this._withThread(thread => thread.restartFrame(params)));
     this.dap.on('scopes', params => this._withThread(thread => thread.scopes(params)));
-    this.dap.on('evaluate', params => this._withThread(thread => thread.evaluate(params)));
+    this.dap.on('evaluate', params => this.onEvaluate(params));
     this.dap.on('completions', params => this._withThread(thread => thread.completions(params)));
     this.dap.on('exceptionInfo', () => this._withThread(thread => thread.exceptionInfo()));
     this.dap.on('enableCustomBreakpoints', params => this.enableCustomBreakpoints(params));
@@ -432,7 +432,18 @@ export class DebugAdapter implements IDisposable {
     return {};
   }
 
-  async _dumpDiagnostics(params: Dap.CreateDiagnosticsParams) {
+  private onEvaluate(args: Dap.EvaluateParams): Promise<Dap.EvaluateResult> {
+    // Rewrite the old ".scripts" command to the new diagnostic tool
+    if (args.expression === '.scripts') {
+      return this._dumpDiagnostics({ fromSuggestion: false })
+        .then(this.dap.openDiagnosticTool)
+        .then(() => ({ result: 'Opening diagnostic tool...', variablesReference: 0 }));
+    } else {
+      return this._withThread(thread => thread.evaluate(args));
+    }
+  }
+
+  private async _dumpDiagnostics(params: Dap.CreateDiagnosticsParams) {
     const out = { file: await this._services.get(Diagnostics).generateHtml() };
     if (params.fromSuggestion) {
       this._services

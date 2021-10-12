@@ -485,6 +485,15 @@ const dapCustom: JSONSchema4 = {
       "Shows a prompt to the user suggesting they use the diagnostic tool if breakpoints don't bind.",
       {},
     ),
+    ...makeEvent('openDiagnosticTool', "Opens the diagnostic tool if breakpoints don't bind.", {
+      properties: {
+        file: {
+          type: 'string',
+          description: 'Location of the generated report on disk',
+        },
+      },
+      required: ['file'],
+    }),
     ...makeRequest(
       'requestCDPProxy',
       'Request WebSocket connection information on a proxy for this debug sessions CDP connection.',

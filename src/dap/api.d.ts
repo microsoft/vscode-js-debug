@@ -148,6 +148,13 @@ export namespace Dap {
     invalidated(params: InvalidatedEventParams): void;
 
     /**
+     * This event indicates that some memory range has been updated. It should only be sent if the debug adapter has received a value true for the `supportsMemoryEvent` capability of the `initialize` request.
+     * Clients typically react to the event by re-issuing a `readMemory` request if they show the memory identified by the `memoryReference` and if the updated memory range overlaps the displayed range. Clients should not make assumptions how individual memory references relate to each other, so they should not assume that they are part of a single continuous address range and might overlap.
+     * Debug adapters can use this event to indicate that the contents of a memory range has changed due to some other DAP request like `setVariable` or `setExpression`. Debug adapters are not expected to emit this event for each and every memory change of a running program, because that information is typically not available from debuggers and it would flood clients with too many events.
+     */
+    memory(params: MemoryEventParams): void;
+
+    /**
      * This optional request is sent from the debug adapter to the client to run a command in a terminal.
      * This is typically used to launch the debuggee in a terminal provided by the client.
      * This request should only be called if the client has passed the value true for the 'supportsRunInTerminalRequest' capability of the 'initialize' request.
@@ -581,6 +588,7 @@ export namespace Dap {
 
     /**
      * Set the variable with the given name in the variable container to a new value. Clients should only call this request if the capability 'supportsSetVariable' is true.
+     * If a debug adapter implements both setVariable and setExpression, a client will only use setExpression if the variable has an evaluateName property.
      */
     on(
       request: 'setVariable',
@@ -588,6 +596,7 @@ export namespace Dap {
     ): () => void;
     /**
      * Set the variable with the given name in the variable container to a new value. Clients should only call this request if the capability 'supportsSetVariable' is true.
+     * If a debug adapter implements both setVariable and setExpression, a client will only use setExpression if the variable has an evaluateName property.
      */
     setVariableRequest(params: SetVariableParams): Promise<SetVariableResult>;
 
@@ -675,6 +684,7 @@ export namespace Dap {
      * Evaluates the given 'value' expression and assigns it to the 'expression' which must be a modifiable l-value.
      * The expressions have access to any variables and arguments that are in scope of the specified frame.
      * Clients should only call this request if the capability 'supportsSetExpression' is true.
+     * If a debug adapter implements both setExpression and setVariable, a client will only use setExpression if the variable has an evaluateName property.
      */
     on(
       request: 'setExpression',
@@ -684,6 +694,7 @@ export namespace Dap {
      * Evaluates the given 'value' expression and assigns it to the 'expression' which must be a modifiable l-value.
      * The expressions have access to any variables and arguments that are in scope of the specified frame.
      * Clients should only call this request if the capability 'supportsSetExpression' is true.
+     * If a debug adapter implements both setExpression and setVariable, a client will only use setExpression if the variable has an evaluateName property.
      */
     setExpressionRequest(params: SetExpressionParams): Promise<SetExpressionResult>;
 
@@ -762,6 +773,20 @@ export namespace Dap {
      * Clients should only call this request if the capability 'supportsReadMemoryRequest' is true.
      */
     readMemoryRequest(params: ReadMemoryParams): Promise<ReadMemoryResult>;
+
+    /**
+     * Writes bytes to memory at the provided location.
+     * Clients should only call this request if the capability 'supportsWriteMemoryRequest' is true.
+     */
+    on(
+      request: 'writeMemory',
+      handler: (params: WriteMemoryParams) => Promise<WriteMemoryResult | Error>,
+    ): () => void;
+    /**
+     * Writes bytes to memory at the provided location.
+     * Clients should only call this request if the capability 'supportsWriteMemoryRequest' is true.
+     */
+    writeMemoryRequest(params: WriteMemoryParams): Promise<WriteMemoryResult>;
 
     /**
      * Disassembles code stored at the provided location.
@@ -1027,6 +1052,11 @@ export namespace Dap {
     suggestDiagnosticTool(params: SuggestDiagnosticToolEventParams): void;
 
     /**
+     * Opens the diagnostic tool if breakpoints don't bind.
+     */
+    openDiagnosticTool(params: OpenDiagnosticToolEventParams): void;
+
+    /**
      * Request WebSocket connection information on a proxy for this debug sessions CDP connection.
      */
     on(
@@ -1238,6 +1268,18 @@ export namespace Dap {
     ): Promise<InvalidatedEventParams>;
 
     /**
+     * This event indicates that some memory range has been updated. It should only be sent if the debug adapter has received a value true for the `supportsMemoryEvent` capability of the `initialize` request.
+     * Clients typically react to the event by re-issuing a `readMemory` request if they show the memory identified by the `memoryReference` and if the updated memory range overlaps the displayed range. Clients should not make assumptions how individual memory references relate to each other, so they should not assume that they are part of a single continuous address range and might overlap.
+     * Debug adapters can use this event to indicate that the contents of a memory range has changed due to some other DAP request like `setVariable` or `setExpression`. Debug adapters are not expected to emit this event for each and every memory change of a running program, because that information is typically not available from debuggers and it would flood clients with too many events.
+     */
+    on(request: 'memory', handler: (params: MemoryEventParams) => void): void;
+    off(request: 'memory', handler: (params: MemoryEventParams) => void): void;
+    once(
+      request: 'memory',
+      filter?: (event: MemoryEventParams) => boolean,
+    ): Promise<MemoryEventParams>;
+
+    /**
      * This optional request is sent from the debug adapter to the client to run a command in a terminal.
      * This is typically used to launch the debuggee in a terminal provided by the client.
      * This request should only be called if the client has passed the value true for the 'supportsRunInTerminalRequest' capability of the 'initialize' request.
@@ -1430,6 +1472,7 @@ export namespace Dap {
 
     /**
      * Set the variable with the given name in the variable container to a new value. Clients should only call this request if the capability 'supportsSetVariable' is true.
+     * If a debug adapter implements both setVariable and setExpression, a client will only use setExpression if the variable has an evaluateName property.
      */
     setVariable(params: SetVariableParams): Promise<SetVariableResult>;
 
@@ -1471,6 +1514,7 @@ export namespace Dap {
      * Evaluates the given 'value' expression and assigns it to the 'expression' which must be a modifiable l-value.
      * The expressions have access to any variables and arguments that are in scope of the specified frame.
      * Clients should only call this request if the capability 'supportsSetExpression' is true.
+     * If a debug adapter implements both setExpression and setVariable, a client will only use setExpression if the variable has an evaluateName property.
      */
     setExpression(params: SetExpressionParams): Promise<SetExpressionResult>;
 
@@ -1506,6 +1550,12 @@ export namespace Dap {
      * Clients should only call this request if the capability 'supportsReadMemoryRequest' is true.
      */
     readMemory(params: ReadMemoryParams): Promise<ReadMemoryResult>;
+
+    /**
+     * Writes bytes to memory at the provided location.
+     * Clients should only call this request if the capability 'supportsWriteMemoryRequest' is true.
+     */
+    writeMemory(params: WriteMemoryParams): Promise<WriteMemoryResult>;
 
     /**
      * Disassembles code stored at the provided location.
@@ -1722,6 +1772,22 @@ export namespace Dap {
       request: 'suggestDiagnosticTool',
       filter?: (event: SuggestDiagnosticToolEventParams) => boolean,
     ): Promise<SuggestDiagnosticToolEventParams>;
+
+    /**
+     * Opens the diagnostic tool if breakpoints don't bind.
+     */
+    on(
+      request: 'openDiagnosticTool',
+      handler: (params: OpenDiagnosticToolEventParams) => void,
+    ): void;
+    off(
+      request: 'openDiagnosticTool',
+      handler: (params: OpenDiagnosticToolEventParams) => void,
+    ): void;
+    once(
+      request: 'openDiagnosticTool',
+      filter?: (event: OpenDiagnosticToolEventParams) => boolean,
+    ): Promise<OpenDiagnosticToolEventParams>;
 
     /**
      * Request WebSocket connection information on a proxy for this debug sessions CDP connection.
@@ -2246,6 +2312,11 @@ export namespace Dap {
      * Client supports the invalidated event.
      */
     supportsInvalidatedEvent?: boolean;
+
+    /**
+     * Client supports the memory event.
+     */
+    supportsMemoryEvent?: boolean;
   }
 
   export interface InitializeResult {
@@ -2400,6 +2471,11 @@ export namespace Dap {
     supportsReadMemoryRequest?: boolean;
 
     /**
+     * The debug adapter supports the 'writeMemory' request.
+     */
+    supportsWriteMemoryRequest?: boolean;
+
+    /**
      * The debug adapter supports the 'disassemble' request.
      */
     supportsDisassembleRequest?: boolean;
@@ -2546,6 +2622,23 @@ export namespace Dap {
 
   export interface LongPredictionEventParams {}
 
+  export interface MemoryEventParams {
+    /**
+     * Memory reference of a memory range that has been updated.
+     */
+    memoryReference: string;
+
+    /**
+     * Starting offset in bytes where memory has been updated. Can be negative.
+     */
+    offset: integer;
+
+    /**
+     * Number of bytes updated.
+     */
+    count: integer;
+  }
+
   export interface ModuleEventParams {
     /**
      * The reason for the event.
@@ -2595,6 +2688,13 @@ export namespace Dap {
   }
 
   export interface NextResult {}
+
+  export interface OpenDiagnosticToolEventParams {
+    /**
+     * Location of the generated report on disk
+     */
+    file: string;
+  }
 
   export interface OutputEventParams {
     /**
@@ -3475,6 +3575,41 @@ export namespace Dap {
      * All (or a range) of variables for the given variable reference.
      */
     variables: Variable[];
+  }
+
+  export interface WriteMemoryParams {
+    /**
+     * Memory reference to the base location to which data should be written.
+     */
+    memoryReference: string;
+
+    /**
+     * Optional offset (in bytes) to be applied to the reference location before writing data. Can be negative.
+     */
+    offset?: integer;
+
+    /**
+     * Optional property to control partial writes. If true, the debug adapter should attempt to write memory even if the entire memory region is not writable. In such a case the debug adapter should stop after hitting the first byte of memory that cannot be written and return the number of bytes written in the response via the 'offset' and 'bytesWritten' properties.
+     * If false or missing, a debug adapter should attempt to verify the region is writable before writing, and fail the response if it is not.
+     */
+    allowPartial?: boolean;
+
+    /**
+     * Bytes to write, encoded using base64.
+     */
+    data: string;
+  }
+
+  export interface WriteMemoryResult {
+    /**
+     * Optional property that should be returned when 'allowPartial' is true to indicate the offset of the first byte of data successfully written. Can be negative.
+     */
+    offset?: integer;
+
+    /**
+     * Optional property that should be returned when 'allowPartial' is true to indicate the number of bytes starting from address that were successfully written.
+     */
+    bytesWritten?: integer;
   }
 
   /**
@@ -4475,6 +4610,11 @@ export namespace Dap {
      * The debug adapter supports the 'readMemory' request.
      */
     supportsReadMemoryRequest?: boolean;
+
+    /**
+     * The debug adapter supports the 'writeMemory' request.
+     */
+    supportsWriteMemoryRequest?: boolean;
 
     /**
      * The debug adapter supports the 'disassemble' request.

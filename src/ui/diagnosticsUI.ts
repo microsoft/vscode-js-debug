@@ -30,6 +30,10 @@ export class DiagnosticsUI implements IExtensionContribution {
       ),
 
       vscode.debug.onDidReceiveDebugSessionCustomEvent(async evt => {
+        if (evt.event === 'openDiagnosticTool') {
+          return this.openDiagnosticTool(evt.body.file);
+        }
+
         if (
           evt.event !== 'suggestDiagnosticTool' ||
           this.dismissedForSession ||
@@ -109,6 +113,10 @@ export class DiagnosticsUI implements IExtensionContribution {
     }
 
     const { file } = await session.customRequest('createDiagnostics', { fromSuggestion });
+    await this.openDiagnosticTool(file);
+  }
+
+  private async openDiagnosticTool(file: string) {
     const panel = vscode.window.createWebviewPanel(
       Contributions.DiagnosticsView,
       'Debug Diagnostics',

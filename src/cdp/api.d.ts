@@ -26,7 +26,6 @@ export namespace Cdp {
     resume(): void;
     Accessibility: AccessibilityApi;
     Animation: AnimationApi;
-    ApplicationCache: ApplicationCacheApi;
     Audits: AuditsApi;
     BackgroundService: BackgroundServiceApi;
     Browser: BrowserApi;
@@ -193,7 +192,19 @@ export namespace Cdp {
        * The maximum depth at which descendants of the root node should be retrieved.
        * If omitted, the full tree is returned.
        */
+      depth?: integer;
+
+      /**
+       * Deprecated. This parameter has been renamed to `depth`. If depth is not provided, max_depth will be used.
+       * @deprecated
+       */
       max_depth?: integer;
+
+      /**
+       * The frame for whose document the AX tree should be retrieved.
+       * If omited, the root frame is used.
+       */
+      frameId?: Page.FrameId;
     }
 
     /**
@@ -208,6 +219,12 @@ export namespace Cdp {
      */
     export interface GetChildAXNodesParams {
       id: AXNodeId;
+
+      /**
+       * The frame in whose document the node resides.
+       * If omitted, the root frame is used.
+       */
+      frameId?: Page.FrameId;
     }
 
     /**
@@ -957,218 +974,6 @@ export namespace Cdp {
   }
 
   /**
-   * Methods and events of the 'ApplicationCache' domain.
-   */
-  export interface ApplicationCacheApi {
-    /**
-     * Enables application cache domain notifications.
-     */
-    enable(
-      params: ApplicationCache.EnableParams,
-    ): Promise<ApplicationCache.EnableResult | undefined>;
-
-    /**
-     * Returns relevant application cache data for the document in given frame.
-     */
-    getApplicationCacheForFrame(
-      params: ApplicationCache.GetApplicationCacheForFrameParams,
-    ): Promise<ApplicationCache.GetApplicationCacheForFrameResult | undefined>;
-
-    /**
-     * Returns array of frame identifiers with manifest urls for each frame containing a document
-     * associated with some application cache.
-     */
-    getFramesWithManifests(
-      params: ApplicationCache.GetFramesWithManifestsParams,
-    ): Promise<ApplicationCache.GetFramesWithManifestsResult | undefined>;
-
-    /**
-     * Returns manifest URL for document in the given frame.
-     */
-    getManifestForFrame(
-      params: ApplicationCache.GetManifestForFrameParams,
-    ): Promise<ApplicationCache.GetManifestForFrameResult | undefined>;
-
-    on(
-      event: 'applicationCacheStatusUpdated',
-      listener: (event: ApplicationCache.ApplicationCacheStatusUpdatedEvent) => void,
-    ): IDisposable;
-
-    on(
-      event: 'networkStateUpdated',
-      listener: (event: ApplicationCache.NetworkStateUpdatedEvent) => void,
-    ): IDisposable;
-  }
-
-  /**
-   * Types of the 'ApplicationCache' domain.
-   */
-  export namespace ApplicationCache {
-    /**
-     * Parameters of the 'ApplicationCache.enable' method.
-     */
-    export interface EnableParams {}
-
-    /**
-     * Return value of the 'ApplicationCache.enable' method.
-     */
-    export interface EnableResult {}
-
-    /**
-     * Parameters of the 'ApplicationCache.getApplicationCacheForFrame' method.
-     */
-    export interface GetApplicationCacheForFrameParams {
-      /**
-       * Identifier of the frame containing document whose application cache is retrieved.
-       */
-      frameId: Page.FrameId;
-    }
-
-    /**
-     * Return value of the 'ApplicationCache.getApplicationCacheForFrame' method.
-     */
-    export interface GetApplicationCacheForFrameResult {
-      /**
-       * Relevant application cache data for the document in given frame.
-       */
-      applicationCache: ApplicationCache;
-    }
-
-    /**
-     * Parameters of the 'ApplicationCache.getFramesWithManifests' method.
-     */
-    export interface GetFramesWithManifestsParams {}
-
-    /**
-     * Return value of the 'ApplicationCache.getFramesWithManifests' method.
-     */
-    export interface GetFramesWithManifestsResult {
-      /**
-       * Array of frame identifiers with manifest urls for each frame containing a document
-       * associated with some application cache.
-       */
-      frameIds: FrameWithManifest[];
-    }
-
-    /**
-     * Parameters of the 'ApplicationCache.getManifestForFrame' method.
-     */
-    export interface GetManifestForFrameParams {
-      /**
-       * Identifier of the frame containing document whose manifest is retrieved.
-       */
-      frameId: Page.FrameId;
-    }
-
-    /**
-     * Return value of the 'ApplicationCache.getManifestForFrame' method.
-     */
-    export interface GetManifestForFrameResult {
-      /**
-       * Manifest URL for document in the given frame.
-       */
-      manifestURL: string;
-    }
-
-    /**
-     * Parameters of the 'ApplicationCache.applicationCacheStatusUpdated' event.
-     */
-    export interface ApplicationCacheStatusUpdatedEvent {
-      /**
-       * Identifier of the frame containing document whose application cache updated status.
-       */
-      frameId: Page.FrameId;
-
-      /**
-       * Manifest URL.
-       */
-      manifestURL: string;
-
-      /**
-       * Updated application cache status.
-       */
-      status: integer;
-    }
-
-    /**
-     * Parameters of the 'ApplicationCache.networkStateUpdated' event.
-     */
-    export interface NetworkStateUpdatedEvent {
-      isNowOnline: boolean;
-    }
-
-    /**
-     * Detailed application cache resource information.
-     */
-    export interface ApplicationCacheResource {
-      /**
-       * Resource url.
-       */
-      url: string;
-
-      /**
-       * Resource size.
-       */
-      size: integer;
-
-      /**
-       * Resource type.
-       */
-      type: string;
-    }
-
-    /**
-     * Detailed application cache information.
-     */
-    export interface ApplicationCache {
-      /**
-       * Manifest URL.
-       */
-      manifestURL: string;
-
-      /**
-       * Application cache size.
-       */
-      size: number;
-
-      /**
-       * Application cache creation time.
-       */
-      creationTime: number;
-
-      /**
-       * Application cache update time.
-       */
-      updateTime: number;
-
-      /**
-       * Application cache resources.
-       */
-      resources: ApplicationCacheResource[];
-    }
-
-    /**
-     * Frame identifier - manifest URL pair.
-     */
-    export interface FrameWithManifest {
-      /**
-       * Frame identifier.
-       */
-      frameId: Page.FrameId;
-
-      /**
-       * Manifest URL.
-       */
-      manifestURL: string;
-
-      /**
-       * Application cache status.
-       */
-      status: integer;
-    }
-  }
-
-  /**
    * Methods and events of the 'Audits' domain.
    */
   export interface AuditsApi {
@@ -1330,7 +1135,9 @@ export namespace Cdp {
       | 'ExcludeSameSiteUnspecifiedTreatedAsLax'
       | 'ExcludeSameSiteNoneInsecure'
       | 'ExcludeSameSiteLax'
-      | 'ExcludeSameSiteStrict';
+      | 'ExcludeSameSiteStrict'
+      | 'ExcludeInvalidSameParty'
+      | 'ExcludeSamePartyCrossPartyContext';
 
     export type SameSiteCookieWarningReason =
       | 'WarnSameSiteUnspecifiedCrossSiteContext'
@@ -1350,7 +1157,15 @@ export namespace Cdp {
      * information without the cookie.
      */
     export interface SameSiteCookieIssueDetails {
-      cookie: AffectedCookie;
+      /**
+       * If AffectedCookie is not set then rawCookieLine contains the raw
+       * Set-Cookie header string. This hints at a problem where the
+       * cookie line is syntactically or semantically malformed in a way
+       * that no valid cookie could be created.
+       */
+      cookie?: AffectedCookie;
+
+      rawCookieLine?: string;
 
       cookieWarningReasons: SameSiteCookieWarningReason[];
 
@@ -1593,6 +1408,8 @@ export namespace Cdp {
 
       request: AffectedRequest;
 
+      location?: SourceCodeLocation;
+
       initiatorOrigin?: string;
 
       resourceIPAddressSpace?: Network.IPAddressSpace;
@@ -1605,7 +1422,9 @@ export namespace Cdp {
       | 'InvalidAttributionSourceEventId'
       | 'InvalidAttributionData'
       | 'AttributionSourceUntrustworthyOrigin'
-      | 'AttributionUntrustworthyOrigin';
+      | 'AttributionUntrustworthyOrigin'
+      | 'AttributionTriggerDataTooLarge'
+      | 'AttributionEventSourceTriggerDataTooLarge';
 
     /**
      * Details for issues around "Attribution Reporting API" usage.
@@ -1624,6 +1443,56 @@ export namespace Cdp {
     }
 
     /**
+     * Details for issues about documents in Quirks Mode
+     * or Limited Quirks Mode that affects page layouting.
+     */
+    export interface QuirksModeIssueDetails {
+      /**
+       * If false, it means the document's mode is "quirks"
+       * instead of "limited-quirks".
+       */
+      isLimitedQuirksMode: boolean;
+
+      documentNodeId: DOM.BackendNodeId;
+
+      url: string;
+
+      frameId: Page.FrameId;
+
+      loaderId: Network.LoaderId;
+    }
+
+    export interface NavigatorUserAgentIssueDetails {
+      url: string;
+
+      location?: SourceCodeLocation;
+    }
+
+    export interface WasmCrossOriginModuleSharingIssueDetails {
+      wasmModuleUrl: string;
+
+      sourceOrigin: string;
+
+      targetOrigin: string;
+
+      isWarning: boolean;
+    }
+
+    export type GenericIssueErrorType = 'CrossOriginPortalPostMessageError';
+
+    /**
+     * Depending on the concrete errorType, different properties are set.
+     */
+    export interface GenericIssueDetails {
+      /**
+       * Issues with the same errorType are aggregated in the frontend.
+       */
+      errorType: GenericIssueErrorType;
+
+      frameId?: Page.FrameId;
+    }
+
+    /**
      * A unique identifier for the type of issue. Each type may use one of the
      * optional fields in InspectorIssueDetails to convey more specific
      * information about the kind of issue.
@@ -1638,7 +1507,11 @@ export namespace Cdp {
       | 'TrustedWebActivityIssue'
       | 'LowTextContrastIssue'
       | 'CorsIssue'
-      | 'AttributionReportingIssue';
+      | 'AttributionReportingIssue'
+      | 'QuirksModeIssue'
+      | 'NavigatorUserAgentIssue'
+      | 'WasmCrossOriginModuleSharingIssue'
+      | 'GenericIssue';
 
     /**
      * This struct holds a list of optional fields with additional information
@@ -1665,7 +1538,21 @@ export namespace Cdp {
       corsIssueDetails?: CorsIssueDetails;
 
       attributionReportingIssueDetails?: AttributionReportingIssueDetails;
+
+      quirksModeIssueDetails?: QuirksModeIssueDetails;
+
+      navigatorUserAgentIssueDetails?: NavigatorUserAgentIssueDetails;
+
+      wasmCrossOriginModuleSharingIssue?: WasmCrossOriginModuleSharingIssueDetails;
+
+      genericIssueDetails?: GenericIssueDetails;
     }
+
+    /**
+     * A unique id for a DevTools inspector issue. Allows other entities (e.g.
+     * exceptions, CDP message, console messages, etc.) to reference an issue.
+     */
+    export type IssueId = string;
 
     /**
      * An inspector issue reported from the back-end.
@@ -1674,6 +1561,12 @@ export namespace Cdp {
       code: InspectorIssueCode;
 
       details: InspectorIssueDetails;
+
+      /**
+       * A unique id for this issue. May be omitted if no other entity (e.g.
+       * exception, CDP message, etc.) is referencing this issue.
+       */
+      issueId?: IssueId;
     }
   }
 
@@ -3197,6 +3090,13 @@ export namespace Cdp {
     setMediaText(params: CSS.SetMediaTextParams): Promise<CSS.SetMediaTextResult | undefined>;
 
     /**
+     * Modifies the expression of a container query.
+     */
+    setContainerQueryText(
+      params: CSS.SetContainerQueryTextParams,
+    ): Promise<CSS.SetContainerQueryTextResult | undefined>;
+
+    /**
      * Modifies the rule selector.
      */
     setRuleSelector(
@@ -3644,6 +3544,27 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'CSS.setContainerQueryText' method.
+     */
+    export interface SetContainerQueryTextParams {
+      styleSheetId: StyleSheetId;
+
+      range: SourceRange;
+
+      text: string;
+    }
+
+    /**
+     * Return value of the 'CSS.setContainerQueryText' method.
+     */
+    export interface SetContainerQueryTextResult {
+      /**
+       * The resulting CSS container query rule after modification.
+       */
+      containerQuery: CSSContainerQuery;
+    }
+
+    /**
      * Parameters of the 'CSS.setRuleSelector' method.
      */
     export interface SetRuleSelectorParams {
@@ -3895,7 +3816,9 @@ export namespace Cdp {
       frameId: Page.FrameId;
 
       /**
-       * Stylesheet resource URL.
+       * Stylesheet resource URL. Empty if this is a constructed stylesheet created using
+       * new CSSStyleSheet() (but non-empty if this is a constructed sylesheet imported
+       * as a CSS module script).
        */
       sourceURL: string;
 
@@ -3944,7 +3867,8 @@ export namespace Cdp {
       isMutable: boolean;
 
       /**
-       * Whether this stylesheet is a constructed stylesheet (created using new CSSStyleSheet()).
+       * True if this stylesheet is created through new CSSStyleSheet() or imported as a
+       * CSS module script.
        */
       isConstructed: boolean;
 
@@ -4004,6 +3928,12 @@ export namespace Cdp {
        * starting with the innermost one, going outwards.
        */
       media?: CSSMedia[];
+
+      /**
+       * Container query list array (for rules involving container queries).
+       * The array enumerates container queries starting with the innermost one, going outwards.
+       */
+      containerQueries?: CSSContainerQuery[];
     }
 
     /**
@@ -4244,6 +4174,32 @@ export namespace Cdp {
        * Computed length of media query expression (if applicable).
        */
       computedLength?: number;
+    }
+
+    /**
+     * CSS container query rule descriptor.
+     */
+    export interface CSSContainerQuery {
+      /**
+       * Container query text.
+       */
+      text: string;
+
+      /**
+       * The associated rule header range in the enclosing stylesheet (if
+       * available).
+       */
+      range?: SourceRange;
+
+      /**
+       * Identifier of the stylesheet containing this object (if exists).
+       */
+      styleSheetId?: StyleSheetId;
+
+      /**
+       * Optional name for the container.
+       */
+      name?: string;
     }
 
     /**
@@ -4624,6 +4580,7 @@ export namespace Cdp {
 
     /**
      * Restarts particular call frame from the beginning.
+     * @deprecated
      */
     restartFrame(
       params: Debugger.RestartFrameParams,
@@ -4829,7 +4786,7 @@ export namespace Cdp {
     export interface EnableParams {
       /**
        * The maximum size in bytes of collected scripts (not referenced by other heap objects)
-       * the debugger can hold. Puts no limit if paramter is omitted.
+       * the debugger can hold. Puts no limit if parameter is omitted.
        */
       maxScriptsCacheSize?: number;
     }
@@ -6295,6 +6252,23 @@ export namespace Cdp {
     getFrameOwner(params: DOM.GetFrameOwnerParams): Promise<DOM.GetFrameOwnerResult | undefined>;
 
     /**
+     * Returns the container of the given node based on container query conditions.
+     * If containerName is given, it will find the nearest container with a matching name;
+     * otherwise it will find the nearest container regardless of its container name.
+     */
+    getContainerForNode(
+      params: DOM.GetContainerForNodeParams,
+    ): Promise<DOM.GetContainerForNodeResult | undefined>;
+
+    /**
+     * Returns the descendants of a container query container that have
+     * container queries against this container.
+     */
+    getQueryingDescendantsForContainer(
+      params: DOM.GetQueryingDescendantsForContainerParams,
+    ): Promise<DOM.GetQueryingDescendantsForContainerResult | undefined>;
+
+    /**
      * Fired when `Element`'s attribute is modified.
      */
     on(
@@ -7445,6 +7419,45 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'DOM.getContainerForNode' method.
+     */
+    export interface GetContainerForNodeParams {
+      nodeId: NodeId;
+
+      containerName?: string;
+    }
+
+    /**
+     * Return value of the 'DOM.getContainerForNode' method.
+     */
+    export interface GetContainerForNodeResult {
+      /**
+       * The container node for the given node, or null if not found.
+       */
+      nodeId?: NodeId;
+    }
+
+    /**
+     * Parameters of the 'DOM.getQueryingDescendantsForContainer' method.
+     */
+    export interface GetQueryingDescendantsForContainerParams {
+      /**
+       * Id of the container node to find querying descendants from.
+       */
+      nodeId: NodeId;
+    }
+
+    /**
+     * Return value of the 'DOM.getQueryingDescendantsForContainer' method.
+     */
+    export interface GetQueryingDescendantsForContainerResult {
+      /**
+       * Descendant nodes with container queries against the given container.
+       */
+      nodeIds: NodeId[];
+    }
+
+    /**
      * Parameters of the 'DOM.attributeModified' event.
      */
     export interface AttributeModifiedEvent {
@@ -7691,6 +7704,7 @@ export namespace Cdp {
       | 'target-text'
       | 'spelling-error'
       | 'grammar-error'
+      | 'highlight'
       | 'first-line-inherited'
       | 'scrollbar'
       | 'scrollbar-thumb'
@@ -7705,6 +7719,11 @@ export namespace Cdp {
      * Shadow root type.
      */
     export type ShadowRootType = 'user-agent' | 'open' | 'closed';
+
+    /**
+     * Document compatibility mode.
+     */
+    export type CompatibilityMode = 'QuirksMode' | 'LimitedQuirksMode' | 'NoQuirksMode';
 
     /**
      * DOM interaction is implemented in terms of mirror objects that represent the actual DOM nodes.
@@ -7855,6 +7874,8 @@ export namespace Cdp {
        * Whether the node is SVG.
        */
       isSVG?: boolean;
+
+      compatibilityMode?: CompatibilityMode;
     }
 
     /**
@@ -8836,6 +8857,11 @@ export namespace Cdp {
       nodeType?: integer[];
 
       /**
+       * Type of the shadow root the `Node` is in. String values are equal to the `ShadowRootType` enum.
+       */
+      shadowRootType?: RareStringData;
+
+      /**
        * `Node`'s nodeName.
        */
       nodeName?: StringIndex[];
@@ -9222,6 +9248,13 @@ export namespace Cdp {
     ): Promise<Emulation.SetFocusEmulationEnabledResult | undefined>;
 
     /**
+     * Automatically render all web contents using a dark theme.
+     */
+    setAutoDarkModeOverride(
+      params: Emulation.SetAutoDarkModeOverrideParams,
+    ): Promise<Emulation.SetAutoDarkModeOverrideResult | undefined>;
+
+    /**
      * Enables CPU throttling to emulate slow CPUs.
      */
     setCPUThrottlingRate(
@@ -9437,6 +9470,22 @@ export namespace Cdp {
      * Return value of the 'Emulation.setFocusEmulationEnabled' method.
      */
     export interface SetFocusEmulationEnabledResult {}
+
+    /**
+     * Parameters of the 'Emulation.setAutoDarkModeOverride' method.
+     */
+    export interface SetAutoDarkModeOverrideParams {
+      /**
+       * Whether to enable or disable automatic dark mode.
+       * If not specified, any existing override will be cleared.
+       */
+      enabled?: boolean;
+    }
+
+    /**
+     * Return value of the 'Emulation.setAutoDarkModeOverride' method.
+     */
+    export interface SetAutoDarkModeOverrideResult {}
 
     /**
      * Parameters of the 'Emulation.setCPUThrottlingRate' method.
@@ -10026,6 +10075,15 @@ export namespace Cdp {
     ): Promise<Fetch.ContinueWithAuthResult | undefined>;
 
     /**
+     * Continues loading of the paused response, optionally modifying the
+     * response headers. If either responseCode or headers are modified, all of them
+     * must be present.
+     */
+    continueResponse(
+      params: Fetch.ContinueResponseParams,
+    ): Promise<Fetch.ContinueResponseResult | undefined>;
+
+    /**
      * Causes the body of the response to be received from the server and
      * returned as a single string. May only be issued for a request that
      * is paused in the Response stage and is mutually exclusive with
@@ -10155,7 +10213,9 @@ export namespace Cdp {
       binaryResponseHeaders?: string;
 
       /**
-       * A response body. (Encoded as a base64 string when passed over JSON)
+       * A response body. If absent, original response body will be used if
+       * the request is intercepted at the response stage and empty body
+       * will be used if the request is intercepted at the request stage. (Encoded as a base64 string when passed over JSON)
        */
       body?: string;
 
@@ -10199,6 +10259,11 @@ export namespace Cdp {
        * If set, overrides the request headers.
        */
       headers?: HeaderEntry[];
+
+      /**
+       * If set, overrides response interception behavior for this request.
+       */
+      interceptResponse?: boolean;
     }
 
     /**
@@ -10225,6 +10290,45 @@ export namespace Cdp {
      * Return value of the 'Fetch.continueWithAuth' method.
      */
     export interface ContinueWithAuthResult {}
+
+    /**
+     * Parameters of the 'Fetch.continueResponse' method.
+     */
+    export interface ContinueResponseParams {
+      /**
+       * An id the client received in requestPaused event.
+       */
+      requestId: RequestId;
+
+      /**
+       * An HTTP response code. If absent, original response code will be used.
+       */
+      responseCode?: integer;
+
+      /**
+       * A textual representation of responseCode.
+       * If absent, a standard phrase matching responseCode is used.
+       */
+      responsePhrase?: string;
+
+      /**
+       * Response headers. If absent, original response headers will be used.
+       */
+      responseHeaders?: HeaderEntry[];
+
+      /**
+       * Alternative way of specifying response headers as a \0-separated
+       * series of name: value pairs. Prefer the above method unless you
+       * need to represent some non-UTF8 values that can't be transmitted
+       * over the protocol as text. (Encoded as a base64 string when passed over JSON)
+       */
+      binaryResponseHeaders?: string;
+    }
+
+    /**
+     * Return value of the 'Fetch.continueResponse' method.
+     */
+    export interface ContinueResponseResult {}
 
     /**
      * Parameters of the 'Fetch.getResponseBody' method.
@@ -10300,6 +10404,11 @@ export namespace Cdp {
       responseStatusCode?: integer;
 
       /**
+       * Response status text if intercepted at response stage.
+       */
+      responseStatusText?: string;
+
+      /**
        * Response headers if intercepted at the response stage.
        */
       responseHeaders?: HeaderEntry[];
@@ -10351,7 +10460,7 @@ export namespace Cdp {
     /**
      * Stages of the request to handle. Request will intercept before the request is
      * sent. Response will intercept after the response is received (but before response
-     * body is received.
+     * body is received).
      */
     export type RequestStage = 'Request' | 'Response';
 
@@ -10815,6 +10924,11 @@ export namespace Cdp {
       reportProgress?: boolean;
 
       treatGlobalObjectsAsRoots?: boolean;
+
+      /**
+       * If true, numerical values are included in the snapshot
+       */
+      captureNumericValue?: boolean;
     }
 
     /**
@@ -10832,9 +10946,14 @@ export namespace Cdp {
       reportProgress?: boolean;
 
       /**
-       * If true, a raw snapshot without artifical roots will be generated
+       * If true, a raw snapshot without artificial roots will be generated
        */
       treatGlobalObjectsAsRoots?: boolean;
+
+      /**
+       * If true, numerical values are included in the snapshot
+       */
+      captureNumericValue?: boolean;
     }
 
     /**
@@ -11430,6 +11549,15 @@ export namespace Cdp {
     insertText(params: Input.InsertTextParams): Promise<Input.InsertTextResult | undefined>;
 
     /**
+     * This method sets the current candidate text for ime.
+     * Use imeCommitComposition to commit the final text.
+     * Use imeSetComposition with empty string as text to cancel composition.
+     */
+    imeSetComposition(
+      params: Input.ImeSetCompositionParams,
+    ): Promise<Input.ImeSetCompositionResult | undefined>;
+
+    /**
      * Dispatches a mouse event to the page.
      */
     dispatchMouseEvent(
@@ -11640,6 +11768,41 @@ export namespace Cdp {
      * Return value of the 'Input.insertText' method.
      */
     export interface InsertTextResult {}
+
+    /**
+     * Parameters of the 'Input.imeSetComposition' method.
+     */
+    export interface ImeSetCompositionParams {
+      /**
+       * The text to insert
+       */
+      text: string;
+
+      /**
+       * selection start
+       */
+      selectionStart: integer;
+
+      /**
+       * selection end
+       */
+      selectionEnd: integer;
+
+      /**
+       * replacement start
+       */
+      replacementStart?: integer;
+
+      /**
+       * replacement end
+       */
+      replacementEnd?: integer;
+    }
+
+    /**
+     * Return value of the 'Input.imeSetComposition' method.
+     */
+    export interface ImeSetCompositionResult {}
 
     /**
      * Parameters of the 'Input.dispatchMouseEvent' method.
@@ -12096,6 +12259,11 @@ export namespace Cdp {
 
     export interface DragData {
       items: DragDataItem[];
+
+      /**
+       * List of filenames that should be included when dropping
+       */
+      files?: string[];
 
       /**
        * Bit field representing allowed drag operations. Copy = 1, Link = 2, Move = 16
@@ -12915,6 +13083,8 @@ export namespace Cdp {
        */
       text: string;
 
+      category?: 'cors';
+
       /**
        * Timestamp when this entry was added.
        */
@@ -13617,13 +13787,6 @@ export namespace Cdp {
     setCookies(params: Network.SetCookiesParams): Promise<Network.SetCookiesResult | undefined>;
 
     /**
-     * For testing.
-     */
-    setDataSizeLimitsForTest(
-      params: Network.SetDataSizeLimitsForTestParams,
-    ): Promise<Network.SetDataSizeLimitsForTestResult | undefined>;
-
-    /**
      * Specifies whether to always send extra HTTP headers with the requests from this page.
      */
     setExtraHTTPHeaders(
@@ -13659,6 +13822,14 @@ export namespace Cdp {
     getSecurityIsolationStatus(
       params: Network.GetSecurityIsolationStatusParams,
     ): Promise<Network.GetSecurityIsolationStatusResult | undefined>;
+
+    /**
+     * Enables tracking for the Reporting API, events generated by the Reporting API will now be delivered to the client.
+     * Enabling triggers 'reportingApiReportAdded' for all existing reports.
+     */
+    enableReportingApi(
+      params: Network.EnableReportingApiParams,
+    ): Promise<Network.EnableReportingApiResult | undefined>;
 
     /**
      * Fetches the resource and returns the content.
@@ -13854,6 +14025,54 @@ export namespace Cdp {
     on(
       event: 'trustTokenOperationDone',
       listener: (event: Network.TrustTokenOperationDoneEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired once when parsing the .wbn file has succeeded.
+     * The event contains the information about the web bundle contents.
+     */
+    on(
+      event: 'subresourceWebBundleMetadataReceived',
+      listener: (event: Network.SubresourceWebBundleMetadataReceivedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired once when parsing the .wbn file has failed.
+     */
+    on(
+      event: 'subresourceWebBundleMetadataError',
+      listener: (event: Network.SubresourceWebBundleMetadataErrorEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when handling requests for resources within a .wbn file.
+     * Note: this will only be fired for resources that are requested by the webpage.
+     */
+    on(
+      event: 'subresourceWebBundleInnerResponseParsed',
+      listener: (event: Network.SubresourceWebBundleInnerResponseParsedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when request for resources within a .wbn file failed.
+     */
+    on(
+      event: 'subresourceWebBundleInnerResponseError',
+      listener: (event: Network.SubresourceWebBundleInnerResponseErrorEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Is sent whenever a new report is added.
+     * And after 'enableReportingApi' for all existing reports.
+     */
+    on(
+      event: 'reportingApiReportAdded',
+      listener: (event: Network.ReportingApiReportAddedEvent) => void,
+    ): IDisposable;
+
+    on(
+      event: 'reportingApiReportUpdated',
+      listener: (event: Network.ReportingApiReportUpdatedEvent) => void,
     ): IDisposable;
   }
 
@@ -14438,26 +14657,6 @@ export namespace Cdp {
     export interface SetCookiesResult {}
 
     /**
-     * Parameters of the 'Network.setDataSizeLimitsForTest' method.
-     */
-    export interface SetDataSizeLimitsForTestParams {
-      /**
-       * Maximum total buffer size.
-       */
-      maxTotalSize: integer;
-
-      /**
-       * Maximum per-resource size.
-       */
-      maxResourceSize: integer;
-    }
-
-    /**
-     * Return value of the 'Network.setDataSizeLimitsForTest' method.
-     */
-    export interface SetDataSizeLimitsForTestResult {}
-
-    /**
      * Parameters of the 'Network.setExtraHTTPHeaders' method.
      */
     export interface SetExtraHTTPHeadersParams {
@@ -14551,13 +14750,29 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'Network.enableReportingApi' method.
+     */
+    export interface EnableReportingApiParams {
+      /**
+       * Whether to enable or disable events for the Reporting API
+       */
+      enable: boolean;
+    }
+
+    /**
+     * Return value of the 'Network.enableReportingApi' method.
+     */
+    export interface EnableReportingApiResult {}
+
+    /**
      * Parameters of the 'Network.loadNetworkResource' method.
      */
     export interface LoadNetworkResourceParams {
       /**
-       * Frame id to get the resource for.
+       * Frame id to get the resource for. Mandatory for frame targets, and
+       * should be omitted for worker targets.
        */
-      frameId: Page.FrameId;
+      frameId?: Page.FrameId;
 
       /**
        * URL of the resource to get content for.
@@ -15124,6 +15339,11 @@ export namespace Cdp {
       headers: Headers;
 
       /**
+       * Connection timing information for the request.
+       */
+      connectTiming: ConnectTiming;
+
+      /**
        * The client security state set for the request.
        */
       clientSecurityState?: ClientSecurityState;
@@ -15155,6 +15375,13 @@ export namespace Cdp {
        * established the connection, so we can't send it in `requestWillBeSentExtraInfo`.
        */
       resourceIPAddressSpace: IPAddressSpace;
+
+      /**
+       * The status code of the response. This is useful in cases the request failed and no responseReceived
+       * event is triggered, which is the case for, e.g., CORS errors. This is also the correct status code
+       * for cached requests, where the status in responseReceived is a 200 and this will be 304.
+       */
+      statusCode: integer;
 
       /**
        * Raw response header text as it was received over the wire. The raw text may not always be
@@ -15203,6 +15430,99 @@ export namespace Cdp {
        * The number of obtained Trust Tokens on a successful "Issuance" operation.
        */
       issuedTokenCount?: integer;
+    }
+
+    /**
+     * Parameters of the 'Network.subresourceWebBundleMetadataReceived' event.
+     */
+    export interface SubresourceWebBundleMetadataReceivedEvent {
+      /**
+       * Request identifier. Used to match this information to another event.
+       */
+      requestId: RequestId;
+
+      /**
+       * A list of URLs of resources in the subresource Web Bundle.
+       */
+      urls: string[];
+    }
+
+    /**
+     * Parameters of the 'Network.subresourceWebBundleMetadataError' event.
+     */
+    export interface SubresourceWebBundleMetadataErrorEvent {
+      /**
+       * Request identifier. Used to match this information to another event.
+       */
+      requestId: RequestId;
+
+      /**
+       * Error message
+       */
+      errorMessage: string;
+    }
+
+    /**
+     * Parameters of the 'Network.subresourceWebBundleInnerResponseParsed' event.
+     */
+    export interface SubresourceWebBundleInnerResponseParsedEvent {
+      /**
+       * Request identifier of the subresource request
+       */
+      innerRequestId: RequestId;
+
+      /**
+       * URL of the subresource resource.
+       */
+      innerRequestURL: string;
+
+      /**
+       * Bundle request identifier. Used to match this information to another event.
+       * This made be absent in case when the instrumentation was enabled only
+       * after webbundle was parsed.
+       */
+      bundleRequestId?: RequestId;
+    }
+
+    /**
+     * Parameters of the 'Network.subresourceWebBundleInnerResponseError' event.
+     */
+    export interface SubresourceWebBundleInnerResponseErrorEvent {
+      /**
+       * Request identifier of the subresource request
+       */
+      innerRequestId: RequestId;
+
+      /**
+       * URL of the subresource resource.
+       */
+      innerRequestURL: string;
+
+      /**
+       * Error message
+       */
+      errorMessage: string;
+
+      /**
+       * Bundle request identifier. Used to match this information to another event.
+       * This made be absent in case when the instrumentation was enabled only
+       * after webbundle was parsed.
+       */
+      bundleRequestId?: RequestId;
+    }
+
+    /**
+     * Parameters of the 'Network.reportingApiReportAdded' event.
+     */
+    export interface ReportingApiReportAddedEvent {
+      report: ReportingApiReport;
+    }
+
+    /**
+     * Parameters of the 'Network.reportingApiReportUpdated' event.
+     */
+    export interface ReportingApiReportUpdatedEvent {
+      report: ReportingApiReport;
     }
 
     /**
@@ -15491,6 +15811,12 @@ export namespace Cdp {
        * passed by the developer (e.g. via "fetch") as understood by the backend.
        */
       trustTokenParams?: TrustTokenParams;
+
+      /**
+       * True if this resource request is considered to be the 'same site' as the
+       * request correspondinfg to the main frame.
+       */
+      isSameSite?: boolean;
     }
 
     /**
@@ -15658,7 +15984,10 @@ export namespace Cdp {
       | 'MethodDisallowedByPreflightResponse'
       | 'HeaderDisallowedByPreflightResponse'
       | 'RedirectContainsCredentials'
-      | 'InsecurePrivateNetwork';
+      | 'InsecurePrivateNetwork'
+      | 'InvalidPrivateNetworkAccess'
+      | 'UnexpectedPrivateNetworkAccess'
+      | 'NoCorsRedirectModeNotFollow';
 
     export interface CorsErrorStatus {
       corsError: CorsError;
@@ -15723,7 +16052,8 @@ export namespace Cdp {
       headers: Headers;
 
       /**
-       * HTTP response headers text.
+       * HTTP response headers text. This has been replaced by the headers in Network.responseReceivedExtraInfo.
+       * @deprecated
        */
       headersText?: string;
 
@@ -15738,7 +16068,8 @@ export namespace Cdp {
       requestHeaders?: Headers;
 
       /**
-       * HTTP request headers text.
+       * HTTP request headers text. This has been replaced by the headers in Network.requestWillBeSentExtraInfo.
+       * @deprecated
        */
       requestHeadersText?: string;
 
@@ -16044,7 +16375,8 @@ export namespace Cdp {
       | 'SchemefulSameSiteLax'
       | 'SchemefulSameSiteUnspecifiedTreatedAsLax'
       | 'SamePartyFromCrossPartyContext'
-      | 'SamePartyConflictsWithOtherAttributes';
+      | 'SamePartyConflictsWithOtherAttributes'
+      | 'NameValuePairExceedsMaxSize';
 
     /**
      * Types of reasons why a cookie may not be sent with a request.
@@ -16062,7 +16394,8 @@ export namespace Cdp {
       | 'SchemefulSameSiteStrict'
       | 'SchemefulSameSiteLax'
       | 'SchemefulSameSiteUnspecifiedTreatedAsLax'
-      | 'SamePartyFromCrossPartyContext';
+      | 'SamePartyFromCrossPartyContext'
+      | 'NameValuePairExceedsMaxSize';
 
     /**
      * A cookie which was not stored from a response with the corresponding reason.
@@ -16397,9 +16730,20 @@ export namespace Cdp {
     export type PrivateNetworkRequestPolicy =
       | 'Allow'
       | 'BlockFromInsecureToMorePrivate'
-      | 'WarnFromInsecureToMorePrivate';
+      | 'WarnFromInsecureToMorePrivate'
+      | 'PreflightBlock'
+      | 'PreflightWarn';
 
     export type IPAddressSpace = 'Local' | 'Private' | 'Public' | 'Unknown';
+
+    export interface ConnectTiming {
+      /**
+       * Timing's requestTime is a baseline in seconds, while the other numbers are ticks in
+       * milliseconds relatively to this requestTime. Matches ResourceTiming's requestTime for
+       * the same request (but not for redirected requests).
+       */
+      requestTime: number;
+    }
 
     export interface ClientSecurityState {
       initiatorIsSecureContext: boolean;
@@ -16425,7 +16769,7 @@ export namespace Cdp {
       reportOnlyReportingEndpoint?: string;
     }
 
-    export type CrossOriginEmbedderPolicyValue = 'None' | 'CorsOrCredentialless' | 'RequireCorp';
+    export type CrossOriginEmbedderPolicyValue = 'None' | 'Credentialless' | 'RequireCorp';
 
     export interface CrossOriginEmbedderPolicyStatus {
       value: CrossOriginEmbedderPolicyValue;
@@ -16441,6 +16785,54 @@ export namespace Cdp {
       coop?: CrossOriginOpenerPolicyStatus;
 
       coep?: CrossOriginEmbedderPolicyStatus;
+    }
+
+    /**
+     * The status of a Reporting API report.
+     */
+    export type ReportStatus = 'Queued' | 'Pending' | 'MarkedForRemoval' | 'Success';
+
+    export type ReportId = string;
+
+    /**
+     * An object representing a report generated by the Reporting API.
+     */
+    export interface ReportingApiReport {
+      id: ReportId;
+
+      /**
+       * The URL of the document that triggered the report.
+       */
+      initiatorUrl: string;
+
+      /**
+       * The name of the endpoint group that should be used to deliver the report.
+       */
+      destination: string;
+
+      /**
+       * The type of the report (specifies the set of data that is contained in the report body).
+       */
+      type: string;
+
+      /**
+       * When the report was generated.
+       */
+      timestamp: Network.TimeSinceEpoch;
+
+      /**
+       * How many uploads deep the related request was.
+       */
+      depth: integer;
+
+      /**
+       * The number of delivery attempts made so far, not including an active attempt.
+       */
+      completedAttempts: integer;
+
+      body: any;
+
+      status: ReportStatus;
     }
 
     /**
@@ -16841,6 +17233,10 @@ export namespace Cdp {
 
     /**
      * Highlights owner element of the frame with given id.
+     * Deprecated: Doesn't work reliablity and cannot be fixed due to process
+     * separatation (the owner node might be in a different process). Determine
+     * the owner node in the client and use highlightNode.
+     * @deprecated
      */
     highlightFrame(
       params: Overlay.HighlightFrameParams,
@@ -16924,6 +17320,10 @@ export namespace Cdp {
       params: Overlay.SetShowScrollSnapOverlaysParams,
     ): Promise<Overlay.SetShowScrollSnapOverlaysResult | undefined>;
 
+    setShowContainerQueryOverlays(
+      params: Overlay.SetShowContainerQueryOverlaysParams,
+    ): Promise<Overlay.SetShowContainerQueryOverlaysResult | undefined>;
+
     /**
      * Requests that backend shows paint rectangles
      */
@@ -16972,6 +17372,13 @@ export namespace Cdp {
     setShowHinge(
       params: Overlay.SetShowHingeParams,
     ): Promise<Overlay.SetShowHingeResult | undefined>;
+
+    /**
+     * Show elements in isolation mode with overlays.
+     */
+    setShowIsolatedElements(
+      params: Overlay.SetShowIsolatedElementsParams,
+    ): Promise<Overlay.SetShowIsolatedElementsResult | undefined>;
 
     /**
      * Fired when the node should be inspected. This happens after call to `setInspectMode` or when
@@ -17403,6 +17810,21 @@ export namespace Cdp {
     export interface SetShowScrollSnapOverlaysResult {}
 
     /**
+     * Parameters of the 'Overlay.setShowContainerQueryOverlays' method.
+     */
+    export interface SetShowContainerQueryOverlaysParams {
+      /**
+       * An array of node identifiers and descriptors for the highlight appearance.
+       */
+      containerQueryHighlightConfigs: ContainerQueryHighlightConfig[];
+    }
+
+    /**
+     * Return value of the 'Overlay.setShowContainerQueryOverlays' method.
+     */
+    export interface SetShowContainerQueryOverlaysResult {}
+
+    /**
      * Parameters of the 'Overlay.setShowPaintRects' method.
      */
     export interface SetShowPaintRectsParams {
@@ -17503,6 +17925,21 @@ export namespace Cdp {
      * Return value of the 'Overlay.setShowHinge' method.
      */
     export interface SetShowHingeResult {}
+
+    /**
+     * Parameters of the 'Overlay.setShowIsolatedElements' method.
+     */
+    export interface SetShowIsolatedElementsParams {
+      /**
+       * An array of node identifiers and descriptors for the highlight appearance.
+       */
+      isolatedElementHighlightConfigs: IsolatedElementHighlightConfig[];
+    }
+
+    /**
+     * Return value of the 'Overlay.setShowIsolatedElements' method.
+     */
+    export interface SetShowIsolatedElementsResult {}
 
     /**
      * Parameters of the 'Overlay.inspectNodeRequested' event.
@@ -17848,6 +18285,11 @@ export namespace Cdp {
        * The contrast algorithm to use for the contrast ratio (default: aa).
        */
       contrastAlgorithm?: ContrastAlgorithm;
+
+      /**
+       * The container query container highlight configuration (default: all transparent).
+       */
+      containerQueryContainerHighlightConfig?: ContainerQueryContainerHighlightConfig;
     }
 
     export type ColorFormat = 'rgb' | 'hsl' | 'hex';
@@ -17931,6 +18373,59 @@ export namespace Cdp {
        * The content box highlight outline color (default: transparent).
        */
       outlineColor?: DOM.RGBA;
+    }
+
+    export interface ContainerQueryHighlightConfig {
+      /**
+       * A descriptor for the highlight appearance of container query containers.
+       */
+      containerQueryContainerHighlightConfig: ContainerQueryContainerHighlightConfig;
+
+      /**
+       * Identifier of the container node to highlight.
+       */
+      nodeId: DOM.NodeId;
+    }
+
+    export interface ContainerQueryContainerHighlightConfig {
+      /**
+       * The style of the container border.
+       */
+      containerBorder?: LineStyle;
+
+      /**
+       * The style of the descendants' borders.
+       */
+      descendantBorder?: LineStyle;
+    }
+
+    export interface IsolatedElementHighlightConfig {
+      /**
+       * A descriptor for the highlight appearance of an element in isolation mode.
+       */
+      isolationModeHighlightConfig: IsolationModeHighlightConfig;
+
+      /**
+       * Identifier of the isolated element to highlight.
+       */
+      nodeId: DOM.NodeId;
+    }
+
+    export interface IsolationModeHighlightConfig {
+      /**
+       * The fill color of the resizers (default: transparent).
+       */
+      resizerColor?: DOM.RGBA;
+
+      /**
+       * The fill color for resizer handles (default: transparent).
+       */
+      resizerHandleColor?: DOM.RGBA;
+
+      /**
+       * The fill color for the mask covering non-isolated elements (default: transparent).
+       */
+      maskColor?: DOM.RGBA;
     }
 
     export type InspectMode =
@@ -18038,6 +18533,12 @@ export namespace Cdp {
     getManifestIcons(
       params: Page.GetManifestIconsParams,
     ): Promise<Page.GetManifestIconsResult | undefined>;
+
+    /**
+     * Returns the unique (PWA) app id.
+     * Only returns values if the feature flag 'WebAppEnableManifestId' is enabled
+     */
+    getAppId(params: Page.GetAppIdParams): Promise<Page.GetAppIdResult | undefined>;
 
     /**
      * Returns all browser cookies. Depending on the backend support, will return detailed cookie
@@ -18164,6 +18665,13 @@ export namespace Cdp {
     ): Promise<Page.GetPermissionsPolicyStateResult | undefined>;
 
     /**
+     * Get Origin Trials on given frame.
+     */
+    getOriginTrials(
+      params: Page.GetOriginTrialsParams,
+    ): Promise<Page.GetOriginTrialsResult | undefined>;
+
+    /**
      * Overrides the values of device screen dimensions (window.screen.width, window.screen.height,
      * window.innerWidth, window.innerHeight, and "device-width"/"device-height"-related CSS media
      * query results).
@@ -18271,20 +18779,9 @@ export namespace Cdp {
     ): Promise<Page.StopScreencastResult | undefined>;
 
     /**
-     * Forces compilation cache to be generated for every subresource script.
-     * See also: `Page.produceCompilationCache`.
-     */
-    setProduceCompilationCache(
-      params: Page.SetProduceCompilationCacheParams,
-    ): Promise<Page.SetProduceCompilationCacheResult | undefined>;
-
-    /**
      * Requests backend to produce compilation cache for the specified scripts.
-     * Unlike setProduceCompilationCache, this allows client to only produce cache
-     * for specific scripts. `scripts` are appeneded to the list of scripts
-     * for which the cache for would produced. Disabling compilation cache with
-     * `setProduceCompilationCache` would reset all pending cache requests.
-     * The list may also be reset during page navigation.
+     * `scripts` are appeneded to the list of scripts for which the cache
+     * would be produced. The list may be reset during page navigation.
      * When script with a matching URL is encountered, the cache is optionally
      * produced upon backend discretion, based on internal heuristics.
      * See also: `Page.compilationCacheProduced`.
@@ -18586,7 +19083,7 @@ export namespace Cdp {
       /**
        * Image compression format (defaults to png).
        */
-      format?: 'jpeg' | 'png';
+      format?: 'jpeg' | 'png' | 'webp';
 
       /**
        * Compression quality from range [0..100] (jpeg only).
@@ -18789,6 +19286,26 @@ export namespace Cdp {
      */
     export interface GetManifestIconsResult {
       primaryIcon?: string;
+    }
+
+    /**
+     * Parameters of the 'Page.getAppId' method.
+     */
+    export interface GetAppIdParams {}
+
+    /**
+     * Return value of the 'Page.getAppId' method.
+     */
+    export interface GetAppIdResult {
+      /**
+       * App id, either from manifest's id attribute or computed from start_url
+       */
+      appId?: string;
+
+      /**
+       * Recommendation for manifest's id attribute to match current id computed from start_url
+       */
+      recommendedId?: string;
     }
 
     /**
@@ -19281,6 +19798,20 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'Page.getOriginTrials' method.
+     */
+    export interface GetOriginTrialsParams {
+      frameId: FrameId;
+    }
+
+    /**
+     * Return value of the 'Page.getOriginTrials' method.
+     */
+    export interface GetOriginTrialsResult {
+      originTrials: OriginTrial[];
+    }
+
+    /**
      * Parameters of the 'Page.setDeviceMetricsOverride' method.
      */
     export interface SetDeviceMetricsOverrideParams {
@@ -19596,18 +20127,6 @@ export namespace Cdp {
      * Return value of the 'Page.stopScreencast' method.
      */
     export interface StopScreencastResult {}
-
-    /**
-     * Parameters of the 'Page.setProduceCompilationCache' method.
-     */
-    export interface SetProduceCompilationCacheParams {
-      enabled: boolean;
-    }
-
-    /**
-     * Return value of the 'Page.setProduceCompilationCache' method.
-     */
-    export interface SetProduceCompilationCacheResult {}
 
     /**
      * Parameters of the 'Page.produceCompilationCache' method.
@@ -19996,6 +20515,11 @@ export namespace Cdp {
        * The frame id of the associated frame.
        */
       frameId: FrameId;
+
+      /**
+       * Array of reasons why the page could not be cached. This must not be empty.
+       */
+      notRestoredExplanations: BackForwardCacheNotRestoredExplanation[];
     }
 
     /**
@@ -20097,6 +20621,17 @@ export namespace Cdp {
      */
     export type AdFrameType = 'none' | 'child' | 'root';
 
+    export type AdFrameExplanation = 'ParentIsAd' | 'CreatedByAdScript' | 'MatchedBlockingRule';
+
+    /**
+     * Indicates whether a frame has been identified as an ad and why.
+     */
+    export interface AdFrameStatus {
+      adFrameType: AdFrameType;
+
+      explanations?: AdFrameExplanation[];
+    }
+
     /**
      * Indicates whether the frame is a secure context and why it is the case.
      */
@@ -20122,32 +20657,36 @@ export namespace Cdp {
 
     /**
      * All Permissions Policy features. This enum should match the one defined
-     * in renderer/core/feature_policy/feature_policy_features.json5.
+     * in third_party/blink/renderer/core/permissions_policy/permissions_policy_features.json5.
      */
     export type PermissionsPolicyFeature =
       | 'accelerometer'
       | 'ambient-light-sensor'
+      | 'attribution-reporting'
       | 'autoplay'
       | 'camera'
       | 'ch-dpr'
       | 'ch-device-memory'
       | 'ch-downlink'
       | 'ch-ect'
-      | 'ch-lang'
+      | 'ch-prefers-color-scheme'
       | 'ch-rtt'
       | 'ch-ua'
       | 'ch-ua-arch'
+      | 'ch-ua-bitness'
       | 'ch-ua-platform'
       | 'ch-ua-model'
       | 'ch-ua-mobile'
       | 'ch-ua-full-version'
       | 'ch-ua-platform-version'
+      | 'ch-ua-reduced'
+      | 'ch-viewport-height'
       | 'ch-viewport-width'
       | 'ch-width'
       | 'clipboard-read'
       | 'clipboard-write'
-      | 'conversion-measurement'
       | 'cross-origin-isolated'
+      | 'direct-sockets'
       | 'display-capture'
       | 'document-domain'
       | 'encrypted-media'
@@ -20178,6 +20717,7 @@ export namespace Cdp {
       | 'usb'
       | 'vertical-scroll'
       | 'web-share'
+      | 'window-placement'
       | 'xr-spatial-tracking';
 
     /**
@@ -20200,6 +20740,69 @@ export namespace Cdp {
     }
 
     /**
+     * Origin Trial(https://www.chromium.org/blink/origin-trials) support.
+     * Status for an Origin Trial token.
+     */
+    export type OriginTrialTokenStatus =
+      | 'Success'
+      | 'NotSupported'
+      | 'Insecure'
+      | 'Expired'
+      | 'WrongOrigin'
+      | 'InvalidSignature'
+      | 'Malformed'
+      | 'WrongVersion'
+      | 'FeatureDisabled'
+      | 'TokenDisabled'
+      | 'FeatureDisabledForUser'
+      | 'UnknownTrial';
+
+    /**
+     * Status for an Origin Trial.
+     */
+    export type OriginTrialStatus =
+      | 'Enabled'
+      | 'ValidTokenNotProvided'
+      | 'OSNotSupported'
+      | 'TrialNotAllowed';
+
+    export type OriginTrialUsageRestriction = 'None' | 'Subset';
+
+    export interface OriginTrialToken {
+      origin: string;
+
+      matchSubDomains: boolean;
+
+      trialName: string;
+
+      expiryTime: Network.TimeSinceEpoch;
+
+      isThirdParty: boolean;
+
+      usageRestriction: OriginTrialUsageRestriction;
+    }
+
+    export interface OriginTrialTokenWithStatus {
+      rawTokenText: string;
+
+      /**
+       * `parsedToken` is present only when the token is extractable and
+       * parsable.
+       */
+      parsedToken?: OriginTrialToken;
+
+      status: OriginTrialTokenStatus;
+    }
+
+    export interface OriginTrial {
+      trialName: string;
+
+      status: OriginTrialStatus;
+
+      tokensWithStatus: OriginTrialTokenWithStatus[];
+    }
+
+    /**
      * Information about the Frame on the page.
      */
     export interface Frame {
@@ -20211,7 +20814,7 @@ export namespace Cdp {
       /**
        * Parent frame identifier.
        */
-      parentId?: string;
+      parentId?: FrameId;
 
       /**
        * Identifier of the loader associated with this frame.
@@ -20257,9 +20860,9 @@ export namespace Cdp {
       unreachableUrl?: string;
 
       /**
-       * Indicates whether this frame was tagged as an ad.
+       * Indicates whether this frame was tagged as an ad and why.
        */
-      adFrameType?: AdFrameType;
+      adFrameStatus?: AdFrameStatus;
 
       /**
        * Indicates whether the main document is a secure context and explains why that is the case.
@@ -20712,6 +21315,154 @@ export namespace Cdp {
      * The type of a frameNavigated event.
      */
     export type NavigationType = 'Navigation' | 'BackForwardCacheRestore';
+
+    /**
+     * List of not restored reasons for back-forward cache.
+     */
+    export type BackForwardCacheNotRestoredReason =
+      | 'NotMainFrame'
+      | 'BackForwardCacheDisabled'
+      | 'RelatedActiveContentsExist'
+      | 'HTTPStatusNotOK'
+      | 'SchemeNotHTTPOrHTTPS'
+      | 'Loading'
+      | 'WasGrantedMediaAccess'
+      | 'DisableForRenderFrameHostCalled'
+      | 'DomainNotAllowed'
+      | 'HTTPMethodNotGET'
+      | 'SubframeIsNavigating'
+      | 'Timeout'
+      | 'CacheLimit'
+      | 'JavaScriptExecution'
+      | 'RendererProcessKilled'
+      | 'RendererProcessCrashed'
+      | 'GrantedMediaStreamAccess'
+      | 'SchedulerTrackedFeatureUsed'
+      | 'ConflictingBrowsingInstance'
+      | 'CacheFlushed'
+      | 'ServiceWorkerVersionActivation'
+      | 'SessionRestored'
+      | 'ServiceWorkerPostMessage'
+      | 'EnteredBackForwardCacheBeforeServiceWorkerHostAdded'
+      | 'RenderFrameHostReused_SameSite'
+      | 'RenderFrameHostReused_CrossSite'
+      | 'ServiceWorkerClaim'
+      | 'IgnoreEventAndEvict'
+      | 'HaveInnerContents'
+      | 'TimeoutPuttingInCache'
+      | 'BackForwardCacheDisabledByLowMemory'
+      | 'BackForwardCacheDisabledByCommandLine'
+      | 'NetworkRequestDatapipeDrainedAsBytesConsumer'
+      | 'NetworkRequestRedirected'
+      | 'NetworkRequestTimeout'
+      | 'NetworkExceedsBufferLimit'
+      | 'NavigationCancelledWhileRestoring'
+      | 'NotMostRecentNavigationEntry'
+      | 'BackForwardCacheDisabledForPrerender'
+      | 'UserAgentOverrideDiffers'
+      | 'ForegroundCacheLimit'
+      | 'BrowsingInstanceNotSwapped'
+      | 'BackForwardCacheDisabledForDelegate'
+      | 'OptInUnloadHeaderNotPresent'
+      | 'UnloadHandlerExistsInMainFrame'
+      | 'UnloadHandlerExistsInSubFrame'
+      | 'ServiceWorkerUnregistration'
+      | 'CacheControlNoStore'
+      | 'CacheControlNoStoreCookieModified'
+      | 'CacheControlNoStoreHTTPOnlyCookieModified'
+      | 'NoResponseHead'
+      | 'Unknown'
+      | 'ActivationNavigationsDisallowedForBug1234857'
+      | 'WebSocket'
+      | 'WebTransport'
+      | 'WebRTC'
+      | 'MainResourceHasCacheControlNoStore'
+      | 'MainResourceHasCacheControlNoCache'
+      | 'SubresourceHasCacheControlNoStore'
+      | 'SubresourceHasCacheControlNoCache'
+      | 'ContainsPlugins'
+      | 'DocumentLoaded'
+      | 'DedicatedWorkerOrWorklet'
+      | 'OutstandingNetworkRequestOthers'
+      | 'OutstandingIndexedDBTransaction'
+      | 'RequestedNotificationsPermission'
+      | 'RequestedMIDIPermission'
+      | 'RequestedAudioCapturePermission'
+      | 'RequestedVideoCapturePermission'
+      | 'RequestedBackForwardCacheBlockedSensors'
+      | 'RequestedBackgroundWorkPermission'
+      | 'BroadcastChannel'
+      | 'IndexedDBConnection'
+      | 'WebXR'
+      | 'SharedWorker'
+      | 'WebLocks'
+      | 'WebHID'
+      | 'WebShare'
+      | 'RequestedStorageAccessGrant'
+      | 'WebNfc'
+      | 'OutstandingNetworkRequestFetch'
+      | 'OutstandingNetworkRequestXHR'
+      | 'AppBanner'
+      | 'Printing'
+      | 'WebDatabase'
+      | 'PictureInPicture'
+      | 'Portal'
+      | 'SpeechRecognizer'
+      | 'IdleManager'
+      | 'PaymentManager'
+      | 'SpeechSynthesis'
+      | 'KeyboardLock'
+      | 'WebOTPService'
+      | 'OutstandingNetworkRequestDirectSocket'
+      | 'InjectedJavascript'
+      | 'InjectedStyleSheet'
+      | 'Dummy'
+      | 'ContentSecurityHandler'
+      | 'ContentWebAuthenticationAPI'
+      | 'ContentFileChooser'
+      | 'ContentSerial'
+      | 'ContentFileSystemAccess'
+      | 'ContentMediaDevicesDispatcherHost'
+      | 'ContentWebBluetooth'
+      | 'ContentWebUSB'
+      | 'ContentMediaSession'
+      | 'ContentMediaSessionService'
+      | 'ContentMediaPlay'
+      | 'EmbedderPopupBlockerTabHelper'
+      | 'EmbedderSafeBrowsingTriggeredPopupBlocker'
+      | 'EmbedderSafeBrowsingThreatDetails'
+      | 'EmbedderAppBannerManager'
+      | 'EmbedderDomDistillerViewerSource'
+      | 'EmbedderDomDistillerSelfDeletingRequestDelegate'
+      | 'EmbedderOomInterventionTabHelper'
+      | 'EmbedderOfflinePage'
+      | 'EmbedderChromePasswordManagerClientBindCredentialManager'
+      | 'EmbedderPermissionRequestManager'
+      | 'EmbedderModalDialog'
+      | 'EmbedderExtensions'
+      | 'EmbedderExtensionMessaging'
+      | 'EmbedderExtensionMessagingForOpenPort'
+      | 'EmbedderExtensionSentMessageToCachedFrame';
+
+    /**
+     * Types of not restored reasons for back-forward cache.
+     */
+    export type BackForwardCacheNotRestoredReasonType =
+      | 'SupportPending'
+      | 'PageSupportNeeded'
+      | 'Circumstantial';
+
+    export interface BackForwardCacheNotRestoredExplanation {
+      /**
+       * Type of the reason
+       */
+      type: BackForwardCacheNotRestoredReasonType;
+
+      /**
+       * Not restored reason
+       */
+      reason: BackForwardCacheNotRestoredReason;
+    }
   }
 
   /**
@@ -21048,48 +21799,6 @@ export namespace Cdp {
       params: Profiler.TakeTypeProfileParams,
     ): Promise<Profiler.TakeTypeProfileResult | undefined>;
 
-    /**
-     * Enable counters collection.
-     */
-    enableCounters(
-      params: Profiler.EnableCountersParams,
-    ): Promise<Profiler.EnableCountersResult | undefined>;
-
-    /**
-     * Disable counters collection.
-     */
-    disableCounters(
-      params: Profiler.DisableCountersParams,
-    ): Promise<Profiler.DisableCountersResult | undefined>;
-
-    /**
-     * Retrieve counters.
-     */
-    getCounters(
-      params: Profiler.GetCountersParams,
-    ): Promise<Profiler.GetCountersResult | undefined>;
-
-    /**
-     * Enable run time call stats collection.
-     */
-    enableRuntimeCallStats(
-      params: Profiler.EnableRuntimeCallStatsParams,
-    ): Promise<Profiler.EnableRuntimeCallStatsResult | undefined>;
-
-    /**
-     * Disable run time call stats collection.
-     */
-    disableRuntimeCallStats(
-      params: Profiler.DisableRuntimeCallStatsParams,
-    ): Promise<Profiler.DisableRuntimeCallStatsResult | undefined>;
-
-    /**
-     * Retrieve run time call stats.
-     */
-    getRuntimeCallStats(
-      params: Profiler.GetRuntimeCallStatsParams,
-    ): Promise<Profiler.GetRuntimeCallStatsResult | undefined>;
-
     on(
       event: 'consoleProfileFinished',
       listener: (event: Profiler.ConsoleProfileFinishedEvent) => void,
@@ -21107,7 +21816,7 @@ export namespace Cdp {
      * Reports coverage delta since the last poll (either from an event like this, or from
      * `takePreciseCoverage` for the current isolate. May only be sent if precise code
      * coverage has been started. This event can be trigged by the embedder to, for example,
-     * trigger collection of coverage data immediatelly at a certain point in time.
+     * trigger collection of coverage data immediately at a certain point in time.
      */
     on(
       event: 'preciseCoverageDeltaUpdate',
@@ -21290,76 +21999,6 @@ export namespace Cdp {
     }
 
     /**
-     * Parameters of the 'Profiler.enableCounters' method.
-     */
-    export interface EnableCountersParams {}
-
-    /**
-     * Return value of the 'Profiler.enableCounters' method.
-     */
-    export interface EnableCountersResult {}
-
-    /**
-     * Parameters of the 'Profiler.disableCounters' method.
-     */
-    export interface DisableCountersParams {}
-
-    /**
-     * Return value of the 'Profiler.disableCounters' method.
-     */
-    export interface DisableCountersResult {}
-
-    /**
-     * Parameters of the 'Profiler.getCounters' method.
-     */
-    export interface GetCountersParams {}
-
-    /**
-     * Return value of the 'Profiler.getCounters' method.
-     */
-    export interface GetCountersResult {
-      /**
-       * Collected counters information.
-       */
-      result: CounterInfo[];
-    }
-
-    /**
-     * Parameters of the 'Profiler.enableRuntimeCallStats' method.
-     */
-    export interface EnableRuntimeCallStatsParams {}
-
-    /**
-     * Return value of the 'Profiler.enableRuntimeCallStats' method.
-     */
-    export interface EnableRuntimeCallStatsResult {}
-
-    /**
-     * Parameters of the 'Profiler.disableRuntimeCallStats' method.
-     */
-    export interface DisableRuntimeCallStatsParams {}
-
-    /**
-     * Return value of the 'Profiler.disableRuntimeCallStats' method.
-     */
-    export interface DisableRuntimeCallStatsResult {}
-
-    /**
-     * Parameters of the 'Profiler.getRuntimeCallStats' method.
-     */
-    export interface GetRuntimeCallStatsParams {}
-
-    /**
-     * Return value of the 'Profiler.getRuntimeCallStats' method.
-     */
-    export interface GetRuntimeCallStatsResult {
-      /**
-       * Collected runtime call counter information.
-       */
-      result: RuntimeCallCounterInfo[];
-    }
-
-    /**
      * Parameters of the 'Profiler.consoleProfileFinished' event.
      */
     export interface ConsoleProfileFinishedEvent {
@@ -21407,7 +22046,7 @@ export namespace Cdp {
       /**
        * Identifier for distinguishing coverage events.
        */
-      occassion: string;
+      occasion: string;
 
       /**
        * Coverage data for the current isolate.
@@ -21600,41 +22239,6 @@ export namespace Cdp {
        * Type profile entries for parameters and return values of the functions in the script.
        */
       entries: TypeProfileEntry[];
-    }
-
-    /**
-     * Collected counter information.
-     */
-    export interface CounterInfo {
-      /**
-       * Counter name.
-       */
-      name: string;
-
-      /**
-       * Counter value.
-       */
-      value: integer;
-    }
-
-    /**
-     * Runtime call counter information.
-     */
-    export interface RuntimeCallCounterInfo {
-      /**
-       * Counter name.
-       */
-      name: string;
-
-      /**
-       * Counter value.
-       */
-      value: number;
-
-      /**
-       * Counter time in seconds.
-       */
-      time: number;
     }
   }
 
@@ -21950,6 +22554,11 @@ export namespace Cdp {
        * specified and objectId is, objectGroup will be inherited from object.
        */
       objectGroup?: string;
+
+      /**
+       * Whether to throw an exception if side effect cannot be ruled out during evaluation.
+       */
+      throwOnSideEffect?: boolean;
     }
 
     /**
@@ -22126,9 +22735,9 @@ export namespace Cdp {
 
       /**
        * An alternative way to specify the execution context to evaluate in.
-       * Compared to contextId that may be reused accross processes, this is guaranteed to be
+       * Compared to contextId that may be reused across processes, this is guaranteed to be
        * system-unique, so it can be used to prevent accidental evaluation of the expression
-       * in context different than intended (e.g. as a result of navigation accross process
+       * in context different than intended (e.g. as a result of navigation across process
        * boundaries).
        * This is mutually exclusive with `contextId`.
        */
@@ -22210,6 +22819,11 @@ export namespace Cdp {
        * Whether preview should be generated for the results.
        */
       generatePreview?: boolean;
+
+      /**
+       * If true, returns non-indexed properties only.
+       */
+      nonIndexedPropertiesOnly?: boolean;
     }
 
     /**
@@ -22443,6 +23057,10 @@ export namespace Cdp {
        * execution context. If omitted and `executionContextName` is not set,
        * the binding is exposed to all execution contexts of the target.
        * This parameter is mutually exclusive with `executionContextName`.
+       * Deprecated in favor of `executionContextName` due to an unclear use case
+       * and bugs in implementation (crbug.com/1169639). `executionContextId` will be
+       * removed in the future.
+       * @deprecated
        */
       executionContextId?: ExecutionContextId;
 
@@ -22603,6 +23221,11 @@ export namespace Cdp {
       object: RemoteObject;
 
       hints: any;
+
+      /**
+       * Identifier of the context where the call was made.
+       */
+      executionContextId?: ExecutionContextId;
     }
 
     /**
@@ -22990,7 +23613,7 @@ export namespace Cdp {
       name: string;
 
       /**
-       * A system-unique execution context identifier. Unlike the id, this is unique accross
+       * A system-unique execution context identifier. Unlike the id, this is unique across
        * multiple processes, so can be reliably used to identify specific context while backend
        * performs a cross-process navigation.
        */
@@ -23051,6 +23674,13 @@ export namespace Cdp {
        * Identifier of the context where exception happened.
        */
       executionContextId?: ExecutionContextId;
+
+      /**
+       * Dictionary with entries of meta data that the client associated
+       * with this exception, such as information about associated network
+       * requests, etc.
+       */
+      exceptionMetaData?: any;
     }
 
     /**
@@ -24779,10 +25409,23 @@ export namespace Cdp {
      * Controls whether to automatically attach to new targets which are considered to be related to
      * this one. When turned on, attaches to all existing related targets as well. When turned off,
      * automatically detaches from all currently attached targets.
+     * This also clears all targets added by `autoAttachRelated` from the list of targets to watch
+     * for creation of related targets.
      */
     setAutoAttach(
       params: Target.SetAutoAttachParams,
     ): Promise<Target.SetAutoAttachResult | undefined>;
+
+    /**
+     * Adds the specified target to the list of targets that will be monitored for any related target
+     * creation (such as child frames, child workers and new versions of service worker) and reported
+     * through `attachedToTarget`. The specified target is also auto-attached.
+     * This cancels the effect of any previous `setAutoAttach` and is also cancelled by subsequent
+     * `setAutoAttach`. Only available at the Browser target.
+     */
+    autoAttachRelated(
+      params: Target.AutoAttachRelatedParams,
+    ): Promise<Target.AutoAttachRelatedResult | undefined>;
 
     /**
      * Controls whether to discover available targets and notify via
@@ -25153,6 +25796,24 @@ export namespace Cdp {
      * Return value of the 'Target.setAutoAttach' method.
      */
     export interface SetAutoAttachResult {}
+
+    /**
+     * Parameters of the 'Target.autoAttachRelated' method.
+     */
+    export interface AutoAttachRelatedParams {
+      targetId: TargetID;
+
+      /**
+       * Whether to pause new targets when attaching to them. Use `Runtime.runIfWaitingForDebugger`
+       * to run paused targets.
+       */
+      waitForDebuggerOnStart: boolean;
+    }
+
+    /**
+     * Return value of the 'Target.autoAttachRelated' method.
+     */
+    export interface AutoAttachRelatedResult {}
 
     /**
      * Parameters of the 'Target.setDiscoverTargets' method.

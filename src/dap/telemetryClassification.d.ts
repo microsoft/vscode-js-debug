@@ -88,6 +88,8 @@ interface IDAPOperationClassification {
   '!exceptioninfo.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   readmemory: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!readmemory.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  writememory: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!writememory.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   disassemble: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!disassemble.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   enablecustombreakpoints: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
