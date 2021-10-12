@@ -265,21 +265,11 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
    * @inheritdoc
    */
   public async restart(): Promise<void> {
-    const mainTarget = this.targetList().find(
-      t => t.type() === BrowserTargetType.Page,
-    ) as BrowserTarget;
-    if (!mainTarget) {
-      return;
+    for (const target of this.targetList()) {
+      if (target.type() === BrowserTargetType.Page) {
+        target.restart();
+      }
     }
-
-    const cdp = mainTarget.cdp();
-    if (this._launchParams?.url) {
-      await cdp.Page.navigate({ url: this._launchParams.url });
-    } else {
-      await cdp.Page.reload({});
-    }
-
-    cdp.Page.bringToFront({});
   }
 
   protected async findBrowserByExe(
