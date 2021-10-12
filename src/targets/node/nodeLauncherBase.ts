@@ -7,6 +7,7 @@ import { inject, injectable } from 'inversify';
 import * as net from 'net';
 import * as os from 'os';
 import * as path from 'path';
+import * as dotenv from 'dotenv';
 import { IPortLeaseTracker } from '../../adapter/portLeaseTracker';
 import { getSourceSuffix } from '../../adapter/templates';
 import Cdp from '../../cdp/api';
@@ -571,20 +572,7 @@ function readEnvFile(file: string): { [key: string]: string } {
   }
 
   const buffer = stripBOM(fs.readFileSync(file, 'utf8'));
-  const env: { [key: string]: string } = {};
-  for (const line of buffer.split('\n')) {
-    const r = line.match(/^\s*([\w\.\-]+)\s*=\s*(.*)?\s*$/);
-    if (!r) {
-      continue;
-    }
-
-    let value = r[2] || '';
-    // .env variables never overwrite existing variables (see #21169)
-    if (value.length > 0 && value.charAt(0) === '"' && value.charAt(value.length - 1) === '"') {
-      value = value.replace(/\\n/gm, '\n');
-    }
-    env[r[1]] = value.replace(/(^['"]|['"]$)/g, '');
-  }
+  const env = dotenv.parse(Buffer.from(buffer));
 
   return env;
 }
