@@ -2,7 +2,6 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { relative } from 'path';
 import { IDiagnosticDump, IDiagnosticSource } from '../adapter/diagnosics';
 import { DebugType } from '../common/contributionUtils';
 
@@ -56,6 +55,21 @@ export const properAbsolute = (testPath: string): boolean =>
 
 export const isAbsolutePosix = (path: string) => path.startsWith('/');
 export const isAbsoluteWin32 = (path: string) => /^[a-z]:/i.test(path);
+
+export const relative = (fromPath: string, toPath: string) => {
+  const parts = fromPath.split('/');
+  for (const segment of toPath.split('/')) {
+    if (segment === '..') {
+      parts.pop();
+    } else if (segment === '.') {
+      // no-op
+    } else {
+      parts.push(segment);
+    }
+  }
+
+  return parts.join('/');
+};
 
 export const properRelative = (fromPath: string, toPath: string): string => {
   if (isAbsolutePosix(fromPath)) {

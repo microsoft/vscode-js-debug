@@ -9,6 +9,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: allow webpacked path with special characters to map ([#1080](https://github.com/microsoft/vscode-js-debug/issues/1080))
 - fix: provide explicit warning if cwd is invalid ([ref](https://github.com/microsoft/vscode/issues/133310))
 - fix: don't change url when restarting the debug session ([#1103](https://github.com/microsoft/vscode-js-debug/issues/1103))
+- fix: breakpoint diagnostic tool not working
 
 ## v1.61 (September 2021)
 
