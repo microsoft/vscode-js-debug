@@ -23,6 +23,7 @@ const substrings = new Map([
   ['safari', DefaultBrowser.Safari],
   ['firefox', DefaultBrowser.Firefox],
   ['msedge', DefaultBrowser.Edge],
+  ['microsoft edge', DefaultBrowser.Edge],
   ['appxq0fevzme2pys62n3e0fbqa7peapykr8v', DefaultBrowser.OldEdge],
   ['ie.http', DefaultBrowser.IE],
 ]);
