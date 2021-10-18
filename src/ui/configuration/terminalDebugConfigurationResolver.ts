@@ -3,14 +3,14 @@
  *--------------------------------------------------------*/
 
 import * as vscode from 'vscode';
+import { Commands, DebugType, runCommand } from '../../common/contributionUtils';
 import {
-  ResolvedConfiguration,
-  terminalBaseDefaults,
+  applyTerminalDefaults,
   ITerminalLaunchConfiguration,
+  ResolvedConfiguration,
 } from '../../configuration';
 import { BaseConfigurationResolver } from './baseConfigurationResolver';
 import { guessWorkingDirectory } from './nodeDebugConfigurationResolver';
-import { DebugType, runCommand, Commands } from '../../common/contributionUtils';
 
 /**
  * Configuration provider for node debugging. In order to allow for a
@@ -40,7 +40,7 @@ export class TerminalDebugConfigurationResolver
       config.localRoot = '${workspaceFolder}';
     }
 
-    return { ...terminalBaseDefaults, ...config };
+    return applyTerminalDefaults(config) as ITerminalLaunchConfiguration;
   }
 
   protected getType() {

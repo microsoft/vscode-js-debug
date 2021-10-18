@@ -1008,6 +1008,10 @@ export function applyExtensionHostDefaults(
 export function applyTerminalDefaults(
   config: ResolvingTerminalConfiguration,
 ): AnyTerminalConfiguration {
+  if (!config.sourceMapPathOverrides && config.cwd) {
+    config.sourceMapPathOverrides = defaultSourceMapPathOverrides(config.cwd);
+  }
+
   return config.request === 'launch'
     ? { ...terminalBaseDefaults, ...config }
     : { ...delegateDefaults, ...config };

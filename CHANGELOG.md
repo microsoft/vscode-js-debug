@@ -11,6 +11,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: provide explicit warning if cwd is invalid ([ref](https://github.com/microsoft/vscode/issues/133310))
 - fix: don't change url when restarting the debug session ([#1103](https://github.com/microsoft/vscode-js-debug/issues/1103))
 - fix: breakpoint diagnostic tool not working
+- fix: use proper default resolution for sourceMapPathOverrides for node-terminal ([ref](https://github.com/microsoft/vscode/issues/114076))
 
 ## v1.61 (September 2021)
 
