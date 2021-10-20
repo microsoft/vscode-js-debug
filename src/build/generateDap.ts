@@ -78,7 +78,7 @@ async function generate() {
 
     if (prop.type === 'array') {
       const subtype = prop.items ? generateType(prop.items as JSONSchema4) : 'any';
-      return `${subtype}[]`;
+      return `(${subtype})[]`;
     }
 
     if (prop.oneOf) {

@@ -4318,7 +4318,7 @@ export namespace Dap {
     /**
      * Set of attributes represented as an array of strings. Before introducing additional values, try to use the listed values.
      */
-    attributes?:
+    attributes?: (
       | 'static'
       | 'constant'
       | 'readOnly'
@@ -4326,7 +4326,8 @@ export namespace Dap {
       | 'hasObjectId'
       | 'canHaveObjectId'
       | 'hasSideEffects'
-      | 'hasDataBreakpoint'[];
+      | 'hasDataBreakpoint'
+    )[];
 
     /**
      * Visibility of variable. Before introducing additional values, try to use the listed values.

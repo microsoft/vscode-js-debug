@@ -101,6 +101,41 @@ export interface IVariableStoreDelegate {
 
 type AnyPropertyDescriptor = Cdp.Runtime.PropertyDescriptor | Cdp.Runtime.PrivatePropertyDescriptor;
 
+const isCompletePropertyDescriptor = (
+  p: AnyPropertyDescriptor,
+): p is Cdp.Runtime.PropertyDescriptor => p.hasOwnProperty('configurable');
+
+const addPresentationHint = (v: Dap.Variable, p: Dap.VariablePresentationHint) => {
+  if (!v.presentationHint) {
+    v.presentationHint = p;
+    return;
+  }
+
+  const hint = v.presentationHint;
+  if (p.visibility) {
+    hint.visibility = p.visibility;
+  }
+
+  if (p.kind) {
+    hint.kind = p.kind;
+  }
+
+  if (p.attributes) {
+    hint.attributes = hint.attributes
+      ? hint.attributes.concat(p.attributes.filter(p => !hint.attributes?.includes(p)))
+      : p.attributes;
+  }
+};
+
+const scorePresentationHint = (v: Dap.Variable) =>
+  !v.presentationHint
+    ? 0
+    : v.presentationHint.visibility === 'private'
+    ? 1
+    : v.presentationHint.visibility === 'internal'
+    ? 2
+    : 0;
+
 export class VariableStore {
   private _cdp: Cdp.Api;
   private static _lastVariableReference = 0;
@@ -501,6 +536,9 @@ export class VariableStore {
     // Wrap up
     const resolved = flatten(await Promise.all(properties));
     resolved.sort((a, b) => {
+      const apres = scorePresentationHint(a.v);
+      const bpres = scorePresentationHint(b.v);
+      if (apres !== bpres) return apres - bpres;
       const aname = a.v.name.includes(' ') ? a.v.name.split(' ')[0] : a.v.name;
       const bname = b.v.name.includes(' ') ? b.v.name.split(' ')[0] : b.v.name;
       if (!isNaN(+aname) && !isNaN(+bname)) return +aname - +bname;
@@ -572,7 +610,8 @@ export class VariableStore {
     }
 
     // if it's a getter, auto expand as requested
-    if (p.get && p.get.type !== 'undefined') {
+    const hasGetter = p.get && p.get.type !== 'undefined';
+    if (hasGetter) {
       let value: Cdp.Runtime.RemoteObject | undefined;
       if (this.autoExpandGetters) {
         try {
@@ -589,17 +628,33 @@ export class VariableStore {
       if (value) {
         result.push(await this._createVariable(p.name, owner.wrap(p.name, value), 'propertyValue'));
       } else {
-        const obj = owner.wrap(p.name, p.get);
+        const obj = owner.wrap(p.name, p.get as Cdp.Runtime.RemoteObject);
         obj.evaluteOnInspect = true;
         result.push(this._createGetter(`${p.name} (get)`, obj, 'propertyValue'));
       }
     }
 
     // add setter if present
-    if (p.set && p.set.type !== 'undefined') {
+    const hasSetter = p.set && p.set.type !== 'undefined';
+    if (hasSetter) {
       result.push(
         await this._createVariable(`${p.name} (set)`, owner.wrap(p.name, p.set), 'propertyValue'),
       );
+    }
+
+    if (hasGetter && !hasSetter) {
+      result.forEach(r => addPresentationHint(r, { attributes: ['readOnly'] }));
+    }
+
+    if (isCompletePropertyDescriptor(p)) {
+      if (p.enumerable === false) {
+        result.forEach(r => addPresentationHint(r, { visibility: 'internal' }));
+      }
+      if (p.writable === false) {
+        result.forEach(r => addPresentationHint(r, { attributes: ['readOnly'] }));
+      }
+    } else {
+      result.forEach(r => addPresentationHint(r, { visibility: 'internal' }));
     }
 
     return result;

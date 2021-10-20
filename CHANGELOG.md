@@ -6,6 +6,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 - feat: allow multiline values in envFiles ([#1116](https://github.com/microsoft/vscode-js-debug/issues/1116))
 - feat: rewrite old `.scripts` command to new diagnostic tool
+- feat: sort non-enumerable properties to match Chrome devtools ([ref](https://github.com/microsoft/vscode/issues/73061))
 - fix: update path handling when debugging vscode webviews ([ref](https://github.com/microsoft/vscode/issues/133867))
 - fix: allow webpacked path with special characters to map ([#1080](https://github.com/microsoft/vscode-js-debug/issues/1080))
 - fix: provide explicit warning if cwd is invalid ([ref](https://github.com/microsoft/vscode/issues/133310))
