@@ -27,12 +27,7 @@ class VsCodeSessionLauncher implements ISessionLauncher<vscode.DebugSession> {
       {
         ...config,
         ...target.supplementalConfig,
-        // Preserve the `serverReadyAction` so children hook into it when echo'ing console
-        // (ref #362) but not if running in the integrated terminal (ref #814)
-        serverReadyAction:
-          parentSession.debugSession.configuration.console === 'integratedTerminal'
-            ? undefined
-            : parentSession.debugSession.configuration.serverReadyAction,
+        serverReadyAction: parentSession.debugSession.configuration.serverReadyAction,
         __parentId: parentSession.debugSession.id,
       } as vscode.DebugConfiguration,
       {
