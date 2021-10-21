@@ -12,8 +12,8 @@ undefined
     b[2]
     b[3]
     b["[[Prototype]]"]
-    b.length
     b.prop
+    b.length
     b["[[Prototype]]"]
   c
     c._b

@@ -2,6 +2,6 @@
     > 0: meta
     > 1: title
     > [[Prototype]]: Object
-    > foo: meta
     > length (get): ƒ length()
+    > foo: meta
     > [[Prototype]]: HTMLCollection
