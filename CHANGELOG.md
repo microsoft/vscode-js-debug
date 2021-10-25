@@ -13,6 +13,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: don't change url when restarting the debug session ([#1103](https://github.com/microsoft/vscode-js-debug/issues/1103))
 - fix: breakpoint diagnostic tool not working
 - fix: use proper default resolution for sourceMapPathOverrides for node-terminal ([ref](https://github.com/microsoft/vscode/issues/114076))
+- fix: private class fields not working in repl ([#1113](https://github.com/microsoft/vscode-js-debug/issues/1113))
 
 ## v1.61 (September 2021)
 
