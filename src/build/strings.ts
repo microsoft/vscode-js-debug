@@ -33,7 +33,7 @@ const strings = {
   'extensionHost.launch.debugWebWorkerHost':
     'Configures whether we should try to attach to the web worker extension host.',
   'extensionHost.launch.debugWebviews':
-    'Configures whether we should try to attach to webviews in the launched VS Code instance. **Note:** at the moment this requires the setting `"webview.experimental.useIframes": true` to work properly, and will only work in desktop VS Code.',
+    'Configures whether we should try to attach to webviews in the launched VS Code instance. This will only work in desktop VS Code.',
   'extensionHost.launch.stopOnEntry.description':
     'Automatically stop the extension host after launch.',
   'extensionHost.snippet.launch.description': 'Launch a VS Code extension in debug mode',
