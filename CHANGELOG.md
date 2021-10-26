@@ -4,6 +4,12 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly Only
 
+Nothing (yet)
+
+## v1.62 (October 2021)
+
+### v1.62.0 - 2021-10-26
+
 - feat: allow multiline values in envFiles ([#1116](https://github.com/microsoft/vscode-js-debug/issues/1116))
 - feat: rewrite old `.scripts` command to new diagnostic tool
 - feat: sort non-enumerable properties to match Chrome devtools ([ref](https://github.com/microsoft/vscode/issues/73061))
