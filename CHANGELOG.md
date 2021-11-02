@@ -4,7 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly Only
 
-Nothing (yet)
+- fix: lines offset when debugging web worker extensions ([ref](https://github.com/microsoft/vscode/issues/136242))
 
 ## v1.62 (October 2021)
 
