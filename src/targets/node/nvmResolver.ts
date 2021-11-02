@@ -2,15 +2,15 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import * as path from 'path';
 import * as fs from 'fs';
+import { promises as fsPromises } from 'fs';
+import { inject, injectable } from 'inversify';
+import * as os from 'os';
+import * as path from 'path';
+import { IFsUtils, LocalFsUtils } from '../../common/fsUtils';
+import { some } from '../../common/promiseUtil';
 import { nvmHomeNotFound, nvmNotFound, nvmVersionNotFound, nvsNotFound } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
-import { inject, injectable } from 'inversify';
-import { some } from '../../common/promiseUtil';
-import { LocalFsUtils } from '../../common/fsUtils';
-import { promises as fsPromises } from 'fs';
-import { IFsUtils } from '../../common/fsUtils';
 
 /**
  * Resolves the location of Node installation querying an nvm installation.
@@ -77,9 +77,12 @@ export class NvmResolver implements INvmResolver {
           directory = await this.resolveWindowsNvm(version);
           versionManagers.push('nvm-windows');
         }
-      } else if (this.env[Vars.UnixNvmHome]) {
-        directory = await this.resolveUnixNvm(version);
-        versionManagers.push('nvm');
+      } else {
+        const nvmDir = this.env[Vars.UnixNvmHome] || path.join(os.homedir(), '.nvm');
+        if (await this.fsUtils.exists(nvmDir)) {
+          directory = await this.resolveUnixNvm(version);
+          versionManagers.push('nvm');
+        }
       }
     }
 
