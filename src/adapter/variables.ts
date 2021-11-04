@@ -19,6 +19,9 @@ import { invokeGetter } from './templates/invokeGetter';
 
 const localize = nls.loadMessageBundle();
 
+const identifierRe = /^[$a-z_][0-9a-z_$]*$/;
+const privatePropertyRe = /^#[0-9a-z_$]+$/;
+
 class RemoteObject {
   /**
    * For functions, returns whether it should be evaluated when inspected.
@@ -64,7 +67,11 @@ class RemoteObject {
 
     // If the object property looks like a valid identifer, don't use the
     // bracket syntax -- it's ugly!
-    if (/^[$a-z_][0-9a-z_$]*$/i.test(this.name)) {
+    if (identifierRe.test(this.name)) {
+      return `${this.parent.accessor}.${this.name}`;
+    }
+
+    if (this.parent.accessor === 'this' && privatePropertyRe.test(this.name)) {
       return `${this.parent.accessor}.${this.name}`;
     }
 
