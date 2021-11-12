@@ -7,6 +7,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: use default NVM directory if NVM_DIR is not set ([ref](https://github.com/microsoft/vscode/issues/133521))
 - fix: lines offset when debugging web worker extensions ([ref](https://github.com/microsoft/vscode/issues/136242))
 - fix: "copy as expression" and "add to watch" for private fields ([ref](https://github.com/microsoft/vscode/issues/135944))
+- fix: `autoAttachChildProcesses` in extension host sometimes not working ([#1134](https://github.com/microsoft/vscode-js-debug/issues/1134))
 
 ## v1.62 (October 2021)
 

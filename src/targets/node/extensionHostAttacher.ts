@@ -7,6 +7,7 @@ import { getSourceSuffix } from '../../adapter/templates';
 import Cdp from '../../cdp/api';
 import { DebugType } from '../../common/contributionUtils';
 import { ILogger, LogTag } from '../../common/logging';
+import { delay } from '../../common/promiseUtil';
 import { Semver } from '../../common/semver';
 import {
   AnyLaunchConfiguration,
@@ -145,21 +146,27 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostAttach
       new NodeBinary('node', Semver.parse(process.versions.node)),
     );
 
-    const result = await cdp.Runtime.evaluate({
-      contextId: 1,
-      returnByValue: true,
-      expression:
-        `Object.assign(process.env, ${JSON.stringify(vars.defined())})` + getSourceSuffix(),
-    });
+    for (let retries = 0; retries < 5; retries++) {
+      const result = await cdp.Runtime.evaluate({
+        contextId: 1,
+        returnByValue: true,
+        expression:
+          `Object.assign(process.env, ${JSON.stringify(vars.defined())})` + getSourceSuffix(),
+      });
 
-    if (!result) {
-      this.logger.error(LogTag.RuntimeTarget, 'Undefined result setting child environment vars');
-    } else if (result.exceptionDetails) {
-      this.logger.error(
-        LogTag.RuntimeTarget,
-        'Error setting child environment vars',
-        result.exceptionDetails,
-      );
+      if (!result) {
+        this.logger.error(LogTag.RuntimeTarget, 'Undefined result setting child environment vars');
+      } else if (result.exceptionDetails) {
+        this.logger.error(
+          LogTag.RuntimeTarget,
+          'Error setting child environment vars',
+          result.exceptionDetails,
+        );
+      } else {
+        return;
+      }
+
+      await delay(50);
     }
   }
 }
