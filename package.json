@@ -162,7 +162,7 @@
     "vscode-debugprotocol": "^1.47.0",
     "vscode-nls-dev": "^3.3.2",
     "vscode-test": "^1.5.2",
-    "webpack": "^5.40.0",
+    "webpack": "^5.65.0",
     "webpack-bundle-analyzer": "^4.4.2"
   },
   "main": "./src/extension.js",
