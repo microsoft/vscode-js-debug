@@ -166,7 +166,12 @@
     "webpack-bundle-analyzer": "^4.4.2"
   },
   "main": "./src/extension.js",
-  "enableProposedApi": true,
+  "enabledApiProposals": [
+    "portsAttributes",
+    "findTextInFiles",
+    "workspaceTrust",
+    "resolvers"
+  ],
   "activationEvents": [
     "onDebugDynamicConfigurations",
     "onDebugInitialConfigurations",
