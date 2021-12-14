@@ -53,8 +53,12 @@ export class CodeSearchStrategy implements ISearchStrategy {
     outFiles: FileGlobList,
     onChild: (child: Required<ISourceMapMetadata>) => T | Promise<T>,
   ): Promise<T[]> {
-    const todo: Promise<T | void>[] = [];
+    // Fallback for unhandled case: https://github.com/microsoft/vscode/issues/104889#issuecomment-993722692
+    if (outFiles.patterns.some(p => p.startsWith('..'))) {
+      return this.nodeStrategy.streamChildrenWithSourcemaps(outFiles, onChild);
+    }
 
+    const todo: Promise<T | void>[] = [];
     await this.vscode.workspace.findTextInFiles(
       { pattern: 'sourceMappingURL', isCaseSensitive: true },
       {

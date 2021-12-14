@@ -13,7 +13,7 @@ import { DebugType } from '../../common/contributionUtils';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { findOpenPort } from '../../common/findOpenPort';
 import { existsInjected, IFsUtils, LocalFsUtils } from '../../common/fsUtils';
-import { forceForwardSlashes, isSubdirectoryOf } from '../../common/pathUtils';
+import { forceForwardSlashes } from '../../common/pathUtils';
 import { nearestDirectoryWhere } from '../../common/urlUtils';
 import {
   AnyNodeConfiguration,
@@ -203,17 +203,25 @@ export function guessWorkingDirectory(program?: string, folder?: vscode.Workspac
   return '${workspaceFolder}';
 }
 
-function getAbsoluteProgramLocation(folder: vscode.WorkspaceFolder | undefined, program: string) {
+function getAbsoluteLocation(folder: vscode.WorkspaceFolder | undefined, relpath: string) {
   if (folder) {
-    program = resolveVariableInConfig(program, 'workspaceFolder', folder.uri.fsPath);
+    relpath = resolveVariableInConfig(relpath, 'workspaceFolder', folder.uri.fsPath);
   }
 
-  if (path.isAbsolute(program)) {
-    return program;
+  if (vscode.workspace.workspaceFolders?.length) {
+    relpath = resolveVariableInConfig(
+      relpath,
+      'workspaceRoot',
+      vscode.workspace.workspaceFolders[0].uri.fsPath,
+    );
+  }
+
+  if (path.isAbsolute(relpath)) {
+    return relpath;
   }
 
   if (folder) {
-    return path.join(folder.uri.fsPath, program);
+    return path.join(folder.uri.fsPath, relpath);
   }
 
   return undefined;
@@ -230,27 +238,39 @@ async function guessOutFiles(
   folder: vscode.WorkspaceFolder | undefined,
   config: ResolvingNodeLaunchConfiguration,
 ) {
-  if (config.outFiles || !config.program || !folder) {
+  if (config.outFiles || !folder) {
     return;
   }
 
-  const programLocation = getAbsoluteProgramLocation(folder, config.program);
+  let programLocation: string | undefined;
+  if (config.program) {
+    programLocation = getAbsoluteLocation(folder, config.program);
+    if (programLocation) {
+      programLocation = path.dirname(programLocation);
+    }
+  } else if (config.cwd) {
+    programLocation = getAbsoluteLocation(folder, config.cwd);
+  }
+
   if (!programLocation) {
     return;
   }
 
   const root = await nearestDirectoryWhere(
-    path.dirname(programLocation),
+    programLocation,
     async p => !p.includes('node_modules') && (await fsUtils.exists(path.join(p, 'package.json'))),
   );
 
-  if (root && isSubdirectoryOf(folder.uri.fsPath, root)) {
+  if (root) {
     const rel = forceForwardSlashes(path.relative(folder.uri.fsPath, root));
-    config.outFiles = resolveVariableInConfig(
-      baseDefaults.outFiles,
-      'workspaceFolder',
-      `\${workspaceFolder}/${rel}`,
-    );
+    config.outFiles = [
+      ...resolveVariableInConfig(
+        baseDefaults.outFiles,
+        'workspaceFolder',
+        `\${workspaceFolder}/${rel}`,
+      ),
+      `!\${workspaceFolder}/${rel}/**/node_modules/**`,
+    ];
   }
 }
 
