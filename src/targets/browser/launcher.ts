@@ -9,7 +9,7 @@ import CdpConnection from '../../cdp/connection';
 import { WebSocketTransport } from '../../cdp/webSocketTransport';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { canAccess } from '../../common/fsUtils';
-import { ILogger } from '../../common/logging';
+import { ILogger, LogTag } from '../../common/logging';
 import { delay } from '../../common/promiseUtil';
 import Dap from '../../dap/api';
 import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
@@ -99,6 +99,8 @@ export async function launch(
     );
     browserProcess = new NonTrackedBrowserProcess(logger);
   } else {
+    logger.info(LogTag.RuntimeLaunch, `Launching Chrome from ${executablePath}`);
+
     const cp = childProcess.spawn(executablePath, browserArguments.toArray(), {
       detached: true,
       env: env.defined(),
