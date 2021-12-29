@@ -1001,7 +1001,7 @@ export function applyExtensionHostDefaults(
   config: ResolvingExtensionHostConfiguration,
 ): IExtensionHostLaunchConfiguration {
   const resolved = { ...extensionHostConfigDefaults, ...config };
-  resolved.skipFiles = [...resolved.skipFiles, '**/node_modules.asar/**'];
+  resolved.skipFiles = [...resolved.skipFiles, '**/node_modules.asar/**', '**/bootstrap-fork.js'];
   return resolved;
 }
 
