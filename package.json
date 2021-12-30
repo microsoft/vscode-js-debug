@@ -72,7 +72,7 @@
     "source-map": "0.8.0-beta.0",
     "source-map-support": "^0.5.19",
     "split2": "^3.2.2",
-    "vscode-js-debug-browsers": "^1.0.4",
+    "vscode-js-debug-browsers": "^1.0.5",
     "vscode-nls": "^5.0.0",
     "vscode-tas-client": "^0.1.22",
     "ws": "^7.5.0"
