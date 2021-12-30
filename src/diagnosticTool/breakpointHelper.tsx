@@ -168,7 +168,9 @@ const Breakpoint: FunctionComponent<{ bp: IDiagnosticBreakpoint }> = ({ bp }) =>
 const FailedToSetLocation: FunctionComponent<{ bp: IDiagnosticBreakpoint }> = ({ bp }) => {
   const dump = useDump();
   const desiredBasename = basename({ url: bp.source.path as string });
-  const matchingSources = dump.sources.filter(src => basename(src) === desiredBasename);
+  const matchingSources = dump.sources.filter(
+    src => basename(src).toLowerCase() === desiredBasename.toLowerCase(),
+  );
 
   if (!matchingSources.length) {
     return (
