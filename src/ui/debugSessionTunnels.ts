@@ -45,15 +45,15 @@ export class DebugSessionTunnels implements IDisposable {
     sessionId: string,
     opts: {
       label: string;
-      localPort: number;
-      remotePort?: number;
+      localPort?: number;
+      remotePort: number;
     },
   ) {
     let tunnel = this.tunnels.get(sessionId);
     if (!tunnel) {
       tunnel = await vscode.workspace.openTunnel({
-        remoteAddress: { port: opts.remotePort ?? opts.localPort, host: 'localhost' },
-        localAddressPort: opts.localPort,
+        remoteAddress: { port: opts.remotePort, host: 'localhost' },
+        localAddressPort: opts.localPort ?? opts.remotePort,
         label: opts.label,
       });
     }
