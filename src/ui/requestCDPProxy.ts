@@ -30,12 +30,12 @@ export const registerRequestCDPProxy = (
       try {
         const tunneled = await tunnels.request(sessionId, {
           label: 'Edge Devtools Tunnel',
-          localPort: proxied.port,
+          remotePort: proxied.port,
         });
 
         return {
-          host: tunneled.remoteAddress.host,
-          port: tunneled.remoteAddress.port,
+          host: tunneled.localAddress.host,
+          port: tunneled.localAddress.port,
           path: proxied.path,
         };
       } catch {

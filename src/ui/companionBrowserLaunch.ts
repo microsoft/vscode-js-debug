@@ -68,14 +68,14 @@ const launchCompanionBrowser = async (
       tunnelRemoteServerIfNecessary(args),
       sessionTunnels
         .request(session.id, {
-          localPort: args.serverPort,
+          remotePort: args.serverPort,
           label: 'Browser Debug Tunnel',
         })
         .catch(() => undefined),
     ]);
 
     await vscode.commands.executeCommand('js-debug-companion.launchAndAttach', {
-      proxyUri: tunnel ? `127.0.0.1:${tunnel.remoteAddress.port}` : `127.0.0.1:${args.serverPort}`,
+      proxyUri: tunnel ? `127.0.0.1:${tunnel.localAddress.port}` : `127.0.0.1:${args.serverPort}`,
       ...args,
     });
   } catch (e) {
