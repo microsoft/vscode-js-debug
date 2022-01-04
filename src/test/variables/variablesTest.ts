@@ -2,6 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { expect } from 'chai';
 import Dap from '../../dap/api';
 import { Logger, walkVariables } from '../logger';
 import { itIntegrates } from '../testIntegrationUtils';
@@ -395,5 +396,88 @@ describe('variables', () => {
 
       p.assertLog();
     });
+  });
+
+  itIntegrates('readMemory/writeMemory', async ({ r }) => {
+    const p = await r.launchAndLoad('blank');
+    p.cdp.Runtime.evaluate({
+      expression: `
+        (function foo() {
+          let $memA = new WebAssembly.Memory({ initial: 1, maximum: 1 });
+          let $memB = $memA.buffer.slice(0, 12);
+          let $memC = new Uint8Array($memB);
+          let $memD = new DataView($memB);
+
+          for (let i = 0; i < $memC.length; i++) {
+            $memC[i] = i;
+          }
+
+          debugger;
+          console.log($memA, $memB, $memC, $memD);
+        })()
+      `,
+    });
+
+    const paused = await p.dap.once('stopped');
+    const stack = await p.dap.stackTrace({ threadId: paused.threadId! });
+
+    const scopes = await p.dap.scopes({ frameId: stack.stackFrames[0].id });
+    const scope = scopes.scopes[0];
+    const v: Dap.Variable = {
+      name: 'scope',
+      value: scope.name,
+      variablesReference: scope.variablesReference,
+      namedVariables: scope.namedVariables,
+      indexedVariables: scope.indexedVariables,
+    };
+
+    let memB: Dap.Variable;
+
+    await walkVariables(p.dap, v, async (variable, depth) => {
+      if (!variable.name.startsWith('$mem')) {
+        return depth < 2;
+      }
+
+      if (variable.name === '$memB') {
+        memB = variable;
+      }
+
+      expect(variable).to.have.property('memoryReference');
+
+      const memory1 = await p.dap.readMemory({
+        count: 20,
+        memoryReference: variable.memoryReference!,
+        offset: 0,
+      });
+
+      p.log(memory1, `${variable.name} [0, 20]`);
+
+      const memory2 = await p.dap.readMemory({
+        count: 10,
+        memoryReference: variable.memoryReference!,
+        offset: 5,
+      });
+
+      p.log(memory2, `${variable.name} [5, 10]`);
+
+      return false;
+    });
+
+    const written = await p.dap.writeMemory({
+      memoryReference: memB!.memoryReference!,
+      data: Buffer.from('hello').toString('base64'),
+      offset: 1,
+    });
+
+    p.log(written, 'write');
+
+    const memory3 = await p.dap.readMemory({
+      count: 10,
+      memoryReference: memB!.memoryReference!,
+    });
+
+    p.log(memory3, 'write outcome');
+
+    p.assertLog();
   });
 });

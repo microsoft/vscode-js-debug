@@ -16,11 +16,21 @@ import { getSourceSuffix, RemoteException } from './templates';
 import { getArrayProperties } from './templates/getArrayProperties';
 import { getArraySlots } from './templates/getArraySlots';
 import { invokeGetter } from './templates/invokeGetter';
+import { readMemory } from './templates/readMemory';
+import { writeMemory } from './templates/writeMemory';
 
 const localize = nls.loadMessageBundle();
 
 const identifierRe = /^[$a-z_][0-9a-z_$]*$/;
 const privatePropertyRe = /^#[0-9a-z_$]+$/;
+
+// Types that allow readMemory and writeMemory
+const memoryReadableTypes: ReadonlySet<Cdp.Runtime.RemoteObject['subtype']> = new Set([
+  'typedarray',
+  'dataview',
+  'arraybuffer',
+  'webassemblymemory',
+]);
 
 class RemoteObject {
   /**
@@ -384,6 +394,46 @@ export class VariableStore {
     return resultReference;
   }
 
+  public async readMemory(
+    variablesReference: number,
+    offset: number,
+    count: number,
+  ): Promise<Buffer | undefined> {
+    const variable = this._referenceToObject.get(variablesReference);
+    if (!variable) {
+      return undefined;
+    }
+
+    const result = await readMemory({
+      cdp: variable.cdp,
+      args: [offset, count],
+      objectId: variable.objectId,
+      returnByValue: true,
+    });
+
+    return Buffer.from(result.value, 'hex');
+  }
+
+  public async writeMemory(
+    variablesReference: number,
+    offset: number,
+    memory: Buffer,
+  ): Promise<number> {
+    const variable = this._referenceToObject.get(variablesReference);
+    if (!variable) {
+      return 0;
+    }
+
+    const result = await writeMemory({
+      cdp: variable.cdp,
+      args: [offset, memory.toString('hex')],
+      objectId: variable.objectId,
+      returnByValue: true,
+    });
+
+    return result.value;
+  }
+
   private async _createVariableForOutputParams(
     args: ReadonlyArray<Cdp.Runtime.RemoteObject>,
     stackTrace?: StackTrace,
@@ -735,6 +785,9 @@ export class VariableStore {
     return {
       name,
       value: await this._generateVariableValueDescription(name, value, object, context),
+      memoryReference: memoryReadableTypes.has(object.subtype)
+        ? String(variablesReference)
+        : undefined,
       evaluateName: value.accessor,
       type: object.subtype || object.type,
       variablesReference,
@@ -833,6 +886,9 @@ export class VariableStore {
       value: await this._generateVariableValueDescription(name, value, object, context),
       type: object.className || object.subtype || object.type,
       variablesReference,
+      memoryReference: memoryReadableTypes.has(object.subtype)
+        ? String(variablesReference)
+        : undefined,
       evaluateName: value.accessor,
       indexedVariables: arrayLength > 100 ? arrayLength : undefined,
       namedVariables: arrayLength > 100 ? 1 : undefined, // do not count properties proactively

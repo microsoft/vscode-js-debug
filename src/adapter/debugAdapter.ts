@@ -84,6 +84,8 @@ export class DebugAdapter implements IDisposable {
     this.dap.on('threads', () => this._onThreads());
     this.dap.on('stackTrace', params => this._withThread(thread => thread.stackTrace(params)));
     this.dap.on('variables', params => this._onVariables(params));
+    this.dap.on('readMemory', params => this._onReadMemory(params));
+    this.dap.on('writeMemory', params => this._onWriteMemory(params));
     this.dap.on('setVariable', params => this._onSetVariable(params));
     this.dap.on('setExpression', params => this._onSetExpression(params));
     this.dap.on('continue', () => this._withThread(thread => thread.resume()));
@@ -136,6 +138,8 @@ export class DebugAdapter implements IDisposable {
       supportsConditionalBreakpoints: true,
       supportsHitConditionalBreakpoints: true,
       supportsEvaluateForHovers: true,
+      supportsReadMemoryRequest: true,
+      supportsWriteMemoryRequest: true,
       exceptionBreakpointFilters: [
         {
           filter: PauseOnExceptionsState.All,
@@ -185,7 +189,6 @@ export class DebugAdapter implements IDisposable {
       supportsClipboardContext: true,
       supportsExceptionFilterOptions: true,
       //supportsDataBreakpoints: false,
-      //supportsReadMemoryRequest: false,
       //supportsDisassembleRequest: false,
     };
   }
@@ -278,6 +281,34 @@ export class DebugAdapter implements IDisposable {
     const variableStore = this._findVariableStore(params.variablesReference);
     if (!variableStore) return { variables: [] };
     return { variables: await variableStore.getVariables(params) };
+  }
+
+  async _onReadMemory(params: Dap.ReadMemoryParams): Promise<Dap.ReadMemoryResult> {
+    const reference = Number(params.memoryReference);
+    const memory = await this._findVariableStore(reference)?.readMemory(
+      reference,
+      params.offset ?? 0,
+      params.count,
+    );
+    if (!memory) {
+      return { address: '0', unreadableBytes: params.count };
+    }
+
+    return {
+      address: '0',
+      data: memory.toString('base64'),
+      unreadableBytes: params.count - memory.length,
+    };
+  }
+
+  async _onWriteMemory(params: Dap.WriteMemoryParams): Promise<Dap.WriteMemoryResult> {
+    const reference = Number(params.memoryReference);
+    const bytesWritten = await this._findVariableStore(reference)?.writeMemory(
+      reference,
+      params.offset ?? 0,
+      Buffer.from(params.data, 'base64'),
+    );
+    return { bytesWritten };
   }
 
   async _onSetExpression(params: Dap.SetExpressionParams): Promise<Dap.SetExpressionResult> {
