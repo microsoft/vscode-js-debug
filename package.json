@@ -48,7 +48,7 @@
     "test:lint": "gulp lint"
   },
   "dependencies": {
-    "@c4312/chromehash": "^0.2.1",
+    "@c4312/chromehash": "^0.2.2",
     "acorn": "^8.4.0",
     "acorn-loose": "^8.1.0",
     "astring": "^1.7.5",
