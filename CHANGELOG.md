@@ -6,6 +6,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 - feat: support debugging Edge on Linux ([ref](https://github.com/microsoft/vscode/issues/138495))
 - feat: support readMemory/writeMemory requests ([#1167](https://github.com/microsoft/vscode/issues/1167))
+- feat: copy binary types better ([#1168](https://github.com/microsoft/vscode-js-debug/issues/1168))
 - fix: use default NVM directory if NVM_DIR is not set ([ref](https://github.com/microsoft/vscode/issues/133521))
 - fix: lines offset when debugging web worker extensions ([ref](https://github.com/microsoft/vscode/issues/136242))
 - fix: "copy as expression" and "add to watch" for private fields ([ref](https://github.com/microsoft/vscode/issues/135944))

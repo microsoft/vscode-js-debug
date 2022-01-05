@@ -17,6 +17,20 @@ export const serializeForClipboardTmpl = templateFunction(function (
 ) {
   const indent = ' '.repeat(spaces);
   const eol = '\n';
+
+  function getTypedArrayContructor(value: unknown): TypedArrayConstructor | undefined {
+    if (value instanceof Uint8Array) return Uint8Array;
+    if (value instanceof Uint8ClampedArray) return Uint8ClampedArray;
+    if (value instanceof Uint16Array) return Uint16Array;
+    if (value instanceof Uint32Array) return Uint32Array;
+    if (value instanceof BigUint64Array) return BigUint64Array;
+    if (value instanceof Int8Array) return Int8Array;
+    if (value instanceof Int32Array) return Int32Array;
+    if (value instanceof BigInt64Array) return BigInt64Array;
+    if (value instanceof Float32Array) return Float32Array;
+    if (value instanceof Float64Array) return Float64Array;
+  }
+
   function serializeToJavaScriptyString(value: unknown, level = 0, seen: unknown[] = []): string {
     switch (typeof value) {
       case 'bigint':
@@ -66,6 +80,15 @@ export const serializeForClipboardTmpl = templateFunction(function (
 
         if (typeof Node !== 'undefined' && valueToStringify instanceof Node) {
           return valueToStringify.outerHTML;
+        }
+
+        const typedCtor = getTypedArrayContructor(value);
+        if (typedCtor) {
+          return `new ${typedCtor.name}([${(value as TypedArray).join(', ')}])`;
+        }
+
+        if (value instanceof ArrayBuffer) {
+          return `new Uint8Array([${new Uint8Array(value).join(', ')}]).buffer`;
         }
 
         if (value instanceof Array) {

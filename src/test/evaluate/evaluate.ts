@@ -197,6 +197,9 @@ describe('evaluate', () => {
   foo: true,
   recurse: [Circular],
 }`,
+    'new Uint8Array([1, 2, 3])': 'new Uint8Array([1, 2, 3])',
+    'new Uint8Array([1, 2, 3]).buffer': 'new Uint8Array([1, 2, 3]).buffer',
+    'new Float32Array([1.5, 2.5, 3.5])': 'new Float32Array([1.5, 2.5, 3.5])',
     '1n << 100n': '1267650600228229401496703205376n',
     '(() => { const node = document.createElement("div"); node.innerText = "hi"; return node })()': `<div>hi</div>`,
   };

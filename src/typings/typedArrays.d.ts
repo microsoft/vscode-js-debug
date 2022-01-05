@@ -9,3 +9,8 @@ type TypedArray =
   | BigInt64Array
   | Float32Array
   | Float64Array;
+
+interface TypedArrayConstructor {
+  new(): TypedArray;
+  new(values: ArrayBuffer): TypedArray;
+}
