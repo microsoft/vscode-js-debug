@@ -268,25 +268,32 @@ export class DebugAdapter implements IDisposable {
     return { threads };
   }
 
-  _findVariableStore(variablesReference: number): VariableStore | undefined {
-    if (!this._thread) return;
+  private findVariableStore(fn: (store: VariableStore) => boolean) {
+    if (!this._thread) {
+      return undefined;
+    }
 
     const pausedVariables = this._thread.pausedVariables();
-    if (pausedVariables?.hasVariables(variablesReference)) return pausedVariables;
-    if (this._thread.replVariables.hasVariables(variablesReference))
+    if (pausedVariables && fn(pausedVariables)) {
+      return pausedVariables;
+    }
+
+    if (fn(this._thread.replVariables)) {
       return this._thread.replVariables;
+    }
+
+    return undefined;
   }
 
   async _onVariables(params: Dap.VariablesParams): Promise<Dap.VariablesResult> {
-    const variableStore = this._findVariableStore(params.variablesReference);
-    if (!variableStore) return { variables: [] };
-    return { variables: await variableStore.getVariables(params) };
+    const variableStore = this.findVariableStore(v => v.hasVariables(params.variablesReference));
+    return { variables: (await variableStore?.getVariables(params)) ?? [] };
   }
 
   async _onReadMemory(params: Dap.ReadMemoryParams): Promise<Dap.ReadMemoryResult> {
-    const reference = Number(params.memoryReference);
-    const memory = await this._findVariableStore(reference)?.readMemory(
-      reference,
+    const ref = params.memoryReference;
+    const memory = await this.findVariableStore(v => v.hasMemory(ref))?.readMemory(
+      ref,
       params.offset ?? 0,
       params.count,
     );
@@ -302,9 +309,9 @@ export class DebugAdapter implements IDisposable {
   }
 
   async _onWriteMemory(params: Dap.WriteMemoryParams): Promise<Dap.WriteMemoryResult> {
-    const reference = Number(params.memoryReference);
-    const bytesWritten = await this._findVariableStore(reference)?.writeMemory(
-      reference,
+    const ref = params.memoryReference;
+    const bytesWritten = await this.findVariableStore(v => v.hasMemory(ref))?.writeMemory(
+      ref,
       params.offset ?? 0,
       Buffer.from(params.data, 'base64'),
     );
@@ -326,7 +333,7 @@ export class DebugAdapter implements IDisposable {
   }
 
   async _onSetVariable(params: Dap.SetVariableParams): Promise<Dap.SetVariableResult | Dap.Error> {
-    const variableStore = this._findVariableStore(params.variablesReference);
+    const variableStore = this.findVariableStore(v => v.hasVariables(params.variablesReference));
     if (!variableStore)
       return errors.createSilentError(localize('error.variableNotFound', 'Variable not found'));
     params.value = sourceUtils.wrapObjectLiteral(params.value.trim());

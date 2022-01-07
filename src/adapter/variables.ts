@@ -5,6 +5,7 @@
 import { generate } from 'astring';
 import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
+import { MultiMap } from '../common/datastructure/multimap';
 import { flatten } from '../common/objUtils';
 import { parseSource, statementsToFunction } from '../common/sourceCodeManipulations';
 import { IRenameProvider } from '../common/sourceMaps/renameProvider';
@@ -50,10 +51,20 @@ class RemoteObject {
   // So, we cache variables here and update locally.
   scopeVariables?: Dap.Variable[];
 
+  /**
+   * Returns the memory reference, if this data type can be inspeted. It's
+   * pinned to the accessor (aka `evaluateName`) since objectIds are not stable
+   * between stackframes, or even multiple reads of the same stackframe.
+   */
+  public get memoryReference() {
+    return memoryReadableTypes.has(this.o.subtype) ? this.accessor : undefined;
+  }
+
   constructor(
     public readonly name: string | number,
     cdp: Cdp.Api,
     object: Cdp.Runtime.RemoteObject,
+    public readonly variablesReference: number,
     public readonly parent?: RemoteObject,
     public renamedFromSource?: string,
   ) {
@@ -86,18 +97,6 @@ class RemoteObject {
     }
 
     return `${this.parent.accessor}[${JSON.stringify(this.name)}]`;
-  }
-
-  public wrap(property: string | number, object: Cdp.Runtime.RemoteObject): RemoteObject;
-  public wrap(
-    property: string | number,
-    object?: Cdp.Runtime.RemoteObject,
-  ): RemoteObject | undefined;
-  public wrap(
-    property: string | number,
-    object?: Cdp.Runtime.RemoteObject,
-  ): RemoteObject | undefined {
-    return object ? new RemoteObject(property, this.cdp, object, this) : undefined;
   }
 }
 
@@ -154,15 +153,32 @@ const scorePresentationHint = (v: Dap.Variable) =>
     : 0;
 
 export class VariableStore {
+  private static _lastVariableReference = 1;
+
+  public static nextVariableReference() {
+    return VariableStore._lastVariableReference++ & 0x7fffffff;
+  }
+
   private _cdp: Cdp.Api;
-  private static _lastVariableReference = 0;
   private _referenceToVariables: Map<number, () => Promise<Dap.Variable[]>> = new Map();
-  private _objectToReference: Map<Cdp.Runtime.RemoteObjectId, number> = new Map();
-  private _referenceToObject: Map<number, RemoteObject> = new Map();
+  private _remoteObjects = new MultiMap<
+    RemoteObject,
+    {
+      objectId: Cdp.Runtime.RemoteObjectId;
+      variableReference: number;
+      evaluateName: string;
+    }
+  >({
+    objectId: o => o.objectId,
+    variableReference: o => o.variablesReference,
+    evaluateName: o => o.accessor,
+  });
+
   private _delegate: IVariableStoreDelegate;
 
   constructor(
     cdp: Cdp.Api,
+    private readonly dap: Dap.Api,
     delegate: IVariableStoreDelegate,
     private readonly renameProvider: IRenameProvider,
     private readonly autoExpandGetters: boolean,
@@ -176,6 +192,7 @@ export class VariableStore {
   createDetached() {
     return new VariableStore(
       this._cdp,
+      this.dap,
       this._delegate,
       this.renameProvider,
       this.autoExpandGetters,
@@ -187,15 +204,19 @@ export class VariableStore {
   hasVariables(variablesReference: number): boolean {
     return (
       this._referenceToVariables.has(variablesReference) ||
-      this._referenceToObject.has(variablesReference)
+      this._remoteObjects.has('variableReference', variablesReference)
     );
+  }
+
+  hasMemory(memoryReference: string): boolean {
+    return this._remoteObjects.has('evaluateName', memoryReference);
   }
 
   async getVariables(params: Dap.VariablesParams): Promise<Dap.Variable[]> {
     const result = this._referenceToVariables.get(params.variablesReference);
     if (result) return await result();
 
-    const object = this._referenceToObject.get(params.variablesReference);
+    const object = this._remoteObjects.get('variableReference', params.variablesReference);
     if (!object) {
       return [];
     }
@@ -212,7 +233,13 @@ export class VariableStore {
           args: [object.name],
         });
 
-        return [await this._createVariable('', object.parent.wrap(object.name, result), 'repl')];
+        return [
+          await this._createVariable(
+            '',
+            this.createRemoteObject(object.name, result, object.parent),
+            'repl',
+          ),
+        ];
       } catch (e) {
         if (!(e instanceof RemoteException)) {
           throw e;
@@ -242,7 +269,7 @@ export class VariableStore {
           variables.push(
             await this._createVariable(
               extraProperty.name,
-              object.wrap(extraProperty.name, extraProperty.value),
+              this.createRemoteObject(extraProperty.name, extraProperty.value, object),
               'propertyValue',
             ),
           );
@@ -252,7 +279,7 @@ export class VariableStore {
   }
 
   async setVariable(params: Dap.SetVariableParams): Promise<Dap.SetVariableResult | Dap.Error> {
-    const object = this._referenceToObject.get(params.variablesReference);
+    const object = this._remoteObjects.get('variableReference', params.variablesReference);
     if (!object)
       return errors.createSilentError(localize('error.variableNotFound', 'Variable not found'));
 
@@ -324,7 +351,7 @@ export class VariableStore {
 
     const variable = await this._createVariable(
       params.name,
-      new RemoteObject(params.name, object.cdp, evaluateResponse.result),
+      this.createRemoteObject(params.name, evaluateResponse.result),
     );
     const result = {
       value: variable.value,
@@ -344,11 +371,11 @@ export class VariableStore {
     value: Cdp.Runtime.RemoteObject,
     watchExpr: string,
   ): Promise<Dap.Variable> {
-    return this._createVariable('', new RemoteObject(`(${watchExpr})`, this._cdp, value), 'watch');
+    return this._createVariable('', this.createRemoteObject(`(${watchExpr})`, value), 'watch');
   }
 
   async createVariable(value: Cdp.Runtime.RemoteObject, context?: string): Promise<Dap.Variable> {
-    return this._createVariable('', new RemoteObject('', this._cdp, value), context);
+    return this._createVariable('', this.createRemoteObject('', value), context);
   }
 
   async createScope(
@@ -356,7 +383,7 @@ export class VariableStore {
     scopeRef: IScopeRef,
     extraProperties: IExtraProperty[],
   ): Promise<Dap.Variable> {
-    const object = new RemoteObject('', this._cdp, value);
+    const object = this.createRemoteObject('', value);
     object.scopeRef = scopeRef;
     object.extraProperties = extraProperties;
     return this._createVariable('', object);
@@ -372,7 +399,7 @@ export class VariableStore {
   ): Promise<number> {
     let rootObjectVariable: Dap.Variable;
     if (args.length === 1 && objectPreview.previewAsObject(args[0]) && !stackTrace) {
-      rootObjectVariable = await this._createVariable('', new RemoteObject('', this._cdp, args[0]));
+      rootObjectVariable = await this._createVariable('', this.createRemoteObject('', args[0]));
       rootObjectVariable.value = text;
     } else {
       const rootObjectReference =
@@ -395,11 +422,11 @@ export class VariableStore {
   }
 
   public async readMemory(
-    variablesReference: number,
+    memoryReference: string,
     offset: number,
     count: number,
   ): Promise<Buffer | undefined> {
-    const variable = this._referenceToObject.get(variablesReference);
+    const variable = this._remoteObjects.get('evaluateName', memoryReference);
     if (!variable) {
       return undefined;
     }
@@ -415,11 +442,11 @@ export class VariableStore {
   }
 
   public async writeMemory(
-    variablesReference: number,
+    memoryReference: string,
     offset: number,
     memory: Buffer,
   ): Promise<number> {
-    const variable = this._referenceToObject.get(variablesReference);
+    const variable = this._remoteObjects.get('evaluateName', memoryReference);
     if (!variable) {
       return 0;
     }
@@ -430,6 +457,15 @@ export class VariableStore {
       objectId: variable.objectId,
       returnByValue: true,
     });
+
+    if (result.value > 0) {
+      if (variable.parent) {
+        this.clearChildren(variable.parent);
+      } else {
+        this.clear();
+      }
+      this.dap.invalidated({ areas: ['variables'] });
+    }
 
     return result.value;
   }
@@ -443,11 +479,7 @@ export class VariableStore {
     for (let i = 0; i < args.length; ++i) {
       if (!objectPreview.previewAsObject(args[i])) continue;
       params.push(
-        await this._createVariable(
-          `arg${i}`,
-          new RemoteObject(`arg${i}`, this._cdp, args[i]),
-          'repl',
-        ),
+        await this._createVariable(`arg${i}`, this.createRemoteObject(`arg${i}`, args[i]), 'repl'),
       );
     }
 
@@ -464,8 +496,24 @@ export class VariableStore {
 
   async clear() {
     this._referenceToVariables.clear();
-    this._objectToReference.clear();
-    this._referenceToObject.clear();
+    this._remoteObjects.clear();
+  }
+
+  private clearChildren(variable: RemoteObject) {
+    if (!variable.scopeVariables) {
+      return;
+    }
+
+    for (const child of variable.scopeVariables) {
+      const childVar = this._remoteObjects.get('variableReference', child.variablesReference);
+      this._referenceToVariables.delete(child.variablesReference);
+      if (childVar) {
+        this._remoteObjects.delete(childVar);
+        this.clearChildren(childVar);
+      }
+    }
+
+    variable.scopeVariables = undefined;
   }
 
   private async _getObjectProperties(
@@ -487,7 +535,7 @@ export class VariableStore {
       );
 
       if (result && result.type !== 'undefined') {
-        object = new RemoteObject(object.name, object.cdp, result, object.parent);
+        object = this.createRemoteObject(object.name, result, object.parent);
         objectId = object.objectId;
       } else {
         const value =
@@ -568,7 +616,7 @@ export class VariableStore {
       }
 
       const weight = objectPreview.internalPropertyWeight(p);
-      let variable: Dap.Variable;
+      let variable: Dap.Variable | undefined;
       if (
         p.name === '[[FunctionLocation]]' &&
         p.value &&
@@ -581,13 +629,18 @@ export class VariableStore {
           variablesReference: 0,
           presentationHint: { visibility: 'internal' },
         };
-      } else {
-        variable = await this._createVariable(p.name, object.wrap(p.name, p.value));
+      } else if (p.value !== undefined) {
+        variable = await this._createVariable(
+          p.name,
+          this.createRemoteObject(p.name, p.value, object),
+        );
       }
 
-      properties.push([
-        { v: { ...variable, presentationHint: { visibility: 'internal' } }, weight },
-      ]);
+      if (variable) {
+        properties.push([
+          { v: { ...variable, presentationHint: { visibility: 'internal' } }, weight },
+        ]);
+      }
     }
 
     // Wrap up
@@ -648,13 +701,6 @@ export class VariableStore {
     return result;
   }
 
-  private _createVariableReference(object: RemoteObject): number {
-    const reference = ++VariableStore._lastVariableReference;
-    this._referenceToObject.set(reference, object);
-    this._objectToReference.set(object.objectId, reference);
-    return reference;
-  }
-
   private async _createVariablesForProperty(
     p: AnyPropertyDescriptor,
     owner: RemoteObject,
@@ -662,8 +708,14 @@ export class VariableStore {
     const result: Dap.Variable[] = [];
 
     // If the value is simply present, add that
-    if ('value' in p) {
-      result.push(await this._createVariable(p.name, owner.wrap(p.name, p.value), 'propertyValue'));
+    if ('value' in p && p.value) {
+      result.push(
+        await this._createVariable(
+          p.name,
+          this.createRemoteObject(p.name, p.value, owner),
+          'propertyValue',
+        ),
+      );
     }
 
     // if it's a getter, auto expand as requested
@@ -683,9 +735,15 @@ export class VariableStore {
       }
 
       if (value) {
-        result.push(await this._createVariable(p.name, owner.wrap(p.name, value), 'propertyValue'));
+        result.push(
+          await this._createVariable(
+            p.name,
+            this.createRemoteObject(p.name, value, owner),
+            'propertyValue',
+          ),
+        );
       } else {
-        const obj = owner.wrap(p.name, p.get as Cdp.Runtime.RemoteObject);
+        const obj = this.createRemoteObject(p.name, p.get as Cdp.Runtime.RemoteObject, owner);
         obj.evaluteOnInspect = true;
         result.push(this._createGetter(`${p.name} (get)`, obj, 'propertyValue'));
       }
@@ -695,7 +753,11 @@ export class VariableStore {
     const hasSetter = p.set && p.set.type !== 'undefined';
     if (hasSetter) {
       result.push(
-        await this._createVariable(`${p.name} (set)`, owner.wrap(p.name, p.set), 'propertyValue'),
+        await this._createVariable(
+          `${p.name} (set)`,
+          this.createRemoteObject(p.name, p.set as Cdp.Runtime.RemoteObject, owner),
+          'propertyValue',
+        ),
       );
     }
 
@@ -751,13 +813,12 @@ export class VariableStore {
   }
 
   private _createGetter(name: string, value: RemoteObject, context: string): Dap.Variable {
-    const reference = this._createVariableReference(value);
     return {
       name,
       value: objectPreview.previewRemoteObject(value.o, context),
       evaluateName: value.accessor,
       type: value.o.type,
-      variablesReference: reference,
+      variablesReference: value.variablesReference,
     };
   }
 
@@ -780,17 +841,14 @@ export class VariableStore {
     value: RemoteObject,
     context?: string,
   ): Promise<Dap.Variable> {
-    const variablesReference = this._createVariableReference(value);
     const object = value.o;
     return {
       name,
       value: await this._generateVariableValueDescription(name, value, object, context),
-      memoryReference: memoryReadableTypes.has(object.subtype)
-        ? String(variablesReference)
-        : undefined,
+      memoryReference: value.memoryReference,
       evaluateName: value.accessor,
       type: object.subtype || object.type,
-      variablesReference,
+      variablesReference: value.variablesReference,
     };
   }
 
@@ -876,7 +934,6 @@ export class VariableStore {
     context?: string,
   ): Promise<Dap.Variable> {
     const object = value.o;
-    const variablesReference = this._createVariableReference(value);
     const match = String(object.description).match(/\(([0-9]+)\)/);
     const arrayLength = match ? +match[1] : 0;
 
@@ -885,10 +942,8 @@ export class VariableStore {
       name,
       value: await this._generateVariableValueDescription(name, value, object, context),
       type: object.className || object.subtype || object.type,
-      variablesReference,
-      memoryReference: memoryReadableTypes.has(object.subtype)
-        ? String(variablesReference)
-        : undefined,
+      variablesReference: value.variablesReference,
+      memoryReference: value.memoryReference,
       evaluateName: value.accessor,
       indexedVariables: arrayLength > 100 ? arrayLength : undefined,
       namedVariables: arrayLength > 100 ? 1 : undefined, // do not count properties proactively
@@ -901,6 +956,24 @@ export class VariableStore {
     if (object.objectId) return { objectId: object.objectId };
     if (object.unserializableValue) return { unserializableValue: object.unserializableValue };
     return { value: object.value };
+  }
+
+  private createRemoteObject(
+    name: string | number,
+    object: Cdp.Runtime.RemoteObject,
+    parent?: RemoteObject,
+    renamedFromSource?: string,
+  ) {
+    const o = new RemoteObject(
+      name,
+      this._cdp,
+      object,
+      VariableStore.nextVariableReference(),
+      parent,
+      renamedFromSource,
+    );
+    this._remoteObjects.add(o);
+    return o;
   }
 }
 

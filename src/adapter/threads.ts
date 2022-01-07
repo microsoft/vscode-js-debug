@@ -189,6 +189,7 @@ export class Thread implements IVariableStoreDelegate {
     this.id = Thread._lastThreadId++;
     this.replVariables = new VariableStore(
       this._cdp,
+      dap,
       this,
       renameProvider,
       launchConfig.__autoExpandGetters,
