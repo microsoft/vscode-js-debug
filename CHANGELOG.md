@@ -13,6 +13,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: `autoAttachChildProcesses` in extension host sometimes not working ([#1134](https://github.com/microsoft/vscode-js-debug/issues/1134))
 - fix: improve sourcemap resolution when code is outside of the workspaceFolder ([ref](https://github.com/microsoft/vscode/issues/139086))
 - fix: automatically try 127.0.0.1 if requests to localhost fail ([ref](https://github.com/microsoft/vscode/issues/140536))
+- fix: make node process regex more permissive ([ref](https://github.com/microsoft/vscode/issues/137084))
 
 ## v1.62 (October 2021)
 

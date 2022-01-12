@@ -140,7 +140,7 @@ const decodePidAndPort = (encoded: string) => {
 };
 
 async function listProcesses(): Promise<IProcessItem | undefined> {
-  const nodeProcessPattern = /^(?:node|iojs)$/i;
+  const nodeProcessPattern = /^(?:node|iojs)(?:$|\b)/i;
   let seq = 0; // default sort key
 
   const quickPick = vscode.window.createQuickPick<IProcessItem>();
