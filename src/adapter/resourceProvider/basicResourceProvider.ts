@@ -74,12 +74,33 @@ export class BasicResourceProvider implements IResourceProvider {
     cancellationToken: CancellationToken,
     headers?: Headers,
   ): Promise<Response<string>> {
-    const isSecure = !url.startsWith('http://');
+    const parsed = new URL(url);
+
+    const isSecure = parsed.protocol !== 'http:';
     const options: OptionsOfTextResponseBody = { headers, followRedirect: true };
     if (isSecure && (await isLoopback(url))) {
       options.rejectUnauthorized = false;
     }
 
+    this.options?.provideOptions(options, url);
+
+    const response = await this.requestHttp(url, options, cancellationToken);
+
+    // Try 127.0.0.1 if localhost fails, see https://github.com/microsoft/vscode/issues/140536#issuecomment-1011281962
+    // The statusCode will be 503 on ECONNREFUSED
+    if (response.statusCode === 503 && parsed.hostname === 'localhost') {
+      parsed.hostname = '127.0.0.1';
+      return this.requestHttp(parsed.toString(), options, cancellationToken);
+    }
+
+    return response;
+  }
+
+  private async requestHttp(
+    url: string,
+    options: OptionsOfTextResponseBody,
+    cancellationToken: CancellationToken,
+  ): Promise<Response<string>> {
     this.options?.provideOptions(options, url);
 
     const disposables = new DisposableList();
@@ -103,6 +124,8 @@ export class BasicResourceProvider implements IResourceProvider {
         statusCode,
         error: new HttpStatusError(statusCode, url, body),
       };
+    } finally {
+      disposables.dispose();
     }
   }
 }
