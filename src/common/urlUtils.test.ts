@@ -129,6 +129,13 @@ describe('urlUtils', () => {
       );
     });
 
+    it('escapes component entities (#1174)', () => {
+      testUrlToRegex(
+        'file:///%23a/b.js',
+        '[fF][iI][lL][eE]:\\/\\/\\/(?:#|%23)[aA]\\/[bB]\\.[jJ][sS]|\\/(?:#|%23)[aA]\\/[bB]\\.[jJ][sS]',
+      );
+    });
+
     it('space in path', () => {
       testUrlToRegex(
         'file:///a/space%20path.js',

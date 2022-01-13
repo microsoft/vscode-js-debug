@@ -291,8 +291,13 @@ export function isDataUri(uri: string): boolean {
 }
 
 const urlToRegexChar = (char: string, arr: Set<string>, escapeRegex: boolean) => {
-  if (!escapeRegex) {
+  if (!escapeRegex || char === ':') {
     arr.add(char);
+    return;
+  }
+
+  if (char === '/') {
+    arr.add(`\\${char}`);
     return;
   }
 
@@ -302,7 +307,7 @@ const urlToRegexChar = (char: string, arr: Set<string>, escapeRegex: boolean) =>
     arr.add(char);
   }
 
-  const encoded = encodeURI(char);
+  const encoded = encodeURIComponent(char);
   if (char !== '\\' && encoded !== char) {
     arr.add(encoded); // will never have any regex special chars
   }
@@ -371,7 +376,7 @@ export function urlToRegex(
   //  - For case insensitive systems, we generate a regex like [fF][oO][oO]/(?:💩|%F0%9F%92%A9).[jJ][sS]
   //  - If we didn't de-encode it, the percent would be case-insensitized as
   //    well and we would not include the original character in the regex
-  for (const str of [decodeURI(unescapedPath), fileUrlToAbsolutePath(unescapedPath)]) {
+  for (const str of [decodeURIComponent(unescapedPath), fileUrlToAbsolutePath(unescapedPath)]) {
     if (!str) {
       continue;
     }
@@ -427,11 +432,9 @@ export function urlPathToPlatformPath(p: string): string {
 
 export function platformPathToUrlPath(p: string): string {
   p = platformPathToPreferredCase(p);
-  if (process.platform === 'win32') {
-    p = p.replace(/\\/g, '/');
-  }
 
-  return encodeURI(p);
+  const parts = process.platform === 'win32' ? p.split(/[\\/]/g) : p.split('/');
+  return parts.map(encodeURIComponent).join('/');
 }
 
 export function platformPathToPreferredCase(p: string): string;

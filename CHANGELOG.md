@@ -14,6 +14,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: improve sourcemap resolution when code is outside of the workspaceFolder ([ref](https://github.com/microsoft/vscode/issues/139086))
 - fix: automatically try 127.0.0.1 if requests to localhost fail ([ref](https://github.com/microsoft/vscode/issues/140536))
 - fix: make node process regex more permissive ([ref](https://github.com/microsoft/vscode/issues/137084))
+- fix: breakpoints in paths with URI component entities not binding ([#1174](https://github.com/microsoft/vscode-js-debug/issues/1174))
 
 ## v1.62 (October 2021)
 
