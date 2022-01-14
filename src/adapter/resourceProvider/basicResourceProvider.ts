@@ -30,7 +30,7 @@ export class BasicResourceProvider implements IResourceProvider {
   ): Promise<Response<string>> {
     try {
       const r = dataUriToBuffer(url);
-      return { ok: true, body: r.toString('utf-8'), statusCode: 200 };
+      return { ok: true, url, body: r.toString('utf-8'), statusCode: 200 };
     } catch {
       // assume it's a remote url
     }
@@ -38,9 +38,9 @@ export class BasicResourceProvider implements IResourceProvider {
     const absolutePath = isAbsolute(url) ? url : fileUrlToAbsolutePath(url);
     if (absolutePath) {
       try {
-        return { ok: true, body: await this.fs.readFile(absolutePath, 'utf-8'), statusCode: 200 };
+        return { ok: true, url, body: await this.fs.readFile(absolutePath, 'utf-8'), statusCode: 200 };
       } catch (error) {
-        return { ok: false, error, statusCode: 200 };
+        return { ok: false, url, error, statusCode: 200 };
       }
     }
 
@@ -65,7 +65,7 @@ export class BasicResourceProvider implements IResourceProvider {
     try {
       return { ...res, body: JSON.parse(res.body) };
     } catch (error) {
-      return { ...res, ok: false, error };
+      return { ...res, ok: false, url, error };
     }
   }
 
@@ -110,7 +110,7 @@ export class BasicResourceProvider implements IResourceProvider {
       disposables.push(cancellationToken.onCancellationRequested(() => request.cancel()));
 
       const response = await request;
-      return { ok: true, body: response.body, statusCode: response.statusCode };
+      return { ok: true, url, body: response.body, statusCode: response.statusCode };
     } catch (error) {
       if (!(error instanceof RequestError)) {
         throw error;
@@ -122,6 +122,7 @@ export class BasicResourceProvider implements IResourceProvider {
         ok: false,
         body,
         statusCode,
+        url,
         error: new HttpStatusError(statusCode, url, body),
       };
     } finally {

@@ -34,12 +34,14 @@ export class HttpStatusError extends Error {
  */
 export interface ISuccessfulResponse<T> {
   ok: true;
+  url: string;
   body: T;
   statusCode: number;
 }
 
 export interface IErrorResponse {
   ok: false;
+  url: string;
   statusCode: number;
   error: Error;
   body?: string;

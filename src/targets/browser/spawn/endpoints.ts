@@ -42,7 +42,7 @@ export async function getWSEndpoint(
   if (!jsonVersion.ok) {
     logger.verbose(LogTag.RuntimeLaunch, 'Error looking up /json/version', jsonVersion);
   } else if (jsonVersion.body.webSocketDebuggerUrl) {
-    const fixed = fixRemoteUrl(browserURL, jsonVersion.body.webSocketDebuggerUrl);
+    const fixed = fixRemoteUrl(jsonVersion.url, jsonVersion.body.webSocketDebuggerUrl);
     logger.verbose(LogTag.RuntimeLaunch, 'Discovered target URL from /json/version', {
       url: jsonVersion.body.webSocketDebuggerUrl,
       fixed,
@@ -55,7 +55,7 @@ export async function getWSEndpoint(
   } else if (!jsonList.ok) {
     logger.verbose(LogTag.RuntimeLaunch, 'Error looking up /json/list', jsonList);
   } else {
-    const fixed = fixRemoteUrl(browserURL, jsonList.body[0].webSocketDebuggerUrl);
+    const fixed = fixRemoteUrl(jsonList.url, jsonList.body[0].webSocketDebuggerUrl);
     logger.verbose(LogTag.RuntimeLaunch, 'Discovered target URL from /json/list', {
       url: jsonList.body[0].webSocketDebuggerUrl,
       fixed,
