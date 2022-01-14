@@ -41,6 +41,7 @@ export namespace Cdp {
     DOMSnapshot: DOMSnapshotApi;
     DOMStorage: DOMStorageApi;
     Emulation: EmulationApi;
+    EventBreakpoints: EventBreakpointsApi;
     Fetch: FetchApi;
     HeadlessExperimental: HeadlessExperimentalApi;
     HeapProfiler: HeapProfilerApi;
@@ -105,6 +106,22 @@ export namespace Cdp {
     ): Promise<Accessibility.GetFullAXTreeResult | undefined>;
 
     /**
+     * Fetches the root node.
+     * Requires `enable()` to have been called previously.
+     */
+    getRootAXNode(
+      params: Accessibility.GetRootAXNodeParams,
+    ): Promise<Accessibility.GetRootAXNodeResult | undefined>;
+
+    /**
+     * Fetches a node and all ancestors up to and including the root.
+     * Requires `enable()` to have been called previously.
+     */
+    getAXNodeAndAncestors(
+      params: Accessibility.GetAXNodeAndAncestorsParams,
+    ): Promise<Accessibility.GetAXNodeAndAncestorsResult | undefined>;
+
+    /**
      * Fetches a particular accessibility node by AXNodeId.
      * Requires `enable()` to have been called previously.
      */
@@ -122,6 +139,23 @@ export namespace Cdp {
     queryAXTree(
       params: Accessibility.QueryAXTreeParams,
     ): Promise<Accessibility.QueryAXTreeResult | undefined>;
+
+    /**
+     * The loadComplete event mirrors the load complete event sent by the browser to assistive
+     * technology when the web page has finished loading.
+     */
+    on(
+      event: 'loadComplete',
+      listener: (event: Accessibility.LoadCompleteEvent) => void,
+    ): IDisposable;
+
+    /**
+     * The nodesUpdated event is sent every time a previously requested node has changed the in tree.
+     */
+    on(
+      event: 'nodesUpdated',
+      listener: (event: Accessibility.NodesUpdatedEvent) => void,
+    ): IDisposable;
   }
 
   /**
@@ -215,6 +249,51 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'Accessibility.getRootAXNode' method.
+     */
+    export interface GetRootAXNodeParams {
+      /**
+       * The frame in whose document the node resides.
+       * If omitted, the root frame is used.
+       */
+      frameId?: Page.FrameId;
+    }
+
+    /**
+     * Return value of the 'Accessibility.getRootAXNode' method.
+     */
+    export interface GetRootAXNodeResult {
+      node: AXNode;
+    }
+
+    /**
+     * Parameters of the 'Accessibility.getAXNodeAndAncestors' method.
+     */
+    export interface GetAXNodeAndAncestorsParams {
+      /**
+       * Identifier of the node to get.
+       */
+      nodeId?: DOM.NodeId;
+
+      /**
+       * Identifier of the backend node to get.
+       */
+      backendNodeId?: DOM.BackendNodeId;
+
+      /**
+       * JavaScript object id of the node wrapper to get.
+       */
+      objectId?: Runtime.RemoteObjectId;
+    }
+
+    /**
+     * Return value of the 'Accessibility.getAXNodeAndAncestors' method.
+     */
+    export interface GetAXNodeAndAncestorsResult {
+      nodes: AXNode[];
+    }
+
+    /**
      * Parameters of the 'Accessibility.getChildAXNodes' method.
      */
     export interface GetChildAXNodesParams {
@@ -271,6 +350,26 @@ export namespace Cdp {
       /**
        * A list of `Accessibility.AXNode` matching the specified attributes,
        * including nodes that are ignored for accessibility.
+       */
+      nodes: AXNode[];
+    }
+
+    /**
+     * Parameters of the 'Accessibility.loadComplete' event.
+     */
+    export interface LoadCompleteEvent {
+      /**
+       * New document root node.
+       */
+      root: AXNode;
+    }
+
+    /**
+     * Parameters of the 'Accessibility.nodesUpdated' event.
+     */
+    export interface NodesUpdatedEvent {
+      /**
+       * Updated node data.
        */
       nodes: AXNode[];
     }
@@ -526,6 +625,11 @@ export namespace Cdp {
       properties?: AXProperty[];
 
       /**
+       * ID for this node's parent.
+       */
+      parentId?: AXNodeId;
+
+      /**
        * IDs for each of this node's child nodes.
        */
       childIds?: AXNodeId[];
@@ -534,6 +638,11 @@ export namespace Cdp {
        * The backend ID for the associated DOM node, if any.
        */
       backendDOMNodeId?: DOM.BackendNodeId;
+
+      /**
+       * The frame ID for the frame associated with this nodes document.
+       */
+      frameId?: Page.FrameId;
     }
   }
 
@@ -1426,7 +1535,12 @@ export namespace Cdp {
       | 'AttributionSourceUntrustworthyOrigin'
       | 'AttributionUntrustworthyOrigin'
       | 'AttributionTriggerDataTooLarge'
-      | 'AttributionEventSourceTriggerDataTooLarge';
+      | 'AttributionEventSourceTriggerDataTooLarge'
+      | 'InvalidAttributionSourceExpiry'
+      | 'InvalidAttributionSourcePriority'
+      | 'InvalidEventSourceTriggerData'
+      | 'InvalidTriggerPriority'
+      | 'InvalidTriggerDedupKey';
 
     /**
      * Details for issues around "Attribution Reporting API" usage.
@@ -1495,6 +1609,43 @@ export namespace Cdp {
     }
 
     /**
+     * This issue tracks information needed to print a deprecation message.
+     * The formatting is inherited from the old console.log version, see more at:
+     * https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/renderer/core/frame/deprecation.cc
+     * TODO(crbug.com/1264960): Re-work format to add i18n support per:
+     * https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/public/devtools_protocol/README.md
+     */
+    export interface DeprecationIssueDetails {
+      affectedFrame?: AffectedFrame;
+
+      sourceCodeLocation: SourceCodeLocation;
+
+      /**
+       * The content of the deprecation issue (this won't be translated),
+       * e.g. "window.inefficientLegacyStorageMethod will be removed in M97,
+       * around January 2022. Please use Web Storage or Indexed Database
+       * instead. This standard was abandoned in January, 1970. See
+       * https://www.chromestatus.com/feature/5684870116278272 for more details."
+       * @deprecated
+       */
+      message?: string;
+
+      deprecationType: string;
+    }
+
+    export type ClientHintIssueReason = 'MetaTagAllowListInvalidOrigin' | 'MetaTagModifiedHTML';
+
+    /**
+     * This issue tracks client hints related issues. It's used to deprecate old
+     * features, encourage the use of new ones, and provide general guidance.
+     */
+    export interface ClientHintIssueDetails {
+      sourceCodeLocation: SourceCodeLocation;
+
+      clientHintIssueReason: ClientHintIssueReason;
+    }
+
+    /**
      * A unique identifier for the type of issue. Each type may use one of the
      * optional fields in InspectorIssueDetails to convey more specific
      * information about the kind of issue.
@@ -1513,7 +1664,9 @@ export namespace Cdp {
       | 'QuirksModeIssue'
       | 'NavigatorUserAgentIssue'
       | 'WasmCrossOriginModuleSharingIssue'
-      | 'GenericIssue';
+      | 'GenericIssue'
+      | 'DeprecationIssue'
+      | 'ClientHintIssue';
 
     /**
      * This struct holds a list of optional fields with additional information
@@ -1548,6 +1701,10 @@ export namespace Cdp {
       wasmCrossOriginModuleSharingIssue?: WasmCrossOriginModuleSharingIssueDetails;
 
       genericIssueDetails?: GenericIssueDetails;
+
+      deprecationIssueDetails?: DeprecationIssueDetails;
+
+      clientHintIssueDetails?: ClientHintIssueDetails;
     }
 
     /**
@@ -2731,6 +2888,13 @@ export namespace Cdp {
     setSinkToUse(params: Cast.SetSinkToUseParams): Promise<Cast.SetSinkToUseResult | undefined>;
 
     /**
+     * Starts mirroring the desktop to the sink.
+     */
+    startDesktopMirroring(
+      params: Cast.StartDesktopMirroringParams,
+    ): Promise<Cast.StartDesktopMirroringResult | undefined>;
+
+    /**
      * Starts mirroring the tab to the sink.
      */
     startTabMirroring(
@@ -2792,6 +2956,18 @@ export namespace Cdp {
      * Return value of the 'Cast.setSinkToUse' method.
      */
     export interface SetSinkToUseResult {}
+
+    /**
+     * Parameters of the 'Cast.startDesktopMirroring' method.
+     */
+    export interface StartDesktopMirroringParams {
+      sinkName: string;
+    }
+
+    /**
+     * Return value of the 'Cast.startDesktopMirroring' method.
+     */
+    export interface StartDesktopMirroringResult {}
 
     /**
      * Parameters of the 'Cast.startTabMirroring' method.
@@ -7715,7 +7891,11 @@ export namespace Cdp {
       | 'scrollbar-track-piece'
       | 'scrollbar-corner'
       | 'resizer'
-      | 'input-list-button';
+      | 'input-list-button'
+      | 'transition'
+      | 'transition-container'
+      | 'transition-old-content'
+      | 'transition-new-content';
 
     /**
      * Shadow root type.
@@ -10016,6 +10196,12 @@ export namespace Cdp {
     export interface UserAgentMetadata {
       brands?: UserAgentBrandVersion[];
 
+      fullVersionList?: UserAgentBrandVersion[];
+
+      /**
+       *
+       * @deprecated
+       */
       fullVersion?: string;
 
       platform: string;
@@ -10033,6 +10219,60 @@ export namespace Cdp {
      * Enum of image types that can be disabled.
      */
     export type DisabledImageType = 'avif' | 'jxl' | 'webp';
+  }
+
+  /**
+   * Methods and events of the 'EventBreakpoints' domain.
+   */
+  export interface EventBreakpointsApi {
+    /**
+     * Sets breakpoint on particular native event.
+     */
+    setInstrumentationBreakpoint(
+      params: EventBreakpoints.SetInstrumentationBreakpointParams,
+    ): Promise<EventBreakpoints.SetInstrumentationBreakpointResult | undefined>;
+
+    /**
+     * Removes breakpoint on particular native event.
+     */
+    removeInstrumentationBreakpoint(
+      params: EventBreakpoints.RemoveInstrumentationBreakpointParams,
+    ): Promise<EventBreakpoints.RemoveInstrumentationBreakpointResult | undefined>;
+  }
+
+  /**
+   * Types of the 'EventBreakpoints' domain.
+   */
+  export namespace EventBreakpoints {
+    /**
+     * Parameters of the 'EventBreakpoints.setInstrumentationBreakpoint' method.
+     */
+    export interface SetInstrumentationBreakpointParams {
+      /**
+       * Instrumentation name to stop on.
+       */
+      eventName: string;
+    }
+
+    /**
+     * Return value of the 'EventBreakpoints.setInstrumentationBreakpoint' method.
+     */
+    export interface SetInstrumentationBreakpointResult {}
+
+    /**
+     * Parameters of the 'EventBreakpoints.removeInstrumentationBreakpoint' method.
+     */
+    export interface RemoveInstrumentationBreakpointParams {
+      /**
+       * Instrumentation name to stop on.
+       */
+      eventName: string;
+    }
+
+    /**
+     * Return value of the 'EventBreakpoints.removeInstrumentationBreakpoint' method.
+     */
+    export interface RemoveInstrumentationBreakpointResult {}
   }
 
   /**
@@ -14076,6 +14316,11 @@ export namespace Cdp {
       event: 'reportingApiReportUpdated',
       listener: (event: Network.ReportingApiReportUpdatedEvent) => void,
     ): IDisposable;
+
+    on(
+      event: 'reportingApiEndpointsChangedForOrigin',
+      listener: (event: Network.ReportingApiEndpointsChangedForOriginEvent) => void,
+    ): IDisposable;
   }
 
   /**
@@ -14630,6 +14875,13 @@ export namespace Cdp {
        * This is a temporary ability and it will be removed in the future.
        */
       sourcePort?: integer;
+
+      /**
+       * Cookie partition key. The site of the top-level URL the browser was visiting at the start
+       * of the request to the endpoint that set the cookie.
+       * If not set, the cookie will be set as not partitioned.
+       */
+      partitionKey?: string;
     }
 
     /**
@@ -15541,6 +15793,18 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'Network.reportingApiEndpointsChangedForOrigin' event.
+     */
+    export interface ReportingApiEndpointsChangedForOriginEvent {
+      /**
+       * Origin of the document(s) which configured the endpoints.
+       */
+      origin: string;
+
+      endpoints: ReportingApiEndpoint[];
+    }
+
+    /**
      * Resource type as it was perceived by the rendering engine.
      */
     export type ResourceType =
@@ -15859,9 +16123,10 @@ export namespace Cdp {
       logId: string;
 
       /**
-       * Issuance date.
+       * Issuance date. Unlike TimeSinceEpoch, this contains the number of
+       * milliseconds since January 1, 1970, UTC, not the number of seconds.
        */
-      timestamp: TimeSinceEpoch;
+      timestamp: number;
 
       /**
        * Hash algorithm.
@@ -15994,6 +16259,8 @@ export namespace Cdp {
       | 'PreflightInvalidAllowCredentials'
       | 'PreflightMissingAllowExternal'
       | 'PreflightInvalidAllowExternal'
+      | 'PreflightMissingAllowPrivateNetwork'
+      | 'PreflightInvalidAllowPrivateNetwork'
       | 'InvalidAllowMethodsPreflightResponse'
       | 'InvalidAllowHeadersPreflightResponse'
       | 'MethodDisallowedByPreflightResponse'
@@ -16368,6 +16635,17 @@ export namespace Cdp {
        * This is a temporary ability and it will be removed in the future.
        */
       sourcePort: integer;
+
+      /**
+       * Cookie partition key. The site of the top-level URL the browser was visiting at the start
+       * of the request to the endpoint that set the cookie.
+       */
+      partitionKey?: string;
+
+      /**
+       * True if cookie partition key is opaque.
+       */
+      partitionKeyOpaque?: boolean;
     }
 
     /**
@@ -16521,6 +16799,13 @@ export namespace Cdp {
        * This is a temporary ability and it will be removed in the future.
        */
       sourcePort?: integer;
+
+      /**
+       * Cookie partition key. The site of the top-level URL the browser was visiting at the start
+       * of the request to the endpoint that set the cookie.
+       * If not set, the cookie will be set as not partitioned.
+       */
+      partitionKey?: string;
     }
 
     /**
@@ -16848,6 +17133,18 @@ export namespace Cdp {
       body: any;
 
       status: ReportStatus;
+    }
+
+    export interface ReportingApiEndpoint {
+      /**
+       * The URL of the endpoint to which reports may be delivered.
+       */
+      url: string;
+
+      /**
+       * Name of the endpoint group.
+       */
+      groupName: string;
     }
 
     /**
@@ -17361,7 +17658,8 @@ export namespace Cdp {
     ): Promise<Overlay.SetShowScrollBottleneckRectsResult | undefined>;
 
     /**
-     * Requests that backend shows hit-test borders on layers
+     * Deprecated, no longer has any effect.
+     * @deprecated
      */
     setShowHitTestBorders(
       params: Overlay.SetShowHitTestBordersParams,
@@ -18821,6 +19119,14 @@ export namespace Cdp {
     ): Promise<Page.ClearCompilationCacheResult | undefined>;
 
     /**
+     * Sets the Secure Payment Confirmation transaction mode.
+     * https://w3c.github.io/secure-payment-confirmation/#sctn-automation-set-spc-transaction-mode
+     */
+    setSPCTransactionMode(
+      params: Page.SetSPCTransactionModeParams,
+    ): Promise<Page.SetSPCTransactionModeResult | undefined>;
+
+    /**
      * Generates a report for testing.
      */
     generateTestReport(
@@ -20183,6 +20489,18 @@ export namespace Cdp {
     export interface ClearCompilationCacheResult {}
 
     /**
+     * Parameters of the 'Page.setSPCTransactionMode' method.
+     */
+    export interface SetSPCTransactionModeParams {
+      mode: 'none' | 'autoaccept' | 'autoreject';
+    }
+
+    /**
+     * Return value of the 'Page.setSPCTransactionMode' method.
+     */
+    export interface SetSPCTransactionModeResult {}
+
+    /**
      * Parameters of the 'Page.generateTestReport' method.
      */
     export interface GenerateTestReportParams {
@@ -20535,6 +20853,11 @@ export namespace Cdp {
        * Array of reasons why the page could not be cached. This must not be empty.
        */
       notRestoredExplanations: BackForwardCacheNotRestoredExplanation[];
+
+      /**
+       * Tree structure of reasons why the page could not be cached for each frame.
+       */
+      notRestoredExplanationsTree?: BackForwardCacheNotRestoredExplanationTree;
     }
 
     /**
@@ -20693,6 +21016,7 @@ export namespace Cdp {
       | 'ch-ua-model'
       | 'ch-ua-mobile'
       | 'ch-ua-full-version'
+      | 'ch-ua-full-version-list'
       | 'ch-ua-platform-version'
       | 'ch-ua-reduced'
       | 'ch-viewport-height'
@@ -20716,6 +21040,7 @@ export namespace Cdp {
       | 'hid'
       | 'idle-detection'
       | 'interest-cohort'
+      | 'join-ad-interest-group'
       | 'keyboard-map'
       | 'magnetometer'
       | 'microphone'
@@ -20724,6 +21049,7 @@ export namespace Cdp {
       | 'payment'
       | 'picture-in-picture'
       | 'publickey-credentials-get'
+      | 'run-ad-auction'
       | 'screen-wake-lock'
       | 'serial'
       | 'shared-autofill'
@@ -21443,6 +21769,7 @@ export namespace Cdp {
       | 'ContentWebUSB'
       | 'ContentMediaSession'
       | 'ContentMediaSessionService'
+      | 'ContentScreenReader'
       | 'EmbedderPopupBlockerTabHelper'
       | 'EmbedderSafeBrowsingTriggeredPopupBlocker'
       | 'EmbedderSafeBrowsingThreatDetails'
@@ -21477,6 +21804,23 @@ export namespace Cdp {
        * Not restored reason
        */
       reason: BackForwardCacheNotRestoredReason;
+    }
+
+    export interface BackForwardCacheNotRestoredExplanationTree {
+      /**
+       * URL of each frame
+       */
+      url: string;
+
+      /**
+       * Not restored reasons of each frame
+       */
+      explanations: BackForwardCacheNotRestoredExplanation[];
+
+      /**
+       * Array of children frame
+       */
+      children: BackForwardCacheNotRestoredExplanationTree[];
     }
   }
 
@@ -23884,7 +24228,8 @@ export namespace Cdp {
     ): IDisposable;
 
     /**
-     * The security state of the page changed.
+     * The security state of the page changed. No longer being sent.
+     * @deprecated
      */
     on(
       event: 'securityStateChanged',
@@ -24012,8 +24357,9 @@ export namespace Cdp {
       schemeIsCryptographic: boolean;
 
       /**
-       * List of explanations for the security state. If the overall security state is `insecure` or
-       * `warning`, at least one corresponding explanation should be included.
+       * Previously a list of explanations for the security state. Now always
+       * empty.
+       * @deprecated
        */
       explanations: SecurityStateExplanation[];
 
@@ -24024,7 +24370,8 @@ export namespace Cdp {
       insecureContentStatus: InsecureContentStatus;
 
       /**
-       * Overrides user-visible description of the state.
+       * Overrides user-visible description of the state. Always omitted.
+       * @deprecated
        */
       summary?: string;
     }
@@ -25620,6 +25967,12 @@ export namespace Cdp {
        * Proxy bypass list, similar to the one passed to --proxy-bypass-list
        */
       proxyBypassList?: string;
+
+      /**
+       * An optional list of origins to grant unlimited cross-origin access to.
+       * Parts of the URL other than those constituting origin are ignored.
+       */
+      originsWithUniversalNetworkAccess?: string[];
     }
 
     /**
@@ -27093,6 +27446,13 @@ export namespace Cdp {
        * Defaults to false.
        */
       hasCredBlob?: boolean;
+
+      /**
+       * If set to true, the authenticator will support the minPinLength extension.
+       * https://fidoalliance.org/specs/fido-v2.1-ps-20210615/fido-client-to-authenticator-protocol-v2.1-ps-20210615.html#sctn-minpinlength-extension
+       * Defaults to false.
+       */
+      hasMinPinLength?: boolean;
 
       /**
        * If set to true, tests of user presence will succeed immediately.

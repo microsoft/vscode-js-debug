@@ -1028,4 +1028,46 @@ describe('breakpoints', () => {
     await waitForPause(handle);
     handle.assertLog({ substring: true });
   });
+
+  itIntegrates('excludes callers', async ({ r }) => {
+    const p = await r.launchAndLoad('blank');
+
+    p.dap.evaluate({
+      expression: `
+        function foo() {
+          bar();
+        }
+
+        function baz() {
+          bar();
+        }
+
+        function bar() {
+          debugger;
+        }
+
+        foo();
+        baz();
+        foo();
+        baz();
+      `,
+    });
+
+    await waitForPause(p, async threadId => {
+      const {
+        stackFrames: [foo, bar],
+      } = await p.dap.stackTrace({ threadId });
+      await p.dap.setExcludedCallers({
+        callers: [
+          {
+            caller: { line: bar.line, column: bar.column, source: bar.source! },
+            target: { line: foo.line, column: foo.column, source: foo.source! },
+          },
+        ],
+      });
+    });
+    await waitForPause(p); // should hit baz
+    await waitForPause(p); // should skip foo and hit baz again
+    p.assertLog();
+  });
 });

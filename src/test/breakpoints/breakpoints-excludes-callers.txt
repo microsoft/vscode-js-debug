@@ -1,0 +1,27 @@
+{
+    allThreadsStopped : false
+    description : Paused on debugger statement
+    reason : pause
+    threadId : <number>
+}
+bar @ <eval>/VM<xx>:11:11
+foo @ <eval>/VM<xx>:3:11
+<anonymous> @ <eval>/VM<xx>:14:9
+{
+    allThreadsStopped : false
+    description : Paused on debugger statement
+    reason : pause
+    threadId : <number>
+}
+bar @ <eval>/VM<xx>:11:11
+baz @ <eval>/VM<xx>:7:11
+<anonymous> @ <eval>/VM<xx>:15:9
+{
+    allThreadsStopped : false
+    description : Paused on debugger statement
+    reason : pause
+    threadId : <number>
+}
+bar @ <eval>/VM<xx>:11:11
+baz @ <eval>/VM<xx>:7:11
+<anonymous> @ <eval>/VM<xx>:17:9

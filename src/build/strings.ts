@@ -313,6 +313,13 @@ A common case to disable certificate verification can be done by passing \`{ "ht
   'requestCDPProxy.label': 'Request CDP Proxy for Debug Session',
   'openEdgeDevTools.label': 'Open Browser Devtools',
   'workspaceTrust.description': 'Trust is required to debug code in this workspace.',
+
+  'commands.callersAdd.label': 'Exclude caller',
+  'commands.callersAdd.paletteLabel': 'Exclude caller from pausing in the current location',
+  'commands.callersRemove.label': 'Remove excluded caller',
+  'commands.callersRemoveAll.label': 'Remove all excluded callers',
+  'commands.callersGoToCaller.label': 'Go to caller location',
+  'commands.callersGoToTarget.label': 'Go to target location',
 };
 
 export default strings;

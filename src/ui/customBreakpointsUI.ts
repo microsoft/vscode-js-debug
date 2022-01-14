@@ -8,7 +8,7 @@ import {
   customBreakpoints,
   ICustomBreakpoint,
 } from '../adapter/customBreakpoints';
-import { Commands, Contributions } from '../common/contributionUtils';
+import { Commands, CustomViews } from '../common/contributionUtils';
 import { EventEmitter } from '../common/events';
 import { DebugSessionTracker } from './debugSessionTracker';
 
@@ -93,7 +93,7 @@ export function registerCustomBreakpointsUI(
 ) {
   const provider = new BreakpointsDataProvider(debugSessionTracker);
 
-  vscode.window.createTreeView(Contributions.BrowserBreakpointsView, {
+  vscode.window.createTreeView(CustomViews.BrowserBreakpoints, {
     treeDataProvider: provider,
   });
   context.subscriptions.push(

@@ -2,19 +2,26 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { OptionsOfBufferResponseBody } from 'got';
+import type { OptionsOfBufferResponseBody } from 'got';
 import type { Command, commands, ConfigurationTarget, workspace, WorkspaceFolder } from 'vscode';
 import type {
   IChromeLaunchConfiguration,
   INodeAttachConfiguration,
   ITerminalLaunchConfiguration,
 } from '../configuration';
+import type Dap from '../dap/api';
 import type { IAutoAttachInfo } from '../targets/node/bootloader/environment';
+import type { ExcludedCaller } from '../ui/excludedCallersUI';
 import type { IStartProfileArguments } from '../ui/profiling/uiProfileManager';
 
 export const enum Contributions {
   BrowserBreakpointsView = 'jsBrowserBreakpoints',
   DiagnosticsView = 'jsDebugDiagnostics',
+}
+
+export const enum CustomViews {
+  BrowserBreakpoints = 'jsBrowserBreakpoints',
+  ExcludedCallers = 'jsExcludedCallers',
 }
 
 export const enum Commands {
@@ -39,6 +46,13 @@ export const enum Commands {
   StopProfile = 'extension.js-debug.stopProfile',
   ToggleSkipping = 'extension.js-debug.toggleSkippingFile',
   OpenEdgeDevTools = 'extension.js-debug.openEdgeDevTools',
+  //#region Excluded callers view
+  CallersGoToCaller = 'extension.js-debug.callers.goToCaller',
+  CallersGoToTarget = 'extension.js-debug.callers.gotToTarget',
+  CallersRemove = 'extension.js-debug.callers.remove',
+  CallersRemoveAll = 'extension.js-debug.callers.removeAll',
+  CallersAdd = 'extension.js-debug.callers.add',
+  //#endregion
 }
 
 export const preferredDebugTypes: ReadonlyMap<DebugType, string> = new Map([
@@ -86,6 +100,11 @@ const commandsObj: { [K in Commands]: null } = {
   [Commands.StartWithStopOnEntry]: null,
   [Commands.RequestCDPProxy]: null,
   [Commands.OpenEdgeDevTools]: null,
+  [Commands.CallersAdd]: null,
+  [Commands.CallersGoToCaller]: null,
+  [Commands.CallersGoToTarget]: null,
+  [Commands.CallersRemove]: null,
+  [Commands.CallersRemoveAll]: null,
 };
 
 /**
@@ -149,6 +168,15 @@ export interface IConfigurationTypes {
   [Configuration.ResourceRequestOptions]: Partial<OptionsOfBufferResponseBody>;
 }
 
+export interface IStackFrameContext {
+  sessionId: string;
+  frameId: string;
+  frameLocation: {
+    range: { startLineNumber: number; startColumn: number };
+    source: Dap.Source;
+  };
+}
+
 export interface ICommandTypes {
   [Commands.DebugNpmScript](folderContainingPackageJson?: string): void;
   [Commands.PickProcess](): string | null;
@@ -174,6 +202,12 @@ export interface ICommandTypes {
     forwardToUi?: boolean,
   ): { host: string; port: number; path: string } | undefined;
   [Commands.OpenEdgeDevTools](): void;
+
+  [Commands.CallersAdd](uri: string, context: IStackFrameContext): void;
+  [Commands.CallersGoToCaller](caller: ExcludedCaller): void;
+  [Commands.CallersGoToTarget](caller: ExcludedCaller): void;
+  [Commands.CallersRemove](caller: ExcludedCaller): void;
+  [Commands.CallersRemoveAll](): void;
 }
 
 /**

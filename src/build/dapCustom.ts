@@ -518,6 +518,47 @@ const dapCustom: JSONSchema4 = {
         },
       },
     ),
+
+    CallerLocation: {
+      type: 'object',
+      required: ['line', 'column', 'source'],
+      properties: {
+        line: {
+          type: 'integer',
+        },
+        column: {
+          type: 'integer',
+        },
+        source: {
+          $ref: '#/definitions/Source',
+          description: 'Source to be pretty printed.',
+        },
+      },
+    },
+    ExcludedCaller: {
+      type: 'object',
+      required: ['target', 'caller'],
+      properties: {
+        target: {
+          $ref: '#/definitions/CallerLocation',
+        },
+        caller: {
+          $ref: '#/definitions/CallerLocation',
+        },
+      },
+    },
+
+    ...makeRequest('setExcludedCallers', 'Adds an excluded caller/target pair.', {
+      properties: {
+        callers: {
+          type: 'array',
+          items: {
+            $ref: '#/definitions/ExcludedCaller',
+          },
+        },
+      },
+      required: ['callers'],
+    }),
   },
 };
 

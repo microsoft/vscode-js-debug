@@ -107,7 +107,7 @@ afterEach(async () => {
   });
 });
 
-export async function waitForPause(p: ITestHandle, cb?: (threadId: string) => Promise<void>) {
+export async function waitForPause(p: ITestHandle, cb?: (threadId: number) => Promise<void>) {
   const { threadId } = p.log(await p.dap.once('stopped'));
   await p.logger.logStackTrace(threadId);
   await cb?.(threadId);

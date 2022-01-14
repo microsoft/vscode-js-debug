@@ -411,31 +411,34 @@ export namespace Dap {
     ): Promise<SetInstructionBreakpointsResult>;
 
     /**
-     * The request starts the debuggee to run again.
+     * The request resumes execution of all threads. If the debug adapter supports single thread execution (see capability 'supportsSingleThreadExecutionRequests') setting the 'singleThread' argument to true resumes only the specified thread. If not all threads were resumed, the 'allThreadsContinued' attribute of the response must be set to false.
      */
     on(
       request: 'continue',
       handler: (params: ContinueParams) => Promise<ContinueResult | Error>,
     ): () => void;
     /**
-     * The request starts the debuggee to run again.
+     * The request resumes execution of all threads. If the debug adapter supports single thread execution (see capability 'supportsSingleThreadExecutionRequests') setting the 'singleThread' argument to true resumes only the specified thread. If not all threads were resumed, the 'allThreadsContinued' attribute of the response must be set to false.
      */
     continueRequest(params: ContinueParams): Promise<ContinueResult>;
 
     /**
-     * The request starts the debuggee to run again for one step.
+     * The request executes one step (in the given granularity) for the specified thread and allows all other threads to run freely by resuming them.
+     * If the debug adapter supports single thread execution (see capability 'supportsSingleThreadExecutionRequests') setting the 'singleThread' argument to true prevents other suspended threads from resuming.
      * The debug adapter first sends the response and then a 'stopped' event (with reason 'step') after the step has completed.
      */
     on(request: 'next', handler: (params: NextParams) => Promise<NextResult | Error>): () => void;
     /**
-     * The request starts the debuggee to run again for one step.
+     * The request executes one step (in the given granularity) for the specified thread and allows all other threads to run freely by resuming them.
+     * If the debug adapter supports single thread execution (see capability 'supportsSingleThreadExecutionRequests') setting the 'singleThread' argument to true prevents other suspended threads from resuming.
      * The debug adapter first sends the response and then a 'stopped' event (with reason 'step') after the step has completed.
      */
     nextRequest(params: NextParams): Promise<NextResult>;
 
     /**
-     * The request starts the debuggee to step into a function/method if possible.
-     * If it cannot step into a target, 'stepIn' behaves like 'next'.
+     * The request resumes the given thread to step into a function/method and allows all other threads to run freely by resuming them.
+     * If the debug adapter supports single thread execution (see capability 'supportsSingleThreadExecutionRequests') setting the 'singleThread' argument to true prevents other suspended threads from resuming.
+     * If the request cannot step into a target, 'stepIn' behaves like the 'next' request.
      * The debug adapter first sends the response and then a 'stopped' event (with reason 'step') after the step has completed.
      * If there are multiple function/method calls (or other targets) on the source line,
      * the optional argument 'targetId' can be used to control into which target the 'stepIn' should occur.
@@ -446,8 +449,9 @@ export namespace Dap {
       handler: (params: StepInParams) => Promise<StepInResult | Error>,
     ): () => void;
     /**
-     * The request starts the debuggee to step into a function/method if possible.
-     * If it cannot step into a target, 'stepIn' behaves like 'next'.
+     * The request resumes the given thread to step into a function/method and allows all other threads to run freely by resuming them.
+     * If the debug adapter supports single thread execution (see capability 'supportsSingleThreadExecutionRequests') setting the 'singleThread' argument to true prevents other suspended threads from resuming.
+     * If the request cannot step into a target, 'stepIn' behaves like the 'next' request.
      * The debug adapter first sends the response and then a 'stopped' event (with reason 'step') after the step has completed.
      * If there are multiple function/method calls (or other targets) on the source line,
      * the optional argument 'targetId' can be used to control into which target the 'stepIn' should occur.
@@ -456,7 +460,8 @@ export namespace Dap {
     stepInRequest(params: StepInParams): Promise<StepInResult>;
 
     /**
-     * The request starts the debuggee to run again for one step.
+     * The request resumes the given thread to step out (return) from a function/method and allows all other threads to run freely by resuming them.
+     * If the debug adapter supports single thread execution (see capability 'supportsSingleThreadExecutionRequests') setting the 'singleThread' argument to true prevents other suspended threads from resuming.
      * The debug adapter first sends the response and then a 'stopped' event (with reason 'step') after the step has completed.
      */
     on(
@@ -464,13 +469,15 @@ export namespace Dap {
       handler: (params: StepOutParams) => Promise<StepOutResult | Error>,
     ): () => void;
     /**
-     * The request starts the debuggee to run again for one step.
+     * The request resumes the given thread to step out (return) from a function/method and allows all other threads to run freely by resuming them.
+     * If the debug adapter supports single thread execution (see capability 'supportsSingleThreadExecutionRequests') setting the 'singleThread' argument to true prevents other suspended threads from resuming.
      * The debug adapter first sends the response and then a 'stopped' event (with reason 'step') after the step has completed.
      */
     stepOutRequest(params: StepOutParams): Promise<StepOutResult>;
 
     /**
-     * The request starts the debuggee to run one step backwards.
+     * The request executes one backward step (in the given granularity) for the specified thread and allows all other threads to run backward freely by resuming them.
+     * If the debug adapter supports single thread execution (see capability 'supportsSingleThreadExecutionRequests') setting the 'singleThread' argument to true prevents other suspended threads from resuming.
      * The debug adapter first sends the response and then a 'stopped' event (with reason 'step') after the step has completed.
      * Clients should only call this request if the capability 'supportsStepBack' is true.
      */
@@ -479,14 +486,15 @@ export namespace Dap {
       handler: (params: StepBackParams) => Promise<StepBackResult | Error>,
     ): () => void;
     /**
-     * The request starts the debuggee to run one step backwards.
+     * The request executes one backward step (in the given granularity) for the specified thread and allows all other threads to run backward freely by resuming them.
+     * If the debug adapter supports single thread execution (see capability 'supportsSingleThreadExecutionRequests') setting the 'singleThread' argument to true prevents other suspended threads from resuming.
      * The debug adapter first sends the response and then a 'stopped' event (with reason 'step') after the step has completed.
      * Clients should only call this request if the capability 'supportsStepBack' is true.
      */
     stepBackRequest(params: StepBackParams): Promise<StepBackResult>;
 
     /**
-     * The request starts the debuggee to run backward.
+     * The request resumes backward execution of all threads. If the debug adapter supports single thread execution (see capability 'supportsSingleThreadExecutionRequests') setting the 'singleThread' argument to true resumes only the specified thread. If not all threads were resumed, the 'allThreadsContinued' attribute of the response must be set to false.
      * Clients should only call this request if the capability 'supportsStepBack' is true.
      */
     on(
@@ -494,7 +502,7 @@ export namespace Dap {
       handler: (params: ReverseContinueParams) => Promise<ReverseContinueResult | Error>,
     ): () => void;
     /**
-     * The request starts the debuggee to run backward.
+     * The request resumes backward execution of all threads. If the debug adapter supports single thread execution (see capability 'supportsSingleThreadExecutionRequests') setting the 'singleThread' argument to true resumes only the specified thread. If not all threads were resumed, the 'allThreadsContinued' attribute of the response must be set to false.
      * Clients should only call this request if the capability 'supportsStepBack' is true.
      */
     reverseContinueRequest(params: ReverseContinueParams): Promise<ReverseContinueResult>;
@@ -1067,6 +1075,18 @@ export namespace Dap {
      * Request WebSocket connection information on a proxy for this debug sessions CDP connection.
      */
     requestCDPProxyRequest(params: RequestCDPProxyParams): Promise<RequestCDPProxyResult>;
+
+    /**
+     * Adds an excluded caller/target pair.
+     */
+    on(
+      request: 'setExcludedCallers',
+      handler: (params: SetExcludedCallersParams) => Promise<SetExcludedCallersResult | Error>,
+    ): () => void;
+    /**
+     * Adds an excluded caller/target pair.
+     */
+    setExcludedCallersRequest(params: SetExcludedCallersParams): Promise<SetExcludedCallersResult>;
   }
 
   export interface TestApi {
@@ -1392,19 +1412,21 @@ export namespace Dap {
     ): Promise<SetInstructionBreakpointsResult>;
 
     /**
-     * The request starts the debuggee to run again.
+     * The request resumes execution of all threads. If the debug adapter supports single thread execution (see capability 'supportsSingleThreadExecutionRequests') setting the 'singleThread' argument to true resumes only the specified thread. If not all threads were resumed, the 'allThreadsContinued' attribute of the response must be set to false.
      */
     continue(params: ContinueParams): Promise<ContinueResult>;
 
     /**
-     * The request starts the debuggee to run again for one step.
+     * The request executes one step (in the given granularity) for the specified thread and allows all other threads to run freely by resuming them.
+     * If the debug adapter supports single thread execution (see capability 'supportsSingleThreadExecutionRequests') setting the 'singleThread' argument to true prevents other suspended threads from resuming.
      * The debug adapter first sends the response and then a 'stopped' event (with reason 'step') after the step has completed.
      */
     next(params: NextParams): Promise<NextResult>;
 
     /**
-     * The request starts the debuggee to step into a function/method if possible.
-     * If it cannot step into a target, 'stepIn' behaves like 'next'.
+     * The request resumes the given thread to step into a function/method and allows all other threads to run freely by resuming them.
+     * If the debug adapter supports single thread execution (see capability 'supportsSingleThreadExecutionRequests') setting the 'singleThread' argument to true prevents other suspended threads from resuming.
+     * If the request cannot step into a target, 'stepIn' behaves like the 'next' request.
      * The debug adapter first sends the response and then a 'stopped' event (with reason 'step') after the step has completed.
      * If there are multiple function/method calls (or other targets) on the source line,
      * the optional argument 'targetId' can be used to control into which target the 'stepIn' should occur.
@@ -1413,20 +1435,22 @@ export namespace Dap {
     stepIn(params: StepInParams): Promise<StepInResult>;
 
     /**
-     * The request starts the debuggee to run again for one step.
+     * The request resumes the given thread to step out (return) from a function/method and allows all other threads to run freely by resuming them.
+     * If the debug adapter supports single thread execution (see capability 'supportsSingleThreadExecutionRequests') setting the 'singleThread' argument to true prevents other suspended threads from resuming.
      * The debug adapter first sends the response and then a 'stopped' event (with reason 'step') after the step has completed.
      */
     stepOut(params: StepOutParams): Promise<StepOutResult>;
 
     /**
-     * The request starts the debuggee to run one step backwards.
+     * The request executes one backward step (in the given granularity) for the specified thread and allows all other threads to run backward freely by resuming them.
+     * If the debug adapter supports single thread execution (see capability 'supportsSingleThreadExecutionRequests') setting the 'singleThread' argument to true prevents other suspended threads from resuming.
      * The debug adapter first sends the response and then a 'stopped' event (with reason 'step') after the step has completed.
      * Clients should only call this request if the capability 'supportsStepBack' is true.
      */
     stepBack(params: StepBackParams): Promise<StepBackResult>;
 
     /**
-     * The request starts the debuggee to run backward.
+     * The request resumes backward execution of all threads. If the debug adapter supports single thread execution (see capability 'supportsSingleThreadExecutionRequests') setting the 'singleThread' argument to true resumes only the specified thread. If not all threads were resumed, the 'allThreadsContinued' attribute of the response must be set to false.
      * Clients should only call this request if the capability 'supportsStepBack' is true.
      */
     reverseContinue(params: ReverseContinueParams): Promise<ReverseContinueResult>;
@@ -1793,6 +1817,11 @@ export namespace Dap {
      * Request WebSocket connection information on a proxy for this debug sessions CDP connection.
      */
     requestCDPProxy(params: RequestCDPProxyParams): Promise<RequestCDPProxyResult>;
+
+    /**
+     * Adds an excluded caller/target pair.
+     */
+    setExcludedCallers(params: SetExcludedCallersParams): Promise<SetExcludedCallersResult>;
   }
 
   export interface AttachParams {
@@ -1924,16 +1953,19 @@ export namespace Dap {
 
   export interface ContinueParams {
     /**
-     * Continue execution for the specified thread (if possible).
-     * If the backend cannot continue on a single thread but will continue on all threads, it should set the 'allThreadsContinued' attribute in the response to true.
+     * Specifies the active thread. If the debug adapter supports single thread execution (see 'supportsSingleThreadExecutionRequests') and the optional argument 'singleThread' is true, only the thread with this ID is resumed.
      */
     threadId: integer;
+
+    /**
+     * If this optional flag is true, execution is resumed only for the thread with given 'threadId'.
+     */
+    singleThread?: boolean;
   }
 
   export interface ContinueResult {
     /**
-     * If true, the 'continue' request has ignored the specified thread and continued all threads instead.
-     * If this attribute is missing a value of 'true' is assumed for backward compatibility.
+     * The value true (or a missing property) signals to the client that all threads have been resumed. The value false must be returned if not all threads were resumed.
      */
     allThreadsContinued?: boolean;
   }
@@ -1979,7 +2011,7 @@ export namespace Dap {
 
     /**
      * The name of the Variable's child to obtain data breakpoint information for.
-     * If variablesReference isn’t provided, this can be an expression.
+     * If variablesReference isn't provided, this can be an expression.
      */
     name: string;
   }
@@ -2509,6 +2541,11 @@ export namespace Dap {
      * The debug adapter supports 'filterOptions' as an argument on the 'setExceptionBreakpoints' request.
      */
     supportsExceptionFilterOptions?: boolean;
+
+    /**
+     * The debug adapter supports the 'singleThread' property on the execution requests ('continue', 'next', 'stepIn', 'stepOut', 'reverseContinue', 'stepBack').
+     */
+    supportsSingleThreadExecutionRequests?: boolean;
   }
 
   export interface InitializedEventParams {}
@@ -2677,9 +2714,14 @@ export namespace Dap {
 
   export interface NextParams {
     /**
-     * Execute 'next' for this thread.
+     * Specifies the thread for which to resume execution for one step (of the given granularity).
      */
     threadId: integer;
+
+    /**
+     * If this optional flag is true, all other suspended threads are not resumed.
+     */
+    singleThread?: boolean;
 
     /**
      * Optional granularity to step. If no granularity is specified, a granularity of 'statement' is assumed.
@@ -2698,9 +2740,9 @@ export namespace Dap {
 
   export interface OutputEventParams {
     /**
-     * The output category. If not specified, 'console' is assumed.
+     * The output category. If not specified or if the category is not understand by the client, 'console' is assumed.
      */
-    category?: 'console' | 'stdout' | 'stderr' | 'telemetry';
+    category?: 'console' | 'important' | 'stdout' | 'stderr' | 'telemetry';
 
     /**
      * The output to report.
@@ -2990,9 +3032,14 @@ export namespace Dap {
 
   export interface ReverseContinueParams {
     /**
-     * Execute 'reverseContinue' for this thread.
+     * Specifies the active thread. If the debug adapter supports single thread execution (see 'supportsSingleThreadExecutionRequests') and the optional argument 'singleThread' is true, only the thread with this ID is resumed.
      */
     threadId: integer;
+
+    /**
+     * If this optional flag is true, backward execution is resumed only for the thread with given 'threadId'.
+     */
+    singleThread?: boolean;
   }
 
   export interface ReverseContinueResult {}
@@ -3119,6 +3166,12 @@ export namespace Dap {
      */
     breakpoints?: Breakpoint[];
   }
+
+  export interface SetExcludedCallersParams {
+    callers: ExcludedCaller[];
+  }
+
+  export interface SetExcludedCallersResult {}
 
   export interface SetExpressionParams {
     /**
@@ -3353,9 +3406,14 @@ export namespace Dap {
 
   export interface StepBackParams {
     /**
-     * Execute 'stepBack' for this thread.
+     * Specifies the thread for which to resume execution for one step backwards (of the given granularity).
      */
     threadId: integer;
+
+    /**
+     * If this optional flag is true, all other suspended threads are not resumed.
+     */
+    singleThread?: boolean;
 
     /**
      * Optional granularity to step. If no granularity is specified, a granularity of 'statement' is assumed.
@@ -3367,9 +3425,14 @@ export namespace Dap {
 
   export interface StepInParams {
     /**
-     * Execute 'stepIn' for this thread.
+     * Specifies the thread for which to resume execution for one step-into (of the given granularity).
      */
     threadId: integer;
+
+    /**
+     * If this optional flag is true, all other suspended threads are not resumed.
+     */
+    singleThread?: boolean;
 
     /**
      * Optional id of the target to step into.
@@ -3400,9 +3463,14 @@ export namespace Dap {
 
   export interface StepOutParams {
     /**
-     * Execute 'stepOut' for this thread.
+     * Specifies the thread for which to resume execution for one step-out (of the given granularity).
      */
     threadId: integer;
+
+    /**
+     * If this optional flag is true, all other suspended threads are not resumed.
+     */
+    singleThread?: boolean;
 
     /**
      * Optional granularity to step. If no granularity is specified, a granularity of 'statement' is assumed.
@@ -3851,6 +3919,23 @@ export namespace Dap {
      * The attribute is only honored by a debug adapter if the capability 'supportsHitConditionalBreakpoints' is true.
      */
     hitCondition?: string;
+  }
+
+  export interface ExcludedCaller {
+    target: CallerLocation;
+
+    caller: CallerLocation;
+  }
+
+  export interface CallerLocation {
+    line: integer;
+
+    column: integer;
+
+    /**
+     * Source to be pretty printed.
+     */
+    source: Source;
   }
 
   /**
@@ -4651,6 +4736,11 @@ export namespace Dap {
      * The debug adapter supports 'filterOptions' as an argument on the 'setExceptionBreakpoints' request.
      */
     supportsExceptionFilterOptions?: boolean;
+
+    /**
+     * The debug adapter supports the 'singleThread' property on the execution requests ('continue', 'next', 'stepIn', 'stepOut', 'reverseContinue', 'stepBack').
+     */
+    supportsSingleThreadExecutionRequests?: boolean;
   }
 
   /**

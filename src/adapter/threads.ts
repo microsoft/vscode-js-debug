@@ -132,6 +132,12 @@ class DeferredContainer<T> {
   }
 }
 
+const excludedCallerSearchDepth = 50;
+
+const sourcesEqual = (a: Dap.Source, b: Dap.Source) =>
+  a.sourceReference === b.sourceReference &&
+  urlUtils.comparePathsWithoutCasing(a.path || '', b.path || '');
+
 export class Thread implements IVariableStoreDelegate {
   private static _lastThreadId = 0;
   public readonly id: number;
@@ -151,6 +157,7 @@ export class Thread implements IVariableStoreDelegate {
   private _scriptSources = new Map<string, Map<string, Source>>();
   private _sourceMapLoads = new Map<string, Promise<IUiLocation[]>>();
   private _expectedPauseReason?: ExpectedPauseReason;
+  private _excludedCallers: readonly Dap.ExcludedCaller[] = [];
   private readonly _sourceScripts = new WeakMap<Source, Set<Script>>();
   private readonly _pausedDetailsEvent = new WeakMap<IPausedDetails, Cdp.Debugger.PausedEvent>();
   private readonly _onPausedEmitter = new EventEmitter<IPausedDetails>();
@@ -197,6 +204,10 @@ export class Thread implements IVariableStoreDelegate {
       launchConfig.customPropertiesGenerator,
     );
     this._initialize();
+  }
+
+  public setExcludedCallers(callers: readonly Dap.ExcludedCaller[]) {
+    this._excludedCallers = callers;
   }
 
   cdp(): Cdp.Api {
@@ -704,6 +715,14 @@ export class Thread implements IVariableStoreDelegate {
 
     // We store pausedDetails in a local variable to avoid race conditions while awaiting this._smartStepper.shouldSmartStep
     const pausedDetails = (this._pausedDetails = this._createPausedDetails(event));
+    if (this._excludedCallers.length) {
+      if (await this._matchesExcludedCaller(this._pausedDetails.stackTrace)) {
+        this.logger.info(LogTag.Runtime, 'Skipping pause due to excluded caller');
+        this.resume();
+        return;
+      }
+    }
+
     const smartStepDirection = await this._smartStepper.getSmartStepDirection(
       pausedDetails,
       this._expectedPauseReason,
@@ -730,6 +749,63 @@ export class Thread implements IVariableStoreDelegate {
     this._pausedVariables = this.replVariables.createDetached();
 
     await this._onThreadPaused(pausedDetails);
+  }
+
+  /**
+   * Gets whether the stack trace should be skipped as a result of a caller
+   * being excluded.
+   *
+   * This function is as lazy as possible. For example, we only unwrap the
+   * first frame's source if the line and column match the target, and
+   * load the stack sources incrementally in the same way.
+   */
+  private async _matchesExcludedCaller(trace: StackTrace): Promise<boolean> {
+    if (!this._excludedCallers.length) {
+      return false;
+    }
+
+    const first = await trace.frames[0]?.uiLocation();
+    if (!first) {
+      return false;
+    }
+
+    let firstSource: Dap.Source | undefined;
+    let stackLocations: (IUiLocation | undefined)[] | undefined;
+    const stackAsDap: Dap.Source[] = []; // sparse array
+
+    for (const { caller, target } of this._excludedCallers) {
+      if (target.line !== first.lineNumber || target.column !== first.columnNumber) {
+        continue;
+      }
+
+      firstSource ??= await first.source.toDapShallow();
+      if (!sourcesEqual(firstSource, target.source)) {
+        continue;
+      }
+
+      if (!stackLocations) {
+        // for some reason, if this is assigned directly to stackLocations,
+        // then TS will think it can still be undefined below
+        const x = await trace
+          .loadFrames(excludedCallerSearchDepth)
+          .then(frames => Promise.all(frames.slice(1).map(f => f.uiLocation())));
+        stackLocations = x;
+      }
+
+      for (let i = 0; i < stackLocations.length; i++) {
+        const r = stackLocations[i];
+        if (!r || r.lineNumber !== caller.line || r.columnNumber !== target.column) {
+          continue;
+        }
+
+        const source = (stackAsDap[i] ??= await r.source.toDapShallow());
+        if (sourcesEqual(source, caller.source)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
   }
 
   /**

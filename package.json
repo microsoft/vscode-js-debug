@@ -184,15 +184,6 @@
     "workspace"
   ],
   "contributes": {
-    "views": {
-      "debug": [
-        {
-          "id": "jsBrowserBreakpoints",
-          "name": "Browser breakpoints",
-          "when": "debugConfigurationType == 'pwa-chrome'"
-        }
-      ]
-    },
     "terminal": {
       "profiles": [
         {

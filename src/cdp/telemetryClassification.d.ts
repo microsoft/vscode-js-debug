@@ -7,6 +7,10 @@
 
 interface ICDPOperationClassification {
   // Domain: Accessibility
+  'accessibility.loadcomplete': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!accessibility.loadcomplete.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  'accessibility.nodesupdated': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!accessibility.nodesupdated.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
 
   // Domain: Animation
   'animation.animationcanceled': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
@@ -121,6 +125,8 @@ interface ICDPOperationClassification {
   // Domain: Emulation
   'emulation.virtualtimebudgetexpired': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!emulation.virtualtimebudgetexpired.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+
+  // Domain: EventBreakpoints
 
   // Domain: Fetch
   'fetch.requestpaused': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
@@ -245,6 +251,8 @@ interface ICDPOperationClassification {
   '!network.reportingapireportadded.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   'network.reportingapireportupdated': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!network.reportingapireportupdated.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  'network.reportingapiendpointschangedfororigin': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!network.reportingapiendpointschangedfororigin.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
 
   // Domain: NodeRuntime
   'noderuntime.waitingfordisconnect': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };

@@ -48,6 +48,7 @@ export class DebugAdapter implements IDisposable {
   private _disposables = new DisposableList();
   private _customBreakpoints = new Set<string>();
   private _thread: Thread | undefined;
+  private _threadDeferred = getDeferred<Thread>();
   private _configurationDoneDeferred: IDeferred<void>;
   private lastBreakpointId = 0;
   private readonly _cdpProxyProvider = this._services.get<ICdpProxyProvider>(ICdpProxyProvider);
@@ -114,12 +115,21 @@ export class DebugAdapter implements IDisposable {
     );
     this.dap.on('createDiagnostics', params => this._dumpDiagnostics(params));
     this.dap.on('requestCDPProxy', () => this._requestCDPProxy());
+    this.dap.on('setExcludedCallers', params => this._onSetExcludedCallers(params));
   }
 
   public async launchBlocker(): Promise<void> {
     await this._configurationDoneDeferred.promise;
     await this._services.get<IExceptionPauseService>(IExceptionPauseService).launchBlocker;
     await this.breakpointManager.launchBlocker();
+  }
+
+  async _onSetExcludedCallers({
+    callers,
+  }: Dap.SetExcludedCallersParams): Promise<Dap.SetExcludedCallersResult> {
+    const thread = await this._threadDeferred.promise;
+    thread.setExcludedCallers(callers);
+    return {};
   }
 
   async _onInitialize(params: Dap.InitializeParams): Promise<Dap.InitializeResult | Dap.Error> {
@@ -391,6 +401,7 @@ export class DebugAdapter implements IDisposable {
 
     this.breakpointManager.setThread(this._thread);
     this._services.get(DiagnosticToolSuggester).attach(cdp);
+    this._threadDeferred.resolve(this._thread);
 
     return this._thread;
   }
