@@ -121,7 +121,7 @@
     "@types/ws": "^8.2.2",
     "@typescript-eslint/eslint-plugin": "^5.10.0",
     "@typescript-eslint/parser": "^5.10.0",
-    "@vscode/test-electron": "^2.1.0",
+    "@vscode/test-electron": "^2.1.1",
     "chai": "^4.3.4",
     "chai-as-promised": "^7.1.1",
     "chai-string": "^1.5.0",

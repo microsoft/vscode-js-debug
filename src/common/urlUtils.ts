@@ -433,8 +433,14 @@ export function urlPathToPlatformPath(p: string): string {
 export function platformPathToUrlPath(p: string): string {
   p = platformPathToPreferredCase(p);
 
-  const parts = process.platform === 'win32' ? p.split(/[\\/]/g) : p.split('/');
-  return parts.map(encodeURIComponent).join('/');
+  if (process.platform === 'win32') {
+    return p
+      .split(/[\\//]/g)
+      .map((p, i) => (i > 0 ? encodeURIComponent(p) : p))
+      .join('/');
+  } else {
+    return p.split('/').map(encodeURIComponent).join('/');
+  }
 }
 
 export function platformPathToPreferredCase(p: string): string;

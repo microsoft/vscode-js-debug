@@ -10,8 +10,8 @@ import { Logger } from '../../common/logging/logger';
 import { getCaseSensitivePaths } from '../../common/urlUtils';
 import { defaultSourceMapPathOverrides } from '../../configuration';
 import { BlazorSourcePathResolver } from '../../targets/browser/blazorSourcePathResolver';
-import { testFixturesDir } from '../test';
 import { testVueMapper } from '../../targets/browser/browserPathResolver.test';
+import { testFixturesDir } from '../test';
 
 function createBlazorSourcePathResolver(
   remoteFilePrefix: string | undefined,
