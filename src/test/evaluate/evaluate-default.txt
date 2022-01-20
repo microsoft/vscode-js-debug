@@ -14,7 +14,7 @@ result: 3
 
 <error>: Uncaught ReferenceError: baz is not defined
 
-> result: Uint8Array(3) [1, 2, 3]
+> result: Uint8Array(3) [1, 2, 3, buffer: ArrayBuffer(3), byteLength: 3, byteOffset: 0, length: 3, Symbo…]
     0: 1
     1: 2
     2: 3
@@ -23,11 +23,11 @@ result: 3
     > byteLength (get): ƒ byteLength()
     > byteOffset (get): ƒ byteOffset()
     > length (get): ƒ length()
-    > Symbol(Symbol.toStringTag) (get): ƒ [Symbol.toStringTag]()
+    Symbol(Symbol.toStringTag): undefined
     > [[Prototype]]: TypedArray
 
-> result: ArrayBuffer(3)
-    > byteLength (get): ƒ byteLength()
+> result: ArrayBuffer(3) {byteLength: 3}
+    byteLength: 3
     [[ArrayBufferByteLength]]: 3
     > [[Int8Array]]: Int8Array(3)
     > [[Prototype]]: ArrayBuffer

@@ -22,8 +22,8 @@ import { writeMemory } from './templates/writeMemory';
 
 const localize = nls.loadMessageBundle();
 
-const identifierRe = /^[$a-z_][0-9a-z_$]*$/;
-const privatePropertyRe = /^#[0-9a-z_$]+$/;
+const identifierRe = /^[$a-z_][0-9a-z_$]*$/i;
+const privatePropertyRe = /^#[0-9a-z_$]+$/i;
 
 // Types that allow readMemory and writeMemory
 const memoryReadableTypes: ReadonlySet<Cdp.Runtime.RemoteObject['subtype']> = new Set([
@@ -404,7 +404,7 @@ export class VariableStore {
     } else {
       const rootObjectReference =
         stackTrace || args.find(a => objectPreview.previewAsObject(a))
-          ? ++VariableStore._lastVariableReference
+          ? VariableStore.nextVariableReference()
           : 0;
       rootObjectVariable = {
         name: '',
@@ -416,7 +416,7 @@ export class VariableStore {
       );
     }
 
-    const resultReference = ++VariableStore._lastVariableReference;
+    const resultReference = VariableStore.nextVariableReference();
     this._referenceToVariables.set(resultReference, async () => [rootObjectVariable]);
     return resultReference;
   }
@@ -459,12 +459,12 @@ export class VariableStore {
     });
 
     if (result.value > 0) {
-      if (variable.parent) {
-        this.clearChildren(variable.parent);
-      } else {
-        this.clear();
-      }
-      this.dap.invalidated({ areas: ['variables'] });
+      // todo@connor4312: we should invalidate variables here, but doing so
+      // in the current architecture of the VariableStore is difficult.
+      // Refactor this such that each `scopeVariables` as a reference to a
+      // RemoteObject that renders (and caches) its own preview, and then
+      // the preview cache on the edited memory can simply be cleared.
+      // this.dap.invalidated({ areas: ['variables'] });
     }
 
     return result.value;
@@ -497,23 +497,6 @@ export class VariableStore {
   async clear() {
     this._referenceToVariables.clear();
     this._remoteObjects.clear();
-  }
-
-  private clearChildren(variable: RemoteObject) {
-    if (!variable.scopeVariables) {
-      return;
-    }
-
-    for (const child of variable.scopeVariables) {
-      const childVar = this._remoteObjects.get('variableReference', child.variablesReference);
-      this._referenceToVariables.delete(child.variablesReference);
-      if (childVar) {
-        this._remoteObjects.delete(childVar);
-        this.clearChildren(childVar);
-      }
-    }
-
-    variable.scopeVariables = undefined;
   }
 
   private async _getObjectProperties(

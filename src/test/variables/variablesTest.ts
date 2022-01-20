@@ -476,7 +476,7 @@ describe('variables', () => {
       memoryReference: memB!.memoryReference!,
     });
 
-    p.log(memory3, 'write outcome');
+    p.log(memory3, 'read outcome');
 
     p.assertLog();
   });

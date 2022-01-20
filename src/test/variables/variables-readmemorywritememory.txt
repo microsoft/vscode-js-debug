@@ -41,7 +41,7 @@ $memD [5, 10]{
 write{
     bytesWritten : 5
 }
-write outcome{
+read outcome{
     address : 0
     data : AGhlbGxvBgcICQ==
     unreadableBytes : 0

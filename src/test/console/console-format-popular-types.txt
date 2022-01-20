@@ -25,39 +25,39 @@ stdout> > (1) ['test named "test"']
 Evaluating: 'console.log(error)'
 stdout>
 > Error
-    at console-format:9:23 {stack: 'Error
-    at console-format:9:23'}
+    at console-format:7:23 {stack: 'Error
+    at console-format:7:23'}
 
 Evaluating: 'console.log([error])'
 stdout>
 > (1) [Error
-    at console-format:9:23]
+    at console-format:7:23]
 
 Evaluating: 'console.log(errorWithMessage)'
 stdout>
 > Error: my error message
-    at console-format:10:34 {stack: 'Error: my error message
-    at console-format:10:34', message: 'my error message'}
+    at console-format:8:34 {stack: 'Error: my error message
+    at console-format:8:34', message: 'my error message'}
 
 Evaluating: 'console.log([errorWithMessage])'
 stdout>
 > (1) [Error: my error message
-    at console-format:10:34]
+    at console-format:8:34]
 
 Evaluating: 'console.log(errorWithMultilineMessage)'
 stdout>
 > Error: my multiline
 error message
-    at console-format:11:43 {stack: 'Error: my multiline
+    at console-format:9:43 {stack: 'Error: my multiline
 error message
-    at console-format:11:43', message: 'my multiline
+    at console-format:9:43', message: 'my multiline
 error message'}
 
 Evaluating: 'console.log([errorWithMultilineMessage])'
 stdout>
 > (1) [Error: my multiline
 error message
-    at console-format:11:43]
+    at console-format:9:43]
 
 Evaluating: 'console.log(func)'
 stdout> > ƒ () { return 1; }
@@ -173,13 +173,13 @@ Evaluating: 'console.log([arrayLikeFunction])'
 stdout> > (1) [ƒ]
 
 Evaluating: 'console.log(new Uint16Array(["1", "2", "3"]))'
-stdout> > Uint16Array(3) [1, 2, 3]
+stdout> > Uint16Array(3) [1, 2, 3, buffer: ArrayBuffer(6), byteLength: 6, byteOffset: 0, length: 3, Symbol(Symbol.toStringTag): 'Uint16Array']
 
 Evaluating: 'console.log([new Uint16Array(["1", "2", "3"])])'
 stdout> > (1) [Uint16Array(3)]
 
 Evaluating: 'console.log(tinyTypedArray)'
-stdout> > Uint8Array(1) [3]
+stdout> > Uint8Array(1) [3, buffer: ArrayBuffer(1), byteLength: 1, byteOffset: 0, length: 1, Symbol(Symbol.toStringTag): 'Uint8Array']
 
 Evaluating: 'console.log([tinyTypedArray])'
 stdout> > (1) [Uint8Array(1)]
@@ -245,13 +245,13 @@ Evaluating: 'console.log([new Boolean(true)])'
 stdout> > (1) [Boolean]
 
 Evaluating: 'console.log(new Set([1, 2, 3, 4]))'
-stdout> > Set(4) {1, 2, 3, 4}
+stdout> > Set(4) {size: 4, 1, 2, 3, 4}
 
 Evaluating: 'console.log([new Set([1, 2, 3, 4])])'
 stdout> > (1) [Set(4)]
 
 Evaluating: 'console.log(new Set([1, 2, 3, 4, 5, 6, 7, 8]))'
-stdout> > Set(8) {1, 2, 3, 4, 5, …}
+stdout> > Set(8) {size: 8, 1, 2, 3, 4, 5, …}
 
 Evaluating: 'console.log([new Set([1, 2, 3, 4, 5, 6, 7, 8])])'
 stdout> > (1) [Set(8)]

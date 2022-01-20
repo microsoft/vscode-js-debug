@@ -366,7 +366,6 @@ describe('NodeDebugConfigurationProvider', () => {
       expect(result?.outFiles).to.deep.equal([
         '${workspaceFolder}/a/b/**/*.js',
         '!**/node_modules/**',
-        ,
         '!${workspaceFolder}/a/b/**/node_modules/**',
       ]);
     });

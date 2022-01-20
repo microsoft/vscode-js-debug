@@ -16,8 +16,8 @@ result: 1234567890n
 
 <error>: Uncaught ReferenceError: baz is not defined
 
-> result: Map(1) {hello => ƒ ()}
-    > size (get): ƒ size()
+> result: Map(1) {size: 1, hello => ƒ ()}
+    size: 1
     > [[Entries]]: Array(1)
     > [[Prototype]]: Map
 

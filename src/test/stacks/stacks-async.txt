@@ -11,7 +11,7 @@ bar @ <eval>/VM<xx>:13:15
       > this: Window
   scope #1: Global [expensive]
 
-----async function----
+----await----
 <anonymous> @ <eval>/VM<xx>:8:11
   scope error: Variables not available in async stacks
 ----setTimeout----
@@ -19,6 +19,6 @@ foo @ <eval>/VM<xx>:7:9
   scope error: Variables not available in async stacks
 bar @ <eval>/VM<xx>:13:15
   scope error: Variables not available in async stacks
-----async function----
+----await----
 <anonymous> @ <eval>/VM<xx>:15:7
   scope error: Variables not available in async stacks

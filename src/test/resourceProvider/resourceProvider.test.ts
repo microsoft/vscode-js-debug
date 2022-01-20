@@ -39,6 +39,7 @@ describe('resourceProvider', () => {
       ok: true,
       statusCode: 200,
       body: 'Hello world!',
+      url: 'data:text/plain;base64,SGVsbG8gd29ybGQh',
     });
   });
 
@@ -48,6 +49,7 @@ describe('resourceProvider', () => {
       ok: true,
       statusCode: 200,
       body: 'Hello world!',
+      url: 'data:text/plain;utf-8,Hello%20world!',
     });
   });
 
@@ -57,6 +59,7 @@ describe('resourceProvider', () => {
       ok: true,
       statusCode: 200,
       body: 'Hello world!',
+      url: 'http://localhost:8001/greet',
     });
   });
 
@@ -66,6 +69,7 @@ describe('resourceProvider', () => {
       ok: true,
       statusCode: 200,
       body: 'Hello world!',
+      url: 'http://localhost:8001/redirect-to-greet',
     });
   });
 
