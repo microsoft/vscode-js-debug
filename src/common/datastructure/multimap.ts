@@ -36,7 +36,7 @@ export class MultiMap<T, K extends { [key: string]: unknown }> {
   public delete(value: T) {
     for (const [name, keyFn] of this.keygenPairs) {
       const key = keyFn(value) as any;
-      if (key === this.maps[name].get(key)) {
+      if (value === this.maps[name].get(key)) {
         this.maps[name].delete(key);
       }
     }

@@ -9,7 +9,7 @@ jobs:
 - job: stable_release
   displayName: Stable Release
   variables:
-    node_version: 12.13.0
+    node_version: 14.18.3
   pool:
     vmImage: 'ubuntu-18.04'
   steps:

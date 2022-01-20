@@ -2,14 +2,14 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { testFixturesDir } from '../test';
-import { createFileTree } from '../createFileTree';
-import { NvmResolver, INvmResolver } from '../../targets/node/nvmResolver';
 import { expect } from 'chai';
-import * as path from 'path';
-import { ProtocolError } from '../../dap/protocolError';
 import { promises as fsPromises } from 'fs';
+import * as path from 'path';
 import { LocalFsUtils } from '../../common/fsUtils';
+import { ProtocolError } from '../../dap/protocolError';
+import { INvmResolver, NvmResolver } from '../../targets/node/nvmResolver';
+import { createFileTree } from '../createFileTree';
+import { testFixturesDir, testWorkspace } from '../test';
 
 const fsUtils = new LocalFsUtils(fsPromises);
 
@@ -17,7 +17,7 @@ describe('runtimeVersion', () => {
   let resolver: INvmResolver;
 
   it('fails if no nvm/s present', async () => {
-    resolver = new NvmResolver(fsUtils, {}, 'x64', 'linux');
+    resolver = new NvmResolver(fsUtils, {}, 'x64', 'linux', testWorkspace);
     await expect(resolver.resolveNvmVersionPath('13')).to.eventually.be.rejectedWith(
       ProtocolError,
       /requires Node.js version manager/,
@@ -37,6 +37,7 @@ describe('runtimeVersion', () => {
         { NVS_HOME: path.join(testFixturesDir, 'nvs'), NVM_DIR: path.join(testFixturesDir, 'nvm') },
         'x64',
         'linux',
+        testWorkspace,
       );
     });
 
@@ -59,6 +60,7 @@ describe('runtimeVersion', () => {
         { NVM_DIR: path.join(testFixturesDir, 'nvm') },
         'x64',
         'linux',
+        testWorkspace,
       );
       await expect(resolver.resolveNvmVersionPath('13.11/x64')).to.eventually.be.rejectedWith(
         ProtocolError,
@@ -84,7 +86,13 @@ describe('runtimeVersion', () => {
         'node/13.invalid/x64/bin/node': '',
       });
 
-      resolver = new NvmResolver(fsUtils, { NVS_HOME: testFixturesDir }, 'x64', 'linux');
+      resolver = new NvmResolver(
+        fsUtils,
+        { NVS_HOME: testFixturesDir },
+        'x64',
+        'linux',
+        testWorkspace,
+      );
     });
 
     it('gets an exact match', async () => {
@@ -124,7 +132,13 @@ describe('runtimeVersion', () => {
     });
 
     it('omits the bin directory on windows', async () => {
-      resolver = new NvmResolver(fsUtils, { NVS_HOME: testFixturesDir }, 'x64', 'win32');
+      resolver = new NvmResolver(
+        fsUtils,
+        { NVS_HOME: testFixturesDir },
+        'x64',
+        'win32',
+        testWorkspace,
+      );
       const { directory } = await resolver.resolveNvmVersionPath('13.3.0');
       expect(directory).to.equal(path.join(testFixturesDir, 'node/13.3.0/x64'));
     });
@@ -139,7 +153,13 @@ describe('runtimeVersion', () => {
         'v13.invalid/node.exe': '',
       });
 
-      resolver = new NvmResolver(fsUtils, { NVM_HOME: testFixturesDir }, 'x64', 'win32');
+      resolver = new NvmResolver(
+        fsUtils,
+        { NVM_HOME: testFixturesDir },
+        'x64',
+        'win32',
+        testWorkspace,
+      );
     });
 
     it('gets an exact match', async () => {
@@ -176,7 +196,13 @@ describe('runtimeVersion', () => {
         'versions/node/v13.invalid/bin/node': '',
       });
 
-      resolver = new NvmResolver(fsUtils, { NVM_DIR: testFixturesDir }, 'x64', 'linux');
+      resolver = new NvmResolver(
+        fsUtils,
+        { NVM_DIR: testFixturesDir },
+        'x64',
+        'linux',
+        testWorkspace,
+      );
     });
 
     it('gets an exact match', async () => {

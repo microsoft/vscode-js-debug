@@ -487,6 +487,7 @@ describe('node runtime', () => {
   });
 
   itIntegrates('sets arguments', async ({ r }) => {
+    console.log(process.env.PATH); // todo: debug
     createFileTree(testFixturesDir, { 'test.js': 'debugger' });
     const handle = await r.runScript('test.js', {
       args: ['--some', 'very fancy', '--arguments'],

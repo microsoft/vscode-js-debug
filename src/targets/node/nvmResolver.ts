@@ -45,6 +45,7 @@ export class NvmResolver implements INvmResolver {
     private readonly env = process.env,
     private readonly arch = process.arch,
     private readonly platform = process.platform,
+    private readonly homedir = os.homedir(),
   ) {}
 
   public async resolveNvmVersionPath(version: string) {
@@ -78,7 +79,7 @@ export class NvmResolver implements INvmResolver {
           versionManagers.push('nvm-windows');
         }
       } else {
-        const nvmDir = this.env[Vars.UnixNvmHome] || path.join(os.homedir(), '.nvm');
+        const nvmDir = this.env[Vars.UnixNvmHome] || path.join(this.homedir, '.nvm');
         if (await this.fsUtils.exists(nvmDir)) {
           directory = await this.resolveUnixNvm(version);
           versionManagers.push('nvm');

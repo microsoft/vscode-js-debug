@@ -262,14 +262,18 @@ async function guessOutFiles(
   );
 
   if (root) {
-    const rel = forceForwardSlashes(path.relative(folder.uri.fsPath, root));
+    let rel = forceForwardSlashes(path.relative(folder.uri.fsPath, root));
+    if (rel.length > 0) {
+      rel = `/${rel}`;
+    }
+
     config.outFiles = [
       ...resolveVariableInConfig(
         baseDefaults.outFiles,
         'workspaceFolder',
-        `\${workspaceFolder}/${rel}`,
+        `\${workspaceFolder}${rel}`,
       ),
-      `!\${workspaceFolder}/${rel}/**/node_modules/**`,
+      `!\${workspaceFolder}${rel}/**/node_modules/**`,
     ];
   }
 }

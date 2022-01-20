@@ -44,6 +44,7 @@
     supportsLoadedSourcesRequest : true
     supportsLogPoints : true
     supportsModulesRequest : false
+    supportsReadMemoryRequest : true
     supportsRestartFrame : true
     supportsRestartRequest : true
     supportsSetExpression : true
@@ -53,4 +54,5 @@
     supportsTerminateRequest : false
     supportsTerminateThreadsRequest : false
     supportsValueFormattingOptions : true
+    supportsWriteMemoryRequest : true
 }

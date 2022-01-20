@@ -60,7 +60,8 @@
       ],
       "args": [
         "--enable-proposed-api=ms-vscode.js-debug",
-        "--extensionDevelopmentPath=${workspaceFolder}/out"
+        "--extensionDevelopmentPath=${workspaceFolder}/out",
+        "--extensionDevelopmentPath=${workspaceFolder}/../vscode-hexeditor",
       ],
       "outFiles": [
         "${workspaceFolder}/out/**/*.js",

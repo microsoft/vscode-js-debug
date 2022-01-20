@@ -322,7 +322,11 @@ describe('NodeDebugConfigurationProvider', () => {
         program: 'hello.js',
       });
 
-      expect(result?.outFiles).to.deep.equal(['${workspaceFolder}/**/*.js', '!**/node_modules/**']);
+      expect(result?.outFiles).to.deep.equal([
+        '${workspaceFolder}/../**/*.js',
+        '!**/node_modules/**',
+        '!${workspaceFolder}/../**/node_modules/**',
+      ]);
     });
 
     it('preserves outFiles if package.json is in the same folder', async () => {
@@ -338,7 +342,11 @@ describe('NodeDebugConfigurationProvider', () => {
         program: 'hello.js',
       });
 
-      expect(result?.outFiles).to.deep.equal(['${workspaceFolder}/**/*.js', '!**/node_modules/**']);
+      expect(result?.outFiles).to.deep.equal([
+        '${workspaceFolder}/**/*.js',
+        '!**/node_modules/**',
+        '!${workspaceFolder}/**/node_modules/**',
+      ]);
     });
 
     it('gets the nearest nested package.json', async () => {
@@ -358,6 +366,8 @@ describe('NodeDebugConfigurationProvider', () => {
       expect(result?.outFiles).to.deep.equal([
         '${workspaceFolder}/a/b/**/*.js',
         '!**/node_modules/**',
+        ,
+        '!${workspaceFolder}/a/b/**/node_modules/**',
       ]);
     });
 
@@ -378,6 +388,7 @@ describe('NodeDebugConfigurationProvider', () => {
       expect(result?.outFiles).to.deep.equal([
         '${workspaceFolder}/a/**/*.js',
         '!**/node_modules/**',
+        '!${workspaceFolder}/a/**/node_modules/**',
       ]);
     });
 
@@ -401,7 +412,11 @@ describe('NodeDebugConfigurationProvider', () => {
         },
       );
 
-      expect(result?.outFiles).to.deep.equal(['${workspaceFolder}/**/*.js', '!**/node_modules/**']);
+      expect(result?.outFiles).to.deep.equal([
+        '${workspaceFolder}/../**/*.js',
+        '!**/node_modules/**',
+        '!${workspaceFolder}/../**/node_modules/**',
+      ]);
     });
   });
 });

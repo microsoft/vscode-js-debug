@@ -10,7 +10,7 @@ jobs:
   steps:
   - template: common-validation.yml
   variables:
-    node_version: 12.13.0
+    node_version: 14.18.3
 
 - job: Linux
   pool:
@@ -18,7 +18,7 @@ jobs:
   steps:
   - template: common-validation.yml
   variables:
-    node_version: 12.13.0
+    node_version: 14.18.3
 
 - job: LinuxMinspec
   pool:
@@ -26,7 +26,7 @@ jobs:
   steps:
   - template: common-validation.yml
   variables:
-    node_version: 12.13.0
+    node_version: 14.18.3
     only_minspec: true
 
 - job: Windows
@@ -45,4 +45,4 @@ jobs:
     displayName: Install Edge Canary
   - template: common-validation.yml
   variables:
-    node_version: 12.13.0
+    node_version: 14.18.3
