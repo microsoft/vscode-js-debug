@@ -2,13 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { ISourceMapMetadata } from './sourceMap';
-import { ISearchStrategy, createMetadataForFile } from './sourceMapRepository';
 import globStream from 'glob-stream';
-import { LogTag, ILogger } from '../logging';
-import { forceForwardSlashes, fixDriveLetterAndSlashes } from '../pathUtils';
-import { injectable, inject } from 'inversify';
+import { inject, injectable } from 'inversify';
 import { FileGlobList } from '../fileGlobList';
+import { ILogger, LogTag } from '../logging';
+import { fixDriveLetterAndSlashes, forceForwardSlashes } from '../pathUtils';
+import { ISourceMapMetadata } from './sourceMap';
+import { createMetadataForFile, ISearchStrategy } from './sourceMapRepository';
 
 /**
  * A source map repository that uses globbing to find candidate files.
@@ -35,7 +35,9 @@ export class NodeSearchStrategy implements ISearchStrategy {
         .on('error', reject),
     );
 
-    return (await Promise.all(todo)).filter((t): t is T => t !== undefined);
+    // Type annotation is necessary for https://github.com/microsoft/TypeScript/issues/47144
+    const results: (T | void)[] = await Promise.all(todo);
+    return results.filter((t): t is T => t !== undefined);
   }
 
   /**
@@ -65,7 +67,9 @@ export class NodeSearchStrategy implements ISearchStrategy {
         .on('error', reject),
     );
 
-    return (await Promise.all(todo)).filter((t): t is T => t !== undefined);
+    // Type annotation is necessary for https://github.com/microsoft/TypeScript/issues/47144
+    const results: (T | void)[] = await Promise.all(todo);
+    return results.filter((t): t is T => t !== undefined);
   }
 
   private globForFiles(files: FileGlobList) {

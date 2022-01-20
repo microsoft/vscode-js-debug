@@ -60,7 +60,7 @@ export class WebSocketTransport implements ITransport {
   constructor(ws: WebSocket) {
     this._ws = ws;
     this._ws.addEventListener('message', event => {
-      this.messageEmitter.fire([event.data, new HrTime()]);
+      this.messageEmitter.fire([event.data.toString('utf-8'), new HrTime()]);
     });
     this._ws.addEventListener('close', () => {
       this.endEmitter.fire();
@@ -87,7 +87,7 @@ export class WebSocketTransport implements ITransport {
         return resolve();
       }
 
-      this._ws.addEventListener('close', resolve);
+      this._ws.addEventListener('close', () => resolve());
       this._ws.close();
     });
   }

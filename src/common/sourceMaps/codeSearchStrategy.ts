@@ -82,7 +82,9 @@ export class CodeSearchStrategy implements ISearchStrategy {
 
     this.logger.info(LogTag.SourceMapParsing, `findTextInFiles search found ${todo.length} files`);
 
-    return (await Promise.all(todo)).filter((t): t is T => t !== undefined);
+    // Type annotation is necessary for https://github.com/microsoft/TypeScript/issues/47144
+    const results: (T | void)[] = await Promise.all(todo);
+    return results.filter((t): t is T => t !== undefined);
   }
 
   private getTextSearchOptions(files: FileGlobList): vscodeType.FindTextInFilesOptions {

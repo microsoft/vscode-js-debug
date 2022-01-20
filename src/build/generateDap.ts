@@ -94,9 +94,9 @@ async function generate() {
 
   function appendProps(
     props: { [k: string]: JSONSchema4 },
-    required?: Iterable<string> | false | null,
+    required?: Iterable<string> | true | false | null,
   ) {
-    const requiredSet = new Set(required || []);
+    const requiredSet = required === true ? new Set(Object.keys(props)) : new Set(required || []);
     const propSeparator = createSeparator();
     for (const name in props) {
       const prop = props[name];

@@ -8,6 +8,7 @@
     "sourceMap": true,
     "outDir": "./out/src",
     "strict": true,
+    "useUnknownInCatchVariables": false,
     "noUnusedLocals": true,
     "experimentalDecorators": true,
     "alwaysStrict": true,
