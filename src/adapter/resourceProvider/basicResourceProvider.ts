@@ -38,7 +38,12 @@ export class BasicResourceProvider implements IResourceProvider {
     const absolutePath = isAbsolute(url) ? url : fileUrlToAbsolutePath(url);
     if (absolutePath) {
       try {
-        return { ok: true, url, body: await this.fs.readFile(absolutePath, 'utf-8'), statusCode: 200 };
+        return {
+          ok: true,
+          url,
+          body: await this.fs.readFile(absolutePath, 'utf-8'),
+          statusCode: 200,
+        };
       } catch (error) {
         return { ok: false, url, error, statusCode: 200 };
       }
