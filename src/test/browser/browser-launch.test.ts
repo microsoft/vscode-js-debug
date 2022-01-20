@@ -56,6 +56,7 @@ describe('browser launch', () => {
             const contents = JSON.parse(message.toString());
             ws.send(JSON.stringify({ id: contents.id, error: { message: 'Fake websocket' } }));
             resolve(message.toString()); // We resolve with the contents of the first message we receive
+            ws.close();
           });
         });
       });

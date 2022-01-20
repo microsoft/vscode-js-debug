@@ -7,7 +7,6 @@ steps:
   displayName: Use Node
   inputs:
     versionSpec: $(node_version)
-    checkLatest: true
 
 - bash: |
     /usr/bin/Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
@@ -19,6 +18,11 @@ steps:
   displayName: npm install
   inputs:
     verbose: false
+
+- task: NodeTool@0
+  displayName: Use Node
+  inputs:
+    versionSpec: $(node_version)
 
 # A shell script here due to https://github.com/microsoft/azure-pipelines-tasks/issues/12650
 - task: CmdLine@2
