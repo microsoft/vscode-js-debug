@@ -42,7 +42,12 @@ const jsDebugRegisteredToken = '$jsDebugIsRegistered';
       args: process.argv,
     });
 
-    Object.assign(global, { [jsDebugRegisteredToken]: true });
+    // not enumerable to not get picked up by node's testing globals leakage checks
+    Object.defineProperty(global, jsDebugRegisteredToken, {
+      value: true,
+      enumerable: false,
+    });
+
     if (!checkAll(inspectorOptions)) {
       env.unsetForTree(); // save work for any children
       return;
