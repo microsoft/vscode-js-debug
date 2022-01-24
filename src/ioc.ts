@@ -36,12 +36,15 @@ import { IPortLeaseTracker, PortLeaseTracker } from './adapter/portLeaseTracker'
 import { IProfileController, ProfileController } from './adapter/profileController';
 import { IProfilerFactory, ProfilerFactory } from './adapter/profiling';
 import { BasicCpuProfiler } from './adapter/profiling/basicCpuProfiler';
+import { BasicHeapProfiler } from './adapter/profiling/basicHeapProfiler';
+import { HeapDumpProfiler } from './adapter/profiling/heapDumpProfiler';
 import { IResourceProvider } from './adapter/resourceProvider';
 import { IRequestOptionsProvider } from './adapter/resourceProvider/requestOptionsProvider';
 import { ResourceProviderState } from './adapter/resourceProvider/resourceProviderState';
 import { StatefulResourceProvider } from './adapter/resourceProvider/statefulResourceProvider';
 import { ScriptSkipper } from './adapter/scriptSkipper/implementation';
 import { IScriptSkipper } from './adapter/scriptSkipper/scriptSkipper';
+import { SmartStepper } from './adapter/smartStepping';
 import { SourceContainer } from './adapter/sources';
 import { IVueFileMapper, VueFileMapper } from './adapter/vueFileMapper';
 import Cdp from './cdp/api';
@@ -109,8 +112,6 @@ import { IExperimentationService } from './telemetry/experimentationService';
 import { NullExperimentationService } from './telemetry/nullExperimentationService';
 import { NullTelemetryReporter } from './telemetry/nullTelemetryReporter';
 import { ITelemetryReporter } from './telemetry/telemetryReporter';
-import { HeapDumpProfiler } from './adapter/profiling/heapDumpProfiler';
-import { SmartStepper } from './adapter/smartStepping';
 
 /**
  * Contains IOC container factories for the extension. We use Inverisfy, which
@@ -182,6 +183,7 @@ export const createTargetContainer = (
   container.bind(IConsole).to(Console).inSingletonScope(); // dispose is handled by the Thread
 
   container.bind(BasicCpuProfiler).toSelf();
+  container.bind(BasicHeapProfiler).toSelf();
   container.bind(HeapDumpProfiler).toSelf();
   container.bind(IProfilerFactory).to(ProfilerFactory).inSingletonScope();
   container.bind(IProfileController).to(ProfileController).inSingletonScope();
