@@ -170,23 +170,31 @@ class BasicProfile implements IProfile {
       return id;
     };
 
-    let nodes = [profile.head];
+    const setLocationId = (
+      node: Cdp.HeapProfiler.SamplingHeapProfileNode,
+      distNode: Cdp.HeapProfiler.SamplingHeapProfileNode & {
+        locationId?: number;
+      },
+    ) => {
+      distNode.locationId = getLocationIdFor(node.callFrame);
 
-    while (nodes.length) {
-      const node = nodes.pop();
-
-      if (node) {
-        const { callFrame } = node;
-        (
-          node as unknown as Cdp.HeapProfiler.SamplingHeapProfile & { locationId: number }
-        ).locationId = getLocationIdFor(callFrame);
-
-        nodes = nodes.concat(node.children);
+      for (const child of node.children) {
+        const dist = { ...child, children: [] };
+        distNode.children.push(dist);
+        setLocationId(child, dist);
       }
-    }
+    };
+
+    const head = {
+      ...profile.head,
+      children: [],
+    };
+
+    setLocationId(profile.head, head);
 
     return {
       ...profile,
+      head,
       $vscode: {
         rootPath: this.workspaceFolder,
         locations: await Promise.all(
