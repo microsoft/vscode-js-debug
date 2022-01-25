@@ -172,16 +172,16 @@ class BasicProfile implements IProfile {
 
     const setLocationId = (
       node: Cdp.HeapProfiler.SamplingHeapProfileNode,
-      distNode: Cdp.HeapProfiler.SamplingHeapProfileNode & {
+      destNode: Cdp.HeapProfiler.SamplingHeapProfileNode & {
         locationId?: number;
       },
     ) => {
-      distNode.locationId = getLocationIdFor(node.callFrame);
+      destNode.locationId = getLocationIdFor(node.callFrame);
 
       for (const child of node.children) {
-        const dist = { ...child, children: [] };
-        distNode.children.push(dist);
-        setLocationId(child, dist);
+        const destChild = { ...child, children: [] };
+        destNode.children.push(destChild);
+        setLocationId(child, destChild);
       }
     };
 
