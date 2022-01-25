@@ -133,9 +133,7 @@ export class ExcludedCallersUI
       }),
       this.sessionTracker.onSessionAdded(e => {
         if (this.allCallers.size > 0) {
-          e.customRequest('setExcludedCallers', {
-            callers: [...this.allCallers.values()].map(c => c.toDap()),
-          });
+          this.sendCallersToSession(e);
         }
       }),
     );
@@ -154,8 +152,18 @@ export class ExcludedCallersUI
     return element ? [] : [...this.allCallers.values()];
   }
 
+  private sendCallersToSession(session: vscode.DebugSession) {
+    session.customRequest('setExcludedCallers', {
+      callers: [...this.allCallers.values()].map(c => c.toDap()),
+    });
+  }
+
   private triggerUpdate() {
     this._onDidChangeTreeData.fire(undefined);
+
+    for (const session of this.sessionTracker.getConcreteSessions()) {
+      this.sendCallersToSession(session);
+    }
 
     const hasCallers = this.allCallers.size > 0;
     if (hasCallers !== this.lastHadCallers) {

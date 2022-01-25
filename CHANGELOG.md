@@ -4,6 +4,10 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## v1.64 (January 2021)
 
+### v1.64.1 - 2022-01-25
+
+- fix: excluded callers not updating during same session
+
 ### v1.64.0 - 2022-01-24
 
 - feat: support debugging Edge on Linux ([vscode#138495](https://github.com/microsoft/vscode/issues/138495))
