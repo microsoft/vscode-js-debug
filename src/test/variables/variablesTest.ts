@@ -407,6 +407,7 @@ describe('variables', () => {
           let $memB = $memA.buffer.slice(0, 12);
           let $memC = new Uint8Array($memB);
           let $memD = new DataView($memB);
+          let $memE = new Uint8Array($memB, 3, 8);
 
           for (let i = 0; i < $memC.length; i++) {
             $memC[i] = i;
@@ -432,6 +433,7 @@ describe('variables', () => {
     };
 
     let memB: Dap.Variable;
+    let memE: Dap.Variable;
 
     await walkVariables(p.dap, v, async (variable, depth) => {
       if (!variable.name.startsWith('$mem')) {
@@ -440,6 +442,8 @@ describe('variables', () => {
 
       if (variable.name === '$memB') {
         memB = variable;
+      } else if (variable.name === '$memE') {
+        memE = variable;
       }
 
       expect(variable).to.have.property('memoryReference');
@@ -477,6 +481,21 @@ describe('variables', () => {
     });
 
     p.log(memory3, 'read outcome');
+
+    const written2 = await p.dap.writeMemory({
+      memoryReference: memE!.memoryReference!,
+      data: Buffer.from('helloworld').toString('base64'),
+      offset: 1,
+    });
+
+    p.log(written2, 'write with offset');
+
+    const memory4 = await p.dap.readMemory({
+      count: 10,
+      memoryReference: memB!.memoryReference!,
+    });
+
+    p.log(memory4, 'read outcome');
 
     p.assertLog();
   });

@@ -13,10 +13,19 @@ export const writeMemory = remoteFunction(function (
   data: string,
 ) {
   const bytes = decodeHex(data);
-  const buffer: ArrayBuffer = this instanceof ArrayBuffer ? this : this.buffer;
-  const toWrite = Math.min(bytes.length, buffer.byteLength - offset);
-  new Uint8Array(buffer).set(bytes.subarray(0, toWrite), offset);
-  return toWrite;
+
+  const { buffer, byteLength, byteOffset } =
+    this instanceof ArrayBuffer
+      ? new DataView(this)
+      : this instanceof WebAssembly.Memory
+      ? new DataView(this.buffer)
+      : this;
+
+  const writeStart = byteOffset + Math.min(offset, byteLength);
+  const writeLen = Math.max(0, Math.min(bytes.length, byteLength - offset));
+  new Uint8Array(buffer, writeStart, writeLen).set(bytes.subarray(0, writeLen));
+
+  return writeLen;
 
   function decodeHex(str: string) {
     const output = new Uint8Array(str.length >>> 1);

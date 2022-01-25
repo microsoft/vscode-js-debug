@@ -8,6 +8,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 - fix: excluded callers not updating during same session
 - fix: capitalization of label in exclude callers ([vscode#141454](https://github.com/microsoft/vscode/issues/141454))
+- fix: respect bytesOffset/byteLength when reading/writing memory ([vscode#141449](https://github.com/microsoft/vscode/issues/141449))
 
 ### v1.64.0 - 2022-01-24
 

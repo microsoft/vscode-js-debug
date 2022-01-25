@@ -12,11 +12,16 @@ export const readMemory = remoteFunction(function (
   start: number,
   count: number,
 ) {
-  const buffer: ArrayBuffer = this instanceof ArrayBuffer ? this : this.buffer;
-  const len = buffer.byteLength;
-  const subarray = buffer.slice(Math.min(start, len), Math.min(start + count, len));
+  const { buffer, byteLength, byteOffset } =
+    this instanceof ArrayBuffer
+      ? new DataView(this)
+      : this instanceof WebAssembly.Memory
+      ? new DataView(this.buffer)
+      : this;
 
-  return encodeHex(new Uint8Array(subarray));
+  const readStart = byteOffset + Math.min(start, byteLength);
+  const readCount = Math.max(0, Math.min(count, byteLength - start));
+  return encodeHex(new Uint8Array(buffer, readStart, readCount));
 
   function encodeHex(buffer: Uint8Array) {
     const dictionary = '0123456789abcedf';
