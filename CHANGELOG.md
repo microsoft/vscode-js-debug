@@ -7,6 +7,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 ### v1.64.1 - 2022-01-25
 
 - fix: excluded callers not updating during same session
+- fix: capitalization of label in exclude callers ([vscode#141454](https://github.com/microsoft/vscode/issues/141454))
 
 ### v1.64.0 - 2022-01-24
 

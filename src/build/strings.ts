@@ -314,7 +314,7 @@ A common case to disable certificate verification can be done by passing \`{ "ht
   'openEdgeDevTools.label': 'Open Browser Devtools',
   'workspaceTrust.description': 'Trust is required to debug code in this workspace.',
 
-  'commands.callersAdd.label': 'Exclude caller',
+  'commands.callersAdd.label': 'Exclude Caller',
   'commands.callersAdd.paletteLabel': 'Exclude caller from pausing in the current location',
   'commands.callersRemove.label': 'Remove excluded caller',
   'commands.callersRemoveAll.label': 'Remove all excluded callers',
