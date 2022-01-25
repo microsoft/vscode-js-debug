@@ -2,7 +2,9 @@
 
 This changelog records changes to stable releases since 1.50.2. "TBA" changes here may be available in the [nightly release](https://github.com/microsoft/vscode-js-debug/#nightly-extension) before they're in stable. Note that the minor version (`v1.X.0`) corresponds to the VS Code version js-debug is shipped in, but the patch version (`v1.50.X`) is not meaningful.
 
-## Nightly Only
+## v1.64 (January 2021)
+
+### v1.64.0 - 2022-01-24
 
 - feat: support debugging Edge on Linux ([vscode#138495](https://github.com/microsoft/vscode/issues/138495))
 - feat: support readMemory/writeMemory requests ([#1167](https://github.com/microsoft/vscode/issues/1167))
