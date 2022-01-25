@@ -1,0 +1,24 @@
+paused event{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+finished profile{
+    label :
+    running : false
+}
+reenabled breakpoint{
+    breakpoint : {
+        column : 1
+        id : 1
+        line : 20
+        source : {
+            name : simpleNode/profilePlayground.js
+            path : ${workspaceFolder}/simpleNode/profilePlayground.js
+            sourceReference : 0
+        }
+        verified : true
+    }
+    reason : changed
+}

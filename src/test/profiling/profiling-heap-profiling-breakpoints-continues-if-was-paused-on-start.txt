@@ -1,0 +1,36 @@
+{
+    breakpoints : [
+        [0] : {
+            column : 17
+            id : <number>
+            line : 21
+            source : {
+                name : simpleNode/profilePlayground.js
+                path : ${workspaceFolder}/simpleNode/profilePlayground.js
+                sourceReference : <number>
+            }
+            verified : true
+        }
+    ]
+}
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+{
+    allThreadsContinued : false
+    threadId : <number>
+}
+{
+    category : stdout
+    column : 11
+    line : 23
+    output : hello
+    source : {
+        name : simpleNode/profilePlayground.js
+        path : ${workspaceFolder}/simpleNode/profilePlayground.js
+        sourceReference : <number>
+    }
+}
