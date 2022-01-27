@@ -794,7 +794,7 @@ export class Thread implements IVariableStoreDelegate {
 
       for (let i = 0; i < stackLocations.length; i++) {
         const r = stackLocations[i];
-        if (!r || r.lineNumber !== caller.line || r.columnNumber !== target.column) {
+        if (!r || r.lineNumber !== caller.line || r.columnNumber !== caller.column) {
           continue;
         }
 

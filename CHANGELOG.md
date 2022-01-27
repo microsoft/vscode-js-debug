@@ -4,6 +4,10 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## v1.64 (January 2021)
 
+### v1.64.2 - 2022-01-27
+
+- fix: excluded callers not working consistently
+
 ### v1.64.1 - 2022-01-25
 
 - fix: excluded callers not updating during same session
