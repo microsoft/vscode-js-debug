@@ -1,7 +1,7 @@
 {
   "name": "js-debug",
   "displayName": "JavaScript Debugger",
-  "version": "1.64.1",
+  "version": "1.64.2",
   "publisher": "ms-vscode",
   "author": {
     "name": "Microsoft Corporation"
