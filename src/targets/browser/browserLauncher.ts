@@ -2,11 +2,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { IBrowserFinder, isQuality, Quality } from '@vscode/js-debug-browsers';
 import * as fs from 'fs';
 import { inject, injectable } from 'inversify';
 import * as path from 'path';
 import { CancellationToken } from 'vscode';
-import { IBrowserFinder, isQuality, Quality } from 'vscode-js-debug-browsers';
 import CdpConnection from '../../cdp/connection';
 import { timeoutPromise } from '../../common/cancellation';
 import { DisposableList } from '../../common/disposable';

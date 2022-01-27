@@ -2,13 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { IBrowserFinder } from '@vscode/js-debug-browsers';
 import { randomBytes } from 'crypto';
 import { inject, injectable, tagged } from 'inversify';
 import { createServer } from 'net';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { CancellationToken } from 'vscode';
-import { IBrowserFinder } from 'vscode-js-debug-browsers';
 import CdpConnection from '../../cdp/connection';
 import { WebSocketTransport } from '../../cdp/webSocketTransport';
 import { NeverCancelled } from '../../common/cancellation';

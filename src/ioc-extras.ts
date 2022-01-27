@@ -65,7 +65,7 @@ export const ExtensionLocation = 'ExtensionLocation';
 export type FsPromises = typeof fsPromises;
 
 /**
- * Symbol for `vscode-js-debug-browsers`'s IBrowserFinder.
+ * Symbol for `@vscode/js-debug-browsers`'s IBrowserFinder.
  */
 export const BrowserFinder = Symbol('IBrowserFinder');
 

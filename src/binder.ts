@@ -27,7 +27,6 @@ import {
 } from './configuration';
 import Dap from './dap/api';
 import DapConnection from './dap/connection';
-import { ProtocolError } from './dap/protocolError';
 import { createTargetContainer, provideLaunchParams } from './ioc';
 import { disposeContainer, ExtensionLocation, IInitializeParams, IsVSCode } from './ioc-extras';
 import { ITargetOrigin } from './targets/targetOrigin';
@@ -231,10 +230,6 @@ export class Binder implements IDisposable {
     try {
       await Promise.all([...this.getLaunchers()].map(l => this._launch(l, params, cts.token)));
     } catch (e) {
-      if (e instanceof ProtocolError) {
-        e.cause.showUser = false; // avoid duplicate error messages in the UI
-      }
-
       throw e;
     }
 

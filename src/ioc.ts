@@ -2,16 +2,16 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import {
+  BrowserFinderCtor,
+  ChromeBrowserFinder,
+  EdgeBrowserFinder,
+} from '@vscode/js-debug-browsers';
 import execa from 'execa';
 import { promises as fsPromises } from 'fs';
 import { Container, interfaces } from 'inversify';
 import 'reflect-metadata';
 import * as vscode from 'vscode';
-import {
-  BrowserFinderCtor,
-  ChromeBrowserFinder,
-  EdgeBrowserFinder,
-} from 'vscode-js-debug-browsers';
 import {
   BreakpointPredictorDelegate,
   BreakpointsPredictor,
@@ -36,12 +36,14 @@ import { IPortLeaseTracker, PortLeaseTracker } from './adapter/portLeaseTracker'
 import { IProfileController, ProfileController } from './adapter/profileController';
 import { IProfilerFactory, ProfilerFactory } from './adapter/profiling';
 import { BasicCpuProfiler } from './adapter/profiling/basicCpuProfiler';
+import { HeapDumpProfiler } from './adapter/profiling/heapDumpProfiler';
 import { IResourceProvider } from './adapter/resourceProvider';
 import { IRequestOptionsProvider } from './adapter/resourceProvider/requestOptionsProvider';
 import { ResourceProviderState } from './adapter/resourceProvider/resourceProviderState';
 import { StatefulResourceProvider } from './adapter/resourceProvider/statefulResourceProvider';
 import { ScriptSkipper } from './adapter/scriptSkipper/implementation';
 import { IScriptSkipper } from './adapter/scriptSkipper/scriptSkipper';
+import { SmartStepper } from './adapter/smartStepping';
 import { SourceContainer } from './adapter/sources';
 import { IVueFileMapper, VueFileMapper } from './adapter/vueFileMapper';
 import Cdp from './cdp/api';
@@ -109,8 +111,6 @@ import { IExperimentationService } from './telemetry/experimentationService';
 import { NullExperimentationService } from './telemetry/nullExperimentationService';
 import { NullTelemetryReporter } from './telemetry/nullTelemetryReporter';
 import { ITelemetryReporter } from './telemetry/telemetryReporter';
-import { HeapDumpProfiler } from './adapter/profiling/heapDumpProfiler';
-import { SmartStepper } from './adapter/smartStepping';
 
 /**
  * Contains IOC container factories for the extension. We use Inverisfy, which
