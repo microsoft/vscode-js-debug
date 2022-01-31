@@ -1071,6 +1071,12 @@ function buildDebuggers() {
 
     entries[0].configurationSnippets.push(...d.configurationSnippets);
 
+    if (preferred) {
+      for (const snippet of entries[0].configurationSnippets) {
+        snippet.type = preferred;
+      }
+    }
+
     for (const entry of entries) {
       entry.configurationAttributes[d.request] = {
         required: d.required,
