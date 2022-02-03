@@ -35,7 +35,7 @@ import { IScriptSkipper } from './scriptSkipper/scriptSkipper';
 import { SmartStepper } from './smartStepping';
 import { ISourceWithMap, SourceContainer, SourceFromMap } from './sources';
 import { Thread } from './threads';
-import { VariableStore } from './variables';
+import { VariableStore } from './variableStore';
 
 const localize = nls.loadMessageBundle();
 
@@ -296,7 +296,7 @@ export class DebugAdapter implements IDisposable {
   }
 
   async _onVariables(params: Dap.VariablesParams): Promise<Dap.VariablesResult> {
-    const variableStore = this.findVariableStore(v => v.hasVariables(params.variablesReference));
+    const variableStore = this.findVariableStore(v => v.hasVariable(params.variablesReference));
     return { variables: (await variableStore?.getVariables(params)) ?? [] };
   }
 
@@ -343,7 +343,7 @@ export class DebugAdapter implements IDisposable {
   }
 
   async _onSetVariable(params: Dap.SetVariableParams): Promise<Dap.SetVariableResult | Dap.Error> {
-    const variableStore = this.findVariableStore(v => v.hasVariables(params.variablesReference));
+    const variableStore = this.findVariableStore(v => v.hasVariable(params.variablesReference));
     if (!variableStore)
       return errors.createSilentError(localize('error.variableNotFound', 'Variable not found'));
     params.value = sourceUtils.wrapObjectLiteral(params.value.trim());

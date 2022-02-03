@@ -3,6 +3,6 @@
     > 1: Foo
     2: 5
     3: 'test'
-    > [[Prototype]]: Object
     length: 4
     > [[Prototype]]: I'm an array
+    > [[Prototype]]: Object

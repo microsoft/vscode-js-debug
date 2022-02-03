@@ -107,13 +107,13 @@ export abstract class TextualMessage<T extends { stackTrace?: Cdp.Runtime.StackT
       output = await thread.replacePathsInStackTrace(output);
     }
 
-    const variablesReference = await thread.replVariables.createVariableForOutput(
+    const outputVar = thread.replVariables.createVariableForOutput(
       output,
       args,
       includeStackInVariables ? this.stackTrace(thread) : undefined,
     );
 
-    return { output: '', variablesReference };
+    return { output: '', variablesReference: outputVar.id };
   }
 }
 
@@ -205,10 +205,10 @@ export class TableMessage extends DefaultMessage {
       return {
         category: 'stdout',
         output: '',
-        variablesReference: await thread.replVariables.createVariableForOutput(
+        variablesReference: thread.replVariables.createVariableForOutput(
           formatAsTable(this.event.args[0].preview) + '\n',
           this.event.args,
-        ),
+        ).id,
         ...(await this.getUiLocation(thread)),
       };
     }

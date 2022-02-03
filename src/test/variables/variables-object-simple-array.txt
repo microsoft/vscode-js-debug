@@ -2,7 +2,7 @@
     0: 1  // type=number
     1: 2  // type=number
     2: 3  // type=number
-    > [[Prototype]]: Object  // type=object
     foo: 1  // type=number
     length: 3  // type=number
     > [[Prototype]]: Array(0)  // type=Array
+    > [[Prototype]]: Object  // type=Object

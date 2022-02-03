@@ -2,6 +2,11 @@
 
 This changelog records changes to stable releases since 1.50.2. "TBA" changes here may be available in the [nightly release](https://github.com/microsoft/vscode-js-debug/#nightly-extension) before they're in stable. Note that the minor version (`v1.X.0`) corresponds to the VS Code version js-debug is shipped in, but the patch version (`v1.50.X`) is not meaningful.
 
+## Nightly Only
+
+- fix: don't use `pwa-` prefixed launch types in snuppets ([#1138](https://github.com/microsoft/vscode-js-debug/issues/1138))
+- refactor: clean debt around output, fix previews not updating on memory changes
+
 ## v1.64 (January 2021)
 
 ### v1.64.2 - 2022-01-27

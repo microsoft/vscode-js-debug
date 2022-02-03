@@ -12,7 +12,7 @@ import { ProtocolError } from '../dap/protocolError';
 import { shouldStepOverStackFrame, StackFrameStepOverReason } from './smartStepping';
 import { IPreferredUiLocation, SourceConstants } from './sources';
 import { RawLocation, Thread } from './threads';
-import { IExtraProperty, IScopeRef } from './variables';
+import { IExtraProperty, IScopeRef, IVariableContainer } from './variableStore';
 
 const localize = nls.loadMessageBundle();
 
@@ -164,7 +164,7 @@ interface IScope {
   chain: Cdp.Debugger.Scope[];
   thisObject: Cdp.Runtime.RemoteObject;
   returnValue?: Cdp.Runtime.RemoteObject;
-  variables: (Dap.Variable | undefined)[];
+  variables: (IVariableContainer | undefined)[];
   callFrameId: string;
 }
 
@@ -304,9 +304,7 @@ export class StackFrame {
         name,
         presentationHint,
         expensive: scope.type === 'global',
-        namedVariables: variable.namedVariables,
-        indexedVariables: variable.indexedVariables,
-        variablesReference: variable.variablesReference,
+        variablesReference: variable.id,
       };
       if (scope.startLocation) {
         const startRawLocation = this._thread.rawLocation(scope.startLocation);
@@ -380,7 +378,7 @@ export class StackFrame {
     return text;
   }
 
-  async _scopeVariable(scopeNumber: number, scope: IScope): Promise<Dap.Variable> {
+  private async _scopeVariable(scopeNumber: number, scope: IScope): Promise<IVariableContainer> {
     const existing = scope.variables[scopeNumber];
     if (existing) {
       return existing;
@@ -403,7 +401,7 @@ export class StackFrame {
     }
 
     // eslint-disable-next-line
-    const variable = await this._thread
+    const variable = this._thread
       .pausedVariables()!
       .createScope(scope.chain[scopeNumber].object, scopeRef, extraProperties);
     return (scope.variables[scopeNumber] = variable);
@@ -420,9 +418,8 @@ export class StackFrame {
     for (let scopeNumber = 0; scopeNumber < this._scope.chain.length; scopeNumber++) {
       promises.push(
         this._scopeVariable(scopeNumber, this._scope).then(async scopeVariable => {
-          if (!scopeVariable.variablesReference) return [];
           const variables = await variableStore.getVariables({
-            variablesReference: scopeVariable.variablesReference,
+            variablesReference: scopeVariable.id,
           });
           return variables.map(variable => ({ label: variable.name, type: 'property' }));
         }),

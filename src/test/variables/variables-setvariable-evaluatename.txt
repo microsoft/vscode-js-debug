@@ -11,9 +11,9 @@ undefined
     b[1]
     b[2]
     b[3]
-    b["[[Prototype]]"]
     b.prop
     b.length
+    b["[[Prototype]]"]
     b["[[Prototype]]"]
   c
     c._b
@@ -26,8 +26,8 @@ undefined
         c.e.nested[0]
           c.e.nested[0].obj
           c.e.nested[0]["[[Prototype]]"]
-        c.e.nested["[[Prototype]]"]
         c.e.nested.length
+        c.e.nested["[[Prototype]]"]
         c.e.nested["[[Prototype]]"]
       c.e["[[Prototype]]"]
     c["Symbol(wut)"]

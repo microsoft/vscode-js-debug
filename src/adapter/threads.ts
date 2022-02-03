@@ -28,6 +28,7 @@ import { CustomBreakpointId, customBreakpoints } from './customBreakpoints';
 import { IEvaluator } from './evaluator';
 import { IExceptionPauseService } from './exceptionPauseService';
 import * as objectPreview from './objectPreview';
+import { PreviewContextType } from './objectPreview/contexts';
 import { SmartStepper } from './smartStepping';
 import {
   base1To0,
@@ -44,7 +45,7 @@ import {
   serializeForClipboard,
   serializeForClipboardTmpl,
 } from './templates/serializeForClipboard';
-import { IVariableStoreDelegate, VariableStore } from './variables';
+import { IVariableStoreLocationProvider, VariableStore } from './variableStore';
 const localize = nls.loadMessageBundle();
 
 export type PausedReason =
@@ -138,7 +139,7 @@ const sourcesEqual = (a: Dap.Source, b: Dap.Source) =>
   a.sourceReference === b.sourceReference &&
   urlUtils.comparePathsWithoutCasing(a.path || '', b.path || '');
 
-export class Thread implements IVariableStoreDelegate {
+export class Thread implements IVariableStoreLocationProvider {
   private static _lastThreadId = 0;
   public readonly id: number;
   private _cdp: Cdp.Api;
@@ -194,15 +195,7 @@ export class Thread implements IVariableStoreDelegate {
     this._sourceContainer = sourceContainer;
     this._cdp = cdp;
     this.id = Thread._lastThreadId++;
-    this.replVariables = new VariableStore(
-      this._cdp,
-      dap,
-      this,
-      renameProvider,
-      launchConfig.__autoExpandGetters,
-      launchConfig.customDescriptionGenerator,
-      launchConfig.customPropertiesGenerator,
-    );
+    this.replVariables = new VariableStore(renameProvider, this._cdp, dap, launchConfig, this);
     this._initialize();
   }
 
@@ -491,10 +484,9 @@ export class Thread implements IVariableStoreDelegate {
       );
     }
 
-    const variable =
-      args.context === 'watch'
-        ? await variableStore.createVariableForWatchEval(response.result, args.expression)
-        : await variableStore.createVariable(response.result, args.context);
+    const variable = await variableStore
+      .createFloatingVariable(response.result)
+      .toDap(args.context as PreviewContextType);
 
     return {
       type: response.result.type,
@@ -521,7 +513,9 @@ export class Thread implements IVariableStoreDelegate {
         this._selectedContext && this.defaultExecutionContext() !== this._selectedContext
           ? `\x1b[33m[${this.target.executionContextName(this._selectedContext.description)}] `
           : '';
-      const resultVar = await this.replVariables.createVariable(response.result, 'repl');
+      const resultVar = await this.replVariables
+        .createFloatingVariable(response.result)
+        .toDap(PreviewContextType.Repl);
       return {
         variablesReference: resultVar.variablesReference,
         result: `${contextName}${resultVar.value}`,

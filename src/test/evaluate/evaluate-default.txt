@@ -18,13 +18,13 @@ result: 3
     0: 1
     1: 2
     2: 3
-    > [[Prototype]]: Object
     > buffer (get): ƒ buffer()
     > byteLength (get): ƒ byteLength()
     > byteOffset (get): ƒ byteOffset()
     > length (get): ƒ length()
     Symbol(Symbol.toStringTag): undefined
     > [[Prototype]]: TypedArray
+    > [[Prototype]]: Object
 
 > result: ArrayBuffer(3) {byteLength: 3}
     byteLength: 3
