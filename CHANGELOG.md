@@ -5,6 +5,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 ## Nightly Only
 
 - fix: don't use `pwa-` prefixed launch types in snuppets ([#1138](https://github.com/microsoft/vscode-js-debug/issues/1138))
+- fix: logpoints causing pauses if console.log returns truthy ([#1191](https://github.com/microsoft/vscode-js-debug/issues/1191))
 - refactor: clean debt around output, fix previews not updating on memory changes
 
 ## v1.64 (January 2021)

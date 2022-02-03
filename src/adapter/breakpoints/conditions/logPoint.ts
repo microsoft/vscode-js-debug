@@ -87,7 +87,8 @@ export class LogPointCompiler {
       formatParts.push('%O');
     }
 
-    const result = `console.log(${[JSON.stringify(formatParts.join('')), ...args].join(', ')})`;
+    const evalArgs = [JSON.stringify(formatParts.join('')), ...args].join(', ');
+    const result = `console.log(${evalArgs}), false`; // false for #1191
     const hash = createHash('sha1').update(result).digest('hex').slice(0, 7);
 
     return result + `\n//# sourceURL=logpoint-${hash}.cdp`;
