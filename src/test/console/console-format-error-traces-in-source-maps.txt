@@ -5,11 +5,6 @@ stderr>
     at <anonymous>:1:7 {stack: 'Error
     at throwError (http://localhost:800…erify/bundle.js:23:11)
     at <anonymous>:1:7'}
-stderr>
-> arg0: Error
-    at throwError (http://localhost:8001/browserify/bundle.js:23:11)
-    at <anonymous>:1:7 {stack: 'Error
-    at throwError (http://localhost:800…erify/bundle.js:23:11)
-    at <anonymous>:1:7'}
+stderr>     > arg0: Error\n    at throwError (http://localhost:8001/browserify/bundle.js:23:11)\n    at <anonymous>:1:7 {stack: 'Error\n    at throwError (http://localhost:800…erify/bundle.js:23:11)\n    at <anonymous>:1:7'}
 stderr>     <anonymous> @ <eval>/VM<xx>:1:42
 

@@ -7,7 +7,7 @@ import Cdp from '../../cdp/api';
 import { once } from '../../common/objUtils';
 import Dap from '../../dap/api';
 import { formatMessage } from '../messageFormat';
-import { formatAsTable, messageFormatters, previewAsObject } from '../objectPreview';
+import { messageFormatters, previewAsObject } from '../objectPreview';
 import { AnyObject } from '../objectPreview/betterTypes';
 import { IUiLocation } from '../sources';
 import { StackTrace } from '../stackTrace';
@@ -206,8 +206,10 @@ export class TableMessage extends DefaultMessage {
         category: 'stdout',
         output: '',
         variablesReference: thread.replVariables.createVariableForOutput(
-          formatAsTable(this.event.args[0].preview) + '\n',
+          '',
           this.event.args,
+          undefined,
+          this.event.type,
         ).id,
         ...(await this.getUiLocation(thread)),
       };

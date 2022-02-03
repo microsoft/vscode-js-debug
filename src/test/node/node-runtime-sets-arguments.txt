@@ -8,5 +8,6 @@
     0: '--some'
     1: 'very fancy'
     2: '--arguments'
-    length: 3
     > __proto__: Array(0)
+    > __proto__: Object
+    length: 3

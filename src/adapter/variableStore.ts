@@ -801,6 +801,19 @@ class ArrayVariable extends ObjectVariable {
   }
 }
 
+class OutputTableVariable extends ArrayVariable {
+  public override async toDap(previewContext: PreviewContextType): Promise<Dap.Variable> {
+    if (!this.remoteObject.preview) {
+      return super.toDap(previewContext);
+    }
+
+    return {
+      ...(await super.toDap(previewContext)),
+      name: objectPreview.formatAsTable(this.remoteObject.preview),
+    };
+  }
+}
+
 abstract class AccessorVariable extends Variable {
   constructor(context: VariableContext, remoteObject: Cdp.Runtime.RemoteObject) {
     super(context, remoteObject);
@@ -995,10 +1008,13 @@ export class VariableStore {
     text: string,
     args: ReadonlyArray<Cdp.Runtime.RemoteObject>,
     stackTrace?: StackTrace,
+    outputType?: Cdp.Runtime.ConsoleAPICalledEvent['type'],
   ): IVariableContainer {
     const ctx = this.createFloatingContext();
     const output =
-      args.length === 1 && objectPreview.previewAsObject(args[0]) && !stackTrace
+      args.length === 1 && outputType === 'table'
+        ? ctx.createVariable(OutputTableVariable, { name: '' }, args[0])
+        : args.length === 1 && objectPreview.previewAsObject(args[0]) && !stackTrace
         ? ctx.createVariableByType({ name: '' }, args[0])
         : ctx.createVariable(OutputVariable, { name: '' }, text, args, stackTrace);
     const container = new OutputVariableContainer(output);
@@ -1074,7 +1090,15 @@ export class VariableStore {
 
     const children = await container.getChildren(params);
     const daps = await Promise.all(
-      children.map(v => v.toDap(PreviewContextType.PropertyValue).then(dap => ({ v, dap }))),
+      children.map(v =>
+        v
+          .toDap(
+            container instanceof Scope || container instanceof OutputVariableContainer
+              ? PreviewContextType.Repl
+              : PreviewContextType.PropertyValue,
+          )
+          .then(dap => ({ v, dap })),
+      ),
     );
 
     return daps
