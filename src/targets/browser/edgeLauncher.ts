@@ -37,11 +37,11 @@ export class EdgeLauncher extends BrowserLauncher<IEdgeLaunchConfiguration> {
     @inject(BrowserFinder)
     @tagged('browser', 'edge')
     protected readonly browserFinder: IBrowserFinder,
-    @inject(FS) private readonly fs: FsPromises,
+    @inject(FS) fs: FsPromises,
     @inject(ISourcePathResolver) pathResolver: ISourcePathResolver,
     @inject(IInitializeParams) initializeParams: Dap.InitializeParams,
   ) {
-    super(storagePath, logger, pathResolver, initializeParams);
+    super(storagePath, logger, pathResolver, initializeParams, fs);
   }
 
   /**

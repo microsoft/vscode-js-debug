@@ -11,7 +11,7 @@ import { ILogger } from '../../common/logging';
 import { ISourcePathResolver } from '../../common/sourcePathResolver';
 import { AnyChromiumLaunchConfiguration, AnyLaunchConfiguration } from '../../configuration';
 import Dap from '../../dap/api';
-import { IInitializeParams, StoragePath } from '../../ioc-extras';
+import { FS, FsPromises, IInitializeParams, StoragePath } from '../../ioc-extras';
 import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
 import { BrowserArgs } from './browserArgs';
 import { BrowserLauncher } from './browserLauncher';
@@ -25,9 +25,10 @@ export class RemoteBrowserLauncher extends BrowserLauncher<AnyChromiumLaunchConf
     @inject(ILogger) logger: ILogger,
     @inject(ISourcePathResolver) pathResolver: ISourcePathResolver,
     @inject(IInitializeParams) initializeParams: Dap.InitializeParams,
+    @inject(FS) fs: FsPromises,
     @inject(RemoteBrowserHelper) private readonly helper: RemoteBrowserHelper,
   ) {
-    super(storagePath, logger, pathResolver, initializeParams);
+    super(storagePath, logger, pathResolver, initializeParams, fs);
   }
 
   /**

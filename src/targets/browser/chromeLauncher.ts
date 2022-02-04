@@ -23,12 +23,11 @@ export class ChromeLauncher extends BrowserLauncher<IChromeLaunchConfiguration> 
     @inject(BrowserFinder)
     @tagged('browser', 'chrome')
     protected readonly browserFinder: IBrowserFinder,
-    @inject(FS)
-    private readonly fs: FsPromises,
+    @inject(FS) fs: FsPromises,
     @inject(ISourcePathResolver) pathResolver: ISourcePathResolver,
     @inject(IInitializeParams) initializeParams: Dap.InitializeParams,
   ) {
-    super(storagePath, logger, pathResolver, initializeParams);
+    super(storagePath, logger, pathResolver, initializeParams, fs);
   }
 
   /**

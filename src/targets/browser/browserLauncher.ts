@@ -12,6 +12,7 @@ import { timeoutPromise } from '../../common/cancellation';
 import { DisposableList } from '../../common/disposable';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { EventEmitter } from '../../common/events';
+import { existsInjected } from '../../common/fsUtils';
 import { ILogger } from '../../common/logging';
 import { ISourcePathResolver } from '../../common/sourcePathResolver';
 import {
@@ -23,7 +24,7 @@ import { AnyChromiumLaunchConfiguration, AnyLaunchConfiguration } from '../../co
 import Dap from '../../dap/api';
 import { browserAttachFailed, browserLaunchFailed, targetPageNotFound } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
-import { IInitializeParams, StoragePath } from '../../ioc-extras';
+import { FS, FsPromises, IInitializeParams, StoragePath } from '../../ioc-extras';
 import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
 import { ILaunchContext, ILauncher, ILaunchResult, IStopMetadata, ITarget } from '../targets';
 import { BrowserTargetManager } from './browserTargetManager';
@@ -53,6 +54,7 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
     @inject(ILogger) protected readonly logger: ILogger,
     @inject(ISourcePathResolver) private readonly pathResolver: ISourcePathResolver,
     @inject(IInitializeParams) private readonly initializeParams: Dap.InitializeParams,
+    @inject(FS) protected readonly fs: FsPromises,
   ) {}
 
   /**
@@ -210,10 +212,24 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
       return;
     }
 
-    const url =
-      'file' in params && params.file
-        ? absolutePathToFileUrl(path.resolve(params.webRoot || params.rootPath || '', params.file))
-        : params.url;
+    let url: string | null;
+    if (params.file) {
+      // Allow adding query strings or fragments onto `file` paths -- remove
+      // them if there's no file on disk that match the full `file`.
+      const fullFile = path.resolve(params.webRoot || params.rootPath || '', params.file);
+      const di = Math.min(
+        fullFile.includes('#') ? fullFile.indexOf('#') : Infinity,
+        fullFile.includes('?') ? fullFile.indexOf('?') : Infinity,
+      );
+
+      if (isFinite(di) && !(await existsInjected(this.fs, fullFile))) {
+        url = absolutePathToFileUrl(fullFile.slice(0, di)) + fullFile.slice(di);
+      } else {
+        url = absolutePathToFileUrl(fullFile);
+      }
+    } else {
+      url = params.url;
+    }
 
     if (url) {
       await mainTarget.cdp().Page.navigate({ url });
