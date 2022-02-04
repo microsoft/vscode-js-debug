@@ -109,10 +109,9 @@ export type ScriptWithSourceMapHandler = (
 export type SourceMapDisabler = (hitBreakpoints: string[]) => ISourceWithMap[];
 
 export type RawLocation = {
-  url: string;
   lineNumber: number; // 1-based
   columnNumber: number; // 1-based
-  scriptId?: Cdp.Runtime.ScriptId;
+  scriptId: Cdp.Runtime.ScriptId;
 };
 
 class DeferredContainer<T> {
@@ -850,14 +849,12 @@ export class Thread implements IVariableStoreLocationProvider {
     if ('location' in location) {
       const loc = location as Cdp.Debugger.CallFrame;
       return {
-        url: loc.url,
         lineNumber: Math.max(0, loc.location.lineNumber) + 1,
         columnNumber: Math.max(0, loc.location.columnNumber || 0) + 1,
         scriptId: loc.location.scriptId,
       };
     }
     return {
-      url: (location as Cdp.Runtime.CallFrame).url || '',
       lineNumber: Math.max(0, location.lineNumber) + 1,
       columnNumber: Math.max(0, location.columnNumber || 0) + 1,
       scriptId: location.scriptId,
@@ -882,7 +879,7 @@ export class Thread implements IVariableStoreLocationProvider {
       return undefined;
     }
 
-    const script = this._sourceContainer.scriptsById.get(rawLocation.scriptId);
+    const script = this._sourceContainer.getScriptById(rawLocation.scriptId);
     if (!script) {
       return this.rawLocationToUiLocationWithWaiting(rawLocation);
     }
@@ -926,7 +923,7 @@ export class Thread implements IVariableStoreLocationProvider {
    * possible script IDs; this waits if we see one that we don't.
    */
   private getScriptByIdOrWait(scriptId: string, maxTime = 500) {
-    const script = this._sourceContainer.scriptsById.get(scriptId);
+    const script = this._sourceContainer.getScriptById(scriptId);
     return script || this.waitForScriptId(scriptId, maxTime);
   }
 
@@ -1181,7 +1178,7 @@ export class Thread implements IVariableStoreLocationProvider {
       event.url = urlUtils.absolutePathToFileUrl(event.url);
     }
 
-    if (this._sourceContainer.scriptsById.has(event.scriptId)) {
+    if (this._sourceContainer.getScriptById(event.scriptId)) {
       return;
     }
 
@@ -1280,7 +1277,7 @@ export class Thread implements IVariableStoreLocationProvider {
     const timeout =
       perScriptTimeout + this._sourceContainer.sourceMapTimeouts().sourceMapCumulativePause;
 
-    const script = this._sourceContainer.scriptsById.get(scriptId);
+    const script = this._sourceContainer.getScriptById(scriptId);
     if (!script) {
       this._pausedForSourceMapScriptId = undefined;
       return false;

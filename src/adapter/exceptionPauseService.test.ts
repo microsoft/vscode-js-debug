@@ -14,6 +14,7 @@ import { assertNotResolved, assertResolved } from '../test/asserts';
 import { IEvaluator } from './evaluator';
 import { ExceptionPauseService, PauseOnExceptionsState } from './exceptionPauseService';
 import { ScriptSkipper } from './scriptSkipper/implementation';
+import { SourceContainer } from './sources';
 
 describe('ExceptionPauseService', () => {
   let prepareEval: SinonStub;
@@ -21,17 +22,20 @@ describe('ExceptionPauseService', () => {
   let ep: ExceptionPauseService;
   let stubDap: StubDapApi;
   let stubCdp: StubCdpApi;
+  let getScriptById: SinonStub;
 
   beforeEach(() => {
     prepareEval = stub();
     isScriptSkipped = stub().returns(false);
     stubDap = stubbedDapApi();
     stubCdp = stubbedCdpApi();
+    getScriptById = stub();
     ep = new ExceptionPauseService(
       upcastPartial<IEvaluator>({ prepare: prepareEval }),
       upcastPartial<ScriptSkipper>({ isScriptSkipped }),
       stubDap as unknown as Dap.Api,
       upcastPartial<AnyLaunchConfiguration>({}),
+      upcastPartial<SourceContainer>({ getScriptById }),
     );
   });
 
@@ -85,24 +89,24 @@ describe('ExceptionPauseService', () => {
   it('does not pause if script skipped', async () => {
     await ep.apply(stubCdp.actual);
     await ep.setBreakpoints({ filters: [PauseOnExceptionsState.All] });
+    getScriptById.withArgs('42').returns({ url: 'file:///skipped' });
+    getScriptById.withArgs('43').returns({ url: 'file:///not-skipped' });
+    isScriptSkipped.withArgs('file:///skipped').returns(true);
+    isScriptSkipped.withArgs('file:///not-skipped').returns(false);
 
     expect(
       await ep.shouldPauseAt({
-        callFrames: [],
+        callFrames: [{ location: { scriptId: '42' } } as unknown as Cdp.Debugger.CallFrame],
         reason: 'exception',
       }),
-    ).to.be.true;
-
-    isScriptSkipped.returns(true);
+    ).to.be.false;
 
     expect(
       await ep.shouldPauseAt({
-        callFrames: [],
+        callFrames: [{ location: { scriptId: '43' } } as unknown as Cdp.Debugger.CallFrame],
         reason: 'exception',
       }),
     ).to.be.true;
-
-    isScriptSkipped.returns(false);
   });
   it('prepares an expression if a condition is given', async () => {
     const expr = stub();
@@ -125,7 +129,12 @@ describe('ExceptionPauseService', () => {
 
     expect(
       await ep.shouldPauseAt({
-        callFrames: [upcastPartial<Cdp.Debugger.CallFrame>({ callFrameId: '1' })],
+        callFrames: [
+          upcastPartial<Cdp.Debugger.CallFrame>({
+            callFrameId: '1',
+            location: upcastPartial<Cdp.Debugger.Location>({ scriptId: '42' }),
+          }),
+        ],
         reason: 'exception',
         data: 'oh no!',
       }),
@@ -133,7 +142,12 @@ describe('ExceptionPauseService', () => {
 
     expect(
       await ep.shouldPauseAt({
-        callFrames: [upcastPartial<Cdp.Debugger.CallFrame>({ callFrameId: '1' })],
+        callFrames: [
+          upcastPartial<Cdp.Debugger.CallFrame>({
+            callFrameId: '1',
+            location: upcastPartial<Cdp.Debugger.Location>({ scriptId: '42' }),
+          }),
+        ],
         reason: 'exception',
         data: 'oh no!',
       }),

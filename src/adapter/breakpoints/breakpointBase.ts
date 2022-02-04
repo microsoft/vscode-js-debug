@@ -497,7 +497,7 @@ export abstract class Breakpoint {
         return bp.args.urlRegex === urlRegexp && lcEqual(bp.args, lineColumn);
       }
 
-      const script = this._manager._sourceContainer.scriptsById.get(bp.args.location.scriptId);
+      const script = this._manager._sourceContainer.getScriptById(bp.args.location.scriptId);
       if (script) {
         return lcEqual(bp.args.location, lineColumn) && new RegExp(urlRegexp).test(script.url);
       }

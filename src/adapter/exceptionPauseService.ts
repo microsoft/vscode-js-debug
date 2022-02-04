@@ -16,6 +16,7 @@ import { wrapBreakCondition } from './breakpoints/conditions/expression';
 import { IEvaluator, PreparedCallFrameExpr } from './evaluator';
 import { ScriptSkipper } from './scriptSkipper/implementation';
 import { IScriptSkipper } from './scriptSkipper/scriptSkipper';
+import { SourceContainer } from './sources';
 
 export interface IExceptionPauseService {
   readonly launchBlocker: Promise<void>;
@@ -77,6 +78,7 @@ export class ExceptionPauseService implements IExceptionPauseService {
     @inject(IScriptSkipper) private readonly scriptSkipper: ScriptSkipper,
     @inject(IDapApi) private readonly dap: Dap.Api,
     @inject(AnyLaunchConfiguration) launchConfig: AnyLaunchConfiguration,
+    @inject(SourceContainer) private readonly sourceContainer: SourceContainer,
   ) {
     this.noDebug = !!launchConfig.noDebug;
     this.breakOnError = launchConfig.__breakOnConditionalError;
@@ -175,11 +177,12 @@ export class ExceptionPauseService implements IExceptionPauseService {
    * See: https://github.com/microsoft/vscode-js-debug/issues/644
    */
   private shouldScriptSkip(evt: Cdp.Debugger.PausedEvent) {
-    return (
-      !evt.data?.uncaught &&
-      evt.callFrames.length &&
-      this.scriptSkipper.isScriptSkipped(evt.callFrames[0].url)
-    );
+    if (evt.data?.uncaught || !evt.callFrames.length) {
+      return false;
+    }
+
+    const script = this.sourceContainer.getScriptById(evt.callFrames[0].location.scriptId);
+    return !!script && this.scriptSkipper.isScriptSkipped(script.url);
   }
 
   /**

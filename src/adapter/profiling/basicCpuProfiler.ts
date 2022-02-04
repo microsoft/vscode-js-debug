@@ -150,7 +150,7 @@ class BasicProfile implements IProfile {
         id,
         callFrame,
         locations: (async () => {
-          const source = await this.sources.scriptsById.get(callFrame.scriptId)?.source;
+          const source = await this.sources.getScriptById(callFrame.scriptId)?.source;
           if (!source) {
             return [];
           }

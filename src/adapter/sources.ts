@@ -470,7 +470,7 @@ export class SourceContainer {
   /**
    * Mapping of CDP script IDs to Script objects.
    */
-  public scriptsById: Map<Cdp.Runtime.ScriptId, Script> = new Map();
+  private readonly scriptsById: Map<Cdp.Runtime.ScriptId, Script> = new Map();
 
   private onScriptEmitter = new EventEmitter<Script>();
   private _dap: Dap.Api;
@@ -590,6 +590,13 @@ export class SourceContainer {
   public addScriptById(script: Script) {
     this.scriptsById.set(script.scriptId, script);
     this.onScriptEmitter.fire(script);
+  }
+
+  /**
+   * Gets a script by its script ID.
+   */
+  public getScriptById(scriptId: string) {
+    return this.scriptsById.get(scriptId);
   }
 
   /**

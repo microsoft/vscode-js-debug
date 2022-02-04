@@ -68,7 +68,7 @@ describe('sourceUtils', () => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any);
         const compiled = compiler.compile({ line: 0 }, input).breakCondition as string;
-        expect(compiled.slice(0, compiled.lastIndexOf('\n'))).to.equal(expected);
+        expect(compiled.slice(0, compiled.lastIndexOf('\n'))).to.equal(`${expected}, false`);
       });
     }
   });

@@ -209,7 +209,13 @@ export class StackFrame {
   }
 
   static asyncSeparator(thread: Thread, name: string): StackFrame {
-    const result = new StackFrame(thread, name, { lineNumber: 1, columnNumber: 1, url: '' }, true);
+    // todo@connor4312: this should probably be a different type of object
+    const result = new StackFrame(
+      thread,
+      name,
+      { lineNumber: 1, columnNumber: 1, scriptId: '' },
+      true,
+    );
     result._isAsyncSeparator = true;
     return result;
   }
@@ -235,8 +241,7 @@ export class StackFrame {
       other &&
       other._rawLocation.columnNumber === this._rawLocation.columnNumber &&
       other._rawLocation.lineNumber === this._rawLocation.lineNumber &&
-      other._rawLocation.scriptId === this._rawLocation.scriptId &&
-      other._rawLocation.url === this._rawLocation.url
+      other._rawLocation.scriptId === this._rawLocation.scriptId
     );
   }
 
@@ -370,8 +375,7 @@ export class StackFrame {
   async format(): Promise<string> {
     if (this._isAsyncSeparator) return `◀ ${this._name} ▶`;
     const uiLocation = await this.uiLocation();
-    const prettyName =
-      (uiLocation && (await uiLocation.source.prettyName())) || this._rawLocation.url;
+    const prettyName = (await uiLocation?.source.prettyName()) || '<unknown>';
     const anyLocation = uiLocation || this._rawLocation;
     let text = `${this._name} @ ${prettyName}:${anyLocation.lineNumber}`;
     if (anyLocation.columnNumber > 1) text += `:${anyLocation.columnNumber}`;
