@@ -4,6 +4,10 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## v1.64 (January 2021)
 
+### v1.64.1 - 2022-02-08
+
+- fix: blazor attachment not working ([#1190](https://github.com/microsoft/vscode-js-debug/issues/1190))
+
 ### v1.64.0 - 2022-01-24
 
 - feat: support debugging Edge on Linux ([vscode#138495](https://github.com/microsoft/vscode/issues/138495))
