@@ -30,18 +30,29 @@ export class WebSocketTransport implements ITransport {
 
     while (true) {
       try {
-        const ws = new WebSocket(url, [], {
+        const options = {
           headers: { host: 'localhost' },
           perMessageDeflate: false,
           maxPayload: 256 * 1024 * 1024, // 256Mb
           rejectUnauthorized: !(isSecure && targetAddressIsLoopback),
           followRedirects: true,
-        });
+        };
 
+        const ws = new WebSocket(url, [], options);
         return await timeoutPromise(
           new Promise<WebSocketTransport>((resolve, reject) => {
             ws.addEventListener('open', () => resolve(new WebSocketTransport(ws)));
-            ws.addEventListener('error', errorEvent => reject(errorEvent.error)); // Parameter is an ErrorEvent. See https://github.com/websockets/ws/blob/master/doc/ws.md#websocketonerror
+            ws.addEventListener('error', errorEvent => {
+              // Check for invalid http redirects for compatibility with old cdp proxies
+              const redirectUrl = url === ws.url ? url : ws.url.replace(/^http(s?):/, 'ws$1:');
+
+              if (redirectUrl === url) {
+                reject(errorEvent.error); // Parameter is an ErrorEvent. See https://github.com/websockets/ws/blob/master/doc/ws.md#websocketonerror
+                return;
+              }
+
+              this.create(redirectUrl, cancellationToken).then(resolve, reject);
+            });
           }),
           CancellationTokenSource.withTimeout(2000, cancellationToken).token,
           `Could not open ${url}`,
