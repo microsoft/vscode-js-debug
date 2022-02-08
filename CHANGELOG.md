@@ -12,6 +12,10 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## v1.64 (January 2021)
 
+### v1.64.3 - 2022-02-08
+
+- fix: blazor attachment not working ([#1190](https://github.com/microsoft/vscode-js-debug/issues/1190))
+
 ### v1.64.2 - 2022-01-27
 
 - fix: excluded callers not working consistently
