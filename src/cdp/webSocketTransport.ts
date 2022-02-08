@@ -44,19 +44,14 @@ export class WebSocketTransport implements ITransport {
             ws.addEventListener('open', () => resolve(new WebSocketTransport(ws)));
             ws.addEventListener('error', errorEvent => {
               // Check for invalid http redirects for compatibility with old cdp proxies
-              const redirectedUrl = ws.url.replace(/^http:/, 'ws:').replace(/^https:/, 'wss:');
+              const redirectUrl = url === ws.url ? url : ws.url.replace(/^http(s?):/, 'ws$1:');
 
-              if (redirectedUrl === url) {
-                reject(errorEvent); // Parameter is an ErrorEvent. See https://github.com/websockets/ws/blob/master/doc/ws.md#websocketonerror
+              if (redirectUrl === url) {
+                reject(errorEvent.error); // Parameter is an ErrorEvent. See https://github.com/websockets/ws/blob/master/doc/ws.md#websocketonerror
                 return;
               }
 
-              // Try to reconnect with the redirected URL
-              const redirectedSocket = new WebSocket(redirectedUrl, [], options);
-              redirectedSocket.addEventListener('open', () =>
-                resolve(new WebSocketTransport(redirectedSocket)),
-              );
-              redirectedSocket.addEventListener('error', errorEvent => reject(errorEvent.error));
+              this.create(redirectUrl, cancellationToken).then(resolve, reject);
             });
           }),
           CancellationTokenSource.withTimeout(2000, cancellationToken).token,
