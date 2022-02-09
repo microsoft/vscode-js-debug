@@ -134,6 +134,7 @@ export class TerminalNodeLauncher extends NodeLauncherBase<ITerminalLaunchConfig
       cwd: runData.params.cwd,
       iconPath: new vscode.ThemeIcon('debug'),
       env: hideDebugInfoFromConsole(binary, env).defined(),
+      isTransient: true,
     });
     this.terminalCreatedEmitter.fire(terminal);
 
