@@ -322,11 +322,7 @@ describe('NodeDebugConfigurationProvider', () => {
         program: 'hello.js',
       });
 
-      expect(result?.outFiles).to.deep.equal([
-        '${workspaceFolder}/../**/*.js',
-        '!**/node_modules/**',
-        '!${workspaceFolder}/../**/node_modules/**',
-      ]);
+      expect(result?.outFiles).to.deep.equal(['${workspaceFolder}/**/*.js', '!**/node_modules/**']);
     });
 
     it('preserves outFiles if package.json is in the same folder', async () => {
@@ -342,11 +338,7 @@ describe('NodeDebugConfigurationProvider', () => {
         program: 'hello.js',
       });
 
-      expect(result?.outFiles).to.deep.equal([
-        '${workspaceFolder}/**/*.js',
-        '!**/node_modules/**',
-        '!${workspaceFolder}/**/node_modules/**',
-      ]);
+      expect(result?.outFiles).to.deep.equal(['${workspaceFolder}/**/*.js', '!**/node_modules/**']);
     });
 
     it('gets the nearest nested package.json', async () => {
@@ -356,17 +348,25 @@ describe('NodeDebugConfigurationProvider', () => {
         'a/package.json': '{}',
       });
 
-      const result = await provider.resolveDebugConfiguration(folder, {
-        type: DebugType.Node,
-        name: '',
-        request: 'launch',
-        program: 'a/b/c/hello.js',
-      });
+      const result = await provider.resolveDebugConfiguration(
+        {
+          uri: vscode.Uri.file(join(testFixturesDir, 'b')),
+          name: 'test-dir',
+          index: 0,
+        },
+        {
+          type: DebugType.Node,
+          name: '',
+          request: 'launch',
+          program: '../a/b/c/hello.js',
+        },
+      );
 
       expect(result?.outFiles).to.deep.equal([
-        '${workspaceFolder}/a/b/**/*.js',
+        '${workspaceFolder}/**/*.js',
         '!**/node_modules/**',
-        '!${workspaceFolder}/a/b/**/node_modules/**',
+        '${workspaceFolder}/../a/b/**/*.js',
+        '!${workspaceFolder}/../a/b/**/node_modules/**',
       ]);
     });
 
@@ -377,17 +377,25 @@ describe('NodeDebugConfigurationProvider', () => {
         'a/package.json': '{}',
       });
 
-      const result = await provider.resolveDebugConfiguration(folder, {
-        type: DebugType.Node,
-        name: '',
-        request: 'launch',
-        program: 'a/node_modules/c/hello.js',
-      });
+      const result = await provider.resolveDebugConfiguration(
+        {
+          uri: vscode.Uri.file(join(testFixturesDir, 'b')),
+          name: 'test-dir',
+          index: 0,
+        },
+        {
+          type: DebugType.Node,
+          name: '',
+          request: 'launch',
+          program: '../a/node_modules/c/hello.js',
+        },
+      );
 
       expect(result?.outFiles).to.deep.equal([
-        '${workspaceFolder}/a/**/*.js',
+        '${workspaceFolder}/**/*.js',
         '!**/node_modules/**',
-        '!${workspaceFolder}/a/**/node_modules/**',
+        '${workspaceFolder}/../a/**/*.js',
+        '!${workspaceFolder}/../a/**/node_modules/**',
       ]);
     });
 
@@ -411,11 +419,7 @@ describe('NodeDebugConfigurationProvider', () => {
         },
       );
 
-      expect(result?.outFiles).to.deep.equal([
-        '${workspaceFolder}/../**/*.js',
-        '!**/node_modules/**',
-        '!${workspaceFolder}/../**/node_modules/**',
-      ]);
+      expect(result?.outFiles).to.deep.equal(['${workspaceFolder}/**/*.js', '!**/node_modules/**']);
     });
   });
 });

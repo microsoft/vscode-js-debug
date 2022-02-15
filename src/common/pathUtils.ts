@@ -204,6 +204,14 @@ export const isSubdirectoryOf = (parent: string, child: string) => {
 };
 
 /**
+ * Gets whether the child is a subdirectory of or equivalent its parent.
+ */
+export const isSubpathOrEqualTo = (parent: string, child: string) => {
+  const rel = path.relative(parent, child);
+  return !path.isAbsolute(rel) && !rel.startsWith('..');
+};
+
+/**
  * Returns whether the path looks like a UNC path.
  */
 export const isUncPath = (path: string) => path.startsWith('\\\\');

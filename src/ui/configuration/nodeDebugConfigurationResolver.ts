@@ -13,7 +13,7 @@ import { DebugType } from '../../common/contributionUtils';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { findOpenPort } from '../../common/findOpenPort';
 import { existsInjected, IFsUtils, LocalFsUtils } from '../../common/fsUtils';
-import { forceForwardSlashes } from '../../common/pathUtils';
+import { forceForwardSlashes, isSubpathOrEqualTo } from '../../common/pathUtils';
 import { nearestDirectoryWhere } from '../../common/urlUtils';
 import {
   AnyNodeConfiguration,
@@ -229,9 +229,10 @@ function getAbsoluteLocation(folder: vscode.WorkspaceFolder | undefined, relpath
 
 /**
  * Set the outFiles to the nearest package.json-containing folder relative
- * to the program, if we can find one within the workspace folder. This speeds
- * things up significantly in monorepos.
- * @see https://github.com/microsoft/vscode-js-debug/issues/326
+ * to the program, if it's not already included in the workspace folder.
+ *
+ * This used to narrow (#326), but I think this is undesirable behavior for
+ * most users (vscode#142641), so now it only widens the `outFiles`.
  */
 async function guessOutFiles(
   fsUtils: LocalFsUtils,
@@ -252,7 +253,7 @@ async function guessOutFiles(
     programLocation = getAbsoluteLocation(folder, config.cwd);
   }
 
-  if (!programLocation) {
+  if (!programLocation || isSubpathOrEqualTo(folder.uri.fsPath, programLocation)) {
     return;
   }
 
@@ -262,19 +263,14 @@ async function guessOutFiles(
   );
 
   if (root) {
-    let rel = forceForwardSlashes(path.relative(folder.uri.fsPath, root));
-    if (rel.length > 0) {
-      rel = `/${rel}`;
+    const rel = forceForwardSlashes(path.relative(folder.uri.fsPath, root));
+    if (rel.length) {
+      config.outFiles = [
+        ...baseDefaults.outFiles,
+        `\${workspaceFolder}/${rel}/**/*.js`,
+        `!\${workspaceFolder}/${rel}/**/node_modules/**`,
+      ];
     }
-
-    config.outFiles = [
-      ...resolveVariableInConfig(
-        baseDefaults.outFiles,
-        'workspaceFolder',
-        `\${workspaceFolder}${rel}`,
-      ),
-      `!\${workspaceFolder}${rel}/**/node_modules/**`,
-    ];
   }
 }
 
