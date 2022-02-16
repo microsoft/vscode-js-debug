@@ -24,6 +24,15 @@ steps:
   inputs:
     versionSpec: $(node_version)
 
+- task: CmdLine@2
+  displayName: test echo environment
+  inputs:
+    script: node -e "console.log(process.env.PATH)" # debug failures on osx
+  condition: eq(${{ parameters.runTests }}, true)
+  env:
+    JSDBG_TEST_VERSION: insiders
+    DISPLAY: ':99.0'
+
 # A shell script here due to https://github.com/microsoft/azure-pipelines-tasks/issues/12650
 - task: CmdLine@2
   displayName: npm test
