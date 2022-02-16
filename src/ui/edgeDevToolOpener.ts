@@ -24,6 +24,14 @@ const qualifies = (session: vscode.DebugSession) => {
 const toolExtensionId = 'ms-edgedevtools.vscode-edge-devtools';
 const commandId = 'vscode-edge-devtools.attachToCurrentDebugTarget';
 
+function findRootSession(session: vscode.DebugSession): vscode.DebugSession {
+  let root = session;
+  while (root.parentSession) {
+    root = root.parentSession;
+  }
+  return root;
+}
+
 @injectable()
 export class EdgeDevToolOpener implements IExtensionContribution {
   constructor(@inject(DebugSessionTracker) private readonly tracker: DebugSessionTracker) {}
@@ -47,8 +55,14 @@ export class EdgeDevToolOpener implements IExtensionContribution {
           return;
         }
 
+        const rootSession = findRootSession(session);
+
         try {
-          return await vscode.commands.executeCommand(commandId, session.id);
+          return await vscode.commands.executeCommand(
+            commandId,
+            session.id,
+            rootSession.configuration,
+          );
         } catch (e) {
           if (e instanceof Error && /command .+ not found/.test(e.message)) {
             return vscode.commands.executeCommand(
