@@ -58,7 +58,11 @@ export class EdgeDevToolOpener implements IExtensionContribution {
         const rootSession = findRootSession(session);
 
         try {
-          return await vscode.commands.executeCommand(commandId, session.id, rootSession.configuration);
+          return await vscode.commands.executeCommand(
+            commandId,
+            session.id,
+            rootSession.configuration,
+          );
         } catch (e) {
           if (e instanceof Error && /command .+ not found/.test(e.message)) {
             return vscode.commands.executeCommand(
