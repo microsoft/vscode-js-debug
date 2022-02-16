@@ -12,6 +12,7 @@ import { Base1Position } from '../common/positions';
 import { delay, getDeferred, IDeferred } from '../common/promiseUtil';
 import { IRenameProvider } from '../common/sourceMaps/renameProvider';
 import * as sourceUtils from '../common/sourceUtils';
+import { StackTraceParser } from '../common/stackTraceParser';
 import * as urlUtils from '../common/urlUtils';
 import { fileUrlToAbsolutePath } from '../common/urlUtils';
 import { AnyLaunchConfiguration, IChromiumBaseConfiguration, OutputSource } from '../configuration';
@@ -1543,42 +1544,36 @@ export class Thread implements IVariableStoreLocationProvider {
    * Replaces locations in the stack trace with their source locations.
    */
   public async replacePathsInStackTrace(trace: string): Promise<string> {
-    // Either match lines like
-    // "    at fulfilled (/Users/roblou/code/testapp-node2/out/app.js:5:58)"
-    // or
-    // "    at /Users/roblou/code/testapp-node2/out/app.js:60:23"
-    // and replace the path in them
-    const re1 = /^(\W*at .*\()(.*):(\d+):(\d+)(\))$/;
-    const re2 = /^(\W*at )(.*):(\d+):(\d+)$/;
+    const todo: (string | Promise<string>)[] = [];
+    for (const chunk of new StackTraceParser(trace)) {
+      if (typeof chunk === 'string') {
+        todo.push(chunk);
+        continue;
+      }
 
-    const lines = await Promise.all(
-      trace.split('\n').map(line => {
-        const match = re1.exec(line) || re2.exec(line);
-        if (!match) {
-          return line;
-        }
+      const compiledSource =
+        this._sourceContainer.getSourceByOriginalUrl(urlUtils.absolutePathToFileUrl(chunk.path)) ||
+        this._sourceContainer.getSourceByOriginalUrl(chunk.path);
+      if (!compiledSource) {
+        todo.push(chunk.toString());
+        continue;
+      }
 
-        const [, prefix, url, lineNo, columnNo, suffix = ''] = match;
-        const compiledSource =
-          this._sourceContainer.getSourceByOriginalUrl(urlUtils.absolutePathToFileUrl(url)) ||
-          this._sourceContainer.getSourceByOriginalUrl(url);
-        if (!compiledSource) {
-          return line;
-        }
-
-        return this._sourceContainer
+      todo.push(
+        this._sourceContainer
           .preferredUiLocation({
-            columnNumber: Number(columnNo),
-            lineNumber: Number(lineNo),
+            columnNumber: chunk.position.base1.columnNumber,
+            lineNumber: chunk.position.base1.lineNumber,
             source: compiledSource,
           })
           .then(
             ({ source, lineNumber, columnNumber }) =>
-              `${prefix}${source.absolutePath}:${lineNumber}:${columnNumber}${suffix}`,
-          );
-      }),
-    );
+              `${source.absolutePath}:${lineNumber}:${columnNumber}`,
+          ),
+      );
+    }
 
-    return lines.join('\n');
+    const mapped = await Promise.all(todo);
+    return mapped.join('');
   }
 }

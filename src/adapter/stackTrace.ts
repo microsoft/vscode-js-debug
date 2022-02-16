@@ -136,6 +136,12 @@ export class StackTrace {
     this._frameById.set(frame._id, frame);
   }
 
+  async formatAsNative(): Promise<string> {
+    const stackFrames = await this.loadFrames(50);
+    const promises = stackFrames.map(frame => frame.formatAsNative());
+    return (await Promise.all(promises)).join('\n') + '\n';
+  }
+
   async format(): Promise<string> {
     const stackFrames = await this.loadFrames(50);
     const promises = stackFrames.map(frame => frame.format());
@@ -370,6 +376,17 @@ export class StackFrame {
       presentationHint,
       canRestart: !this.isAsync,
     } as Dap.StackFrame;
+  }
+
+  async formatAsNative(): Promise<string> {
+    if (this._isAsyncSeparator) return `    --- ${this._name} ---`;
+    const uiLocation = await this.uiLocation();
+    const url =
+      (await uiLocation?.source.existingAbsolutePath()) ||
+      uiLocation?.source.url ||
+      (await uiLocation?.source.prettyName());
+    const { lineNumber, columnNumber } = uiLocation || this._rawLocation;
+    return `    at ${this._name} (${url}:${lineNumber}:${columnNumber})`;
   }
 
   async format(): Promise<string> {

@@ -412,6 +412,14 @@ describe('console format', () => {
     handle.assertLog();
   });
 
+  itIntegrates('adds error traces if they do not exist', async ({ r }) => {
+    const handle = await r.launchUrlAndLoad('browserify/browserify.html');
+    const output = handle.dap.once('output');
+    await handle.logger.evaluateAndLog(['setTimeout(() => { throw "asdf" }, 0) ']);
+    handle.log(await output);
+    handle.assertLog();
+  });
+
   itIntegrates('applies skipfiles to logged stacks', async ({ r }) => {
     const handle = await r.launchAndLoad(
       `

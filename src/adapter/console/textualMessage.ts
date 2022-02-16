@@ -5,6 +5,7 @@
 import * as nls from 'vscode-nls';
 import Cdp from '../../cdp/api';
 import { once } from '../../common/objUtils';
+import { StackTraceParser } from '../../common/stackTraceParser';
 import Dap from '../../dap/api';
 import { formatMessage } from '../messageFormat';
 import { messageFormatters, previewAsObject } from '../objectPreview';
@@ -102,7 +103,7 @@ export abstract class TextualMessage<T extends { stackTrace?: Cdp.Runtime.StackT
     args: ReadonlyArray<Cdp.Runtime.RemoteObject>,
     includeStackInVariables: boolean,
   ) {
-    if (args.some(a => a.subtype === 'error')) {
+    if (args.some(a => a.subtype === 'error') || StackTraceParser.isStackLike(output)) {
       await this.getUiLocation(thread); // ensure the source is loaded before decoding stack
       output = await thread.replacePathsInStackTrace(output);
     }

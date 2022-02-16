@@ -1,0 +1,27 @@
+Evaluating: 'setTimeout(() => { throw "asdf" }, 0) '
+stderr> Uncaught Error asdf
+    at <anonymous> (<eval>/VM<xx>:1:20)
+    --- setTimeout ---
+    at <anonymous> (<eval>/VM<xx>:1:1)
+stderr>
+> Uncaught Error asdf
+    at <anonymous> (<eval>/VM<xx>:1:20)
+    --- setTimeout ---
+    at <anonymous> (<eval>/VM<xx>:1:1)
+stderr>
+<anonymous> @ <eval>/VM<xx>:1:20
+◀ setTimeout ▶
+<anonymous> @ <eval>/VM<xx>:1
+
+{
+    category : stderr
+    column : 20
+    line : 1
+    output : Uncaught Error asdf     at <anonymous> (<eval>/VM<xx>:1:20)     --- setTimeout ---     at <anonymous> (<eval>/VM<xx>:1:1)
+    source : {
+        name : <eval>/VM<xx>
+        path : <eval>/VM<xx>
+        sourceReference : <number>
+    }
+    variablesReference : <number>
+}
