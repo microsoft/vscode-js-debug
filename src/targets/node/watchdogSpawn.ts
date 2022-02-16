@@ -56,6 +56,11 @@ export interface IWatchdogInfo {
    * Parent ID, if any.
    */
   openerId?: string;
+
+  /**
+   * Host in HTTP header.
+   */
+  hostHeader: string;
 }
 
 export type WatchdogTarget = Cdp.Target.TargetInfo & {
@@ -188,7 +193,11 @@ export class WatchDog implements IDisposable {
 
   private async createTarget() {
     this.gracefulExit = false; // reset
-    const target = await WebSocketTransport.create(this.info.inspectorURL, NeverCancelled);
+    const target = await WebSocketTransport.create(
+      this.info.inspectorURL,
+      this.info.hostHeader,
+      NeverCancelled,
+    );
     target.onMessage(([data]) => this.server.send(data));
     target.onEnd(() => {
       if (target) {

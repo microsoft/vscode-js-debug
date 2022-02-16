@@ -117,6 +117,7 @@ function inspectOrQueue(env: IBootloaderInfo, ownId: string): boolean {
     telemetry,
     scriptName: process.argv[1],
     inspectorURL: inspector.url() as string,
+    hostHeader: 'localhost',
     waitForDebugger: true,
     ownId,
     openerId: env.openerId,

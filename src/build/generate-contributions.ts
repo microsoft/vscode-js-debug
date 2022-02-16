@@ -332,6 +332,11 @@ const nodeBaseConfigurationAttributes: ConfigurationAttributes<INodeBaseConfigur
     description: refString('node.remoteRoot.description'),
     default: null,
   },
+  hostHeader: {
+    type: ['string'],
+    description: refString('node.hostHeader.description'),
+    default: 'localhost',
+  },
   autoAttachChildProcesses: {
     type: 'boolean',
     description: refString('node.launch.autoAttachChildProcesses.description'),

@@ -70,6 +70,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
         } else {
           inspectorURL = await retryGetNodeEndpoint(
             `http://${runData.params.address}:${runData.params.port}`,
+            runData.params.hostHeader,
             restarting && runData.params.timeout > 0
               ? CancellationTokenSource.withTimeout(runData.params.timeout).token
               : runData.context.cancellationToken,
@@ -88,6 +89,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
         ipcAddress: runData.serverAddress,
         scriptName: 'Remote Process',
         inspectorURL,
+        hostHeader: runData.params.hostHeader,
         waitForDebugger: true,
         dynamicAttach: true,
       });
@@ -196,6 +198,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
           nodePath: binary.path,
           hostname: run.params.address,
           ipcAddress: run.serverAddress,
+          hostHeader: run.params.hostHeader,
         },
         parentInfo.targetId,
         this.logger,

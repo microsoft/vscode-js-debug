@@ -156,9 +156,11 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
           scriptName: 'Remote Process',
           inspectorURL: await retryGetNodeEndpoint(
             `http://127.0.0.1:${this.attachSimplePort}`,
+            runData.params.hostHeader,
             runData.context.cancellationToken,
             this.logger,
           ),
+          hostHeader: runData.params.hostHeader,
           waitForDebugger: true,
           dynamicAttach: true,
         });

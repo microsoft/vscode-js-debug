@@ -304,6 +304,14 @@ export interface INodeBaseConfiguration extends IBaseConfiguration, IConfigurati
   remoteRoot: string | null;
 
   /**
+   * Value of 'host' in http headers.
+   * This can be useful to connect to a remote node instance.
+   * Default is 'localhost'.
+   * @see https://nodejs.org/en/docs/guides/debugging-getting-started/#browsers-websockets-and-same-origin-policy
+   */
+  hostHeader: string;
+
+  /**
    * Attach debugger to new child processes automatically.
    */
   autoAttachChildProcesses: boolean;
@@ -834,6 +842,7 @@ const nodeBaseDefaults: INodeBaseConfiguration = {
   sourceMaps: true,
   localRoot: null,
   remoteRoot: null,
+  hostHeader: 'localhost',
   resolveSourceMapLocations: ['**', '!**/node_modules/**'],
   autoAttachChildProcesses: true,
   runtimeSourcemapPausePatterns: [],

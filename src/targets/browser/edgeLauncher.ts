@@ -124,7 +124,7 @@ export class EdgeLauncher extends BrowserLauncher<IEdgeLaunchConfiguration> {
 
         // All web views started under our debugger are waiting to to be resumed.
         const wsURL = `ws://${params.address}:${port}/devtools/${info.type}/${info.id}`;
-        const ws = await WebSocketTransport.create(wsURL, NeverCancelled);
+        const ws = await WebSocketTransport.create(wsURL, 'localhost', NeverCancelled);
         const connection = new CdpConnection(ws, this.logger, telemetryReporter);
         await connection.rootSession().Runtime.runIfWaitingForDebugger({});
         connection.close();

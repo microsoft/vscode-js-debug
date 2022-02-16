@@ -70,6 +70,7 @@ const inspectWsConnection = async (
       ? await waitForWSEndpoint(process, cancellationToken)
       : await retryGetBrowserEndpoint(
           `http://localhost:${options.connection}`,
+          'localhost',
           cancellationToken,
           logger,
         );
@@ -80,7 +81,7 @@ const inspectWsConnection = async (
 
   while (true) {
     try {
-      return await WebSocketTransport.create(inspectWs, cancellationToken);
+      return await WebSocketTransport.create(inspectWs, 'localhost', cancellationToken);
     } catch (e) {
       if (cancellationToken.isCancellationRequested) {
         throw e;

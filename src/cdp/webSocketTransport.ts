@@ -23,6 +23,7 @@ export class WebSocketTransport implements ITransport {
    */
   static async create(
     url: string,
+    hostHeader: string,
     cancellationToken: CancellationToken,
   ): Promise<WebSocketTransport> {
     const isSecure = !url.startsWith('ws://');
@@ -31,7 +32,7 @@ export class WebSocketTransport implements ITransport {
     while (true) {
       try {
         const options = {
-          headers: { host: 'localhost' },
+          headers: { host: hostHeader },
           perMessageDeflate: false,
           maxPayload: 256 * 1024 * 1024, // 256Mb
           rejectUnauthorized: !(isSecure && targetAddressIsLoopback),
@@ -51,7 +52,7 @@ export class WebSocketTransport implements ITransport {
                 return;
               }
 
-              this.create(redirectUrl, cancellationToken).then(resolve, reject);
+              this.create(redirectUrl, hostHeader, cancellationToken).then(resolve, reject);
             });
           }),
           CancellationTokenSource.withTimeout(2000, cancellationToken).token,

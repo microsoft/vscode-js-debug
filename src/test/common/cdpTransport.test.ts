@@ -2,17 +2,17 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { ITransport } from '../../cdp/transport';
-import { RawPipeTransport } from '../../cdp/rawPipeTransport';
-import { PassThrough } from 'stream';
-import { Logger } from '../../common/logging/logger';
-import { randomBytes } from 'crypto';
 import { expect } from 'chai';
+import { randomBytes } from 'crypto';
 import { stub } from 'sinon';
-import { Server as WebSocketServer, AddressInfo } from 'ws';
+import { PassThrough } from 'stream';
+import { AddressInfo, Server as WebSocketServer } from 'ws';
+import { GzipPipeTransport } from '../../cdp/gzipPipeTransport';
+import { RawPipeTransport } from '../../cdp/rawPipeTransport';
+import { ITransport } from '../../cdp/transport';
 import { WebSocketTransport } from '../../cdp/webSocketTransport';
 import { NeverCancelled } from '../../common/cancellation';
-import { GzipPipeTransport } from '../../cdp/gzipPipeTransport';
+import { Logger } from '../../common/logging/logger';
 import { eventuallyOk } from '../testIntegrationUtils';
 
 describe('cdp transport', () => {
@@ -51,7 +51,11 @@ describe('cdp transport', () => {
         });
 
         const address = server.address() as AddressInfo;
-        const a = WebSocketTransport.create(`ws://127.0.0.1:${address.port}`, NeverCancelled);
+        const a = WebSocketTransport.create(
+          `ws://127.0.0.1:${address.port}`,
+          'localhost',
+          NeverCancelled,
+        );
         const b = new Promise<WebSocketTransport>((resolve, reject) => {
           server.on('connection', cnx => resolve(new WebSocketTransport(cnx)));
           server.on('error', reject);

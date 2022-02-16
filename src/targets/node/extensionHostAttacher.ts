@@ -73,6 +73,7 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostAttach
   ): Promise<void> {
     const inspectorURL = await retryGetNodeEndpoint(
       `http://localhost:${runData.params.port}`,
+      runData.params.hostHeader,
       runData.context.cancellationToken,
       this.logger,
     );
@@ -81,6 +82,7 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostAttach
       ipcAddress: runData.serverAddress,
       scriptName: 'Extension Host',
       inspectorURL,
+      hostHeader: runData.params.hostHeader,
       waitForDebugger: true,
       dynamicAttach: true,
     });

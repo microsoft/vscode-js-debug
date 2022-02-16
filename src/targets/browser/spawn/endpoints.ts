@@ -16,6 +16,7 @@ import { delay } from '../../../common/promiseUtil';
  */
 export async function getWSEndpoint(
   browserURL: string,
+  hostHeader: string,
   cancellationToken: CancellationToken,
   logger: ILogger,
   isNode: boolean,
@@ -25,7 +26,7 @@ export async function getWSEndpoint(
     provider.fetchJson<{ webSocketDebuggerUrl?: string }>(
       URL.resolve(browserURL, '/json/version'),
       cancellationToken,
-      { host: 'localhost' },
+      { host: hostHeader },
     ),
     // Chrome publishes its top-level debugg on /json/version, while Node does not.
     // Request both and return whichever one got us a string. ONLY try this on
@@ -34,7 +35,7 @@ export async function getWSEndpoint(
       ? provider.fetchJson<{ webSocketDebuggerUrl: string }[]>(
           URL.resolve(browserURL, '/json/list'),
           cancellationToken,
-          { host: 'localhost' },
+          { host: hostHeader },
         )
       : Promise.resolve(undefined),
   ]);
@@ -70,12 +71,13 @@ const makeRetryGetWSEndpoint =
   (isNode: boolean) =>
   async (
     browserURL: string,
+    hostHeader: string,
     cancellationToken: CancellationToken,
     logger: ILogger,
   ): Promise<string> => {
     while (true) {
       try {
-        return await getWSEndpoint(browserURL, cancellationToken, logger, isNode);
+        return await getWSEndpoint(browserURL, hostHeader, cancellationToken, logger, isNode);
       } catch (e) {
         if (cancellationToken.isCancellationRequested) {
           throw new Error(`Could not connect to debug target at ${browserURL}: ${e.message}`);

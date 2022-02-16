@@ -204,17 +204,27 @@ export async function attach(
   if (browserWSEndpoint) {
     const connectionTransport = await WebSocketTransport.create(
       browserWSEndpoint,
+      'localhost',
       cancellationToken,
     );
     return new CdpConnection(connectionTransport, logger, telemetryReporter);
   } else if (browserURL) {
-    const connectionURL = await retryGetBrowserEndpoint(browserURL, cancellationToken, logger);
+    const connectionURL = await retryGetBrowserEndpoint(
+      browserURL,
+      'localhost',
+      cancellationToken,
+      logger,
+    );
 
     const inspectWs = options.inspectUri
       ? constructInspectorWSUri(options.inspectUri, options.pageURL, connectionURL)
       : connectionURL;
 
-    const connectionTransport = await WebSocketTransport.create(inspectWs, cancellationToken);
+    const connectionTransport = await WebSocketTransport.create(
+      inspectWs,
+      'localhost',
+      cancellationToken,
+    );
     return new CdpConnection(connectionTransport, logger, telemetryReporter);
   }
   throw new Error('Either browserURL or browserWSEndpoint needs to be specified');

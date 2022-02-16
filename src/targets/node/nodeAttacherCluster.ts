@@ -2,12 +2,12 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { LogTag, ILogger } from '../../common/logging';
-import { WatchDog } from './watchdogSpawn';
-import { NeverCancelled } from '../../common/cancellation';
 import { CancellationToken } from 'vscode';
-import { processTree, analyseArguments } from '../../ui/processTree/processTree';
+import { NeverCancelled } from '../../common/cancellation';
+import { ILogger, LogTag } from '../../common/logging';
+import { analyseArguments, processTree } from '../../ui/processTree/processTree';
 import { getWSEndpoint } from '../browser/spawn/endpoints';
+import { WatchDog } from './watchdogSpawn';
 
 interface IProcessTreeNode {
   children: IProcessTreeNode[];
@@ -23,6 +23,7 @@ export async function watchAllChildren(
     nodePath: string;
     hostname: string;
     ipcAddress: string;
+    hostHeader: string;
   },
   openerId: string,
   logger: ILogger,
@@ -45,12 +46,19 @@ export async function watchAllChildren(
     }
 
     todo.push(
-      getWSEndpoint(`http://${options.hostname}:${port}`, cancellation, logger, true)
+      getWSEndpoint(
+        `http://${options.hostname}:${port}`,
+        options.hostHeader,
+        cancellation,
+        logger,
+        true,
+      )
         .then(inspectorURL =>
           WatchDog.attach({
             ipcAddress: options.ipcAddress,
             scriptName: 'Child Process',
             inspectorURL,
+            hostHeader: options.hostHeader,
             waitForDebugger: true,
             dynamicAttach: true,
             pid: String(child.pid),

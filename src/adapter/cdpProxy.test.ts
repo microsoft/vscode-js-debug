@@ -32,7 +32,11 @@ describe('CdpProxyProvider', () => {
 
     const addr = await provider.proxy();
     clientConn = new Connection(
-      await WebSocketTransport.create(`ws://${addr.host}:${addr.port}${addr.path}`, NeverCancelled),
+      await WebSocketTransport.create(
+        `ws://${addr.host}:${addr.port}${addr.path}`,
+        'localhost',
+        NeverCancelled,
+      ),
       Logger.null,
       new NullTelemetryReporter(),
     );
