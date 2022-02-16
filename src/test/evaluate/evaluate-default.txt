@@ -76,15 +76,29 @@ result: 3
         > [[Prototype]]: Object
 
 Evaluating#1: setTimeout(() => { throw new Error('bar')}, 0)
-stderr> Uncaught Error: bar
-stderr> > Uncaught Error: bar
+stderr> Uncaught Error Error: bar
+    at <anonymous> (http://localhost:8001/eval1.js:1:26)
+    --- setTimeout ---
+    at <anonymous> (http://localhost:8001/eval1.js:1:1)
+stderr>
+> Uncaught Error Error: bar
+    at <anonymous> (http://localhost:8001/eval1.js:1:26)
+    --- setTimeout ---
+    at <anonymous> (http://localhost:8001/eval1.js:1:1)
 stderr>
 <anonymous> @ localhost꞉8001/eval1.js:1:26
 ◀ setTimeout ▶
 <anonymous> @ localhost꞉8001/eval1.js:1
 
-stderr> Uncaught Error: baz
-stderr> > Uncaught Error: baz
+stderr> Uncaught Error Error: baz
+    at <anonymous> (<eval>/VM<xx>:1:26)
+    --- setTimeout ---
+    at <anonymous> (<eval>/VM<xx>:1:1)
+stderr>
+> Uncaught Error Error: baz
+    at <anonymous> (<eval>/VM<xx>:1:26)
+    --- setTimeout ---
+    at <anonymous> (<eval>/VM<xx>:1:1)
 stderr>
 <anonymous> @ <eval>/VM<xx>:1:26
 ◀ setTimeout ▶
@@ -94,8 +108,17 @@ stderr>
 
 <error>: Uncaught Object
 
-stderr> Uncaught Error: error2
-stderr> > Uncaught Error: error2
+stderr> Uncaught Error Error: error2
+    at throwError (${workspaceFolder}/web/browserify/module1.ts:6:9)
+    at <anonymous> (<eval>/VM<xx>:1:27)
+    --- setTimeout ---
+    at <anonymous> (<eval>/VM<xx>:1:1)
+stderr>
+> Uncaught Error Error: error2
+    at throwError (${workspaceFolder}/web/browserify/module1.ts:6:9)
+    at <anonymous> (<eval>/VM<xx>:1:27)
+    --- setTimeout ---
+    at <anonymous> (<eval>/VM<xx>:1:1)
 stderr>
 throwError @ ${workspaceFolder}/web/browserify/module1.ts:6:9
 <anonymous> @ <eval>/VM<xx>:1:27

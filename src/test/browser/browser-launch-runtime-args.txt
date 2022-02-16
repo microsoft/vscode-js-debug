@@ -1,6 +1,6 @@
 > result: (2) [678, 456]
     0: 678
     1: 456
-    > [[Prototype]]: Object
     length: 2
     > [[Prototype]]: Array(0)
+    > [[Prototype]]: Object

@@ -12,7 +12,10 @@ test @ ${workspaceFolder}/web/minified/index.js:6:5
       inner2: 3
       > this: Window
   > scope #1: Local: test
-      > hitDebugger: ƒ hitDebugger(arg1, arg2) {\n    debugger;\n  }
+
+> hitDebugger: ƒ hitDebugger(arg1, arg2) {
+    debugger;
+  }
       later: undefined
       outer: 1
   scope #2: Global [expensive]
