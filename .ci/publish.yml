@@ -1,0 +1,40 @@
+trigger:
+  tags:
+    include: ['*']
+pr: none
+
+resources:
+  repositories:
+    - repository: templates
+      type: github
+      name: microsoft/vscode-engineering
+      ref: main
+      endpoint: Monaco
+
+parameters:
+  - name: publishExtension
+    displayName: 🚀 Publish Extension
+    type: boolean
+    default: false
+
+  - name: isNightly
+    displayName: 🌃 Nightly
+    type: boolean
+    default: false
+
+extends:
+  template: azure-pipelines/extension/stable.yml@templates
+  parameters:
+    workingDirectory: dist
+    publishExtension: ${{ parameters.publishExtension }}
+    buildSteps:
+      - script: npm install
+        displayName: Install dependencies
+
+      - script: cd .. && npm run compile -- package:prepare --nightly
+        displayName: Package Nightly
+        condition: and(succeeded(), eq(parameters.isNightly, 'true'))
+
+      - script: cd .. && npm run compile -- package:prepare
+        displayName: Package Stable
+        condition: and(succeeded(), eq(parameters.isNightly, 'false'))

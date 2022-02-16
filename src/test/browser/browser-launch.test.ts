@@ -107,7 +107,7 @@ describe('constructInspectorWSUri', () => {
 
   it('fails with an useful error for invalid urls', () => {
     expect(() => constructInspectorWSUri(inspectUri, '.not_an_url', browserWsInspectUri)).to.throw(
-      'Invalid URL: .not_an_url',
+      /Invalid URL/,
     );
     expect(() => constructInspectorWSUri(inspectUri, null, browserWsInspectUri)).to.throw(
       `A valid url wasn't supplied: <null>`,

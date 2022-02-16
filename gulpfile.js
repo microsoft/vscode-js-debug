@@ -373,7 +373,7 @@ gulp.task(
 
 /** Clean, compile, bundle, and create vsix for the extension */
 gulp.task(
-  'package',
+  'package:prepare',
   gulp.series(
     'clean',
     'compile:ts',
@@ -386,6 +386,8 @@ gulp.task(
     'package:createVSIX',
   ),
 );
+
+gulp.task('package', gulp.series('package:prepare', 'package:createVSIX'));
 
 gulp.task(
   'flatSessionBundle',
