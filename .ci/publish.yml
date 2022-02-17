@@ -23,8 +23,8 @@ extends:
     workingDirectory: dist
     publishExtension: ${{ parameters.publishExtension }}
     buildSteps:
-      - script: cd .. && npm install
+      - script: npm install
         displayName: Install dependencies
 
-      - script: cd .. && npm run compile -- package:prepare
+      - script: npm run compile -- package:prepare
         displayName: Package Stable
