@@ -10,6 +10,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: handle query string and path fragments in `file`s within the launch config ([vscode#142199](https://github.com/microsoft/vscode/issues/142199))
 - fix: do not narrow outFiles within the workspace folder automatically ([vscode#142641](https://github.com/microsoft/vscode/issues/142641))
 - fix: improve formatting of errors in output ([vscode#122870](https://github.com/microsoft/vscode/issues/122870))
+- fix: improve labels in Excluded Caller view ([vscode#141669](https://github.com/microsoft/vscode/issues/141669))
 - refactor: remove usage of `Debugger.callFrame.url` ([#1136](https://github.com/microsoft/vscode-js-debug/issues/1136))
 - refactor: clean debt around output, fix previews not updating on memory changes
 

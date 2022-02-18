@@ -170,6 +170,7 @@ export interface IConfigurationTypes {
 
 export interface IStackFrameContext {
   sessionId: string;
+  frameName: string;
   frameId: string;
   frameLocation: {
     range: { startLineNumber: number; startColumn: number };

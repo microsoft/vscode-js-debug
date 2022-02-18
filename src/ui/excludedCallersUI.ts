@@ -7,30 +7,19 @@ import { inject, injectable } from 'inversify';
 import { basename } from 'path';
 import * as vscode from 'vscode';
 import { Commands, CustomViews, registerCommand } from '../common/contributionUtils';
-import { forceForwardSlashes } from '../common/pathUtils';
 import type Dap from '../dap/api';
 import { IExtensionContribution } from '../ioc-extras';
 import { DebugSessionTracker } from './debugSessionTracker';
 
-const uriLabel = (source: Dap.Source) => {
-  if (source.sourceReference !== 0 || !source.path) {
-    return basename(String(source.path));
-  }
+interface ICallerWithName extends Dap.CallerLocation {
+  name: string;
+}
 
-  const uri = vscode.Uri.file(source.path);
-  const parent = vscode.workspace.getWorkspaceFolder(uri);
-  if (!parent) {
-    return basename(uri.fsPath);
-  }
+const locationLabel = ({ name, line, column, source }: ICallerWithName) =>
+  `${name} (${basename(String(source.path))}:${line}:${column})`;
 
-  return forceForwardSlashes(uri.fsPath.slice(parent.uri.fsPath.length + 1));
-};
-
-const locationLabel = ({ line, column, source }: Dap.CallerLocation) =>
-  `${uriLabel(source)}:${line}:${column}`;
-
-const fullLabel = ({ line, column, source }: Dap.CallerLocation) =>
-  `${source.path}:${line}:${column}`;
+const fullLabel = ({ name, line, column, source }: ICallerWithName) =>
+  `${name} (${source.path}:${line}:${column})`;
 
 const revealLocation = async ({ line, column, source }: Dap.CallerLocation) => {
   if (source.sourceReference !== 0 || !source.path) {
@@ -49,10 +38,7 @@ export class ExcludedCaller {
   public readonly treeItem: vscode.TreeItem;
   public readonly id: string;
 
-  constructor(
-    public readonly caller: Dap.CallerLocation,
-    public readonly target: Dap.CallerLocation,
-  ) {
+  constructor(public readonly caller: ICallerWithName, public readonly target: ICallerWithName) {
     this.treeItem = new vscode.TreeItem(
       `${locationLabel(caller)} → ${locationLabel(target)}`,
       vscode.TreeItemCollapsibleState.None,
@@ -107,11 +93,13 @@ export class ExcludedCallersUI
         const topOfStack = stack.stackFrames[0];
         const caller = new ExcludedCaller(
           {
+            name: context.frameName,
             column: context.frameLocation.range.startColumn,
             line: context.frameLocation.range.startLineNumber,
             source: context.frameLocation.source,
           },
           {
+            name: topOfStack.name,
             column: topOfStack.column,
             line: topOfStack.line,
             source: topOfStack.source,
