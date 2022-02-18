@@ -5,7 +5,7 @@ resources:
     - repository: templates
       type: github
       name: microsoft/vscode-engineering
-      ref: vsce-package-args
+      ref: main
       endpoint: Monaco
 
 parameters:
