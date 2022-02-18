@@ -22,6 +22,8 @@ extends:
   parameters:
     workingDirectory: dist
     publishExtension: ${{ parameters.publishExtension }}
+    vscePackageArgs: --no-dependencies
+    cgIgnoreDirectories: 'testdata,demos,.vscode-test'
     buildSteps:
       - script: npm install
         displayName: Install dependencies
