@@ -4,6 +4,12 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly Only
 
+Nothing (yet)
+
+## v1.65 (February 2022)
+
+### v1.65.0 - 2022-02-23
+
 - feat: adopt `isTransient` to avoid persisting debug terminal ([#1196](https://github.com/microsoft/vscode-js-debug/issues/1196))
 - feat: adopt new presentationHint.lazy for getters ([#1211](https://github.com/microsoft/vscode-js-debug/issues/1211))
 - fix: don't use `pwa-` prefixed launch types in snuppets ([#1138](https://github.com/microsoft/vscode-js-debug/issues/1138))
@@ -15,7 +21,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - refactor: remove usage of `Debugger.callFrame.url` ([#1136](https://github.com/microsoft/vscode-js-debug/issues/1136))
 - refactor: clean debt around output, fix previews not updating on memory changes
 
-## v1.64 (January 2021)
+## v1.64 (January 2022)
 
 ### v1.64.3 - 2022-02-08
 
