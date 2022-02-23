@@ -19,7 +19,7 @@ function hasRef(definition: JSONSchema4): definition is JSONSchema4 & { $ref: JS
 
 async function generate() {
   const { body: standard } = await got<JSONSchema4>(
-    'https://raw.githubusercontent.com/microsoft/debug-adapter-protocol/gh-pages/debugAdapterProtocol.json',
+    'https://raw.githubusercontent.com/microsoft/debug-adapter-protocol/next/debugAdapterProtocol.json',
     { responseType: 'json' },
   );
   const result: string[] = [];

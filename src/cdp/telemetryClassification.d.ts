@@ -397,6 +397,8 @@ interface ICDPOperationClassification {
   '!storage.indexeddbcontentupdated.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   'storage.indexeddblistupdated': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!storage.indexeddblistupdated.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  'storage.interestgroupaccessed': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!storage.interestgroupaccessed.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
 
   // Domain: SystemInfo
 

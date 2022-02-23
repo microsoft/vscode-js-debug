@@ -3695,7 +3695,10 @@ export namespace Dap {
     name: string;
 
     /**
-     * The variable's value. This can be a multi-line text, e.g. for a function the body of a function.
+     * The variable's value.
+     * This can be a multi-line text, e.g. for a function the body of a function.
+     * For structured variables (which do not have a simple value), it is recommended to provide a one line representation of the structured object. This helps to identify the structured object in the collapsed state when its children are not yet visible.
+     * An empty string can be used if no value should be shown in the UI.
      */
     value: string;
 
@@ -4418,6 +4421,11 @@ export namespace Dap {
      * Visibility of variable. Before introducing additional values, try to use the listed values.
      */
     visibility?: 'public' | 'private' | 'protected' | 'internal' | 'final';
+
+    /**
+     * If true clients can present the variable with a UI that supports a specific gesture to trigger its evaluation.
+     */
+    lazy?: boolean;
   }
 
   /**
@@ -4505,6 +4513,11 @@ export namespace Dap {
      * A string that should be used when comparing this item with other items. When `falsy` the label is used.
      */
     sortText?: string;
+
+    /**
+     * A human-readable string with additional information about this item, like type or symbol information.
+     */
+    detail?: string;
 
     /**
      * The item's type. Typically the client uses this information to render the item in the UI with an icon.

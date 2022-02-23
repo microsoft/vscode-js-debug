@@ -229,12 +229,6 @@ export namespace Cdp {
       depth?: integer;
 
       /**
-       * Deprecated. This parameter has been renamed to `depth`. If depth is not provided, max_depth will be used.
-       * @deprecated
-       */
-      max_depth?: integer;
-
-      /**
        * The frame for whose document the AX tree should be retrieved.
        * If omited, the root frame is used.
        */
@@ -1300,6 +1294,7 @@ export namespace Cdp {
       | 'MixedContentWarning';
 
     export type MixedContentResourceType =
+      | 'AttributionSrc'
       | 'Audio'
       | 'Beacon'
       | 'CSPReport'
@@ -1584,16 +1579,6 @@ export namespace Cdp {
       location?: SourceCodeLocation;
     }
 
-    export interface WasmCrossOriginModuleSharingIssueDetails {
-      wasmModuleUrl: string;
-
-      sourceOrigin: string;
-
-      targetOrigin: string;
-
-      isWarning: boolean;
-    }
-
     export type GenericIssueErrorType = 'CrossOriginPortalPostMessageError';
 
     /**
@@ -1635,6 +1620,37 @@ export namespace Cdp {
 
     export type ClientHintIssueReason = 'MetaTagAllowListInvalidOrigin' | 'MetaTagModifiedHTML';
 
+    export interface FederatedAuthRequestIssueDetails {
+      federatedAuthRequestIssueReason: FederatedAuthRequestIssueReason;
+    }
+
+    /**
+     * Represents the failure reason when a federated authentication reason fails.
+     * Should be updated alongside RequestIdTokenStatus in
+     * third_party/blink/public/mojom/devtools/inspector_issue.mojom to include
+     * all cases except for success.
+     */
+    export type FederatedAuthRequestIssueReason =
+      | 'ApprovalDeclined'
+      | 'TooManyRequests'
+      | 'ManifestHttpNotFound'
+      | 'ManifestNoResponse'
+      | 'ManifestInvalidResponse'
+      | 'ClientMetadataHttpNotFound'
+      | 'ClientMetadataNoResponse'
+      | 'ClientMetadataInvalidResponse'
+      | 'ErrorFetchingSignin'
+      | 'InvalidSigninResponse'
+      | 'AccountsHttpNotFound'
+      | 'AccountsNoResponse'
+      | 'AccountsInvalidResponse'
+      | 'IdTokenHttpNotFound'
+      | 'IdTokenNoResponse'
+      | 'IdTokenInvalidResponse'
+      | 'IdTokenInvalidRequest'
+      | 'ErrorIdToken'
+      | 'Canceled';
+
     /**
      * This issue tracks client hints related issues. It's used to deprecate old
      * features, encourage the use of new ones, and provide general guidance.
@@ -1663,10 +1679,10 @@ export namespace Cdp {
       | 'AttributionReportingIssue'
       | 'QuirksModeIssue'
       | 'NavigatorUserAgentIssue'
-      | 'WasmCrossOriginModuleSharingIssue'
       | 'GenericIssue'
       | 'DeprecationIssue'
-      | 'ClientHintIssue';
+      | 'ClientHintIssue'
+      | 'FederatedAuthRequestIssue';
 
     /**
      * This struct holds a list of optional fields with additional information
@@ -1698,13 +1714,13 @@ export namespace Cdp {
 
       navigatorUserAgentIssueDetails?: NavigatorUserAgentIssueDetails;
 
-      wasmCrossOriginModuleSharingIssue?: WasmCrossOriginModuleSharingIssueDetails;
-
       genericIssueDetails?: GenericIssueDetails;
 
       deprecationIssueDetails?: DeprecationIssueDetails;
 
       clientHintIssueDetails?: ClientHintIssueDetails;
+
+      federatedAuthRequestIssueDetails?: FederatedAuthRequestIssueDetails;
     }
 
     /**
@@ -3275,6 +3291,13 @@ export namespace Cdp {
     ): Promise<CSS.SetContainerQueryTextResult | undefined>;
 
     /**
+     * Modifies the expression of a supports at-rule.
+     */
+    setSupportsText(
+      params: CSS.SetSupportsTextParams,
+    ): Promise<CSS.SetSupportsTextResult | undefined>;
+
+    /**
      * Modifies the rule selector.
      */
     setRuleSelector(
@@ -3743,6 +3766,27 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'CSS.setSupportsText' method.
+     */
+    export interface SetSupportsTextParams {
+      styleSheetId: StyleSheetId;
+
+      range: SourceRange;
+
+      text: string;
+    }
+
+    /**
+     * Return value of the 'CSS.setSupportsText' method.
+     */
+    export interface SetSupportsTextResult {
+      /**
+       * The resulting CSS Supports rule after modification.
+       */
+      supports: CSSSupports;
+    }
+
+    /**
      * Parameters of the 'CSS.setRuleSelector' method.
      */
     export interface SetRuleSelectorParams {
@@ -4112,6 +4156,12 @@ export namespace Cdp {
        * The array enumerates container queries starting with the innermost one, going outwards.
        */
       containerQueries?: CSSContainerQuery[];
+
+      /**
+       * @supports CSS at-rule array.
+       * The array enumerates @supports at-rules starting with the innermost one, going outwards.
+       */
+      supports?: CSSSupports[];
     }
 
     /**
@@ -4378,6 +4428,27 @@ export namespace Cdp {
        * Optional name for the container.
        */
       name?: string;
+    }
+
+    /**
+     * CSS Supports at-rule descriptor.
+     */
+    export interface CSSSupports {
+      /**
+       * Supports rule text.
+       */
+      text: string;
+
+      /**
+       * The associated rule header range in the enclosing stylesheet (if
+       * available).
+       */
+      range?: SourceRange;
+
+      /**
+       * Identifier of the stylesheet containing this object (if exists).
+       */
+      styleSheetId?: StyleSheetId;
     }
 
     /**
@@ -6710,7 +6781,12 @@ export namespace Cdp {
     /**
      * Parameters of the 'DOM.enable' method.
      */
-    export interface EnableParams {}
+    export interface EnableParams {
+      /**
+       * Whether to include whitespaces in the children array of returned Nodes.
+       */
+      includeWhitespace?: 'none' | 'all';
+    }
 
     /**
      * Return value of the 'DOM.enable' method.
@@ -7892,10 +7968,11 @@ export namespace Cdp {
       | 'scrollbar-corner'
       | 'resizer'
       | 'input-list-button'
-      | 'transition'
-      | 'transition-container'
-      | 'transition-old-content'
-      | 'transition-new-content';
+      | 'page-transition'
+      | 'page-transition-container'
+      | 'page-transition-image-wrapper'
+      | 'page-transition-outgoing-image'
+      | 'page-transition-incoming-image';
 
     /**
      * Shadow root type.
@@ -9581,6 +9658,13 @@ export namespace Cdp {
     ): Promise<Emulation.SetUserAgentOverrideResult | undefined>;
 
     /**
+     * Allows overriding the automation flag.
+     */
+    setAutomationOverride(
+      params: Emulation.SetAutomationOverrideParams,
+    ): Promise<Emulation.SetAutomationOverrideResult | undefined>;
+
+    /**
      * Notification sent after the virtual time budget for the current VirtualTimePolicy has run out.
      */
     on(
@@ -10008,12 +10092,6 @@ export namespace Cdp {
       maxVirtualTimeTaskStarvationCount?: integer;
 
       /**
-       * If set the virtual time policy change should be deferred until any frame starts navigating.
-       * Note any previous deferred policy change is superseded.
-       */
-      waitForNavigation?: boolean;
-
-      /**
        * If set, base::Time::Now will be overridden to initially return this value.
        */
       initialVirtualTime?: Network.TimeSinceEpoch;
@@ -10125,6 +10203,21 @@ export namespace Cdp {
      * Return value of the 'Emulation.setUserAgentOverride' method.
      */
     export interface SetUserAgentOverrideResult {}
+
+    /**
+     * Parameters of the 'Emulation.setAutomationOverride' method.
+     */
+    export interface SetAutomationOverrideParams {
+      /**
+       * Whether the override should be enabled.
+       */
+      enabled: boolean;
+    }
+
+    /**
+     * Return value of the 'Emulation.setAutomationOverride' method.
+     */
+    export interface SetAutomationOverrideResult {}
 
     /**
      * Parameters of the 'Emulation.virtualTimeBudgetExpired' event.
@@ -11986,7 +12079,7 @@ export namespace Cdp {
       /**
        * Editing commands to send with the key event (e.g., 'selectAll') (default: []).
        * These are related to but not equal the command names used in `document.execCommand` and NSStandardKeyBindingResponding.
-       * See https://source.chromium.org/chromium/chromium/src/+/master:third_party/blink/renderer/core/editing/commands/editor_command_names.h for valid command names.
+       * See https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/renderer/core/editing/commands/editor_command_names.h for valid command names.
        */
       commands?: string[];
     }
@@ -17057,7 +17150,8 @@ export namespace Cdp {
       | 'SameOrigin'
       | 'SameOriginAllowPopups'
       | 'UnsafeNone'
-      | 'SameOriginPlusCoep';
+      | 'SameOriginPlusCoep'
+      | 'SameOriginAllowPopupsPlusCoep';
 
     export interface CrossOriginOpenerPolicyStatus {
       value: CrossOriginOpenerPolicyValue;
@@ -20236,6 +20330,11 @@ export namespace Cdp {
        * Specifies font families to set. If a font family is not specified, it won't be changed.
        */
       fontFamilies: FontFamilies;
+
+      /**
+       * Specifies font families to set for individual scripts.
+       */
+      forScripts?: ScriptFontFamilies[];
     }
 
     /**
@@ -21015,13 +21114,16 @@ export namespace Cdp {
       | 'ch-ua-platform'
       | 'ch-ua-model'
       | 'ch-ua-mobile'
+      | 'ch-ua-full'
       | 'ch-ua-full-version'
       | 'ch-ua-full-version-list'
       | 'ch-ua-platform-version'
       | 'ch-ua-reduced'
+      | 'ch-ua-wow64'
       | 'ch-viewport-height'
       | 'ch-viewport-width'
       | 'ch-width'
+      | 'ch-partitioned-cookies'
       | 'clipboard-read'
       | 'clipboard-write'
       | 'cross-origin-isolated'
@@ -21039,7 +21141,6 @@ export namespace Cdp {
       | 'gyroscope'
       | 'hid'
       | 'idle-detection'
-      | 'interest-cohort'
       | 'join-ad-interest-group'
       | 'keyboard-map'
       | 'magnetometer'
@@ -21065,7 +21166,7 @@ export namespace Cdp {
     /**
      * Reason for a permissions policy feature to be disabled.
      */
-    export type PermissionsPolicyBlockReason = 'Header' | 'IframeAttribute';
+    export type PermissionsPolicyBlockReason = 'Header' | 'IframeAttribute' | 'InFencedFrameTree';
 
     export interface PermissionsPolicyBlockLocator {
       frameId: FrameId;
@@ -21571,6 +21672,21 @@ export namespace Cdp {
     }
 
     /**
+     * Font families collection for a script.
+     */
+    export interface ScriptFontFamilies {
+      /**
+       * Name of the script which these font families are defined for.
+       */
+      script: string;
+
+      /**
+       * Generic font families collection for the script.
+       */
+      fontFamilies: FontFamilies;
+    }
+
+    /**
      * Default font sizes.
      */
     export interface FontSizes {
@@ -21662,7 +21778,7 @@ export namespace Cdp {
      * List of not restored reasons for back-forward cache.
      */
     export type BackForwardCacheNotRestoredReason =
-      | 'NotMainFrame'
+      | 'NotPrimaryMainFrame'
       | 'BackForwardCacheDisabled'
       | 'RelatedActiveContentsExist'
       | 'HTTPStatusNotOK'
@@ -25035,6 +25151,20 @@ export namespace Cdp {
     ): Promise<Storage.ClearTrustTokensResult | undefined>;
 
     /**
+     * Gets details for a named interest group.
+     */
+    getInterestGroupDetails(
+      params: Storage.GetInterestGroupDetailsParams,
+    ): Promise<Storage.GetInterestGroupDetailsResult | undefined>;
+
+    /**
+     * Enables/Disables issuing of interestGroupAccessed events.
+     */
+    setInterestGroupTracking(
+      params: Storage.SetInterestGroupTrackingParams,
+    ): Promise<Storage.SetInterestGroupTrackingResult | undefined>;
+
+    /**
      * A cache's contents have been modified.
      */
     on(
@@ -25064,6 +25194,14 @@ export namespace Cdp {
     on(
       event: 'indexedDBListUpdated',
       listener: (event: Storage.IndexedDBListUpdatedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * One of the interest groups was accessed by the associated page.
+     */
+    on(
+      event: 'interestGroupAccessed',
+      listener: (event: Storage.InterestGroupAccessedEvent) => void,
     ): IDisposable;
   }
 
@@ -25297,6 +25435,34 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'Storage.getInterestGroupDetails' method.
+     */
+    export interface GetInterestGroupDetailsParams {
+      ownerOrigin: string;
+
+      name: string;
+    }
+
+    /**
+     * Return value of the 'Storage.getInterestGroupDetails' method.
+     */
+    export interface GetInterestGroupDetailsResult {
+      details: InterestGroupDetails;
+    }
+
+    /**
+     * Parameters of the 'Storage.setInterestGroupTracking' method.
+     */
+    export interface SetInterestGroupTrackingParams {
+      enable: boolean;
+    }
+
+    /**
+     * Return value of the 'Storage.setInterestGroupTracking' method.
+     */
+    export interface SetInterestGroupTrackingResult {}
+
+    /**
      * Parameters of the 'Storage.cacheStorageContentUpdated' event.
      */
     export interface CacheStorageContentUpdatedEvent {
@@ -25352,6 +25518,19 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'Storage.interestGroupAccessed' event.
+     */
+    export interface InterestGroupAccessedEvent {
+      accessTime: Network.TimeSinceEpoch;
+
+      type: InterestGroupAccessType;
+
+      ownerOrigin: string;
+
+      name: string;
+    }
+
+    /**
      * Enum of possible storage types.
      */
     export type StorageType =
@@ -25364,6 +25543,7 @@ export namespace Cdp {
       | 'websql'
       | 'service_workers'
       | 'cache_storage'
+      | 'interest_groups'
       | 'all'
       | 'other';
 
@@ -25390,6 +25570,49 @@ export namespace Cdp {
       issuerOrigin: string;
 
       count: number;
+    }
+
+    /**
+     * Enum of interest group access types.
+     */
+    export type InterestGroupAccessType = 'join' | 'leave' | 'update' | 'bid' | 'win';
+
+    /**
+     * Ad advertising element inside an interest group.
+     */
+    export interface InterestGroupAd {
+      renderUrl: string;
+
+      metadata?: string;
+    }
+
+    /**
+     * The full details of an interest group.
+     */
+    export interface InterestGroupDetails {
+      ownerOrigin: string;
+
+      name: string;
+
+      expirationTime: Network.TimeSinceEpoch;
+
+      joiningOrigin: string;
+
+      biddingUrl?: string;
+
+      biddingWasmHelperUrl?: string;
+
+      updateUrl?: string;
+
+      trustedBiddingSignalsUrl?: string;
+
+      trustedBiddingSignalsKeys: string[];
+
+      userBiddingSignals?: string;
+
+      ads: InterestGroupAd[];
+
+      adComponents: InterestGroupAd[];
     }
   }
 
