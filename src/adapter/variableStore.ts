@@ -130,7 +130,6 @@ const isMemoryReadable = (t: unknown): t is IMemoryReadable =>
  * for details on these.
  */
 export interface IStoreSettings {
-  autoExpandGetters: boolean;
   customDescriptionGenerator?: string;
   customPropertiesGenerator?: string;
 }
@@ -162,7 +161,6 @@ class VariableContext {
     public readonly locationProvider: IVariableStoreLocationProvider,
     private readonly currentRef: undefined | (() => Variable | Scope),
     private readonly settings: {
-      autoExpandGetters: boolean;
       customDescriptionGenerator?: string;
       customPropertiesGenerator?: string;
     },
@@ -424,29 +422,11 @@ class VariableContext {
 
     // if it's a getter, auto expand as requested
     if (hasGetter) {
-      let value: Cdp.Runtime.RemoteObject | undefined;
-      if (this.settings.autoExpandGetters) {
-        try {
-          value = await invokeGetter({
-            cdp: this.cdp,
-            objectId: owner.objectId,
-            args: [p.name],
-          });
-        } catch {
-          // fall through
-        }
-      }
-
-      if (value) {
-        result.push(this.createVariableByType(ctx, value));
-      } else if (p.get) {
-        result.push(this.createVariable(GetterVariable, ctx, p.get, owner));
-      }
-    }
-
-    // add setter if present
-    if (hasSetter) {
-      result.push(this.createVariable(SetterVariable, ctx, p.set as Cdp.Runtime.RemoteObject));
+      result.push(
+        this.createVariable(GetterVariable, ctx, p.get as Cdp.Runtime.RemoteObject, owner),
+      );
+    } else if (hasSetter) {
+      result.push(this.createVariable(SetterOnlyVariable, ctx, p.set as Cdp.Runtime.RemoteObject));
     }
 
     return result;
@@ -541,6 +521,7 @@ class Variable implements IVariable {
       evaluateName: this.accessor,
       type: this.remoteObject.type,
       variablesReference: 0,
+      presentationHint: this.context.presentationHint,
     });
   }
 
@@ -823,16 +804,6 @@ abstract class AccessorVariable extends Variable {
     }
   }
 
-  public override async toDap(previewContext: PreviewContextType): Promise<Dap.Variable> {
-    return {
-      name: `${this.context.name} (${this.suffix()})`,
-      value: objectPreview.previewRemoteObject(this.remoteObject, previewContext),
-      variablesReference: this.id,
-      evaluateName: this.accessor,
-      type: this.remoteObject.type,
-    };
-  }
-
   public override get accessor(): string {
     return (this.context.parent as Variable).accessor; // skip adding this "name" to the accessor
   }
@@ -840,13 +811,15 @@ abstract class AccessorVariable extends Variable {
   public override getChildren(_params: Dap.VariablesParams) {
     return this.context.createObjectPropertyVars(this.remoteObject);
   }
-
-  protected abstract suffix(): string;
 }
 
-class SetterVariable extends AccessorVariable {
-  protected override suffix() {
-    return 'set';
+class SetterOnlyVariable extends AccessorVariable {
+  public override async toDap(previewContext: PreviewContextType): Promise<Dap.Variable> {
+    return {
+      ...(await super.toDap(previewContext)),
+      value: 'write-only',
+      variablesReference: this.id,
+    };
   }
 }
 
@@ -859,8 +832,11 @@ class GetterVariable extends AccessorVariable {
     super(context, remoteObject);
   }
 
-  protected override suffix() {
-    return 'get';
+  public override async toDap(previewContext: PreviewContextType): Promise<Dap.Variable> {
+    const dap = await super.toDap(previewContext);
+    dap.variablesReference = this.id;
+    dap.presentationHint = { ...dap.presentationHint, lazy: true };
+    return dap;
   }
 
   public override async getChildren(params: Dap.VariablesParams) {
@@ -1039,7 +1015,6 @@ export class VariableStore {
         this.locationProvider,
         () => scope,
         {
-          autoExpandGetters: this.launchConfig.__autoExpandGetters,
           customDescriptionGenerator: this.launchConfig.customDescriptionGenerator,
           customPropertiesGenerator: this.launchConfig.customPropertiesGenerator,
         },
@@ -1140,7 +1115,6 @@ export class VariableStore {
       this.locationProvider,
       undefined,
       {
-        autoExpandGetters: this.launchConfig.__autoExpandGetters,
         customDescriptionGenerator: this.launchConfig.customDescriptionGenerator,
         customPropertiesGenerator: this.launchConfig.customPropertiesGenerator,
       },

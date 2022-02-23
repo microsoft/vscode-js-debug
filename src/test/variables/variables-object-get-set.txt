@@ -1,6 +1,5 @@
 > result: {getter: <accessor>, accessor: <accessor>}
-    > accessor (get): () => {}
-    > accessor (set): () => {}
-    > getter (get): () => {}
-    > setter (set): () => {}
+    > accessor: (...)
+    > getter: (...)
+    > setter: write-only
     > [[Prototype]]: Object

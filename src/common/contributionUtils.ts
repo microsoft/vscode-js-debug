@@ -136,7 +136,6 @@ export const enum Configuration {
   DebugByLinkOptions = 'debug.javascript.debugByLinkOptions',
   SuggestPrettyPrinting = 'debug.javascript.suggestPrettyPrinting',
   AutoServerTunnelOpen = 'debug.javascript.automaticallyTunnelRemoteServer',
-  AutoExpandGetters = 'debug.javascript.autoExpandGetters',
   AutoAttachMode = 'debug.javascript.autoAttachFilter',
   AutoAttachSmartPatterns = 'debug.javascript.autoAttachSmartPattern',
   BreakOnConditionalError = 'debug.javascript.breakOnConditionalError',
@@ -159,7 +158,6 @@ export interface IConfigurationTypes {
   [Configuration.DebugByLinkOptions]:
     | DebugByLinkState
     | ({ enabled: DebugByLinkState } & Partial<IChromeLaunchConfiguration>);
-  [Configuration.AutoExpandGetters]: boolean;
   [Configuration.AutoAttachMode]: AutoAttachMode;
   [Configuration.AutoAttachSmartPatterns]: ReadonlyArray<string>;
   [Configuration.BreakOnConditionalError]: boolean;

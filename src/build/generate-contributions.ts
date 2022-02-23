@@ -54,7 +54,6 @@ type OmittedKeysFromAttributes =
   | '__breakOnConditionalError'
   | '__workspaceFolder'
   | '__workspaceCachePath'
-  | '__autoExpandGetters'
   | '__remoteFilePrefix'
   | '__sessionId';
 
@@ -1138,11 +1137,6 @@ const configurationSchema: ConfigurationAttributes<IConfigurationTypes> = {
     default: {},
     markdownDescription: refString('configuration.pickAndAttachOptions'),
     properties: nodeAttachConfig.configurationAttributes as { [key: string]: JSONSchema6 },
-  },
-  [Configuration.AutoExpandGetters]: {
-    type: 'boolean',
-    default: false,
-    markdownDescription: refString('configuration.autoExpandGetters'),
   },
   [Configuration.AutoAttachMode]: {
     type: 'string',

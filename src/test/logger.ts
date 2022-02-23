@@ -90,7 +90,7 @@ export class Logger {
       }
 
       const name = variable.name ? `${variable.name}: ` : '';
-      let value = variable.value || '';
+      let value = (variable.presentationHint?.lazy ? '(...)' : variable.value) || '';
       if (value.endsWith('\n')) value = value.substring(0, value.length - 1);
       const type = variable.type ? `type=${variable.type}` : '';
       const namedCount = variable.namedVariables ? ` named=${variable.namedVariables}` : '';

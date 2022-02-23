@@ -188,11 +188,6 @@ export interface IBaseConfiguration extends IMandatedConfiguration {
   __workspaceCachePath?: string;
 
   /**
-   * Whether getters should be automatically expanded.
-   */
-  __autoExpandGetters: boolean;
-
-  /**
    * If a file starts with this prefix, we'll consider it a remote file, and perform it's operation thorugh DAP requests
    */
   __remoteFilePrefix: string | undefined;
@@ -818,7 +813,6 @@ export const baseDefaults: IBaseConfiguration = {
   cascadeTerminateToConfigurations: [],
   // Should always be determined upstream;
   __workspaceFolder: '',
-  __autoExpandGetters: false,
   __remoteFilePrefix: undefined,
   __breakOnConditionalError: false,
   customDescriptionGenerator: undefined,

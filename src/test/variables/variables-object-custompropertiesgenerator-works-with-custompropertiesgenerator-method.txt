@@ -2,5 +2,5 @@
     customProp1: 'aa1'
     customProp2: 'bb2'
     realProp: 'cc3'
-    > getter (get): ƒ getter() {}
+    > getter: (...)
     > [[Prototype]]: Foo

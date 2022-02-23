@@ -96,8 +96,6 @@ export abstract class BaseConfigurationResolver<T extends AnyLaunchConfiguration
     config.__workspaceCachePath = this.extensionContext.storagePath;
     config.__breakOnConditionalError =
       readConfig(vscode.workspace, Configuration.BreakOnConditionalError, folder) ?? false;
-    config.__autoExpandGetters =
-      readConfig(vscode.workspace, Configuration.AutoExpandGetters, folder) ?? true;
 
     if (folder) {
       // all good, we know the VS Code will resolve the workspace

@@ -18,10 +18,10 @@ result: 3
     0: 1
     1: 2
     2: 3
-    > buffer (get): ƒ buffer()
-    > byteLength (get): ƒ byteLength()
-    > byteOffset (get): ƒ byteOffset()
-    > length (get): ƒ length()
+    > buffer: (...)
+    > byteLength: (...)
+    > byteOffset: (...)
+    > length: (...)
     Symbol(Symbol.toStringTag): undefined
     > [[Prototype]]: TypedArray
     > [[Prototype]]: Object
@@ -39,40 +39,36 @@ result: 3
     > [[Target]]: Object
 
 > result: {}
-    > foo (set): ƒ foo(x) {}
-        > arguments (get): ƒ ()
-        > arguments (set): ƒ ()
-        > caller (get): ƒ ()
-        > caller (set): ƒ ()
+    > foo: write-only
+        > arguments: (...)
+        > caller: (...)
         length: 1
         name: 'set foo'
         [[FunctionLocation]]: @ <eval>/VM<xx>:1
         > [[Prototype]]: ƒ ()
         > [[Scopes]]: Scopes[1]
     > [[Prototype]]: Object
-        > foo (set): ƒ foo(x) {}
+        > foo: write-only
         > [[Prototype]]: Object
 
 > result: {}
-    > foo (get): ƒ foo() { return 42 }
+    > foo: (...)
         42
     > [[Prototype]]: Object
-        > foo (get): ƒ foo() { return 42 }
+        > foo: (...)
         > [[Prototype]]: Object
 
 > result: {}
-    > foo (get): ƒ foo() { throw 'wat'; }
-        > arguments (get): ƒ ()
-        > arguments (set): ƒ ()
-        > caller (get): ƒ ()
-        > caller (set): ƒ ()
+    > foo: (...)
+        > arguments: (...)
+        > caller: (...)
         length: 0
         name: 'get foo'
         [[FunctionLocation]]: @ <eval>/VM<xx>:1
         > [[Prototype]]: ƒ ()
         > [[Scopes]]: Scopes[1]
     > [[Prototype]]: Object
-        > foo (get): ƒ foo() { throw 'wat'; }
+        > foo: (...)
         > [[Prototype]]: Object
 
 Evaluating#1: setTimeout(() => { throw new Error('bar')}, 0)

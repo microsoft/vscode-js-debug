@@ -1,7 +1,7 @@
 > result: HTMLCollection(2) [meta, title, foo: meta]
     > 0: meta
     > 1: title
-    > length (get): ƒ length()
+    > length: (...)
     > foo: meta
     > [[Prototype]]: HTMLCollection
     > [[Prototype]]: Object
