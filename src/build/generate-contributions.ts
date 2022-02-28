@@ -1072,7 +1072,7 @@ function buildDebuggers() {
 
     if (preferred) {
       for (const snippet of entries[0].configurationSnippets) {
-        snippet.type = preferred;
+        snippet.body.type = preferred;
       }
     }
 
