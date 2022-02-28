@@ -1,0 +1,37 @@
+{
+    breakpoints : [
+        [0] : {
+            column : 16
+            id : 1
+            line : 6
+            source : {
+                name : simpleNode/profilePlayground.js
+                path : ${workspaceFolder}/simpleNode/profilePlayground.js
+                sourceReference : 0
+            }
+            verified : true
+        }
+    ]
+}
+{
+    breakpoint : {
+        id : 1
+        message : Unbound breakpoint
+        verified : false
+    }
+    reason : changed
+}
+{
+    breakpoint : {
+        column : 16
+        id : 1
+        line : 6
+        source : {
+            name : simpleNode/profilePlayground.js
+            path : ${workspaceFolder}/simpleNode/profilePlayground.js
+            sourceReference : 0
+        }
+        verified : true
+    }
+    reason : changed
+}

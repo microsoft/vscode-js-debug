@@ -9,6 +9,7 @@ import { AnyLaunchConfiguration } from '../../configuration';
 import Dap from '../../dap/api';
 import { IContainer } from '../../ioc-extras';
 import { BasicCpuProfiler } from './basicCpuProfiler';
+import { BasicHeapProfiler } from './basicHeapProfiler';
 import { HeapDumpProfiler } from './heapDumpProfiler';
 
 /**
@@ -95,7 +96,11 @@ export interface IProfilerFactory {
  */
 @injectable()
 export class ProfilerFactory implements IProfilerFactory {
-  public static readonly ctors: ReadonlyArray<IProfilerCtor> = [BasicCpuProfiler, HeapDumpProfiler];
+  public static readonly ctors: ReadonlyArray<IProfilerCtor> = [
+    BasicCpuProfiler,
+    BasicHeapProfiler,
+    HeapDumpProfiler,
+  ];
 
   constructor(@inject(IContainer) private readonly container: Container) {}
 
