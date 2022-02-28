@@ -847,7 +847,12 @@ class GetterVariable extends AccessorVariable {
         args: [this.context.name],
       });
 
-      return [this.context.createVariableByType({ name: '' }, result)];
+      return [
+        this.context.createVariableByType(
+          { name: '', presentationHint: { attributes: ['readOnly'] } },
+          result,
+        ),
+      ];
     } catch (e) {
       if (!(e instanceof RemoteException)) {
         throw e;

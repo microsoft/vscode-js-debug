@@ -4,7 +4,8 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly Only
 
-- fix: don't use `pwa-` prefixed launch types in snuppets ([#1138](https://github.com/microsoft/vscode-js-debug/issues/1138))
+- fix: don't use `pwa-` prefixed launch types in snippets ([#1138](https://github.com/microsoft/vscode-js-debug/issues/1138))
+- fix: readonly attribute not being applied to getter values ([vscode#143790](https://github.com/microsoft/vscode/issues/143790))
 
 ## v1.65 (February 2022)
 
@@ -12,7 +13,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 - feat: adopt `isTransient` to avoid persisting debug terminal ([#1196](https://github.com/microsoft/vscode-js-debug/issues/1196))
 - feat: adopt new presentationHint.lazy for getters ([#1211](https://github.com/microsoft/vscode-js-debug/issues/1211))
-- fix: don't use `pwa-` prefixed launch types in snuppets ([#1138](https://github.com/microsoft/vscode-js-debug/issues/1138))
+- fix: don't use `pwa-` prefixed launch types in snippets ([#1138](https://github.com/microsoft/vscode-js-debug/issues/1138))
 - fix: logpoints causing pauses if console.log returns truthy ([#1191](https://github.com/microsoft/vscode-js-debug/issues/1191))
 - fix: handle query string and path fragments in `file`s within the launch config ([vscode#142199](https://github.com/microsoft/vscode/issues/142199))
 - fix: do not narrow outFiles within the workspace folder automatically ([vscode#142641](https://github.com/microsoft/vscode/issues/142641))
