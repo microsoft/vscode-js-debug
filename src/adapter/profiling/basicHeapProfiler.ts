@@ -9,30 +9,20 @@ import Cdp from '../../cdp/api';
 import { ICdpApi } from '../../cdp/connection';
 import { EventEmitter } from '../../common/events';
 import { AnyLaunchConfiguration } from '../../configuration';
-import Dap from '../../dap/api';
 import { profileCaptureError } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
 import { FS, FsPromises } from '../../ioc-extras';
 import { SourceContainer } from '../sources';
+import { SourceAnnotationHelper } from './sourceAnnotationHelper';
 
 const localize = nls.loadMessageBundle();
-
-export interface IBasicProfileParams {
-  precise: boolean;
-}
-
-interface IEmbeddedLocation {
-  lineNumber: number;
-  columnNumber: number;
-  source: Dap.Source;
-}
 
 /**
  * Basic profiler that uses the stable `HeapProfiler` API available everywhere.
  * In Chrome, and probably in Node, this will be superceded by the Tracing API.
  */
 @injectable()
-export class BasicHeapProfiler implements IProfiler<IBasicProfileParams> {
+export class BasicHeapProfiler implements IProfiler<{}> {
   public static readonly type = 'heap';
   public static readonly extension = '.heapprofile';
   public static readonly label = localize('profile.heap.label', 'Heap Profile');
@@ -56,7 +46,7 @@ export class BasicHeapProfiler implements IProfiler<IBasicProfileParams> {
   /**
    * @inheritdoc
    */
-  public async start(_options: StartProfileParams<IBasicProfileParams>, file: string) {
+  public async start(_options: StartProfileParams<{}>, file: string) {
     await this.cdp.HeapProfiler.enable({});
 
     if (!(await this.cdp.HeapProfiler.startSampling({}))) {
@@ -125,50 +115,7 @@ class BasicProfile implements IProfile {
    * Adds source locations
    */
   private async annotateSources(profile: Cdp.HeapProfiler.SamplingHeapProfile) {
-    let locationIdCounter = 0;
-    const locationsByRef = new Map<
-      string,
-      { id: number; callFrame: Cdp.Runtime.CallFrame; locations: Promise<IEmbeddedLocation[]> }
-    >();
-
-    const getLocationIdFor = (callFrame: Cdp.Runtime.CallFrame) => {
-      const ref = [
-        callFrame.functionName,
-        callFrame.url,
-        callFrame.scriptId,
-        callFrame.lineNumber,
-        callFrame.columnNumber,
-      ].join(':');
-
-      const existing = locationsByRef.get(ref);
-      if (existing) {
-        return existing.id;
-      }
-
-      const id = locationIdCounter++;
-      locationsByRef.set(ref, {
-        id,
-        callFrame,
-        locations: (async () => {
-          const source = await this.sources.scriptsById.get(callFrame.scriptId)?.source;
-          if (!source) {
-            return [];
-          }
-
-          return Promise.all(
-            this.sources
-              .currentSiblingUiLocations({
-                lineNumber: callFrame.lineNumber + 1,
-                columnNumber: callFrame.columnNumber + 1,
-                source,
-              })
-              .map(async loc => ({ ...loc, source: await loc.source.toDapShallow() })),
-          );
-        })(),
-      });
-
-      return id;
-    };
+    const helper = new SourceAnnotationHelper(this.sources);
 
     const setLocationId = (
       node: Cdp.HeapProfiler.SamplingHeapProfileNode,
@@ -176,7 +123,7 @@ class BasicProfile implements IProfile {
         locationId?: number;
       },
     ) => {
-      destNode.locationId = getLocationIdFor(node.callFrame);
+      destNode.locationId = helper.getLocationIdFor(node.callFrame);
 
       for (const child of node.children) {
         const destChild = { ...child, children: [] };
@@ -197,11 +144,7 @@ class BasicProfile implements IProfile {
       head,
       $vscode: {
         rootPath: this.workspaceFolder,
-        locations: await Promise.all(
-          [...locationsByRef.values()]
-            .sort((a, b) => a.id - b.id)
-            .map(async l => ({ callFrame: l.callFrame, locations: await l.locations })),
-        ),
+        locations: await helper.getLocations(),
       },
     };
   }

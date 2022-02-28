@@ -9,22 +9,16 @@ import Cdp from '../../cdp/api';
 import { ICdpApi } from '../../cdp/connection';
 import { EventEmitter } from '../../common/events';
 import { AnyLaunchConfiguration } from '../../configuration';
-import Dap from '../../dap/api';
 import { profileCaptureError } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
 import { FS, FsPromises } from '../../ioc-extras';
 import { SourceContainer } from '../sources';
+import { SourceAnnotationHelper } from './sourceAnnotationHelper';
 
 const localize = nls.loadMessageBundle();
 
 export interface IBasicProfileParams {
   precise: boolean;
-}
-
-interface IEmbeddedLocation {
-  lineNumber: number;
-  columnNumber: number;
-  source: Dap.Source;
 }
 
 /**
@@ -125,65 +119,21 @@ class BasicProfile implements IProfile {
    * Adds source locations
    */
   private async annotateSources(profile: Cdp.Profiler.Profile) {
-    let locationIdCounter = 0;
-    const locationsByRef = new Map<
-      string,
-      { id: number; callFrame: Cdp.Runtime.CallFrame; locations: Promise<IEmbeddedLocation[]> }
-    >();
-
-    const getLocationIdFor = (callFrame: Cdp.Runtime.CallFrame) => {
-      const ref = [
-        callFrame.functionName,
-        callFrame.url,
-        callFrame.scriptId,
-        callFrame.lineNumber,
-        callFrame.columnNumber,
-      ].join(':');
-
-      const existing = locationsByRef.get(ref);
-      if (existing) {
-        return existing.id;
-      }
-
-      const id = locationIdCounter++;
-      locationsByRef.set(ref, {
-        id,
-        callFrame,
-        locations: (async () => {
-          const source = await this.sources.getScriptById(callFrame.scriptId)?.source;
-          if (!source) {
-            return [];
-          }
-
-          return Promise.all(
-            this.sources
-              .currentSiblingUiLocations({
-                lineNumber: callFrame.lineNumber + 1,
-                columnNumber: callFrame.columnNumber + 1,
-                source,
-              })
-              .map(async loc => ({ ...loc, source: await loc.source.toDapShallow() })),
-          );
-        })(),
-      });
-
-      return id;
-    };
-
+    const helper = new SourceAnnotationHelper(this.sources);
     const nodes = profile.nodes.map(node => ({
       ...node,
-      locationId: getLocationIdFor(node.callFrame),
+      locationId: helper.getLocationIdFor(node.callFrame),
       positionTicks: node.positionTicks?.map(tick => ({
         ...tick,
         // weirdly, line numbers here are 1-based, not 0-based. The position tick
         // only gives line-level granularity, so 'mark' the entire range of source
         // code the tick refers to
-        startLocationId: getLocationIdFor({
+        startLocationId: helper.getLocationIdFor({
           ...node.callFrame,
           lineNumber: tick.line - 1,
           columnNumber: 0,
         }),
-        endLocationId: getLocationIdFor({
+        endLocationId: helper.getLocationIdFor({
           ...node.callFrame,
           lineNumber: tick.line,
           columnNumber: 0,
@@ -196,11 +146,7 @@ class BasicProfile implements IProfile {
       nodes,
       $vscode: {
         rootPath: this.workspaceFolder,
-        locations: await Promise.all(
-          [...locationsByRef.values()]
-            .sort((a, b) => a.id - b.id)
-            .map(async l => ({ callFrame: l.callFrame, locations: await l.locations })),
-        ),
+        locations: await helper.getLocations(),
       },
     };
   }
