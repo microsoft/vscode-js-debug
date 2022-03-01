@@ -167,6 +167,8 @@ export class CdpProxyProvider implements ICdpProxyProvider {
   ) {
     this.replay.capture(cdp, 'CSS', 'styleSheetAdded');
     this.replay.capture(cdp, 'Debugger', 'paused', true);
+    this.replay.capture(cdp, 'Runtime', 'executionContextCreated');
+    this.replay.capture(cdp, 'Runtime', 'consoleAPICalled');
     cdp.Debugger.on('resumed', () => {
       this.replay.clearEvent('Debugger', 'paused');
     });
