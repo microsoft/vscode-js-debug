@@ -280,14 +280,14 @@ export class UiProfileManager implements IDisposable {
       this.statusBarItem.text = session.status
         ? localize(
             'profile.status.single',
-            '$(loading) Click to Stop Profiling ({0})',
+            '$(loading~spin) Click to Stop Profiling ({0})',
             session.status,
           )
-        : localize('profile.status.default', '$(loading) Click to Stop Profiling');
+        : localize('profile.status.default', '$(loading~spin) Click to Stop Profiling');
     } else {
       this.statusBarItem.text = localize(
         'profile.status.multiSession',
-        '$(loading) Click to Stop Profiling ({0} sessions)',
+        '$(loading~spin) Click to Stop Profiling ({0} sessions)',
         this.activeSessions.size,
       );
     }

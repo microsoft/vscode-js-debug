@@ -9,6 +9,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: readonly attribute not being applied to getter values ([vscode#143790](https://github.com/microsoft/vscode/issues/143790))
 - fix: cwd being lost causing resolution errors in auto attach ([#1212](https://github.com/microsoft/vscode-js-debug/issues/1212))
 - fix: avoid nesting `localRoot`'s in programmatic starts ([#1140](https://github.com/microsoft/vscode-js-debug/issues/1140))
+- fix: icon in "stop profiling" button not spinning ([vscode#136742](https://github.com/microsoft/vscode/issues/136742))
 
 ## v1.65 (February 2022)
 
