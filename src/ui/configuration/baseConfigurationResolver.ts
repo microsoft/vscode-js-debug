@@ -106,7 +106,7 @@ export abstract class BaseConfigurationResolver<T extends AnyLaunchConfiguration
       config.__workspaceFolder ||=
         this.getSuggestedWorkspaceFolders(config)
           .filter(truthy)
-          .filter(f => f !== '${workspaceFolder}')
+          .filter(f => !f.includes('${workspaceFolder}'))
           .map(f =>
             isAbsolute(f) ? vscode.workspace.getWorkspaceFolder(vscode.Uri.file(f))?.uri.fsPath : f,
           )
