@@ -15,10 +15,11 @@ parameters:
     default: true
 
 extends:
-  template: azure-pipelines/extension/stable.yml@templates
+  template: azure-pipelines/extension/pre-release.yml@templates
   parameters:
     workingDirectory: dist
     publishExtension: ${{ parameters.publishExtension }}
+    isPreRelease: false
     vscePackageArgs: --no-dependencies
     cgIgnoreDirectories: 'testdata,demos,.vscode-test'
     buildSteps:
