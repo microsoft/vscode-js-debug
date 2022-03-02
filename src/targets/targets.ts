@@ -6,7 +6,6 @@ import { CancellationToken } from 'vscode';
 import Cdp from '../cdp/api';
 import { IDisposable, IEvent } from '../common/events';
 import { ILogger } from '../common/logging';
-import { ISourcePathResolver } from '../common/sourcePathResolver';
 import { AnyLaunchConfiguration } from '../configuration';
 import Dap from '../dap/api';
 import { ITelemetryReporter } from '../telemetry/telemetryReporter';
@@ -75,7 +74,6 @@ export interface ITarget {
   waitingForDebugger(): boolean;
   supportsCustomBreakpoints(): boolean;
   scriptUrlToUrl(url: string): string;
-  sourcePathResolver(): ISourcePathResolver;
   executionContextName(context: Cdp.Runtime.ExecutionContextDescription): string;
   entryBreakpoint?: IBreakpointPathAndId | undefined;
   logger: ILogger;

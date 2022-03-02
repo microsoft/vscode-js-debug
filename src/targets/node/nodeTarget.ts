@@ -7,12 +7,10 @@ import Cdp from '../../cdp/api';
 import Connection from '../../cdp/connection';
 import { EventEmitter } from '../../common/events';
 import { ILogger, LogTag } from '../../common/logging';
-import { ISourcePathResolver } from '../../common/sourcePathResolver';
 import { absolutePathToFileUrl } from '../../common/urlUtils';
 import { AnyNodeConfiguration } from '../../configuration';
 import { ITargetOrigin } from '../targetOrigin';
 import { IBreakpointPathAndId, ITarget } from '../targets';
-import { NodeSourcePathResolver } from './nodeSourcePathResolver';
 import { WatchdogTarget } from './watchdogSpawn';
 
 export interface INodeTargetLifecycleHooks {
@@ -43,7 +41,6 @@ export class NodeTarget implements ITarget {
 
   constructor(
     public readonly launchConfig: AnyNodeConfiguration,
-    private pathResolver: NodeSourcePathResolver,
     private readonly targetOriginValue: ITargetOrigin,
     public readonly connection: Connection,
     cdp: Cdp.Api,
@@ -106,10 +103,6 @@ export class NodeTarget implements ITarget {
     const isPath =
       url[0] === '/' || (process.platform === 'win32' && url[1] === ':' && url[2] === '\\');
     return isPath ? absolutePathToFileUrl(url) : url;
-  }
-
-  sourcePathResolver(): ISourcePathResolver {
-    return this.pathResolver;
   }
 
   supportsCustomBreakpoints(): boolean {
@@ -225,18 +218,6 @@ export class NodeTarget implements ITarget {
       }
     } finally {
       this.connection.close();
-    }
-  }
-
-  /**
-   * Refreshes the path resolve if the existing resolver didn't have a base
-   * directory. This is used in deferred launches, namely the debug terminal
-   * and auto attach, where the working directory is only discovered after
-   * the debug target is prepared.
-   */
-  public refreshPathResolver(cwd: string) {
-    if (!this.pathResolver.resolutionOptions.basePath) {
-      this.pathResolver = this.pathResolver.derive({ basePath: cwd });
     }
   }
 }

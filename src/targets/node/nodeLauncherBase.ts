@@ -2,12 +2,12 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import { inject, injectable } from 'inversify';
 import * as net from 'net';
 import * as os from 'os';
 import * as path from 'path';
-import * as dotenv from 'dotenv';
 import { IPortLeaseTracker } from '../../adapter/portLeaseTracker';
 import { getSourceSuffix } from '../../adapter/templates';
 import Cdp from '../../cdp/api';
@@ -400,7 +400,6 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
 
     const target = new NodeTarget(
       this.run.params,
-      this.run.pathResolver,
       this.run.context.targetOrigin,
       connection,
       cdp,
@@ -436,7 +435,6 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
         parent,
         parent.targetOrigin(),
         new Connection(transport, parent.logger, telemetryReporter).rootSession(),
-        parent.sourcePathResolver(),
         parent.logger,
       );
 

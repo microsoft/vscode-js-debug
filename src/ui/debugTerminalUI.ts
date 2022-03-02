@@ -26,7 +26,6 @@ import { createPendingDapApi } from '../dap/pending-api';
 import { FS } from '../ioc-extras';
 import { DelegateLauncherFactory } from '../targets/delegate/delegateLauncherFactory';
 import { NodeBinaryProvider } from '../targets/node/nodeBinaryProvider';
-import { NodeTarget } from '../targets/node/nodeTarget';
 import { noPackageJsonProvider } from '../targets/node/packageJsonProvider';
 import { ITerminalLauncherLike, TerminalNodeLauncher } from '../targets/node/terminalNodeLauncher';
 import { NodeOnlyPathResolverFactory } from '../targets/sourcePathResolverFactory';
@@ -114,16 +113,13 @@ export const launchVirtualTerminalParent = (
 
       if (!target.parent()) {
         const cwd = await getWorkingDirectory(target);
-        if (target instanceof NodeTarget && cwd) {
-          target.refreshPathResolver(cwd.fsPath);
-        }
-
         vscode.debug.startDebugging(cwd && vscode.workspace.getWorkspaceFolder(cwd), {
           ...baseDebugOptions,
           type: DebugType.Terminal,
           name: 'Node.js Process',
           request: 'attach',
           delegateId,
+          cwd: cwd?.fsPath,
           __workspaceFolder: cwd,
         });
       }

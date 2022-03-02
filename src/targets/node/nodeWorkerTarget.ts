@@ -5,7 +5,6 @@
 import Cdp from '../../cdp/api';
 import { EventEmitter } from '../../common/events';
 import { ILogger } from '../../common/logging';
-import { ISourcePathResolver } from '../../common/sourcePathResolver';
 import { absolutePathToFileUrl } from '../../common/urlUtils';
 import { AnyLaunchConfiguration } from '../../configuration';
 import { ITargetOrigin } from '../targetOrigin';
@@ -23,7 +22,6 @@ export class NodeWorkerTarget implements ITarget {
     private readonly parentTarget: NodeTarget,
     private readonly targetOriginValue: ITargetOrigin,
     private readonly cdp: Cdp.Api,
-    private readonly pathResolver: ISourcePathResolver,
     public readonly logger: ILogger,
   ) {
     cdp.pause();
@@ -120,10 +118,6 @@ export class NodeWorkerTarget implements ITarget {
     const isPath =
       url[0] === '/' || (process.platform === 'win32' && url[1] === ':' && url[2] === '\\');
     return isPath ? absolutePathToFileUrl(url) : url;
-  }
-
-  sourcePathResolver(): ISourcePathResolver {
-    return this.pathResolver;
   }
 
   executionContextName(): string {

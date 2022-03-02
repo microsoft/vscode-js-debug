@@ -6,7 +6,6 @@ import { URL } from 'url';
 import Cdp from '../../cdp/api';
 import { EventEmitter } from '../../common/events';
 import { ILogger } from '../../common/logging';
-import { ISourcePathResolver } from '../../common/sourcePathResolver';
 import * as urlUtils from '../../common/urlUtils';
 import { AnyChromiumConfiguration } from '../../configuration';
 import { ITarget } from '../../targets/targets';
@@ -239,10 +238,6 @@ export class BrowserTarget implements ITarget {
 
   scriptUrlToUrl(url: string): string {
     return urlUtils.completeUrl(this._targetInfo.url, url) || url;
-  }
-
-  sourcePathResolver(): ISourcePathResolver {
-    return this._manager._sourcePathResolver;
   }
 
   _updateFromInfo(targetInfo: Cdp.Target.TargetInfo) {

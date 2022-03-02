@@ -146,7 +146,6 @@ export const createTargetContainer = (
   container.bind(ICdpApi).toConstantValue(cdp);
   container.bind(ITarget).toConstantValue(target);
   container.bind(ITargetOrigin).toConstantValue(target.targetOrigin());
-  container.bind(ISourcePathResolver).toConstantValue(target.sourcePathResolver());
   container.bind(IResourceProvider).to(StatefulResourceProvider).inSingletonScope();
   container.bind(IBreakpointConditionFactory).to(BreakpointConditionFactory).inSingletonScope();
   container.bind(LogPointCompiler).toSelf().inSingletonScope();
