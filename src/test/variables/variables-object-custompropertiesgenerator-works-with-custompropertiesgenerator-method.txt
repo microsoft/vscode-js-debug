@@ -1,6 +1,6 @@
 > result: Bar {realProp: 'cc3'}
     customProp1: 'aa1'
     customProp2: 'bb2'
-    realProp: 'cc3'
     > getter: (...)
+    realProp: 'cc3'
     > [[Prototype]]: Foo

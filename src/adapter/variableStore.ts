@@ -403,7 +403,9 @@ class VariableContext {
     const hasSetter = p.set && p.set.type !== 'undefined';
 
     if (isPublicDescriptor(p)) {
-      if (p.enumerable === false) {
+      // sort non-enumerable properties as private, except for getters, which
+      // are automatically non-enumerable but not (automatically) considered private (#1215)
+      if (p.enumerable === false && !hasGetter) {
         ctx.presentationHint.visibility = 'internal';
         ctx.sortOrder = SortOrder.Private;
       }
