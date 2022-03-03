@@ -5,6 +5,7 @@
 import Cdp from '../../cdp/api';
 import { BudgetStringBuilder } from '../../common/budgetStringBuilder';
 import * as stringUtils from '../../common/stringUtils';
+import Dap from '../../dap/api';
 import * as messageFormat from '../messageFormat';
 import * as ObjectPreview from './betterTypes';
 import { getContextForType, IPreviewContext } from './contexts';
@@ -52,15 +53,21 @@ export function isArray(
 export function previewRemoteObject(
   object: Cdp.Runtime.RemoteObject,
   contextType?: string,
+  valueFormat?: Dap.ValueFormat,
 ): string {
   const context = getContextForType(contextType);
-  const result = previewRemoteObjectInternal(object as ObjectPreview.AnyObject, context);
+  const result = previewRemoteObjectInternal(
+    object as ObjectPreview.AnyObject,
+    context,
+    valueFormat,
+  );
   return context.postProcess?.(result) ?? result;
 }
 
 function previewRemoteObjectInternal(
   object: ObjectPreview.AnyObject,
   context: IPreviewContext,
+  valueFormat?: Dap.ValueFormat,
 ): string {
   // Evaluating function does not produce preview object for it.
   if (object.type === 'function') {
@@ -72,8 +79,8 @@ function previewRemoteObjectInternal(
   }
 
   return 'preview' in object && object.preview
-    ? renderPreview(object.preview, context.budget)
-    : renderValue(object, context.budget, context.quoted);
+    ? renderPreview(object.preview, context.budget, valueFormat)
+    : renderValue(object, context.budget, context.quoted, valueFormat);
 }
 
 export function propertyWeight(
@@ -94,7 +101,11 @@ export function internalPropertyWeight(_prop: Cdp.Runtime.InternalPropertyDescri
   return 10;
 }
 
-function renderPreview(preview: ObjectPreview.AnyPreview, characterBudget: number): string {
+function renderPreview(
+  preview: ObjectPreview.AnyPreview,
+  characterBudget: number,
+  valueFormat: Dap.ValueFormat | undefined,
+): string {
   if (isArray(preview)) {
     return renderArrayPreview(preview, characterBudget);
   }
@@ -111,10 +122,10 @@ function renderPreview(preview: ObjectPreview.AnyPreview, characterBudget: numbe
   }
 
   if (previewAsObject(preview)) {
-    return renderObjectPreview(preview, characterBudget);
+    return renderObjectPreview(preview, characterBudget, valueFormat);
   }
 
-  return renderPrimitivePreview(preview, characterBudget);
+  return renderPrimitivePreview(preview, characterBudget, valueFormat);
 }
 
 function renderArrayPreview(preview: ObjectPreview.ArrayPreview, characterBudget: number): string {
@@ -155,6 +166,7 @@ function renderArrayPreview(preview: ObjectPreview.ArrayPreview, characterBudget
 function renderObjectPreview(
   preview: ObjectPreview.ObjectPreview | ObjectPreview.NodePreview,
   characterBudget: number,
+  format: Dap.ValueFormat | undefined,
 ): string {
   const builder = new BudgetStringBuilder(characterBudget, ' ');
   if (preview.description !== 'Object')
@@ -208,15 +220,20 @@ function renderObjectPreview(
     }
 
     if (entry.key) {
-      const key = renderPreview(entry.key, Math.min(maxEntryPreviewLength, propsBuilder.budget()));
+      const key = renderPreview(
+        entry.key,
+        Math.min(maxEntryPreviewLength, propsBuilder.budget()),
+        format,
+      );
       const value = renderPreview(
         entry.value,
         Math.min(maxEntryPreviewLength, propsBuilder.budget() - key.length - 4),
+        format,
       );
       propsBuilder.append(appendKeyValue(key, ' => ', value, propsBuilder.budget()));
     } else {
       propsBuilder.append(
-        renderPreview(entry.value, Math.min(maxEntryPreviewLength, propsBuilder.budget())),
+        renderPreview(entry.value, Math.min(maxEntryPreviewLength, propsBuilder.budget()), format),
       );
     }
   }
@@ -246,7 +263,11 @@ function truncateValue(value: string, characterBudget: number): string {
 /**
  * Renders a preview of a primitive (number, undefined, null, string, etc) type.
  */
-function renderPrimitivePreview(preview: ObjectPreview.Primitive, characterBudget: number): string {
+function renderPrimitivePreview(
+  preview: ObjectPreview.Primitive,
+  characterBudget: number,
+  valueFormat: Dap.ValueFormat | undefined,
+): string {
   if (preview.type === 'object' && preview.subtype === 'null') {
     return valueOrEllipsis('null', characterBudget);
   }
@@ -256,7 +277,15 @@ function renderPrimitivePreview(preview: ObjectPreview.Primitive, characterBudge
   }
 
   if (preview.type === 'string') {
-    return stringUtils.trimMiddle(preview.description ?? preview.value, characterBudget);
+    let str = preview.description ?? preview.value;
+    if (valueFormat?.hex) {
+      str = Buffer.from(str, 'utf8').toString('hex');
+    }
+    return stringUtils.trimMiddle(str, characterBudget);
+  }
+
+  if (preview.type === 'number' || preview.type === 'bigint') {
+    return formatAsNumber(preview, false, characterBudget, valueFormat);
   }
 
   return truncateValue(preview.description || '', characterBudget);
@@ -292,9 +321,18 @@ function renderPropertyPreview(
   return appendKeyValue(name, ': ', prop.value ?? 'unknown', characterBudget);
 }
 
-function renderValue(object: ObjectPreview.AnyObject, budget: number, quote: boolean): string {
+function renderValue(
+  object: ObjectPreview.AnyObject,
+  budget: number,
+  quote: boolean,
+  format: Dap.ValueFormat | undefined,
+): string {
   if (object.type === 'string') {
-    const stringValue = object.value || (object.description ? object.description : '');
+    let stringValue = object.value || (object.description ? object.description : '');
+    if (format?.hex) {
+      stringValue = Buffer.from(stringValue, 'utf8').toString('hex');
+      quote = false;
+    }
     const value = stringUtils.trimMiddle(stringValue, quote ? budget - 2 : budget);
     return quote ? `'${value}'` : value;
   }
@@ -305,6 +343,10 @@ function renderValue(object: ObjectPreview.AnyObject, budget: number, quote: boo
 
   if (object.subtype === 'null') {
     return 'null';
+  }
+
+  if (object.type === 'bigint' || object.type === 'number') {
+    return formatAsNumber(object, false, budget, format);
   }
 
   if (object.description) {
@@ -388,7 +430,7 @@ export function previewException(
 ): { title: string; stackTrace?: string } {
   const exception = rawException as ObjectPreview.AnyObject;
   if (exception.type !== 'object' || exception.subtype === 'null') {
-    return { title: renderValue(exception, maxExceptionTitleLength, false) };
+    return { title: renderValue(exception, maxExceptionTitleLength, false, undefined) };
   }
 
   const description =
@@ -410,13 +452,16 @@ function formatAsNumber(
   param: ObjectPreview.Numeric,
   round: boolean,
   characterBudget: number,
+  format: Dap.ValueFormat | undefined,
 ): string {
   if (param.type === 'number') {
-    return String(param.value);
+    return format?.hex ? param.value.toString(16) : String(param.value);
   }
 
   if (param.type === 'bigint') {
-    return param.description;
+    // parse unserializableValue is "1234n", slice the "n" off to parse and then base16 the number
+    const v = param.unserializableValue;
+    return format?.hex ? BigInt(v.slice(0, -1)).toString(16) : v;
   }
 
   const fallback = param as Cdp.Runtime.RemoteObject;
@@ -504,9 +549,21 @@ export function formatAsTable(param: Cdp.Runtime.ObjectPreview): string {
 export const messageFormatters: messageFormat.Formatters<ObjectPreview.AnyObject> = new Map([
   ['', (param, context) => previewRemoteObjectInternal(param, context)],
   ['s', (param, context) => formatAsString(param as ObjectPreview.StringObj, context.budget)],
-  ['i', (param, context) => formatAsNumber(param as ObjectPreview.Numeric, true, context.budget)],
-  ['d', (param, context) => formatAsNumber(param as ObjectPreview.Numeric, true, context.budget)],
-  ['f', (param, context) => formatAsNumber(param as ObjectPreview.Numeric, false, context.budget)],
+  [
+    'i',
+    (param, context) =>
+      formatAsNumber(param as ObjectPreview.Numeric, true, context.budget, undefined),
+  ],
+  [
+    'd',
+    (param, context) =>
+      formatAsNumber(param as ObjectPreview.Numeric, true, context.budget, undefined),
+  ],
+  [
+    'f',
+    (param, context) =>
+      formatAsNumber(param as ObjectPreview.Numeric, false, context.budget, undefined),
+  ],
   ['c', param => messageFormat.formatCssAsAnsi((param as { value: string }).value)],
   ['o', (param, context) => previewRemoteObjectInternal(param, context)],
   ['O', (param, context) => previewRemoteObjectInternal(param, context)],

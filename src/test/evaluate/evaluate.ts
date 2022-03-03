@@ -156,6 +156,25 @@ describe('evaluate', () => {
     p.assertLog();
   });
 
+  itIntegrates('valueFormatter', async ({ r }) => {
+    const format: Dap.ValueFormat = { hex: true };
+    const p = await r.launchUrlAndLoad('index.html');
+
+    await p.logger.evaluateAndLog(`42`, { format });
+    p.log('');
+
+    await p.logger.evaluateAndLog(`123567891235678912356789123567891235678912356789n`, { format });
+    p.log('');
+
+    await p.logger.evaluateAndLog(`'hello world'`, { format });
+    p.log('');
+
+    await p.logger.evaluateAndLog(`({ a: 'hello', b: 42, c: true })`, { format });
+    p.log('');
+
+    p.assertLog();
+  });
+
   const copyExpressions: { [expr: string]: string } = {
     '123n': '123n',
     NaN: 'NaN',

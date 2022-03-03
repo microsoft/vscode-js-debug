@@ -5,6 +5,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 ## Nightly Only
 
 - feat: add heap profiler
+- fix: properly support DAP `valueFormat` ([#1188](https://github.com/microsoft/vscode-js-debug/issues/1188))
 - fix: don't use `pwa-` prefixed launch types in snippets ([#1138](https://github.com/microsoft/vscode-js-debug/issues/1138))
 - fix: readonly attribute not being applied to getter values ([vscode#143790](https://github.com/microsoft/vscode/issues/143790))
 - fix: cwd being lost causing resolution errors in auto attach ([#1212](https://github.com/microsoft/vscode-js-debug/issues/1212))
