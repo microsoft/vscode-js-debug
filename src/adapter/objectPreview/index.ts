@@ -455,7 +455,12 @@ function formatAsNumber(
   format: Dap.ValueFormat | undefined,
 ): string {
   if (param.type === 'number') {
-    return format?.hex ? param.value.toString(16) : String(param.value);
+    if ('unserializableValue' in param) {
+      return param.unserializableValue;
+    }
+
+    const value = param.value || +param.description;
+    return format?.hex ? value.toString(16) : String(value);
   }
 
   if (param.type === 'bigint') {
