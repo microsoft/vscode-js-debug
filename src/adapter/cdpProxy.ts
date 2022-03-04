@@ -66,7 +66,13 @@ class DomainReplays {
   /**
    * Adds a message to be replayed.
    */
-  public addReplay(domain: keyof Cdp.Api, event: string, params: unknown, clearPrevious = false) {
+  public addReplay(
+    domain: keyof Cdp.Api,
+    event: string,
+    params: unknown,
+    clearPrevious = false,
+    capacity?: number,
+  ) {
     if (clearPrevious) {
       this.clearEvent(domain, event);
     }
@@ -75,6 +81,38 @@ class DomainReplays {
     const arr = this.replays.get(domain);
     if (arr) {
       arr.push(obj);
+      if (capacity && arr.length > capacity) {
+        if (domain === 'Runtime') {
+          // For Runtime, we want to first remove console CDP events when we're over capacity.
+          for (let i = 0; i < arr.length; i++) {
+            if (capacity >= arr.length) {
+              break;
+            }
+            let spliceCount = 0;
+            let forwardInd = i;
+
+            // While we still are over capacity, keep checking the next element to see if it is a
+            // consoleAPICalled event so that we can group and minimize splice calls.
+            while (
+              capacity + spliceCount < arr.length &&
+              forwardInd < arr.length &&
+              arr[forwardInd].event === 'Runtime.consoleAPICalled'
+            ) {
+              forwardInd++;
+              spliceCount++;
+            }
+            if (spliceCount > 0) {
+              arr.splice(i, spliceCount);
+              i--;
+            }
+          }
+        }
+
+        // Using FIFO method to remove entries in event array.
+        while (arr.length > capacity) {
+          arr.shift();
+        }
+      }
     } else {
       this.replays.set(domain, [obj]);
     }
@@ -83,12 +121,18 @@ class DomainReplays {
   /**
    * Captures replay for the event on CDP.
    */
-  public capture(cdp: Cdp.Api, domain: keyof Cdp.Api, event: string, clearPrevious = false) {
+  public capture(
+    cdp: Cdp.Api,
+    domain: keyof Cdp.Api,
+    event: string,
+    clearPrevious = false,
+    capacity?: number,
+  ) {
     (
       cdp[domain] as {
         on(event: string, fn: (arg: Record<string, unknown>) => void): void;
       }
-    ).on(event, evt => this.addReplay(domain, event, evt, clearPrevious));
+    ).on(event, evt => this.addReplay(domain, event, evt, clearPrevious, capacity));
   }
 
   /**
@@ -167,6 +211,8 @@ export class CdpProxyProvider implements ICdpProxyProvider {
   ) {
     this.replay.capture(cdp, 'CSS', 'styleSheetAdded');
     this.replay.capture(cdp, 'Debugger', 'paused', true);
+    this.replay.capture(cdp, 'Runtime', 'executionContextCreated', false, 50);
+    this.replay.capture(cdp, 'Runtime', 'consoleAPICalled', false, 50);
     cdp.Debugger.on('resumed', () => {
       this.replay.clearEvent('Debugger', 'paused');
     });
