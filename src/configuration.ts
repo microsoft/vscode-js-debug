@@ -716,7 +716,7 @@ export interface IEdgeLaunchConfiguration extends IChromiumLaunchConfiguration {
 export interface IEdgeAttachConfiguration extends IChromiumAttachConfiguration {
   type: DebugType.Edge;
   request: 'attach';
-  useWebView: boolean;
+  useWebView: boolean | { pipeName: string };
 }
 
 /**

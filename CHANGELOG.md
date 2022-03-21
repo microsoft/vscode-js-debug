@@ -10,6 +10,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: cwd being lost causing resolution errors in auto attach ([#1212](https://github.com/microsoft/vscode-js-debug/issues/1212))
 - fix: avoid nesting `localRoot`'s in programmatic starts ([#1140](https://github.com/microsoft/vscode-js-debug/issues/1140))
 - fix: icon in "stop profiling" button not spinning ([vscode#136742](https://github.com/microsoft/vscode/issues/136742))
+- fix: don't display non-enumerable getters as private ([#1215](https://github.com/microsoft/vscode-js-debug/issues/1215))
 
 ## v1.65 (February 2022)
 
