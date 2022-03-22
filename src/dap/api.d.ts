@@ -2135,12 +2135,12 @@ export namespace Dap {
     frameId?: integer;
 
     /**
-     * The context in which the evaluate request is run.
+     * The context in which the evaluate request is used.
      */
-    context?: 'watch' | 'repl' | 'hover' | 'clipboard';
+    context?: 'variables' | 'watch' | 'repl' | 'hover' | 'clipboard';
 
     /**
-     * Specifies details on how to format the Evaluate result.
+     * Specifies details on how to format the result.
      * The attribute is only honored by a debug adapter if the capability 'supportsValueFormattingOptions' is true.
      */
     format?: ValueFormat;
@@ -3980,7 +3980,7 @@ export namespace Dap {
   }
 
   /**
-   * An ExceptionFilterOptions is used to specify an exception filter together with a condition for the setExceptionsFilter request.
+   * An ExceptionFilterOptions is used to specify an exception filter together with a condition for the 'setExceptionBreakpoints' request.
    */
   export interface ExceptionFilterOptions {
     /**

@@ -2,8 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { CompletionKind, ICompletionWithSort } from '../completions';
 import { remoteFunction, templateFunction } from './index';
-import { ICompletionWithSort, CompletionKind } from '../completions';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -41,6 +41,20 @@ export const enumerateProperties = remoteFunction(function (
     return isGlobal ? CompletionKind.Function : CompletionKind.Method;
   };
 
+  const getDetail = (value: unknown) => {
+    switch (typeof value) {
+      case 'number':
+      case 'boolean':
+        return `${value}`;
+      case 'object':
+        return value === null ? 'null' : value.constructor.name || 'object';
+      case 'function':
+        return `fn(${new Array(value.length).fill('?').join(', ')})`;
+      default:
+        return typeof value;
+    }
+  };
+
   const result: ICompletionWithSort[] = [];
   const discovered = new Set<string>();
   let sortPrefix = '~';
@@ -61,8 +75,11 @@ export const enumerateProperties = remoteFunction(function (
       discovered.add(name);
       const descriptor = Object.getOwnPropertyDescriptor(object, name);
       let type = defaultType;
+      let detail: string | undefined;
       try {
-        type = getCompletionKind(name, typeof descriptor?.value, (object as any)[name]);
+        const value = (object as any)[name];
+        type = getCompletionKind(name, typeof descriptor?.value, value);
+        detail = getDetail(value);
       } catch {
         // ignored -- the act of accessing some properties has side effects
         // or can throw errors, fall back to the default type in those cass.
@@ -74,6 +91,7 @@ export const enumerateProperties = remoteFunction(function (
         // that 'private' fields get shown last.
         sortText: sortPrefix + name.replace(/^_+/, m => '{'.repeat(m.length)),
         type,
+        detail,
       });
     }
 

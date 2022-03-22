@@ -1607,7 +1607,7 @@ export namespace Cdp {
       sourceCodeLocation: SourceCodeLocation;
 
       /**
-       * The content of the deprecation issue (this won't be translated),
+       * The content of an untranslated deprecation issue,
        * e.g. "window.inefficientLegacyStorageMethod will be removed in M97,
        * around January 2022. Please use Web Storage or Indexed Database
        * instead. This standard was abandoned in January, 1970. See
@@ -1616,6 +1616,10 @@ export namespace Cdp {
        */
       message?: string;
 
+      /**
+       * The id of an untranslated deprecation issue e.g. PrefixedStorageInfo.
+       * @deprecated
+       */
       deprecationType: string;
     }
 
@@ -1640,6 +1644,8 @@ export namespace Cdp {
       | 'ClientMetadataHttpNotFound'
       | 'ClientMetadataNoResponse'
       | 'ClientMetadataInvalidResponse'
+      | 'ClientMetadataMissingPrivacyPolicyUrl'
+      | 'DisabledInSettings'
       | 'ErrorFetchingSignin'
       | 'InvalidSigninResponse'
       | 'AccountsHttpNotFound'
@@ -3616,6 +3622,11 @@ export namespace Cdp {
       inherited?: InheritedStyleEntry[];
 
       /**
+       * A chain of inherited pseudo element styles (from the immediate node parent up to the DOM tree root).
+       */
+      inheritedPseudoElements?: InheritedPseudoElementMatches[];
+
+      /**
        * A list of CSS keyframed animations matching this node.
        */
       cssKeyframesRules?: CSSKeyframesRule[];
@@ -4001,6 +4012,16 @@ export namespace Cdp {
        * Matches of CSS rules matching the ancestor node in the style inheritance chain.
        */
       matchedCSSRules: RuleMatch[];
+    }
+
+    /**
+     * Inherited pseudo element matches from pseudos of an ancestor node.
+     */
+    export interface InheritedPseudoElementMatches {
+      /**
+       * Matches of pseudo styles from the pseudos of an ancestor node.
+       */
+      pseudoElements: PseudoElementMatches[];
     }
 
     /**
@@ -4469,6 +4490,11 @@ export namespace Cdp {
        * Supports rule text.
        */
       text: string;
+
+      /**
+       * Whether the supports condition is satisfied.
+       */
+      active: boolean;
 
       /**
        * The associated rule header range in the enclosing stylesheet (if
@@ -21174,6 +21200,7 @@ export namespace Cdp {
       | 'ambient-light-sensor'
       | 'attribution-reporting'
       | 'autoplay'
+      | 'browsing-topics'
       | 'camera'
       | 'ch-dpr'
       | 'ch-device-memory'
@@ -21214,6 +21241,7 @@ export namespace Cdp {
       | 'gyroscope'
       | 'hid'
       | 'idle-detection'
+      | 'interest-cohort'
       | 'join-ad-interest-group'
       | 'keyboard-map'
       | 'magnetometer'
@@ -21904,6 +21932,7 @@ export namespace Cdp {
       | 'NoResponseHead'
       | 'Unknown'
       | 'ActivationNavigationsDisallowedForBug1234857'
+      | 'ErrorDocument'
       | 'WebSocket'
       | 'WebTransport'
       | 'WebRTC'
