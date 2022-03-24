@@ -493,6 +493,10 @@ class Variable implements IVariable {
       return this.context.name;
     }
 
+    if (parent instanceof AccessorVariable) {
+      return parent.accessor;
+    }
+
     if (typeof name === 'number' || /^[0-9]+$/.test(name)) {
       return `${parent.accessor}[${name}]`;
     }
@@ -812,10 +816,6 @@ abstract class AccessorVariable extends Variable {
     }
   }
 
-  public override get accessor(): string {
-    return (this.context.parent as Variable).accessor; // skip adding this "name" to the accessor
-  }
-
   public override getChildren(_params: Dap.VariablesParams) {
     return this.context.createObjectPropertyVars(this.remoteObject);
   }
@@ -863,7 +863,7 @@ class GetterVariable extends AccessorVariable {
 
       return [
         this.context.createVariableByType(
-          { name: '', presentationHint: { attributes: ['readOnly'] } },
+          { name: this.name, presentationHint: this.context.presentationHint },
           result,
         ),
       ];

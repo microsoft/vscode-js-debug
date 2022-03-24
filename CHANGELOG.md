@@ -5,6 +5,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 ## Nightly only
 
 - feat: adopt `CompletionItem.detail` ([vscode#145645](https://github.com/microsoft/vscode/issues/145645))
+- fix: accessor properties not being writable ([vscode#146001](https://github.com/microsoft/vscode/issues/146001))
 
 ## v1.65 (March 2022, Insiders only)
 
