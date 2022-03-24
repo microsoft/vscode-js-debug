@@ -810,10 +810,6 @@ class OutputTableVariable extends ArrayVariable {
 abstract class AccessorVariable extends Variable {
   constructor(context: VariableContext, remoteObject: Cdp.Runtime.RemoteObject) {
     super(context, remoteObject);
-
-    if (!(this.context.parent instanceof Variable)) {
-      throw new Error('AccessorVariable must have variable parent');
-    }
   }
 
   public override getChildren(_params: Dap.VariablesParams) {
