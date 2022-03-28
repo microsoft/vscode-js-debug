@@ -3,6 +3,7 @@
  *--------------------------------------------------------*/
 
 import { expect } from 'chai';
+import del from 'del';
 import { join } from 'path';
 import { readfile } from '../../common/fsUtils';
 import { forceForwardSlashes } from '../../common/pathUtils';
@@ -11,7 +12,6 @@ import { createFileTree } from '../createFileTree';
 import { removeNodeInternalsStackLines } from '../goldenText';
 import { ITestHandle, testFixturesDir, TestP, TestRoot, testWorkspace } from '../test';
 import { itIntegrates, waitForPause } from '../testIntegrationUtils';
-import del = require('del');
 
 describe('breakpoints', () => {
   describe('configure', () => {

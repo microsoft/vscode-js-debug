@@ -6,7 +6,7 @@ import { promises as fs } from 'fs';
 import { marked } from 'marked';
 import { format } from 'prettier';
 import { prettier as prettierOpts } from '../../package.json';
-import { debuggers, DescribedAttribute } from './generate-contributions';
+import { debuggers, DescribedAttribute } from './generate-contributions.js';
 import strings from './strings';
 
 (async () => {

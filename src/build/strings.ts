@@ -2,7 +2,6 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 import { Commands } from '../common/contributionUtils';
-import { sortKeys } from '../common/objUtils';
 
 const strings = {
   'attach.node.process': 'Attach to Node Process',
@@ -321,7 +320,3 @@ A common case to disable certificate verification can be done by passing \`{ "ht
 };
 
 export default strings;
-
-if (require.main === module) {
-  process.stdout.write(JSON.stringify(sortKeys(strings)));
-}

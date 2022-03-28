@@ -47,7 +47,7 @@ export class SelfProfile {
         if (err) {
           reject(err);
         } else {
-          resolve(result as R);
+          resolve(result as unknown as R);
         }
       }),
     );
