@@ -4,7 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly only
 
-Nothing (yet)
+- fix: sourcemap renames replacing in invalid contexts ([#1201](https://github.com/microsoft/vscode-js-debug/issues/1201))
 
 ## v1.65 (March 2022)
 

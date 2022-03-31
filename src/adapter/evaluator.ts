@@ -13,6 +13,7 @@ import { ICdpApi } from '../cdp/connection';
 import { IPosition } from '../common/positions';
 import { parseProgram } from '../common/sourceCodeManipulations';
 import { IRenameProvider, RenameMapping } from '../common/sourceMaps/renameProvider';
+import { isInPatternSlot } from '../common/sourceUtils';
 import { StackFrame } from './stackTrace';
 import { getSourceSuffix } from './templates';
 
@@ -274,7 +275,7 @@ export class Evaluator implements IEvaluator {
 
     const parents: Node[] = [];
     const transformed = replace(parseProgram(expr), {
-      enter(node) {
+      enter(node, parent) {
         const asAcorn = node as AcornNode;
         if (node.type !== 'Identifier' || expr[asAcorn.start - 1] === '.') {
           return;
@@ -285,14 +286,18 @@ export class Evaluator implements IEvaluator {
           hoisted.add(node.name);
           mutated = true;
           this.skip();
-          return replacement(hoistName, undefinedExpression);
+          return isInPatternSlot(node, parent)
+            ? { type: 'Identifier', name: hoistName }
+            : replacement(hoistName, undefinedExpression);
         }
 
         const cname = renames?.mapping.getCompiledName(node.name, renames.position);
         if (cname) {
           mutated = true;
           this.skip();
-          return replacement(cname, node);
+          return isInPatternSlot(node, parent)
+            ? { type: 'Identifier', name: cname }
+            : replacement(cname, node);
         }
       },
       leave: () => {

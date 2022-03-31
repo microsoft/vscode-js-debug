@@ -5,7 +5,15 @@
 import { parseExpressionAt, Parser } from 'acorn';
 import { generate } from 'astring';
 import { replace, VisitorOption } from 'estraverse';
-import { Expression, ExpressionStatement, Identifier, Program, Statement } from 'estree';
+import {
+  Expression,
+  ExpressionStatement,
+  Identifier,
+  Node,
+  Pattern,
+  Program,
+  Statement,
+} from 'estree';
 import { promises as fsPromises } from 'fs';
 import { NullablePosition, Position, SourceMapConsumer, SourceMapGenerator } from 'source-map';
 import { LineColumn } from '../adapter/breakpoints/breakpointBase';
@@ -320,6 +328,25 @@ export function getOptimalCompiledPosition(
 
   return allLocations[0][0];
 }
+
+/**
+ * Returns if the given node is in a slot reserved for a Pattern where an
+ * Expression node could not go.
+ */
+export const isInPatternSlot = (node: Pattern, parent: Node | null | undefined): boolean =>
+  !!parent &&
+  (((parent.type === 'FunctionExpression' ||
+    parent.type === 'FunctionDeclaration' ||
+    parent.type === 'ArrowFunctionExpression') &&
+    parent.params.includes(node)) ||
+    ((parent.type === 'ForInStatement' || parent.type === 'ForOfStatement') &&
+      parent.left === node) ||
+    (parent.type === 'VariableDeclarator' && parent.id === node) ||
+    (parent.type === 'AssignmentPattern' && parent.left === node) ||
+    (parent.type === 'CatchClause' && parent.param === node) ||
+    ('kind' in parent && parent.kind === 'init' && parent.value === node) ||
+    (parent.type === 'RestElement' && parent.argument === node) ||
+    (parent.type === 'AssignmentPattern' && parent.left === node));
 
 /**
  * Returns the syntax error in the given code, if any.
