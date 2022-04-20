@@ -435,7 +435,7 @@ export class Thread implements IVariableStoreLocationProvider {
             includeCommandLineAPI: true,
             objectGroup: 'console',
             generatePreview: true,
-            timeout: args.context === 'hover' ? 500 : undefined,
+            timeout: args.context === 'hover' ? this.getHoverEvalTimeout() : undefined,
           };
 
     if (args.context === 'repl') {
@@ -495,6 +495,17 @@ export class Thread implements IVariableStoreLocationProvider {
       namedVariables: variable.namedVariables,
       indexedVariables: variable.indexedVariables,
     };
+  }
+
+  private getHoverEvalTimeout() {
+    const configuredTimeout = this.launchConfig.timeouts?.hoverEvaluation;
+    if (configuredTimeout === undefined) {
+      return 10 * 1000;
+    }
+    if (configuredTimeout <= 0) {
+      return undefined;
+    }
+    return configuredTimeout;
   }
 
   async _evaluateRepl(

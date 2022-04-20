@@ -231,6 +231,11 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
         description: refString('timeouts.sourceMaps.sourceMapCumulativePause.description'),
         default: 1000,
       },
+      hoverEvaluation: {
+        type: 'number',
+        description: refString('timeouts.hoverEvaluation.description'),
+        default: 10000,
+      },
     },
     additionalProperties: false,
     markdownDescription: refString('timeouts.generalDescription.markdown'),

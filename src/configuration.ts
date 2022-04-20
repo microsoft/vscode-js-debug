@@ -144,9 +144,9 @@ export interface IBaseConfiguration extends IMandatedConfiguration {
   timeout: number;
 
   /**
-   * Timeouts for several operations (currently only source-maps)
+   * Timeouts for several operations.
    */
-  timeouts: Partial<SourceMapTimeouts>;
+  timeouts: Partial<Timeouts>;
 
   /**
    * Logging configuration
@@ -209,6 +209,14 @@ export interface IBaseConfiguration extends IMandatedConfiguration {
    */
   customPropertiesGenerator?: string;
 }
+
+export type Timeouts = SourceMapTimeouts & {
+  /**
+   * When evaluating the symbol that is hovered in the editor, we wait no longer than |hoverEvaluation| timeout before evaluation is canceled.
+   * Use 0 to never time out.
+   */
+  hoverEvaluation: number;
+};
 
 export interface IExtensionHostBaseConfiguration extends INodeBaseConfiguration {
   type: DebugType.ExtensionHost;

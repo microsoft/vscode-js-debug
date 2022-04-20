@@ -233,6 +233,8 @@ const strings = {
     "Allows you to explicitly specify the Node version that's running, which can be used to disable or enable certain behaviors in cases where the automatic version detection does not work.",
   'timeouts.generalDescription': 'Timeouts for several debugger operations.',
   'timeouts.generalDescription.markdown': 'Timeouts for several debugger operations.',
+  'timeouts.hoverEvaluation.description':
+    'Time until value evaluation for hovered symbols is aborted. If set to 0, hover evaluation does never time out.',
   'timeouts.sourceMaps.description': 'Timeouts related to source maps operations.',
   'timeouts.sourceMaps.sourceMapMinPause.description':
     'Minimum time in milliseconds spent waiting for each source-map to be processed when a script is being parsed',
