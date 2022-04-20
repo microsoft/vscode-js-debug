@@ -10,6 +10,7 @@ import { IRootDapApi } from '../../dap/connection';
 import { sourceMapParseFailed } from '../../dap/errors';
 import { MapUsingProjection } from '../datastructure/mapUsingProjection';
 import { IDisposable } from '../disposable';
+import { ILogger, LogTag } from '../logging';
 import { ISourcePathResolver } from '../sourcePathResolver';
 import { fileUrlToAbsolutePath } from '../urlUtils';
 import { ISourceMapMetadata, SourceMap } from './sourceMap';
@@ -49,13 +50,16 @@ export class SourceMapFactory implements ISourceMapFactory {
     @inject(ISourcePathResolver) private readonly pathResolve: ISourcePathResolver,
     @inject(IResourceProvider) private readonly resourceProvider: IResourceProvider,
     @inject(IRootDapApi) protected readonly dap: Dap.Api,
+    @inject(ILogger) private readonly logger: ILogger,
   ) {}
 
   /**
    * @inheritdoc
    */
   public async load(metadata: ISourceMapMetadata): Promise<SourceMap> {
-    const basic = await this.parseSourceMap(metadata.sourceMapUrl);
+    const basic =
+      (await this.parsePathMappedSourceMap(metadata.sourceMapUrl)) ||
+      (await this.parseSourceMap(metadata.sourceMapUrl));
 
     // The source-map library is destructive with its sources parsing. If the
     // source root is '/', it'll "helpfully" resolve a source like `../foo.ts`
@@ -78,6 +82,17 @@ export class SourceMapFactory implements ISourceMapFactory {
       actualSources,
       !!basic.names?.length,
     );
+  }
+
+  public async parsePathMappedSourceMap(url: string) {
+    const localSourceMapUrl = await this.pathResolve.urlToAbsolutePath({ url });
+    if (!localSourceMapUrl) return;
+
+    try {
+      return this.parseSourceMap(localSourceMapUrl);
+    } catch (error) {
+      this.logger.info(LogTag.SourceMapParsing, 'Parsing path mapped source map failed.', error);
+    }
   }
 
   /**
