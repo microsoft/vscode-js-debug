@@ -132,6 +132,42 @@ describe('breakpoints', () => {
       await waitForPause(p);
       p.assertLog();
     });
+
+    itIntegrates("source map that's path mapped", async ({ r }) => {
+      const cwd = r.workspacePath('web/tmp');
+
+      after(() =>
+        del([`${forceForwardSlashes(cwd)}/**`], {
+          force: true /* delete outside cwd */,
+        }),
+      );
+
+      createFileTree(cwd, {
+        'app.ts': await readfile(r.workspacePath('web/pathMapped/app.ts')),
+        'app.js': (await readfile(r.workspacePath('web/pathMapped/app.js'))).replace(
+          'app.js.map',
+          'mappedPath/app.js.map',
+        ),
+        'index.html': await readfile(r.workspacePath('web/pathMapped/index.html')),
+        mappedDir: {
+          'app.js.map': await readfile(r.workspacePath('web/pathMapped/app.js.map')),
+        },
+      });
+
+      const p = await r.launchUrl('tmp/index.html', {
+        pathMapping: {
+          '/mappedPath/': '${workspaceFolder}/web/tmp/mappedDir/',
+        },
+      });
+      const source: Dap.Source = {
+        path: p.workspacePath('web/tmp/app.ts'),
+      };
+
+      await p.dap.setBreakpoints({ source, breakpoints: [{ line: 2 }] });
+      p.load();
+      await waitForPause(p);
+      p.assertLog();
+    });
   });
 
   describe('launched', () => {
