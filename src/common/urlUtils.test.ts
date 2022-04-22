@@ -3,13 +3,14 @@
  *--------------------------------------------------------*/
 import { expect } from 'chai';
 import { promises as dns } from 'dns';
-import * as os from 'os';
 import { SinonStub, stub } from 'sinon';
 import {
   createTargetFilter,
   fileUrlToAbsolutePath,
   isLoopback,
+  overridePlatform,
   resetCaseSensitivePaths,
+  resetPlatform,
   setCaseSensitivePaths,
   urlToRegex,
 } from './urlUtils';
@@ -27,11 +28,11 @@ describe('urlUtils', () => {
     });
 
     it('ensures local path starts with / on OSX', () => {
-      const platform = stub(os, 'platform').returns('darwin');
+      overridePlatform('darwin');
       expect(fileUrlToAbsolutePath('file:///Users/scripts/app.js')).to.equal(
         '/Users/scripts/app.js',
       );
-      platform.restore();
+      resetPlatform();
     });
 
     it('force lowercase drive letter on Win to match VS Code', () => {
