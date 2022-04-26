@@ -2,11 +2,15 @@
 
 This changelog records changes to stable releases since 1.50.2. "TBA" changes here may be available in the [nightly release](https://github.com/microsoft/vscode-js-debug/#nightly-extension) before they're in stable. Note that the minor version (`v1.X.0`) corresponds to the VS Code version js-debug is shipped in, but the patch version (`v1.50.X`) is not meaningful.
 
-## Nightly only
+## v1.67 (April 2022)
 
+### v1.67.0 - 2022-04-26
+
+- feat: apply pathMapping when loading sourcemaps ([#1240](https://github.com/microsoft/vscode-js-debug/issues/1240))
+- feat: apply pathMapping when loading sourcemaps ([#1242](https://github.com/microsoft/vscode-js-debug/issues/1242))
 - fix: sourcemap renames replacing in invalid contexts ([#1201](https://github.com/microsoft/vscode-js-debug/issues/1201))
 
-## v1.65 (March 2022)
+## v1.66 (March 2022)
 
 ### v1.66.1 - 2022-03-24
 
