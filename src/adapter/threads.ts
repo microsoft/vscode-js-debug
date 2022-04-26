@@ -500,7 +500,7 @@ export class Thread implements IVariableStoreLocationProvider {
   private getHoverEvalTimeout() {
     const configuredTimeout = this.launchConfig.timeouts?.hoverEvaluation;
     if (configuredTimeout === undefined) {
-      return 10 * 1000;
+      return 500;
     }
     if (configuredTimeout <= 0) {
       return undefined;
