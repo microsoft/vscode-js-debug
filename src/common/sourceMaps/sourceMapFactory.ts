@@ -12,7 +12,7 @@ import { MapUsingProjection } from '../datastructure/mapUsingProjection';
 import { IDisposable } from '../disposable';
 import { ILogger, LogTag } from '../logging';
 import { ISourcePathResolver } from '../sourcePathResolver';
-import { fileUrlToAbsolutePath } from '../urlUtils';
+import { fileUrlToAbsolutePath, isDataUri } from '../urlUtils';
 import { ISourceMapMetadata, SourceMap } from './sourceMap';
 
 export const ISourceMapFactory = Symbol('ISourceMapFactory');
@@ -85,6 +85,10 @@ export class SourceMapFactory implements ISourceMapFactory {
   }
 
   public async parsePathMappedSourceMap(url: string) {
+    if (isDataUri(url)) {
+      return;
+    }
+
     const localSourceMapUrl = await this.pathResolve.urlToAbsolutePath({ url });
     if (!localSourceMapUrl) return;
 

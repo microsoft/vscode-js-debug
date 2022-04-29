@@ -4,6 +4,10 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## v1.67 (April 2022)
 
+### v1.67.2 - 2022-04-29
+
+- fix: data URI sourcemaps not loading
+
 ### v1.67.1 - 2022-04-28
 
 - fix: debug not working on Node 12 or lower
