@@ -2,13 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { ITransport } from './transport';
-import { ILogger, LogTag } from '../common/logging';
-import { Duplex, Readable, Writable } from 'stream';
 import split from 'split2';
-import { once } from '../common/objUtils';
+import { Duplex, Readable, Writable } from 'stream';
 import { EventEmitter } from '../common/events';
 import { HrTime } from '../common/hrnow';
+import { ILogger, LogTag } from '../common/logging';
+import { once } from '../common/objUtils';
+import { ITransport } from './transport';
 
 export class RawPipeTransport implements ITransport {
   private readonly messageEmitter = new EventEmitter<[string, HrTime]>();
@@ -56,10 +56,14 @@ export class RawPipeTransport implements ITransport {
     const read = pipeRead || pipeWrite;
     this.streams = {
       read: read
+        .on('data', d => {
+          console.log('got some data', d);
+        })
         .on('error', error => this.logger.error(LogTag.Internal, 'pipeRead error', { error }))
         .pipe(split('\0'))
         .on('data', json => this.messageEmitter.fire([json, new HrTime()]))
-        .on('end', this.onceEnded),
+        .on('end', this.onceEnded)
+        .resume(),
       write: pipeWrite.on('end', this.onceEnded).on('error', this.onWriteError),
     };
   }
@@ -68,7 +72,7 @@ export class RawPipeTransport implements ITransport {
    * @inheritdoc
    */
   public send(message: string) {
-    this.streams?.write.write(Buffer.from(message + '\0', 'utf16le'));
+    this.streams?.write.write(Buffer.from(message + '\0'));
   }
 
   /**
