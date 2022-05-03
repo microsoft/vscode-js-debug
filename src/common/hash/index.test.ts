@@ -3,9 +3,9 @@
  *--------------------------------------------------------*/
 
 import { expect } from 'chai';
-import { ChildProcess } from 'child_process';
 import del from 'del';
 import { join } from 'path';
+import { Worker } from 'worker_threads';
 import { Hasher } from '.';
 import { createFileTree, getTestDir } from '../../test/createFileTree';
 
@@ -209,16 +209,16 @@ describe('hash process', function () {
 
   it('gracefully recovers on failure', async () => {
     const r = hasher.hashBytes('hello world');
-    (hasher as unknown as { instance: ChildProcess }).instance.kill();
+    (hasher as unknown as { instance: Worker }).instance.terminate();
     expect(await r).to.equal('1ac3c2bf96f77c71394f85ba44fd90055bb72820');
   });
 
   it('errors if the hasher crashes multiple times', async () => {
     const deadHasher = new Hasher();
-    const h = deadHasher as unknown as { getProcess(): ChildProcess };
+    const h = deadHasher as unknown as { getProcess(): Worker };
     for (let i = 0; i < 4; i++) {
       const p = h.getProcess();
-      p.kill();
+      p.terminate();
       await new Promise(r => p.addListener('exit', r));
     }
 

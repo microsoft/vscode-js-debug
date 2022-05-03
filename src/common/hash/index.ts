@@ -2,8 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { ChildProcess, fork } from 'child_process';
 import { join } from 'path';
+import { Worker } from 'worker_threads';
 import { IDisposable } from '../disposable';
 import { debounce } from '../objUtils';
 import { getDeferred, IDeferred } from '../promiseUtil';
@@ -11,7 +11,7 @@ import { HashRequest, HashResponse, MessageType } from './hash';
 
 export class Hasher implements IDisposable {
   private idCounter = 0;
-  private instance: ChildProcess | undefined;
+  private instance: Worker | undefined;
   private failureCount = 0;
   private readonly deferredMap = new Map<
     number,
@@ -83,7 +83,7 @@ export class Hasher implements IDisposable {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const deferred = getDeferred<any>();
     this.deferredMap.set(req.id, { deferred, request: req });
-    cp.send(req);
+    cp.postMessage(req);
 
     return deferred.promise;
   }
@@ -91,7 +91,7 @@ export class Hasher implements IDisposable {
   private cleanup() {
     if (this.instance) {
       this.instance.removeAllListeners('exit');
-      this.instance.kill();
+      this.instance.terminate();
       this.instance = undefined;
       this.failureCount = 0;
     }
@@ -106,14 +106,10 @@ export class Hasher implements IDisposable {
       return undefined;
     }
 
-    const instance = (this.instance = fork(join(__dirname, 'hash.bundle.js'), [], {
-      env: {},
-      silent: true,
-      execArgv: [],
-    }));
+    const instance = (this.instance = new Worker(join(__dirname, 'hash.bundle.js')));
 
     instance.setMaxListeners(Infinity);
-    instance.addListener('message', raw => {
+    instance.on('message', raw => {
       const msg = raw as HashResponse<HashRequest>;
       const pending = this.deferredMap.get(msg.id);
       if (!pending) {
@@ -126,19 +122,19 @@ export class Hasher implements IDisposable {
 
     instance.on('exit', () => {
       this.instance = undefined;
+      this.failureCount++;
+      const newInstance = this.getProcess();
 
-      if (this.failureCount++ >= this.maxFailures) {
+      if (!newInstance) {
         for (const { deferred } of this.deferredMap.values()) {
           deferred.reject(new Error('hash.bundle.js process unexpectedly exited'));
         }
         this.deferredMap.clear();
         this.deferCleanup.clear();
       } else {
-        const newInstance = this.getProcess();
         this.deferCleanup();
-
         for (const { request } of this.deferredMap.values()) {
-          newInstance?.send(request);
+          newInstance.postMessage(request);
         }
       }
     });

@@ -2,6 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 import { hash } from '@c4312/chromehash';
+import { MessagePort, parentPort } from 'worker_threads';
 import { readFileRaw } from '../fsUtils';
 
 export const enum MessageType {
@@ -135,12 +136,12 @@ async function handle(message: HashRequest): Promise<HashResponse<HashRequest>> 
   }
 }
 
-function startWorker(send: (message: HashResponse<HashRequest>) => void) {
-  process.on('message', (msg: HashRequest) => {
-    handle(msg).then(send);
+function startWorker(port: MessagePort) {
+  port.on('message', evt => {
+    handle(evt).then(r => port.postMessage(r));
   });
 }
 
-if (process.send) {
-  startWorker(process.send.bind(process));
+if (parentPort) {
+  startWorker(parentPort);
 }
