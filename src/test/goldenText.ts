@@ -21,7 +21,7 @@ const trimLineWhitespace = (str: string) =>
     .replace(/\\r\\n/g, '\\n');
 
 export const removeNodeInternalsStackLines = (s: string) =>
-  s.replace(/^.*<node_internals>.*\r?\n/gm, '');
+  s.replace(/^.*<node_internals>.*\r?\n/gm, '').replace(/^.*@ internal\/.*\r?\n/gm, '');
 
 export class GoldenText {
   _results: string[];

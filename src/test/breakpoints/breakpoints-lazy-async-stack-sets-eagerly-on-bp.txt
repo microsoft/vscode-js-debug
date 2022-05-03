@@ -9,8 +9,8 @@
 <anonymous> @ ${workspaceFolder}/web/asyncStack.js:1:1
 {
     allThreadsStopped : false
-    description : Paused on debugger statement
-    reason : pause
+    description : Paused on breakpoint
+    reason : breakpoint
     threadId : <number>
 }
 <anonymous> @ ${workspaceFolder}/web/asyncStack.js:5:5

@@ -43,6 +43,7 @@ steps:
   condition: eq(${{ parameters.runTests }}, true)
   env:
     JSDBG_TEST_VERSION: insiders
+    JSDBG_USE_NODE_VERSION: $(node_version)
     DISPLAY: ':99.0'
 
 - task: CmdLine@2

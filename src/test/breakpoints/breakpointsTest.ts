@@ -260,8 +260,10 @@ describe('breakpoints', () => {
 
     itIntegrates('source map', async ({ r }) => {
       // Breakpoint in source mapped script set after launch.
-      const p = await r.launchUrlAndLoad('browserify/browserify.html');
-      await p.waitForSource('module2.ts');
+      const p = await r.launchUrl('browserify/browserify.html');
+      const sourceP = p.waitForSource('module2.ts');
+      await p.load();
+      await sourceP;
 
       const source: Dap.Source = {
         path: p.workspacePath('web/browserify/module2.ts'),
@@ -716,7 +718,7 @@ describe('breakpoints', () => {
       const handle = await r.runScript(join(cwd, 'index.js'));
       await handle.dap.setBreakpoints({
         source: { path: join(cwd, 'double.ts') },
-        breakpoints: [{ line: 5, column: 1 }],
+        breakpoints: [{ line: 7, column: 1 }],
       });
 
       handle.load();
@@ -731,7 +733,7 @@ describe('breakpoints', () => {
       const handle = await r.runScript(join(cwd, 'index.js'));
       await handle.dap.setBreakpoints({
         source: { path: join(cwd, 'double.ts') },
-        breakpoints: [{ line: 5, column: 1 }],
+        breakpoints: [{ line: 7, column: 1 }],
       });
 
       handle.load();
@@ -739,7 +741,7 @@ describe('breakpoints', () => {
       handle.log(
         await handle.dap.setBreakpoints({
           source: { path: join(cwd, 'double.ts') },
-          breakpoints: [{ line: 15, column: 1 }],
+          breakpoints: [{ line: 17, column: 1 }],
         }),
       );
 
@@ -755,7 +757,7 @@ describe('breakpoints', () => {
       const handle = await r.runScriptAsRemote(join(cwd, 'index.js'));
       await handle.dap.setBreakpoints({
         source: { path: join(cwd, 'double.ts') },
-        breakpoints: [{ line: 5, column: 1 }],
+        breakpoints: [{ line: 7, column: 1 }],
       });
 
       handle.load();

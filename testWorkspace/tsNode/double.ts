@@ -1,6 +1,8 @@
 /*---------------------------------------------------------
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
+console.assert(true); // some statement since you cannot set a breakpoint at a fn declaration
+
 export function triple(n: number) {
   return n * 3;
 }

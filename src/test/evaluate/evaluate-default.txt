@@ -53,7 +53,7 @@ result: 3
 
 > result: {}
     > foo: (...)
-        42
+        foo: 42
     > [[Prototype]]: Object
         > foo: (...)
         > [[Prototype]]: Object
