@@ -4,7 +4,7 @@
 
 import { generate } from 'astring';
 import { inject, injectable } from 'inversify';
-import { localize } from 'vscode-nls';
+import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
 import { ICdpApi } from '../cdp/connection';
 import { flatten } from '../common/objUtils';
@@ -24,6 +24,8 @@ import { getArraySlots } from './templates/getArraySlots';
 import { invokeGetter } from './templates/invokeGetter';
 import { readMemory } from './templates/readMemory';
 import { writeMemory } from './templates/writeMemory';
+
+const localize = nls.loadMessageBundle();
 
 const getVariableId = (() => {
   let last = 0;
@@ -378,8 +380,8 @@ class VariableContext {
       /*catchAndReturnErrors*/ true,
     );
 
-    return result?.value
-      ? '' + result.value
+    return result?.value !== undefined
+      ? String(result.value)
       : localize(
           'error.customValueDescriptionGeneratorFailed',
           "{0} (couldn't describe: {1})",
