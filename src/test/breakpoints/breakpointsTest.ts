@@ -1108,4 +1108,12 @@ describe('breakpoints', () => {
     await waitForPause(p); // should skip foo and hit baz again
     p.assertLog();
   });
+
+  itIntegrates('ignores source url query string (#1225)', async ({ r }) => {
+    const cwd = join(testWorkspace, 'sourceQueryString');
+    const handle = await r.runScript(join(cwd, 'output.js'), { cwd });
+    handle.load();
+    await waitForPause(handle);
+    handle.assertLog({ substring: true });
+  });
 });
