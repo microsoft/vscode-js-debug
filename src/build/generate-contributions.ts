@@ -1462,7 +1462,10 @@ const keybindings = [
     command: Commands.StartWithStopOnEntry,
     key: 'F11',
     mac: 'F11',
-    when: forNodeDebugType('debugConfigurationType', '!inDebugMode'),
+    when: forNodeDebugType(
+      'debugConfigurationType',
+      '!inDebugMode && activeViewlet == workbench.view.debug',
+    ),
   },
 ];
 
