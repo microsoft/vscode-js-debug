@@ -57,9 +57,15 @@ export class SourceMapFactory implements ISourceMapFactory {
    * @inheritdoc
    */
   public async load(metadata: ISourceMapMetadata): Promise<SourceMap> {
-    const basic =
-      (await this.parsePathMappedSourceMap(metadata.sourceMapUrl)) ||
-      (await this.parseSourceMap(metadata.sourceMapUrl));
+    let basic: RawSourceMap | undefined;
+    try {
+      basic = await this.parseSourceMap(metadata.sourceMapUrl);
+    } catch (e) {
+      basic = await this.parsePathMappedSourceMap(metadata.sourceMapUrl);
+      if (!basic) {
+        throw e;
+      }
+    }
 
     // The source-map library is destructive with its sources parsing. If the
     // source root is '/', it'll "helpfully" resolve a source like `../foo.ts`
