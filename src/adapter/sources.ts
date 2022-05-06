@@ -1067,7 +1067,7 @@ export class SourceContainer {
       const fileUrl = absolutePath && utils.absolutePathToFileUrl(absolutePath);
       const content = this.sourceMapFactory.guardSourceMapFn(
         map,
-        () => map.sourceContentFor(url),
+        () => map.sourceContentFor(url, true),
         () => null,
       );
 
