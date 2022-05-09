@@ -149,7 +149,7 @@ export class StackTrace {
     // REPL may call back into itself; slice at the highest REPL eval in the call chain.
     for (let i = stackFrames.length - 1; i >= 0; i--) {
       if (stackFrames[i].isReplEval) {
-        stackFrames = stackFrames.slice(0, i);
+        stackFrames = stackFrames.slice(0, i + 1);
         break;
       }
     }
