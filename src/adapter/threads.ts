@@ -2,6 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { randomBytes } from 'crypto';
 import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
 import { DebugType } from '../common/contributionUtils';
@@ -138,6 +139,9 @@ const excludedCallerSearchDepth = 50;
 const sourcesEqual = (a: Dap.Source, b: Dap.Source) =>
   a.sourceReference === b.sourceReference &&
   urlUtils.comparePathsWithoutCasing(a.path || '', b.path || '');
+
+const getReplSourceSuffix = () =>
+  `\n//# sourceURL=eval-${randomBytes(4).toString('hex')}${SourceConstants.ReplExtension}\n`;
 
 export class Thread implements IVariableStoreLocationProvider {
   private static _lastThreadId = 0;
@@ -447,6 +451,7 @@ export class Thread implements IVariableStoreLocationProvider {
           params.awaitPromise = true;
         }
       }
+      params.expression += getReplSourceSuffix();
     }
 
     const responsePromise = this.evaluator.evaluate(

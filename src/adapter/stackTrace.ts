@@ -137,14 +137,20 @@ export class StackTrace {
   }
 
   async formatAsNative(): Promise<string> {
-    const stackFrames = await this.loadFrames(50);
-    const promises = stackFrames.map(frame => frame.formatAsNative());
-    return (await Promise.all(promises)).join('\n') + '\n';
+    return await this.formatWithMapper(frame => frame.formatAsNative());
   }
 
   async format(): Promise<string> {
-    const stackFrames = await this.loadFrames(50);
-    const promises = stackFrames.map(frame => frame.format());
+    return await this.formatWithMapper(frame => frame.format());
+  }
+
+  private async formatWithMapper(mapper: (frame: StackFrame) => Promise<string>): Promise<string> {
+    let stackFrames = await this.loadFrames(50);
+    const replIndex = stackFrames.findIndex(frame => frame.isReplEval);
+    if (replIndex >= 0) {
+      stackFrames = stackFrames.slice(0, replIndex);
+    }
+    const promises = stackFrames.map(mapper);
     return (await Promise.all(promises)).join('\n') + '\n';
   }
 
@@ -198,11 +204,23 @@ export class StackFrame {
     callFrame: Cdp.Runtime.CallFrame,
     isAsync: boolean,
   ): StackFrame {
-    return new StackFrame(thread, callFrame.functionName, thread.rawLocation(callFrame), isAsync);
+    return new StackFrame(
+      thread,
+      callFrame.functionName,
+      thread.rawLocation(callFrame),
+      isAsync,
+      callFrame.url.endsWith(SourceConstants.ReplExtension),
+    );
   }
 
   static fromDebugger(thread: Thread, callFrame: Cdp.Debugger.CallFrame): StackFrame {
-    const result = new StackFrame(thread, callFrame.functionName, thread.rawLocation(callFrame));
+    const result = new StackFrame(
+      thread,
+      callFrame.functionName,
+      thread.rawLocation(callFrame),
+      undefined,
+      callFrame.url.endsWith(SourceConstants.ReplExtension),
+    );
     result._scope = {
       chain: callFrame.scopeChain,
       thisObject: callFrame.this,
@@ -231,6 +249,7 @@ export class StackFrame {
     name: string,
     rawLocation: RawLocation,
     private readonly isAsync = false,
+    readonly isReplEval = false,
   ) {
     this._id = ++StackFrame._lastFrameId;
     this._name = name || '<anonymous>';
