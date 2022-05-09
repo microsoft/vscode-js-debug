@@ -146,9 +146,12 @@ export class StackTrace {
 
   private async formatWithMapper(mapper: (frame: StackFrame) => Promise<string>): Promise<string> {
     let stackFrames = await this.loadFrames(50);
-    const replIndex = stackFrames.findIndex(frame => frame.isReplEval);
-    if (replIndex >= 0) {
-      stackFrames = stackFrames.slice(0, replIndex);
+    // REPL may call back into itself; slice at the highest REPL eval in the call chain.
+    for (let i = stackFrames.length - 1; i >= 0; i--) {
+      if (stackFrames[i].isReplEval) {
+        stackFrames = stackFrames.slice(0, i);
+        break;
+      }
     }
     const promises = stackFrames.map(mapper);
     return (await Promise.all(promises)).join('\n') + '\n';
