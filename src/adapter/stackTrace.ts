@@ -51,7 +51,7 @@ export class StackTrace {
       if (!stack.callFrames[frameNo].url.endsWith(SourceConstants.InternalExtension)) {
         const frame = StackFrame.fromRuntime(thread, stack.callFrames[frameNo], false);
         if (await predicate(frame)) {
-          result.frames.push();
+          result.frames.push(frame);
           frameLimit--;
         }
       }
