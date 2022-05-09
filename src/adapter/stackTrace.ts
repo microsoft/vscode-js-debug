@@ -252,7 +252,7 @@ export class StackFrame {
     name: string,
     rawLocation: RawLocation,
     private readonly isAsync = false,
-    readonly isReplEval = false,
+    public readonly isReplEval = false,
   ) {
     this._id = ++StackFrame._lastFrameId;
     this._name = name || '<anonymous>';
