@@ -234,7 +234,7 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
       hoverEvaluation: {
         type: 'number',
         description: refString('timeouts.hoverEvaluation.description'),
-        default: 10000,
+        default: 500,
       },
     },
     additionalProperties: false,
