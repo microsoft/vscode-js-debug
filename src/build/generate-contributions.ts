@@ -960,7 +960,7 @@ const extensionHostConfig: IDebugger<IExtensionHostLaunchConfiguration> = {
 const edgeLaunchConfig: IDebugger<IEdgeLaunchConfiguration> = {
   type: DebugType.Edge,
   request: 'launch',
-  label: refString('edge.launch.label'),
+  label: refString('edge.label'),
   languages: browserLanguages,
   configurationSnippets: [
     {
