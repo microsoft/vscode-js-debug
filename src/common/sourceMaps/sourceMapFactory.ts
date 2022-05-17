@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import { inject, injectable } from 'inversify';
-import { BasicSourceMapConsumer, RawSourceMap, SourceMapConsumer } from 'source-map';
+import { RawIndexMap, RawSourceMap, SourceMapConsumer } from 'source-map';
 import { IResourceProvider } from '../../adapter/resourceProvider';
 import Dap from '../../dap/api';
 import { IRootDapApi } from '../../dap/connection';
@@ -57,7 +57,7 @@ export class SourceMapFactory implements ISourceMapFactory {
    * @inheritdoc
    */
   public async load(metadata: ISourceMapMetadata): Promise<SourceMap> {
-    let basic: RawSourceMap | undefined;
+    let basic: RawSourceMap | RawIndexMap | undefined;
     try {
       basic = await this.parseSourceMap(metadata.sourceMapUrl);
     } catch (e) {
@@ -75,18 +75,32 @@ export class SourceMapFactory implements ISourceMapFactory {
     const actualRoot = basic.sourceRoot;
     basic.sourceRoot = undefined;
 
+    let hasNames = false;
+
     // The source map library (also) "helpfully" normalizes source URLs, so
     // preserve them in the same way. Then, rename the sources to prevent any
     // of their names colliding (e.g. "webpack://./index.js" and "webpack://../index.js")
-    const actualSources = basic.sources;
-    basic.sources = basic.sources.map((_, i) => `source${i}.js`);
+    let actualSources: string[] = [];
+    if ('sections' in basic && Array.isArray(basic.sections)) {
+      actualSources = [];
+      let i = 0;
+      for (const section of basic.sections) {
+        actualSources.push(...section.map.sources);
+        section.map.sources = section.map.sources.map(() => `source${i++}.js`);
+        hasNames ||= !!section.map.names?.length;
+      }
+    } else if ('sources' in basic && Array.isArray(basic.sources)) {
+      actualSources = basic.sources;
+      basic.sources = basic.sources.map((_, i) => `source${i}.js`);
+      hasNames = !!basic.names?.length;
+    }
 
     return new SourceMap(
-      (await new SourceMapConsumer(basic)) as BasicSourceMapConsumer,
+      await new SourceMapConsumer(basic),
       metadata,
       actualRoot ?? '',
       actualSources,
-      !!basic.names?.length,
+      hasNames,
     );
   }
 
@@ -136,7 +150,7 @@ export class SourceMapFactory implements ISourceMapFactory {
     // no-op
   }
 
-  private async parseSourceMap(sourceMapUrl: string): Promise<RawSourceMap> {
+  private async parseSourceMap(sourceMapUrl: string): Promise<RawSourceMap | RawIndexMap> {
     let absolutePath = fileUrlToAbsolutePath(sourceMapUrl);
     if (absolutePath) {
       absolutePath = this.pathResolve.rebaseRemoteToLocal(absolutePath);
