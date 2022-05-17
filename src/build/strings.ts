@@ -41,8 +41,8 @@ const strings = {
   'edge.useWebView.description':
     "(Edge (Chromium) only) When 'true', the debugger will treat the runtime executable as a host application that contains a WebView allowing you to debug the WebView script content.",
 
-  'chrome.label': 'Chrome',
-  'edge.label': 'Edge',
+  'chrome.label': 'Web App (Chrome)',
+  'edge.label': 'Web App (Edge)',
   'edge.launch.label': 'Edge: Launch',
   'edge.attach.label': 'Edge: Attach',
   'edge.launch.description': 'Launch Edge to debug a URL',
