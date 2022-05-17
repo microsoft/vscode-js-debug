@@ -2,6 +2,14 @@
 
 This changelog records changes to stable releases since 1.50.2. "TBA" changes here may be available in the [nightly release](https://github.com/microsoft/vscode-js-debug/#nightly-extension) before they're in stable. Note that the minor version (`v1.X.0`) corresponds to the VS Code version js-debug is shipped in, but the patch version (`v1.50.X`) is not meaningful.
 
+### Nightly (only)
+
+- fix: snap versions in alternate install locations resulting in warning ([#1239](https://github.com/microsoft/vscode-js-debug/issues/1239))
+- fix: align hoverEvaluation config suggestion with actual default
+- fix: remove query strings from sourcemapped URLs ([#1225](https://github.com/microsoft/vscode-js-debug/issues/1225))
+- fix: prefer to parse source map directly before failling back to path mapping ([vscode#148864](https://github.com/microsoft/vscode/issues/148864))
+- fix: only enter debug mode on f11 when debug view is visible ([vscode#141157](https://github.com/microsoft/vscode/issues/141157))
+
 ## v1.67 (April 2022)
 
 ### v1.67.2 - 2022-04-29
