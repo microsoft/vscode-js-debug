@@ -179,6 +179,15 @@ describe('NodeBinaryProvider', function () {
       expect(binary.version).to.be.undefined;
       expect(getVersionText.called).to.be.false;
     });
+
+    it('assumes binaries are good if no stdout', async () => {
+      getVersionText.resolves('');
+      resolveBinaryLocation.withArgs('node').returns('/snap-alt/bin/node');
+
+      const binary = await p.resolveAndValidate(EnvironmentVars.empty);
+      expect(binary.path).to.equal('/snap-alt/bin/node');
+      expect(binary.version).to.be.undefined;
+    });
   });
 });
 
