@@ -7,7 +7,7 @@ import { Worker } from 'worker_threads';
 import { IDisposable } from '../disposable';
 import { debounce } from '../objUtils';
 import { getDeferred, IDeferred } from '../promiseUtil';
-import { HashRequest, HashResponse, MessageType } from './hash';
+import { HashMode, HashRequest, HashResponse, MessageType } from './hash';
 
 export class Hasher implements IDisposable {
   private idCounter = 0;
@@ -25,15 +25,15 @@ export class Hasher implements IDisposable {
   /**
    * Gets the Chrome content hash of script contents.
    */
-  public async hashBytes(data: string | Buffer) {
-    const r = await this.send({ type: MessageType.HashBytes, data, id: this.idCounter++ });
+  public async hashBytes(mode: HashMode, data: string | Buffer) {
+    const r = await this.send({ type: MessageType.HashBytes, data, mode, id: this.idCounter++ });
     return r.hash;
   }
   /**
    * Gets the Chrome content hash of a file.
    */
-  public async hashFile(file: string) {
-    const r = await this.send({ type: MessageType.HashFile, file, id: this.idCounter++ });
+  public async hashFile(mode: HashMode, file: string) {
+    const r = await this.send({ type: MessageType.HashFile, file, mode, id: this.idCounter++ });
     return r.hash;
   }
   /**

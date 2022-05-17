@@ -4,6 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ### Nightly (only)
 
+- chore: support new sha script hashes from chrome ([#1244](https://github.com/microsoft/vscode-js-debug/issues/1244))
 - fix: snap versions in alternate install locations resulting in warning ([#1239](https://github.com/microsoft/vscode-js-debug/issues/1239))
 - fix: align hoverEvaluation config suggestion with actual default
 - fix: remove query strings from sourcemapped URLs ([#1225](https://github.com/microsoft/vscode-js-debug/issues/1225))
