@@ -3,7 +3,14 @@
  *--------------------------------------------------------*/
 
 import { inject, injectable } from 'inversify';
-import { RawIndexMap, RawSourceMap, SourceMapConsumer } from 'source-map';
+import {
+  Position,
+  RawIndexMap,
+  RawSection,
+  RawSourceMap,
+  SourceMapConsumer,
+  StartOfSourceMap,
+} from 'source-map';
 import { IResourceProvider } from '../../adapter/resourceProvider';
 import Dap from '../../dap/api';
 import { IRootDapApi } from '../../dap/connection';
@@ -11,6 +18,7 @@ import { sourceMapParseFailed } from '../../dap/errors';
 import { MapUsingProjection } from '../datastructure/mapUsingProjection';
 import { IDisposable } from '../disposable';
 import { ILogger, LogTag } from '../logging';
+import { truthy } from '../objUtils';
 import { ISourcePathResolver } from '../sourcePathResolver';
 import { fileUrlToAbsolutePath, isDataUri } from '../urlUtils';
 import { ISourceMapMetadata, SourceMap } from './sourceMap';
@@ -35,6 +43,20 @@ export interface ISourceMapFactory extends IDisposable {
   guardSourceMapFn<T>(sourceMap: SourceMap, fn: () => T, defaultValue: () => T): T;
 }
 
+interface RawExternalSection {
+  offset: Position;
+  url: string;
+}
+
+/**
+ * The typings for source-map don't support this, but the spec does.
+ * @see https://sourcemaps.info/spec.html#h.535es3xeprgt
+ */
+export interface RawIndexMapUnresolved extends StartOfSourceMap {
+  version: number;
+  sections: (RawExternalSection | RawSection)[];
+}
+
 /**
  * Base implementation of the ISourceMapFactory.
  */
@@ -57,15 +79,7 @@ export class SourceMapFactory implements ISourceMapFactory {
    * @inheritdoc
    */
   public async load(metadata: ISourceMapMetadata): Promise<SourceMap> {
-    let basic: RawSourceMap | RawIndexMap | undefined;
-    try {
-      basic = await this.parseSourceMap(metadata.sourceMapUrl);
-    } catch (e) {
-      basic = await this.parsePathMappedSourceMap(metadata.sourceMapUrl);
-      if (!basic) {
-        throw e;
-      }
-    }
+    const basic = await this.parseSourceMap(metadata.sourceMapUrl);
 
     // The source-map library is destructive with its sources parsing. If the
     // source root is '/', it'll "helpfully" resolve a source like `../foo.ts`
@@ -81,7 +95,7 @@ export class SourceMapFactory implements ISourceMapFactory {
     // preserve them in the same way. Then, rename the sources to prevent any
     // of their names colliding (e.g. "webpack://./index.js" and "webpack://../index.js")
     let actualSources: string[] = [];
-    if ('sections' in basic && Array.isArray(basic.sections)) {
+    if ('sections' in basic) {
       actualSources = [];
       let i = 0;
       for (const section of basic.sections) {
@@ -104,6 +118,37 @@ export class SourceMapFactory implements ISourceMapFactory {
     );
   }
 
+  private async parseSourceMap(sourceMapUrl: string): Promise<RawSourceMap | RawIndexMap> {
+    let sm: RawSourceMap | RawIndexMapUnresolved | undefined;
+    try {
+      sm = await this.parseSourceMapDirect(sourceMapUrl);
+    } catch (e) {
+      sm = await this.parsePathMappedSourceMap(sourceMapUrl);
+      if (!sm) {
+        throw e;
+      }
+    }
+
+    if ('sections' in sm) {
+      const resolved = await Promise.all(
+        sm.sections.map((s, i) =>
+          'url' in s
+            ? this.parseSourceMap(s.url)
+                .then(map => ({ offset: s.offset, map: map as RawSourceMap }))
+                .catch(e => {
+                  this.logger.warn(LogTag.SourceMapParsing, `Error parsing nested map ${i}: ${e}`);
+                  return undefined;
+                })
+            : s,
+        ),
+      );
+
+      sm.sections = resolved.filter(truthy);
+    }
+
+    return sm as RawSourceMap | RawIndexMap;
+  }
+
   public async parsePathMappedSourceMap(url: string) {
     if (isDataUri(url)) {
       return;
@@ -113,7 +158,7 @@ export class SourceMapFactory implements ISourceMapFactory {
     if (!localSourceMapUrl) return;
 
     try {
-      return this.parseSourceMap(localSourceMapUrl);
+      return this.parseSourceMapDirect(localSourceMapUrl);
     } catch (error) {
       this.logger.info(LogTag.SourceMapParsing, 'Parsing path mapped source map failed.', error);
     }
@@ -150,7 +195,9 @@ export class SourceMapFactory implements ISourceMapFactory {
     // no-op
   }
 
-  private async parseSourceMap(sourceMapUrl: string): Promise<RawSourceMap | RawIndexMap> {
+  private async parseSourceMapDirect(
+    sourceMapUrl: string,
+  ): Promise<RawSourceMap | RawIndexMapUnresolved> {
     let absolutePath = fileUrlToAbsolutePath(sourceMapUrl);
     if (absolutePath) {
       absolutePath = this.pathResolve.rebaseRemoteToLocal(absolutePath);
