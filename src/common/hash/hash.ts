@@ -1,7 +1,7 @@
 /*---------------------------------------------------------
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
-import { hash } from '@c4312/chromehash';
+import { hash, shaHash } from '@c4312/chromehash';
 import { MessagePort, parentPort } from 'worker_threads';
 import { readFileRaw } from '../fsUtils';
 
@@ -12,12 +12,17 @@ export const enum MessageType {
   VerifyBytes,
 }
 
+export const enum HashMode {
+  Chromehash,
+  SHA256,
+}
+
 /**
  * Message sent to the hash worker.
  */
 export type HashRequest =
-  | { type: MessageType.HashFile; id: number; file: string }
-  | { type: MessageType.HashBytes; id: number; data: string | Buffer }
+  | { type: MessageType.HashFile; id: number; file: string; mode: HashMode }
+  | { type: MessageType.HashBytes; id: number; data: string | Buffer; mode: HashMode }
   | { type: MessageType.VerifyFile; id: number; file: string; expected: string; checkNode: boolean }
   | {
       type: MessageType.VerifyBytes;
@@ -71,7 +76,8 @@ const LF = Buffer.from('\n')[0];
 const hasPrefix = (buf: Buffer, prefix: Buffer) => buf.slice(0, prefix.length).equals(prefix);
 
 const verifyBytes = (bytes: Buffer, expected: string, checkNode: boolean) => {
-  if (hash(bytes) === expected) {
+  const hashFn = expected.length === 64 ? shaHash : hash;
+  if (hashFn(bytes) === expected) {
     return true;
   }
 
@@ -83,16 +89,16 @@ const verifyBytes = (bytes: Buffer, expected: string, checkNode: boolean) => {
         end--;
       }
 
-      return hash(bytes.slice(end)) === expected;
+      return hashFn(bytes.slice(end)) === expected;
     }
 
-    if (hash(Buffer.concat([nodePrefix, bytes, nodeSuffix])) === expected) {
+    if (hashFn(Buffer.concat([nodePrefix, bytes, nodeSuffix])) === expected) {
       return true;
     }
   }
 
   // todo -- doing a lot of concats, make chromehash able to hash an iterable of buffers?
-  if (hash(Buffer.concat([electronPrefix, bytes, electronSuffix])) === expected) {
+  if (hashFn(Buffer.concat([electronPrefix, bytes, electronSuffix])) === expected) {
     return true;
   }
 
@@ -107,7 +113,10 @@ async function handle(message: HashRequest): Promise<HashResponse<HashRequest>> 
     case MessageType.HashFile:
       try {
         const data = await readFileRaw(message.file);
-        return { id: message.id, hash: hash(data) };
+        return {
+          id: message.id,
+          hash: message.mode === HashMode.Chromehash ? hash(data) : shaHash(data),
+        };
       } catch (e) {
         return { id: message.id };
       }
