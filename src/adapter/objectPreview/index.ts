@@ -465,7 +465,7 @@ function formatAsNumber(
 
   if (param.type === 'bigint') {
     // parse unserializableValue is "1234n", slice the "n" off to parse and then base16 the number
-    const v = param.unserializableValue;
+    const v = param.unserializableValue || param.description;
     return format?.hex ? BigInt(v.slice(0, -1)).toString(16) : v;
   }
 
