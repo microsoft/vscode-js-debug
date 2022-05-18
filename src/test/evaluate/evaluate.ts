@@ -494,4 +494,10 @@ describe('evaluate', () => {
     await evaluateAtReturn('undefined');
     r.assertLog();
   });
+
+  itIntegrates('supports bigint map keys (#1277)', async ({ r }) => {
+    const p = await r.launchUrlAndLoad('index.html');
+    await p.logger.evaluateAndLog(`new Map([[1n, 'one'], [2n, 'two']])`);
+    r.assertLog();
+  });
 });

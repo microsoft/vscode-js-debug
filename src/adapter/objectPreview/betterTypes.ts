@@ -99,7 +99,7 @@ export type SpecialNumberPreview = TSpecialNumber;
 export type TBigint = {
   type: 'bigint';
   subtype: undefined;
-  unserializableValue: string;
+  unserializableValue?: string;
   description: string;
 };
 export type BigintPreview = TBigint;
