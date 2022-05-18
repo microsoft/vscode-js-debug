@@ -404,9 +404,7 @@ export class StackFrame {
     if (this._isAsyncSeparator) return `    --- ${this._name} ---`;
     const uiLocation = await this.uiLocation();
     const url =
-      (await uiLocation?.source.existingAbsolutePath()) ||
-      uiLocation?.source.url ||
-      (await uiLocation?.source.prettyName());
+      (await uiLocation?.source.existingAbsolutePath()) || (await uiLocation?.source.prettyName());
     const { lineNumber, columnNumber } = uiLocation || this._rawLocation;
     return `    at ${this._name} (${url}:${lineNumber}:${columnNumber})`;
   }

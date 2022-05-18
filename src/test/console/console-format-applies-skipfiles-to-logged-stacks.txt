@@ -1,2 +1,2 @@
 logged hello world
- at eval-<xx>.repl:1:1
+ at repl:1:1

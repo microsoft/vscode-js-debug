@@ -5,15 +5,15 @@ result: 'foo'
 result: 1234567890n
 
 <error>: Uncaught Error Error: foo
-    at <anonymous> (http://localhost:8001/eval-<xx>.repl:1:7)
+    at <anonymous> (repl:1:7)
 
 
 <error>: Uncaught Object Object
-    at <anonymous> (http://localhost:8001/eval-<xx>.repl:1:1)
+    at <anonymous> (repl:1:1)
 
 
 <error>: Uncaught Error 42
-    at <anonymous> (http://localhost:8001/eval-<xx>.repl:1:1)
+    at <anonymous> (repl:1:1)
 
 
 > result: {foo: 3}
@@ -21,7 +21,7 @@ result: 1234567890n
     > [[Prototype]]: Object
 
 <error>: Uncaught ReferenceError ReferenceError: baz is not defined
-    at <anonymous> (http://localhost:8001/eval-<xx>.repl:1:1)
+    at <anonymous> (repl:1:1)
 
 
 > result: Map(1) {size: 1, hello => ƒ ()}
@@ -31,59 +31,59 @@ result: 1234567890n
 
 result: 42
 stderr> Uncaught Error Error: bar
-    at <anonymous> (http://localhost:8001/eval-<xx>.repl:1:26)
+    at <anonymous> (repl:1:26)
     --- setTimeout ---
-    at <anonymous> (http://localhost:8001/eval-<xx>.repl:1:1)
+    at <anonymous> (repl:1:1)
 stderr>
 > Uncaught Error Error: bar
-    at <anonymous> (http://localhost:8001/eval-<xx>.repl:1:26)
+    at <anonymous> (repl:1:26)
     --- setTimeout ---
-    at <anonymous> (http://localhost:8001/eval-<xx>.repl:1:1)
+    at <anonymous> (repl:1:1)
 stderr>
-<anonymous> @ localhost꞉8001/eval-<xx>.repl:1:26
+<anonymous> @ repl:1:26
 ◀ setTimeout ▶
-<anonymous> @ localhost꞉8001/eval-<xx>.repl:1
+<anonymous> @ repl:1
 
 result: 42
 stderr> Uncaught Error Error: baz
-    at <anonymous> (http://localhost:8001/eval-<xx>.repl:1:26)
+    at <anonymous> (repl:1:26)
     --- setTimeout ---
-    at <anonymous> (http://localhost:8001/eval-<xx>.repl:1:1)
+    at <anonymous> (repl:1:1)
 stderr>
 > Uncaught Error Error: baz
-    at <anonymous> (http://localhost:8001/eval-<xx>.repl:1:26)
+    at <anonymous> (repl:1:26)
     --- setTimeout ---
-    at <anonymous> (http://localhost:8001/eval-<xx>.repl:1:1)
+    at <anonymous> (repl:1:1)
 stderr>
-<anonymous> @ localhost꞉8001/eval-<xx>.repl:1:26
+<anonymous> @ repl:1:26
 ◀ setTimeout ▶
-<anonymous> @ localhost꞉8001/eval-<xx>.repl:1
+<anonymous> @ repl:1
 
 <error>: Uncaught Error Error: error1
     at throwError (${workspaceFolder}/web/browserify/module1.ts:6:9)
-    at <anonymous> (http://localhost:8001/eval-<xx>.repl:1:8)
+    at <anonymous> (repl:1:8)
 
 
 <error>: Uncaught Object Object
     at throwValue (${workspaceFolder}/web/browserify/module1.ts:9:3)
-    at <anonymous> (http://localhost:8001/eval-<xx>.repl:1:8)
+    at <anonymous> (repl:1:8)
 
 
 result: 42
 stderr> Uncaught Error Error: error2
     at throwError (${workspaceFolder}/web/browserify/module1.ts:6:9)
-    at <anonymous> (http://localhost:8001/eval-<xx>.repl:1:27)
+    at <anonymous> (repl:1:27)
     --- setTimeout ---
-    at <anonymous> (http://localhost:8001/eval-<xx>.repl:1:1)
+    at <anonymous> (repl:1:1)
 stderr>
 > Uncaught Error Error: error2
     at throwError (${workspaceFolder}/web/browserify/module1.ts:6:9)
-    at <anonymous> (http://localhost:8001/eval-<xx>.repl:1:27)
+    at <anonymous> (repl:1:27)
     --- setTimeout ---
-    at <anonymous> (http://localhost:8001/eval-<xx>.repl:1:1)
+    at <anonymous> (repl:1:1)
 stderr>
 throwError @ ${workspaceFolder}/web/browserify/module1.ts:6:9
-<anonymous> @ localhost꞉8001/eval-<xx>.repl:1:27
+<anonymous> @ repl:1:27
 ◀ setTimeout ▶
-<anonymous> @ localhost꞉8001/eval-<xx>.repl:1
+<anonymous> @ repl:1
 

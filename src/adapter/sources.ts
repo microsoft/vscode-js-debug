@@ -346,6 +346,10 @@ export class Source {
       return '<eval>/VM' + this.sourceReference;
     }
 
+    if (this.url.endsWith(SourceConstants.ReplExtension)) {
+      return 'repl';
+    }
+
     if (this.absolutePath.startsWith('<node_internals>')) {
       return this.absolutePath;
     }
