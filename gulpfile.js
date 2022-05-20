@@ -220,6 +220,10 @@ async function runWebpack({
             },
           },
           {
+            test: '\\.node$', // will be regex'd in the webpackBuild script
+            loader: 'node-loader',
+          },
+          {
             test: '\\.css$', // will be regex'd in the webpackBuild script
             use: ['style-loader', 'css-loader'],
           },

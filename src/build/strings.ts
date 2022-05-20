@@ -38,8 +38,10 @@ const strings = {
   'extensionHost.snippet.launch.description': 'Launch a VS Code extension in debug mode',
   'extensionHost.snippet.launch.label': 'VS Code Extension Development',
 
-  'edge.useWebView.description':
-    "(Edge (Chromium) only) When 'true', the debugger will treat the runtime executable as a host application that contains a WebView allowing you to debug the WebView script content.",
+  'edge.useWebView.launch.description':
+    "When 'true', the debugger will treat the runtime executable as a host application that contains a WebView allowing you to debug the WebView script content.",
+  'edge.useWebView.attach.description':
+    'An object containing the `pipeName` of a debug pipe for a UWP hosted Webview2. This is the "MyTestSharedMemory" when creating the pipe "\\\\.\\pipe\\LOCAL\\MyTestSharedMemory"',
 
   'chrome.label': 'Web App (Chrome)',
   'edge.label': 'Web App (Edge)',

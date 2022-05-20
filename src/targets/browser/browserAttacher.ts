@@ -67,7 +67,8 @@ export class BrowserAttacher<
   protected resolveParams(params: AnyLaunchConfiguration): params is T {
     return (
       params.request === 'attach' &&
-      (params.type === DebugType.Chrome || params.type === DebugType.Edge) &&
+      (params.type === DebugType.Chrome ||
+        (params.type === DebugType.Edge && typeof params.useWebView !== 'object')) &&
       params.browserAttachLocation === 'workspace'
     );
   }

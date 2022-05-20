@@ -984,7 +984,7 @@ const edgeLaunchConfig: IDebugger<IEdgeLaunchConfiguration> = {
     },
     useWebView: {
       type: 'boolean',
-      description: refString('edge.useWebView.description'),
+      description: refString('edge.useWebView.launch.description'),
       default: false,
     },
     address: {
@@ -1022,9 +1022,10 @@ const edgeAttachConfig: IDebugger<IEdgeAttachConfiguration> = {
   configurationAttributes: {
     ...chromiumAttachConfigurationAttributes,
     useWebView: {
-      type: 'boolean',
-      description: refString('edge.useWebView.description'),
-      default: false,
+      type: 'object',
+      properties: { pipeName: { type: 'string' } },
+      description: refString('edge.useWebView.attach.description'),
+      default: { pipeName: 'MyPipeName' },
     },
   },
   defaults: edgeAttachConfigDefaults,
