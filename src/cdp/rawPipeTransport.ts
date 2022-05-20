@@ -56,14 +56,10 @@ export class RawPipeTransport implements ITransport {
     const read = pipeRead || pipeWrite;
     this.streams = {
       read: read
-        .on('data', d => {
-          console.log('got some data', d);
-        })
         .on('error', error => this.logger.error(LogTag.Internal, 'pipeRead error', { error }))
         .pipe(split('\0'))
         .on('data', json => this.messageEmitter.fire([json, new HrTime()]))
-        .on('end', this.onceEnded)
-        .resume(),
+        .on('end', this.onceEnded),
       write: pipeWrite.on('end', this.onceEnded).on('error', this.onWriteError),
     };
   }
@@ -72,7 +68,7 @@ export class RawPipeTransport implements ITransport {
    * @inheritdoc
    */
   public send(message: string) {
-    this.streams?.write.write(Buffer.from(message + '\0'));
+    this.streams?.write.write(message + '\0');
   }
 
   /**

@@ -33,6 +33,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 ### v1.66.1 - 2022-03-24
 
 - feat: adopt `CompletionItem.detail` ([vscode#145645](https://github.com/microsoft/vscode/issues/145645))
+- feat: support for debugging webviews in UWPs ([#1209](https://github.com/microsoft/vscode-js-debug/issues/1209))
 - fix: accessor properties not being writable ([vscode#146001](https://github.com/microsoft/vscode/issues/146001))
 - fix: completions sometimes throwing issue on accessor ([#1218](https://github.com/microsoft/vscode-js-debug/issues/1218))
 
