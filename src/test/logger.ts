@@ -7,6 +7,7 @@ import { Log } from './test';
 
 interface ILogOptions {
   depth?: number;
+  format?: Dap.ValueFormat;
   params?: Partial<Dap.EvaluateParams>;
   logInternalInfo?: boolean;
 }
@@ -22,6 +23,7 @@ export const walkVariables = async (
   variable: Dap.Variable,
   walker: (v: Dap.Variable, depth: number) => Promise<boolean> | boolean,
   depth = 0,
+  format?: Dap.ValueFormat,
 ): Promise<void> => {
   if (!(await walker(variable, depth))) {
     return;
@@ -38,9 +40,10 @@ export const walkVariables = async (
       const named = await dap.variables({
         variablesReference: variable.variablesReference,
         filter: 'named',
+        format,
       });
       for (const variable of named.variables) {
-        await walkVariables(dap, variable, walker, depth + 1);
+        await walkVariables(dap, variable, walker, depth + 1, format);
       }
     }
     if (variable.indexedVariables) {
@@ -49,6 +52,7 @@ export const walkVariables = async (
         filter: 'indexed',
         start: 0,
         count: variable.indexedVariables,
+        format,
       });
       for (const variable of indexed.variables) {
         await walkVariables(dap, variable, walker, depth + 1);
@@ -57,9 +61,10 @@ export const walkVariables = async (
   } else {
     const all = await dap.variables({
       variablesReference: variable.variablesReference,
+      format,
     });
     for (const variable of all.variables) {
-      await walkVariables(dap, variable, walker, depth + 1);
+      await walkVariables(dap, variable, walker, depth + 1, format);
     }
   }
 };
@@ -84,30 +89,38 @@ export class Logger {
     options: ILogOptions = {},
     baseIndent: string = '',
   ): Promise<void> {
-    return walkVariables(this._dap, rootVariable, (variable, depth) => {
-      if (kOmitProperties.includes(variable.name)) {
+    return walkVariables(
+      this._dap,
+      rootVariable,
+      (variable, depth) => {
+        if (kOmitProperties.includes(variable.name)) {
+          return depth < (options.depth ?? 1);
+        }
+
+        const name = variable.name ? `${variable.name}: ` : '';
+        let value = (variable.presentationHint?.lazy ? '(...)' : variable.value) || '';
+        if (value.endsWith('\n')) value = value.substring(0, value.length - 1);
+        const type = variable.type ? `type=${variable.type}` : '';
+        const namedCount = variable.namedVariables ? ` named=${variable.namedVariables}` : '';
+        const indexedCount = variable.indexedVariables
+          ? ` indexed=${variable.indexedVariables}`
+          : '';
+        const indent = baseIndent + '    '.repeat(depth);
+
+        const expanded = variable.variablesReference ? '> ' : '';
+        let suffix = options.logInternalInfo ? `${type}${namedCount}${indexedCount}` : '';
+        if (suffix) suffix = '  // ' + suffix;
+        let line = `${expanded}${name}${value}`;
+        if (line) {
+          if (line.includes('\n')) line = '\n' + line;
+          this.logAsConsole(`${indent}${line}${suffix}`);
+        }
+
         return depth < (options.depth ?? 1);
-      }
-
-      const name = variable.name ? `${variable.name}: ` : '';
-      let value = (variable.presentationHint?.lazy ? '(...)' : variable.value) || '';
-      if (value.endsWith('\n')) value = value.substring(0, value.length - 1);
-      const type = variable.type ? `type=${variable.type}` : '';
-      const namedCount = variable.namedVariables ? ` named=${variable.namedVariables}` : '';
-      const indexedCount = variable.indexedVariables ? ` indexed=${variable.indexedVariables}` : '';
-      const indent = baseIndent + '    '.repeat(depth);
-
-      const expanded = variable.variablesReference ? '> ' : '';
-      let suffix = options.logInternalInfo ? `${type}${namedCount}${indexedCount}` : '';
-      if (suffix) suffix = '  // ' + suffix;
-      let line = `${expanded}${name}${value}`;
-      if (line) {
-        if (line.includes('\n')) line = '\n' + line;
-        this.logAsConsole(`${indent}${line}${suffix}`);
-      }
-
-      return depth < (options.depth ?? 1);
-    });
+      },
+      undefined,
+      options.format,
+    );
   }
 
   async logOutput(params: Dap.OutputEventParams, options?: ILogOptions) {
@@ -214,6 +227,7 @@ export class Logger {
         expression: expressions,
         context,
         ...options.params,
+        format: options.format,
       });
       if (typeof result === 'string') {
         this._log(`<error>: ${result}`);

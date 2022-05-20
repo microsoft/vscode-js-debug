@@ -270,7 +270,7 @@ export function fileUrlToNetworkPath(urlOrPath: string): string {
 
 // TODO: this does not escape/unescape special characters, but it should.
 export function absolutePathToFileUrl(absolutePath: string): string {
-  if (process.platform === 'win32') {
+  if (platform === 'win32') {
     return 'file:///' + platformPathToUrlPath(absolutePath);
   }
   return 'file://' + platformPathToUrlPath(absolutePath);
@@ -422,8 +422,18 @@ export function maybeAbsolutePathToFileUrl(
   return sourceUrl;
 }
 
+let platform = process.platform;
+
+export const overridePlatform = (newPlatform: NodeJS.Platform) => {
+  platform = newPlatform;
+};
+
+export const resetPlatform = () => {
+  platform = process.platform;
+};
+
 export function urlPathToPlatformPath(p: string): string {
-  if (process.platform === 'win32') {
+  if (platform === 'win32') {
     p = p.replace(/\//g, '\\');
   }
 
@@ -433,7 +443,7 @@ export function urlPathToPlatformPath(p: string): string {
 export function platformPathToUrlPath(p: string): string {
   p = platformPathToPreferredCase(p);
 
-  if (process.platform === 'win32') {
+  if (platform === 'win32') {
     return p
       .split(/[\\//]/g)
       .map((p, i) => (i > 0 ? encodeURIComponent(p) : p))
@@ -446,7 +456,7 @@ export function platformPathToUrlPath(p: string): string {
 export function platformPathToPreferredCase(p: string): string;
 export function platformPathToPreferredCase(p: string | undefined): string | undefined;
 export function platformPathToPreferredCase(p: string | undefined): string | undefined {
-  if (p && process.platform === 'win32' && p[1] === ':') return p[0].toUpperCase() + p.substring(1);
+  if (p && platform === 'win32' && p[1] === ':') return p[0].toUpperCase() + p.substring(1);
   return p;
 }
 

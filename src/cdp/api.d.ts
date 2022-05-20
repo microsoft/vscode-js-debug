@@ -1235,7 +1235,7 @@ export namespace Cdp {
       frameId: Page.FrameId;
     }
 
-    export type SameSiteCookieExclusionReason =
+    export type CookieExclusionReason =
       | 'ExcludeSameSiteUnspecifiedTreatedAsLax'
       | 'ExcludeSameSiteNoneInsecure'
       | 'ExcludeSameSiteLax'
@@ -1243,7 +1243,7 @@ export namespace Cdp {
       | 'ExcludeInvalidSameParty'
       | 'ExcludeSamePartyCrossPartyContext';
 
-    export type SameSiteCookieWarningReason =
+    export type CookieWarningReason =
       | 'WarnSameSiteUnspecifiedCrossSiteContext'
       | 'WarnSameSiteNoneInsecure'
       | 'WarnSameSiteUnspecifiedLaxAllowUnsafe'
@@ -1251,16 +1251,17 @@ export namespace Cdp {
       | 'WarnSameSiteStrictCrossDowngradeStrict'
       | 'WarnSameSiteStrictCrossDowngradeLax'
       | 'WarnSameSiteLaxCrossDowngradeStrict'
-      | 'WarnSameSiteLaxCrossDowngradeLax';
+      | 'WarnSameSiteLaxCrossDowngradeLax'
+      | 'WarnAttributeValueExceedsMaxSize';
 
-    export type SameSiteCookieOperation = 'SetCookie' | 'ReadCookie';
+    export type CookieOperation = 'SetCookie' | 'ReadCookie';
 
     /**
      * This information is currently necessary, as the front-end has a difficult
      * time finding a specific cookie. With this, we can convey specific error
      * information without the cookie.
      */
-    export interface SameSiteCookieIssueDetails {
+    export interface CookieIssueDetails {
       /**
        * If AffectedCookie is not set then rawCookieLine contains the raw
        * Set-Cookie header string. This hints at a problem where the
@@ -1271,15 +1272,15 @@ export namespace Cdp {
 
       rawCookieLine?: string;
 
-      cookieWarningReasons: SameSiteCookieWarningReason[];
+      cookieWarningReasons: CookieWarningReason[];
 
-      cookieExclusionReasons: SameSiteCookieExclusionReason[];
+      cookieExclusionReasons: CookieExclusionReason[];
 
       /**
        * Optionally identifies the site-for-cookies and the cookie url, which
        * may be used by the front-end as additional context.
        */
-      operation: SameSiteCookieOperation;
+      operation: CookieOperation;
 
       siteForCookies?: string;
 
@@ -1606,7 +1607,7 @@ export namespace Cdp {
       sourceCodeLocation: SourceCodeLocation;
 
       /**
-       * The content of the deprecation issue (this won't be translated),
+       * The content of an untranslated deprecation issue,
        * e.g. "window.inefficientLegacyStorageMethod will be removed in M97,
        * around January 2022. Please use Web Storage or Indexed Database
        * instead. This standard was abandoned in January, 1970. See
@@ -1615,6 +1616,10 @@ export namespace Cdp {
        */
       message?: string;
 
+      /**
+       * The id of an untranslated deprecation issue e.g. PrefixedStorageInfo.
+       * @deprecated
+       */
       deprecationType: string;
     }
 
@@ -1639,6 +1644,8 @@ export namespace Cdp {
       | 'ClientMetadataHttpNotFound'
       | 'ClientMetadataNoResponse'
       | 'ClientMetadataInvalidResponse'
+      | 'ClientMetadataMissingPrivacyPolicyUrl'
+      | 'DisabledInSettings'
       | 'ErrorFetchingSignin'
       | 'InvalidSigninResponse'
       | 'AccountsHttpNotFound'
@@ -1667,7 +1674,7 @@ export namespace Cdp {
      * information about the kind of issue.
      */
     export type InspectorIssueCode =
-      | 'SameSiteCookieIssue'
+      | 'CookieIssue'
       | 'MixedContentIssue'
       | 'BlockedByResponseIssue'
       | 'HeavyAdIssue'
@@ -1690,7 +1697,7 @@ export namespace Cdp {
      * add a new optional field to this type.
      */
     export interface InspectorIssueDetails {
-      sameSiteCookieIssueDetails?: SameSiteCookieIssueDetails;
+      cookieIssueDetails?: CookieIssueDetails;
 
       mixedContentIssueDetails?: MixedContentIssueDetails;
 
@@ -3247,6 +3254,16 @@ export namespace Cdp {
     ): Promise<CSS.GetStyleSheetTextResult | undefined>;
 
     /**
+     * Returns all layers parsed by the rendering engine for the tree scope of a node.
+     * Given a DOM element identified by nodeId, getLayersForNode returns the root
+     * layer for the nearest ancestor document or shadow root. The layer root contains
+     * the full layer tree for the tree scope and their ordering.
+     */
+    getLayersForNode(
+      params: CSS.GetLayersForNodeParams,
+    ): Promise<CSS.GetLayersForNodeResult | undefined>;
+
+    /**
      * Starts tracking the given computed styles for updates. The specified array of properties
      * replaces the one previously specified. Pass empty array to disable tracking.
      * Use takeComputedStyleUpdates to retrieve the list of nodes that had properties modified.
@@ -3605,6 +3622,11 @@ export namespace Cdp {
       inherited?: InheritedStyleEntry[];
 
       /**
+       * A chain of inherited pseudo element styles (from the immediate node parent up to the DOM tree root).
+       */
+      inheritedPseudoElements?: InheritedPseudoElementMatches[];
+
+      /**
        * A list of CSS keyframed animations matching this node.
        */
       cssKeyframesRules?: CSSKeyframesRule[];
@@ -3654,6 +3676,20 @@ export namespace Cdp {
        * The stylesheet text.
        */
       text: string;
+    }
+
+    /**
+     * Parameters of the 'CSS.getLayersForNode' method.
+     */
+    export interface GetLayersForNodeParams {
+      nodeId: DOM.NodeId;
+    }
+
+    /**
+     * Return value of the 'CSS.getLayersForNode' method.
+     */
+    export interface GetLayersForNodeResult {
+      rootLayer: CSSLayerData;
     }
 
     /**
@@ -3979,6 +4015,16 @@ export namespace Cdp {
     }
 
     /**
+     * Inherited pseudo element matches from pseudos of an ancestor node.
+     */
+    export interface InheritedPseudoElementMatches {
+      /**
+       * Matches of pseudo styles from the pseudos of an ancestor node.
+       */
+      pseudoElements: PseudoElementMatches[];
+    }
+
+    /**
      * Match data for a CSS rule.
      */
     export interface RuleMatch {
@@ -4162,6 +4208,12 @@ export namespace Cdp {
        * The array enumerates @supports at-rules starting with the innermost one, going outwards.
        */
       supports?: CSSSupports[];
+
+      /**
+       * Cascade layer array. Contains the layer hierarchy that this rule belongs to starting
+       * with the innermost layer and going outwards.
+       */
+      layers?: CSSLayer[];
     }
 
     /**
@@ -4440,6 +4492,11 @@ export namespace Cdp {
       text: string;
 
       /**
+       * Whether the supports condition is satisfied.
+       */
+      active: boolean;
+
+      /**
        * The associated rule header range in the enclosing stylesheet (if
        * available).
        */
@@ -4449,6 +4506,48 @@ export namespace Cdp {
        * Identifier of the stylesheet containing this object (if exists).
        */
       styleSheetId?: StyleSheetId;
+    }
+
+    /**
+     * CSS Layer at-rule descriptor.
+     */
+    export interface CSSLayer {
+      /**
+       * Layer name.
+       */
+      text: string;
+
+      /**
+       * The associated rule header range in the enclosing stylesheet (if
+       * available).
+       */
+      range?: SourceRange;
+
+      /**
+       * Identifier of the stylesheet containing this object (if exists).
+       */
+      styleSheetId?: StyleSheetId;
+    }
+
+    /**
+     * CSS Layer data.
+     */
+    export interface CSSLayerData {
+      /**
+       * Layer name.
+       */
+      name: string;
+
+      /**
+       * Direct sub-layers
+       */
+      subLayers?: CSSLayerData[];
+
+      /**
+       * Layer order. The order determines the order of the layer in the cascade order.
+       * A higher number has higher priority in the cascade order.
+       */
+      order: number;
     }
 
     /**
@@ -18699,7 +18798,7 @@ export namespace Cdp {
       containerQueryContainerHighlightConfig?: ContainerQueryContainerHighlightConfig;
     }
 
-    export type ColorFormat = 'rgb' | 'hsl' | 'hex';
+    export type ColorFormat = 'rgb' | 'hsl' | 'hwb' | 'hex';
 
     /**
      * Configurations for Persistent Grid Highlight
@@ -21101,6 +21200,7 @@ export namespace Cdp {
       | 'ambient-light-sensor'
       | 'attribution-reporting'
       | 'autoplay'
+      | 'browsing-topics'
       | 'camera'
       | 'ch-dpr'
       | 'ch-device-memory'
@@ -21141,6 +21241,7 @@ export namespace Cdp {
       | 'gyroscope'
       | 'hid'
       | 'idle-detection'
+      | 'interest-cohort'
       | 'join-ad-interest-group'
       | 'keyboard-map'
       | 'magnetometer'
@@ -21831,6 +21932,7 @@ export namespace Cdp {
       | 'NoResponseHead'
       | 'Unknown'
       | 'ActivationNavigationsDisallowedForBug1234857'
+      | 'ErrorDocument'
       | 'WebSocket'
       | 'WebTransport'
       | 'WebRTC'
@@ -21920,6 +22022,13 @@ export namespace Cdp {
        * Not restored reason
        */
       reason: BackForwardCacheNotRestoredReason;
+
+      /**
+       * Context associated with the reason. The meaning of this context is
+       * dependent on the reason:
+       * - EmbedderExtensionSentMessageToCachedFrame: the extension ID.
+       */
+      context?: string;
     }
 
     export interface BackForwardCacheNotRestoredExplanationTree {

@@ -8,6 +8,7 @@ import WebSocket from 'ws';
 import { Cdp } from '../cdp/api';
 import { ICdpApi, ProtocolError } from '../cdp/connection';
 import { CdpProtocol } from '../cdp/protocol';
+import { LinkedList } from '../common/datastructure/linkedList';
 import { DisposableList, IDisposable } from '../common/disposable';
 import { ILogger, LogTag } from '../common/logging';
 import Dap from '../dap/api';
@@ -56,61 +57,87 @@ export interface ICdpProxyProvider extends IDisposable {
 
 type ReplayMethod = { event: string; params: Record<string, unknown> };
 
+const enum CaptureBehavior {
+  Append,
+  CappedAppend,
+  Replace,
+}
+
+type CaptureBehaviorParams =
+  | CaptureBehavior.Append
+  | CaptureBehavior.Replace
+  | { type: CaptureBehavior.CappedAppend; cap: number };
+
 /**
  * Handles replaying events from domains. Certain events are only fired when
  * a domain is first enabled, so subsequent connections may not receive it.
  */
 class DomainReplays {
-  private replays = new Map<keyof Cdp.Api, ReplayMethod[]>();
+  private replays = new Map<keyof Cdp.Api, LinkedList<ReplayMethod>>();
 
   /**
    * Adds a message to be replayed.
    */
-  public addReplay(domain: keyof Cdp.Api, event: string, params: unknown, clearPrevious = false) {
-    if (clearPrevious) {
-      this.clearEvent(domain, event);
+  public addReplay(domain: keyof Cdp.Api, event: string, params: unknown) {
+    let ll = this.replays.get(domain);
+    if (!ll) {
+      ll = new LinkedList();
+      this.replays.set(domain, ll);
     }
 
-    const obj = { event: `${domain}.${event}`, params: params as Record<string, unknown> };
-    const arr = this.replays.get(domain);
-    if (arr) {
-      arr.push(obj);
-    } else {
-      this.replays.set(domain, [obj]);
-    }
+    return ll.push({ event: `${domain}.${event}`, params: params as Record<string, unknown> });
   }
 
   /**
    * Captures replay for the event on CDP.
    */
-  public capture(cdp: Cdp.Api, domain: keyof Cdp.Api, event: string, clearPrevious = false) {
-    (
-      cdp[domain] as {
-        on(event: string, fn: (arg: Record<string, unknown>) => void): void;
-      }
-    ).on(event, evt => this.addReplay(domain, event, evt, clearPrevious));
+  public capture(
+    cdp: Cdp.Api,
+    domain: keyof Cdp.Api,
+    event: string,
+    behavior: CaptureBehaviorParams,
+  ) {
+    const handler = cdp[domain] as {
+      on(event: string, fn: (arg: Record<string, unknown>) => void): void;
+    };
+
+    if (behavior === CaptureBehavior.Append) {
+      handler.on(event, args => this.addReplay(domain, event, args));
+    } else if (behavior === CaptureBehavior.Replace) {
+      let rmPrevious: (() => void) | undefined;
+      handler.on(event, args => {
+        rmPrevious?.();
+        rmPrevious = this.addReplay(domain, event, args);
+      });
+    } else {
+      const rmQueue = new LinkedList<() => void>();
+      handler.on(event, args => {
+        if (rmQueue.size === behavior.cap) {
+          rmQueue.shift()?.();
+        }
+        rmQueue.push(this.addReplay(domain, event, args));
+      });
+    }
   }
 
   /**
    * Filters replayed events.
    */
-  public filterReply(domain: keyof Cdp.Api, filterFn: (r: ReplayMethod) => boolean) {
-    const arr = this.replays.get(domain);
-    if (!arr) {
+  public filter(domain: keyof Cdp.Api, filterFn: (r: ReplayMethod) => boolean) {
+    const ll = this.replays.get(domain);
+    if (!ll) {
       return;
     }
 
-    this.replays.set(domain, arr.filter(filterFn));
+    ll.applyFilter(filterFn);
   }
 
+  /**
+   * Removes all of the event from the replay.
+   */
   public clearEvent<TKey extends keyof Cdp.Api>(domain: TKey, event: string) {
-    const arr = this.replays.get(domain);
-    if (arr) {
-      this.replays.set(
-        domain,
-        arr.filter(e => e.event !== event),
-      );
-    }
+    const e = `${domain}.${event}`;
+    this.filter(domain, r => r.event !== e);
   }
 
   /**
@@ -165,8 +192,16 @@ export class CdpProxyProvider implements ICdpProxyProvider {
     @inject(IPortLeaseTracker) private readonly portTracker: IPortLeaseTracker,
     @inject(ILogger) private readonly logger: ILogger,
   ) {
-    this.replay.capture(cdp, 'CSS', 'styleSheetAdded');
-    this.replay.capture(cdp, 'Debugger', 'paused', true);
+    this.replay.capture(cdp, 'CSS', 'styleSheetAdded', CaptureBehavior.Append);
+    this.replay.capture(cdp, 'Debugger', 'paused', CaptureBehavior.Replace);
+    this.replay.capture(cdp, 'Runtime', 'executionContextCreated', {
+      cap: 50,
+      type: CaptureBehavior.CappedAppend,
+    });
+    this.replay.capture(cdp, 'Runtime', 'consoleAPICalled', {
+      cap: 50,
+      type: CaptureBehavior.CappedAppend,
+    });
     cdp.Debugger.on('resumed', () => {
       this.replay.clearEvent('Debugger', 'paused');
     });
@@ -178,7 +213,7 @@ export class CdpProxyProvider implements ICdpProxyProvider {
     });
 
     cdp.CSS.on('styleSheetRemoved', evt =>
-      this.replay.filterReply('CSS', s => s.params.styleSheetId !== evt.styleSheetId),
+      this.replay.filter('CSS', s => s.params.styleSheetId !== evt.styleSheetId),
     );
   }
 
@@ -260,9 +295,9 @@ export class CdpProxyProvider implements ICdpProxyProvider {
     const promise = this.cdp.session.sendOrDie(`${domain}.${method}`, params);
     switch (method) {
       case 'enable':
-        this.replay
-          .read(domain as keyof Cdp.Api)
-          .forEach(m => client.send({ method: m.event, params: m.params }));
+        for (const m of this.replay.read(domain as keyof Cdp.Api)) {
+          client.send({ method: m.event, params: m.params });
+        }
         break;
       case 'disable':
         this.replay.clearDomain(domain as keyof Cdp.Api);

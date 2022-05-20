@@ -3,6 +3,7 @@
  *--------------------------------------------------------*/
 
 import { expect } from 'chai';
+import del from 'del';
 import { join } from 'path';
 import { readfile } from '../../common/fsUtils';
 import { forceForwardSlashes } from '../../common/pathUtils';
@@ -11,7 +12,6 @@ import { createFileTree } from '../createFileTree';
 import { removeNodeInternalsStackLines } from '../goldenText';
 import { ITestHandle, testFixturesDir, TestP, TestRoot, testWorkspace } from '../test';
 import { itIntegrates, waitForPause } from '../testIntegrationUtils';
-import del = require('del');
 
 describe('breakpoints', () => {
   describe('configure', () => {
@@ -132,6 +132,42 @@ describe('breakpoints', () => {
       await waitForPause(p);
       p.assertLog();
     });
+
+    itIntegrates("source map that's path mapped", async ({ r }) => {
+      const cwd = r.workspacePath('web/tmp');
+
+      after(() =>
+        del([`${forceForwardSlashes(cwd)}/**`], {
+          force: true /* delete outside cwd */,
+        }),
+      );
+
+      createFileTree(cwd, {
+        'app.ts': await readfile(r.workspacePath('web/pathMapped/app.ts')),
+        'app.js': (await readfile(r.workspacePath('web/pathMapped/app.js'))).replace(
+          'app.js.map',
+          'mappedPath/app.js.map',
+        ),
+        'index.html': await readfile(r.workspacePath('web/pathMapped/index.html')),
+        mappedDir: {
+          'app.js.map': await readfile(r.workspacePath('web/pathMapped/app.js.map')),
+        },
+      });
+
+      const p = await r.launchUrl('tmp/index.html', {
+        pathMapping: {
+          '/mappedPath/': '${workspaceFolder}/web/tmp/mappedDir/',
+        },
+      });
+      const source: Dap.Source = {
+        path: p.workspacePath('web/tmp/app.ts'),
+      };
+
+      await p.dap.setBreakpoints({ source, breakpoints: [{ line: 2 }] });
+      p.load();
+      await waitForPause(p);
+      p.assertLog();
+    });
   });
 
   describe('launched', () => {
@@ -224,8 +260,10 @@ describe('breakpoints', () => {
 
     itIntegrates('source map', async ({ r }) => {
       // Breakpoint in source mapped script set after launch.
-      const p = await r.launchUrlAndLoad('browserify/browserify.html');
-      await p.waitForSource('module2.ts');
+      const p = await r.launchUrl('browserify/browserify.html');
+      const sourceP = p.waitForSource('module2.ts');
+      await p.load();
+      await sourceP;
 
       const source: Dap.Source = {
         path: p.workspacePath('web/browserify/module2.ts'),
@@ -680,7 +718,7 @@ describe('breakpoints', () => {
       const handle = await r.runScript(join(cwd, 'index.js'));
       await handle.dap.setBreakpoints({
         source: { path: join(cwd, 'double.ts') },
-        breakpoints: [{ line: 5, column: 1 }],
+        breakpoints: [{ line: 7, column: 1 }],
       });
 
       handle.load();
@@ -695,7 +733,7 @@ describe('breakpoints', () => {
       const handle = await r.runScript(join(cwd, 'index.js'));
       await handle.dap.setBreakpoints({
         source: { path: join(cwd, 'double.ts') },
-        breakpoints: [{ line: 5, column: 1 }],
+        breakpoints: [{ line: 7, column: 1 }],
       });
 
       handle.load();
@@ -703,7 +741,7 @@ describe('breakpoints', () => {
       handle.log(
         await handle.dap.setBreakpoints({
           source: { path: join(cwd, 'double.ts') },
-          breakpoints: [{ line: 15, column: 1 }],
+          breakpoints: [{ line: 17, column: 1 }],
         }),
       );
 
@@ -719,7 +757,7 @@ describe('breakpoints', () => {
       const handle = await r.runScriptAsRemote(join(cwd, 'index.js'));
       await handle.dap.setBreakpoints({
         source: { path: join(cwd, 'double.ts') },
-        breakpoints: [{ line: 5, column: 1 }],
+        breakpoints: [{ line: 7, column: 1 }],
       });
 
       handle.load();
@@ -1069,5 +1107,13 @@ describe('breakpoints', () => {
     await waitForPause(p); // should hit baz
     await waitForPause(p); // should skip foo and hit baz again
     p.assertLog();
+  });
+
+  itIntegrates('ignores source url query string (#1225)', async ({ r }) => {
+    const cwd = join(testWorkspace, 'sourceQueryString');
+    const handle = await r.runScript(join(cwd, 'output.js'), { cwd });
+    handle.load();
+    await waitForPause(handle);
+    handle.assertLog({ substring: true });
   });
 });

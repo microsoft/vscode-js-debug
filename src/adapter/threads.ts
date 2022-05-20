@@ -435,7 +435,7 @@ export class Thread implements IVariableStoreLocationProvider {
             includeCommandLineAPI: true,
             objectGroup: 'console',
             generatePreview: true,
-            timeout: args.context === 'hover' ? 500 : undefined,
+            timeout: args.context === 'hover' ? this.getHoverEvalTimeout() : undefined,
           };
 
     if (args.context === 'repl') {
@@ -461,7 +461,7 @@ export class Thread implements IVariableStoreLocationProvider {
 
     // Report result for repl immediately so that the user could see the expression they entered.
     if (args.context === 'repl') {
-      return await this._evaluateRepl(responsePromise);
+      return await this._evaluateRepl(responsePromise, args.format);
     }
 
     const response = await responsePromise;
@@ -486,7 +486,7 @@ export class Thread implements IVariableStoreLocationProvider {
 
     const variable = await variableStore
       .createFloatingVariable(response.result)
-      .toDap(args.context as PreviewContextType);
+      .toDap(args.context as PreviewContextType, args.format);
 
     return {
       type: response.result.type,
@@ -497,10 +497,22 @@ export class Thread implements IVariableStoreLocationProvider {
     };
   }
 
+  private getHoverEvalTimeout() {
+    const configuredTimeout = this.launchConfig.timeouts?.hoverEvaluation;
+    if (configuredTimeout === undefined) {
+      return 500;
+    }
+    if (configuredTimeout <= 0) {
+      return undefined;
+    }
+    return configuredTimeout;
+  }
+
   async _evaluateRepl(
     responsePromise:
       | Promise<Cdp.Runtime.EvaluateResult | undefined>
       | Promise<Cdp.Debugger.EvaluateOnCallFrameResult | undefined>,
+    format: Dap.ValueFormat | undefined,
   ): Promise<Dap.EvaluateResult> {
     const response = await responsePromise;
     if (!response) return { result: '', variablesReference: 0 };
@@ -515,7 +527,7 @@ export class Thread implements IVariableStoreLocationProvider {
           : '';
       const resultVar = await this.replVariables
         .createFloatingVariable(response.result)
-        .toDap(PreviewContextType.Repl);
+        .toDap(PreviewContextType.Repl, format);
       return {
         variablesReference: resultVar.variablesReference,
         result: `${contextName}${resultVar.value}`,

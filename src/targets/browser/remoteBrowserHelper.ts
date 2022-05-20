@@ -2,16 +2,16 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { randomBytes } from 'crypto';
 import { inject, injectable } from 'inversify';
-import { AddressInfo, Server, Socket } from 'net';
+import { AddressInfo } from 'net';
 import { CancellationToken } from 'vscode';
-import { acquireTrackedServer, IPortLeaseTracker } from '../../adapter/portLeaseTracker';
-import { GzipPipeTransport } from '../../cdp/gzipPipeTransport';
+import { WebSocket, WebSocketServer } from 'ws';
+import { acquireTrackedWebSocketServer, IPortLeaseTracker } from '../../adapter/portLeaseTracker';
 import { ITransport } from '../../cdp/transport';
+import { WebSocketTransport } from '../../cdp/webSocketTransport';
 import { timeoutPromise } from '../../common/cancellation';
 import { IDisposable } from '../../common/disposable';
-import { ILogger } from '../../common/logging';
-import { getDeferred } from '../../common/promiseUtil';
 import Dap from '../../dap/api';
 
 let launchIdCounter = 0;
@@ -21,17 +21,14 @@ export class RemoteBrowserHelper implements IDisposable {
   /**
    * Server we're using to wait for connections, if any.
    */
-  private server?: Server;
+  private server?: WebSocketServer;
 
   /**
    * Transports to launch ID.
    */
   private teardown = new WeakMap<ITransport, () => void>();
 
-  constructor(
-    @inject(ILogger) private readonly logger: ILogger,
-    @inject(IPortLeaseTracker) private readonly portLeaseTracker: IPortLeaseTracker,
-  ) {}
+  constructor(@inject(IPortLeaseTracker) private readonly portLeaseTracker: IPortLeaseTracker) {}
 
   /**
    * Launches the browser in the companion app, and return the transport.
@@ -45,26 +42,31 @@ export class RemoteBrowserHelper implements IDisposable {
       this.server.close();
     }
 
-    const connection = getDeferred<Socket>();
-    const server = (this.server = await acquireTrackedServer(
-      this.portLeaseTracker,
-      connection.resolve,
-    ));
+    const path = `/${randomBytes(20).toString('hex')}`;
+    const server = (this.server = await acquireTrackedWebSocketServer(this.portLeaseTracker, {
+      perMessageDeflate: true,
+      host: '127.0.0.1',
+      path,
+    }));
 
     const launchId = ++launchIdCounter;
     dap.launchBrowserInCompanion({
       ...params,
       serverPort: (server.address() as AddressInfo).port,
+      path,
       launchId,
     });
 
     const socket = await timeoutPromise(
-      connection.promise,
+      new Promise<WebSocket>((resolve, reject) => {
+        server.once('connection', resolve);
+        server.once('error', reject);
+      }),
       cancellationToken,
       'Timed out waiting for browser connection',
     );
 
-    const transport = new GzipPipeTransport(this.logger, socket);
+    const transport = new WebSocketTransport(socket);
     this.teardown.set(transport, () => dap.killCompanionBrowser({ launchId }));
 
     return transport;

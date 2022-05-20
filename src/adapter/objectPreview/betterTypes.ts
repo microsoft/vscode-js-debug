@@ -89,10 +89,17 @@ export type TNumber = { type: 'number'; subtype: undefined; value: number; descr
 export type NumberPreview = TNumber;
 export type NumberObj = TNumber;
 
+export type TSpecialNumber = {
+  type: 'number';
+  unserializableValue: 'NaN' | 'Infinity' | '-Infinity';
+  description: string;
+};
+export type SpecialNumberPreview = TSpecialNumber;
+
 export type TBigint = {
   type: 'bigint';
   subtype: undefined;
-  unserializableValue: string;
+  unserializableValue?: string;
   description: string;
 };
 export type BigintPreview = TBigint;
@@ -123,12 +130,13 @@ export type AnyPreview =
   | NullPreview;
 
 export type PreviewAsObjectType = NodePreview | FunctionPreview | ObjectPreview;
-export type Numeric = NumberPreview | BigintPreview;
+export type Numeric = NumberPreview | BigintPreview | TSpecialNumber;
 export type Primitive =
   | NullPreview
   | UndefinedPreview
   | StringPreview
   | NumberPreview
+  | SpecialNumberPreview
   | BigintPreview
   | RegExpPreview
   | ErrorPreview;

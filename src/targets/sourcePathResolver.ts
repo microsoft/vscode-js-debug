@@ -179,6 +179,17 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
     // https://github.com/microsoft/vscode-js-debug/issues/1080#issuecomment-938200168
     url = url.replace(nullByteRe, '');
 
+    // While file paths on some systems can contain "?", this is rare (and, fun
+    // fact, actually cause webpack compilation to fail.) Meanwhile, webpack
+    // seems to have started adding query strings to its source URLs.
+    // Except don't do this for Vue. Vue is special :(
+    // https://github.com/microsoft/vscode/issues/147662#issuecomment-1108985029
+    // https://github.com/microsoft/vscode-js-debug/issues/1225
+    const queryStringStart = url.lastIndexOf('?');
+    if (queryStringStart !== -1 && url.slice(queryStringStart - 4, queryStringStart) !== '.vue') {
+      url = url.slice(0, queryStringStart);
+    }
+
     return url;
   }
 

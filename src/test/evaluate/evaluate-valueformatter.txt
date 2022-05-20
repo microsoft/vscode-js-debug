@@ -1,0 +1,12 @@
+result: 2a
+
+result: 15a4f9d339f5e8dd2f8dd19bc149ff5e4f15a1b5
+
+result: 68656c6c6f20776f726c64
+
+> result: {a: 'hello', b: 42, c: true}
+    a: 68656c6c6f
+    b: 2a
+    c: true
+    > [[Prototype]]: Object
+

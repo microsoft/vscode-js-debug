@@ -4,11 +4,13 @@
 
 import {
   BasicSourceMapConsumer,
+  IndexedSourceMapConsumer,
   MappedPosition,
   MappingItem,
   NullableMappedPosition,
   NullablePosition,
   Position,
+  SourceMapConsumer,
 } from 'source-map';
 import { fixDriveLetterAndSlashes } from '../pathUtils';
 import { completeUrlEscapingRoot } from '../urlUtils';
@@ -22,7 +24,7 @@ export interface ISourceMapMetadata {
 /**
  * Wrapper for a parsed sourcemap.
  */
-export class SourceMap implements BasicSourceMapConsumer {
+export class SourceMap implements SourceMapConsumer {
   private static idCounter = 0;
 
   /**
@@ -37,7 +39,7 @@ export class SourceMap implements BasicSourceMapConsumer {
   public readonly id = SourceMap.idCounter++;
 
   constructor(
-    private readonly original: BasicSourceMapConsumer,
+    private readonly original: BasicSourceMapConsumer | IndexedSourceMapConsumer,
     public readonly metadata: Readonly<ISourceMapMetadata>,
     private readonly actualRoot: string,
     public readonly actualSources: ReadonlyArray<string>,
@@ -65,25 +67,11 @@ export class SourceMap implements BasicSourceMapConsumer {
   }
 
   /**
-   * Gets the optional name of the generated code that this source map is associated with
-   */
-  public get file() {
-    return this.metadata.compiledPath ?? this.original.file;
-  }
-
-  /**
    * Gets the source root of the sourcemap.
    */
   public get sourceRoot() {
     // see SourceMapFactory.loadSourceMap for what's happening here
     return this.actualRoot;
-  }
-
-  /**
-   * Gets the sources content.
-   */
-  public get sourcesContent() {
-    return this.original.sourcesContent;
   }
 
   /**

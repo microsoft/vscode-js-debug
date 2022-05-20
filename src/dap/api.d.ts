@@ -2135,12 +2135,12 @@ export namespace Dap {
     frameId?: integer;
 
     /**
-     * The context in which the evaluate request is run.
+     * The context in which the evaluate request is used.
      */
-    context?: 'watch' | 'repl' | 'hover' | 'clipboard';
+    context?: 'variables' | 'watch' | 'repl' | 'hover' | 'clipboard';
 
     /**
-     * Specifies details on how to format the Evaluate result.
+     * Specifies details on how to format the result.
      * The attribute is only honored by a debug adapter if the capability 'supportsValueFormattingOptions' is true.
      */
     format?: ValueFormat;
@@ -2589,6 +2589,11 @@ export namespace Dap {
      * Local port the debug server is listening on
      */
     serverPort: number;
+
+    /**
+     * Server path to connect to
+     */
+    path?: string;
 
     browserArgs?: string[];
 
@@ -3975,7 +3980,7 @@ export namespace Dap {
   }
 
   /**
-   * An ExceptionFilterOptions is used to specify an exception filter together with a condition for the setExceptionsFilter request.
+   * An ExceptionFilterOptions is used to specify an exception filter together with a condition for the 'setExceptionBreakpoints' request.
    */
   export interface ExceptionFilterOptions {
     /**
@@ -4423,7 +4428,9 @@ export namespace Dap {
     visibility?: 'public' | 'private' | 'protected' | 'internal' | 'final';
 
     /**
-     * If true clients can present the variable with a UI that supports a specific gesture to trigger its evaluation.
+     * If true, clients can present the variable with a UI that supports a specific gesture to trigger its evaluation.
+     * This mechanism can be used for properties that require executing code when retrieving their value and where the code execution can be expensive and/or produce side-effects. A typical example are properties based on a getter function.
+     * Please note that in addition to the 'lazy' flag, the variable's 'variablesReference' must refer to a variable that will provide the value through another 'variable' request.
      */
     lazy?: boolean;
   }

@@ -216,6 +216,10 @@ const dapCustom: JSONSchema4 = {
             type: 'number',
             description: 'Local port the debug server is listening on',
           },
+          path: {
+            type: 'string',
+            description: 'Server path to connect to',
+          },
           browserArgs: {
             type: 'array',
             items: {

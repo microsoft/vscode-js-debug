@@ -24,6 +24,8 @@ extends:
     publishExtension: ${{ parameters.publishExtension }}
     vscePackageArgs: --no-dependencies
     cgIgnoreDirectories: 'testdata,demos,.vscode-test'
+    ghCreateRelease: true
+    ghReleaseAddChangeLog: true
     buildSteps:
       - script: npm install
         displayName: Install dependencies

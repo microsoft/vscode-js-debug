@@ -2,7 +2,6 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 import { Commands } from '../common/contributionUtils';
-import { sortKeys } from '../common/objUtils';
 
 const strings = {
   'attach.node.process': 'Attach to Node Process',
@@ -44,8 +43,8 @@ const strings = {
   'edge.useWebView.attach.description':
     'An object containing the `pipeName` of a debug pipe for a UWP hosted Webview2. This is the "MyTestSharedMemory" when creating the pipe "\\\\.\\pipe\\LOCAL\\MyTestSharedMemory"',
 
-  'chrome.label': 'Chrome',
-  'edge.label': 'Edge',
+  'chrome.label': 'Web App (Chrome)',
+  'edge.label': 'Web App (Edge)',
   'edge.launch.label': 'Edge: Launch',
   'edge.attach.label': 'Edge: Attach',
   'edge.launch.description': 'Launch Edge to debug a URL',
@@ -236,6 +235,8 @@ const strings = {
     "Allows you to explicitly specify the Node version that's running, which can be used to disable or enable certain behaviors in cases where the automatic version detection does not work.",
   'timeouts.generalDescription': 'Timeouts for several debugger operations.',
   'timeouts.generalDescription.markdown': 'Timeouts for several debugger operations.',
+  'timeouts.hoverEvaluation.description':
+    'Time until value evaluation for hovered symbols is aborted. If set to 0, hover evaluation does never time out.',
   'timeouts.sourceMaps.description': 'Timeouts related to source maps operations.',
   'timeouts.sourceMaps.sourceMapMinPause.description':
     'Minimum time in milliseconds spent waiting for each source-map to be processed when a script is being parsed',
@@ -323,7 +324,3 @@ A common case to disable certificate verification can be done by passing \`{ "ht
 };
 
 export default strings;
-
-if (require.main === module) {
-  process.stdout.write(JSON.stringify(sortKeys(strings)));
-}

@@ -4,4 +4,4 @@
     reason : breakpoint
     threadId : <number>
 }
-triple @ ${workspaceFolder}/tsNode/double.ts:5:3
+triple @ ${workspaceFolder}/tsNode/double.ts:7:3

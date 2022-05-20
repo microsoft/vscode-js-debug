@@ -483,6 +483,7 @@ export class TestRoot {
       program: this._launchUrl,
       rootPath: this._workspaceRoot,
       trace: { logFile: tmpLogPath },
+      runtimeVersion: process.env.JSDBG_USE_NODE_VERSION,
       outFiles: [`${this._workspaceRoot}/**/*.js`, '!**/node_modules/**'],
       resolveSourceMapLocations: ['**', '!**/node_modules/**'],
       __workspaceFolder: this._workspaceRoot,

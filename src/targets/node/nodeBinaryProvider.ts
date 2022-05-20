@@ -303,11 +303,18 @@ export class NodeBinaryProvider {
 
     // match the "12" in "v12.34.56"
     const versionText = await this.getVersionText(location);
-    this.logger.info(LogTag.RuntimeLaunch, 'Discovered version', { version: versionText.trim() });
+
+    // Handle other cases where Node.js is installed via snap, but not in `/span/`.
+    // We just get empty output from it in that case.
+    if (!versionText) {
+      return new NodeBinary(location, undefined);
+    }
+
+    this.logger.info(LogTag.RuntimeLaunch, 'Discovered version', { version: versionText });
 
     const majorVersionMatch = /v([0-9]+)\.([0-9]+)\.([0-9]+)/.exec(versionText);
     if (!majorVersionMatch) {
-      throw new NodeBinaryOutOfDateError(versionText.trim(), location);
+      throw new NodeBinaryOutOfDateError(versionText, location);
     }
 
     const [, major, minor, patch] = majorVersionMatch.map(Number);
@@ -342,7 +349,7 @@ export class NodeBinaryProvider {
       const { stdout } = await spawnAsync(binary, ['--version'], {
         env: EnvironmentVars.processEnv().defined(),
       });
-      return stdout;
+      return stdout.trim();
     } catch (e) {
       throw new ProtocolError(
         cannotFindNodeBinary(

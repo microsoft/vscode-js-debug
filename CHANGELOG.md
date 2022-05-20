@@ -2,15 +2,50 @@
 
 This changelog records changes to stable releases since 1.50.2. "TBA" changes here may be available in the [nightly release](https://github.com/microsoft/vscode-js-debug/#nightly-extension) before they're in stable. Note that the minor version (`v1.X.0`) corresponds to the VS Code version js-debug is shipped in, but the patch version (`v1.50.X`) is not meaningful.
 
-## Nightly Only
+### Nightly (only)
+
+- chore: support new sha script hashes from chrome ([#1244](https://github.com/microsoft/vscode-js-debug/issues/1244))
+- fix: bigint value previews not working in some cases ([#1277](https://github.com/microsoft/vscode-js-debug/issues/1277))
+- fix: snap versions in alternate install locations resulting in warning ([#1239](https://github.com/microsoft/vscode-js-debug/issues/1239))
+- fix: align hoverEvaluation config suggestion with actual default
+- fix: remove query strings from sourcemapped URLs ([#1225](https://github.com/microsoft/vscode-js-debug/issues/1225))
+- fix: prefer to parse source map directly before failling back to path mapping ([vscode#148864](https://github.com/microsoft/vscode/issues/148864))
+- fix: only enter debug mode on f11 when debug view is visible ([vscode#141157](https://github.com/microsoft/vscode/issues/141157))
+
+## v1.67 (April 2022)
+
+### v1.67.2 - 2022-04-29
+
+- fix: data URI sourcemaps not loading
+
+### v1.67.1 - 2022-04-28
+
+- fix: debug not working on Node 12 or lower
+
+### v1.67.0 - 2022-04-26
+
+- feat: apply pathMapping when loading sourcemaps ([#1240](https://github.com/microsoft/vscode-js-debug/issues/1240))
+- feat: apply pathMapping when loading sourcemaps ([#1242](https://github.com/microsoft/vscode-js-debug/issues/1242))
+- fix: sourcemap renames replacing in invalid contexts ([#1201](https://github.com/microsoft/vscode-js-debug/issues/1201))
+
+## v1.66 (March 2022)
+
+### v1.66.1 - 2022-03-24
+
+- feat: adopt `CompletionItem.detail` ([vscode#145645](https://github.com/microsoft/vscode/issues/145645))
+- fix: accessor properties not being writable ([vscode#146001](https://github.com/microsoft/vscode/issues/146001))
+- fix: completions sometimes throwing issue on accessor ([#1218](https://github.com/microsoft/vscode-js-debug/issues/1218))
+
+### v1.66.0 - 2022-03-03
 
 - feat: add heap profiler
+- fix: properly support DAP `valueFormat` ([#1188](https://github.com/microsoft/vscode-js-debug/issues/1188))
 - fix: don't use `pwa-` prefixed launch types in snippets ([#1138](https://github.com/microsoft/vscode-js-debug/issues/1138))
 - fix: readonly attribute not being applied to getter values ([vscode#143790](https://github.com/microsoft/vscode/issues/143790))
 - fix: cwd being lost causing resolution errors in auto attach ([#1212](https://github.com/microsoft/vscode-js-debug/issues/1212))
 - fix: avoid nesting `localRoot`'s in programmatic starts ([#1140](https://github.com/microsoft/vscode-js-debug/issues/1140))
 - fix: icon in "stop profiling" button not spinning ([vscode#136742](https://github.com/microsoft/vscode/issues/136742))
-- fix: don't display non-enumerable getters as private ([#1215](https://github.com/microsoft/vscode-js-debug/issues/1215))
+- refactor: simplify and improve browser connection in WSL and remotes
 
 ## v1.65 (February 2022)
 

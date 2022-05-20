@@ -852,6 +852,7 @@ export class SourceContainer {
     contentHash?: string,
   ): Promise<Source> {
     const absolutePath = await this.sourcePathResolver.urlToAbsolutePath({ url });
+
     this.logger.verbose(LogTag.RuntimeSourceCreate, 'Creating source from url', {
       inputUrl: url,
       absolutePath,
@@ -1066,7 +1067,7 @@ export class SourceContainer {
       const fileUrl = absolutePath && utils.absolutePathToFileUrl(absolutePath);
       const content = this.sourceMapFactory.guardSourceMapFn(
         map,
-        () => map.sourceContentFor(url),
+        () => map.sourceContentFor(url, true),
         () => null,
       );
 

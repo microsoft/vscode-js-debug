@@ -2,17 +2,16 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { ITransport } from '../../cdp/transport';
-import { RawPipeTransport } from '../../cdp/rawPipeTransport';
-import { PassThrough } from 'stream';
-import { Logger } from '../../common/logging/logger';
-import { randomBytes } from 'crypto';
 import { expect } from 'chai';
+import { randomBytes } from 'crypto';
 import { stub } from 'sinon';
-import { Server as WebSocketServer, AddressInfo } from 'ws';
+import { PassThrough } from 'stream';
+import { AddressInfo, Server as WebSocketServer } from 'ws';
+import { RawPipeTransport } from '../../cdp/rawPipeTransport';
+import { ITransport } from '../../cdp/transport';
 import { WebSocketTransport } from '../../cdp/webSocketTransport';
 import { NeverCancelled } from '../../common/cancellation';
-import { GzipPipeTransport } from '../../cdp/gzipPipeTransport';
+import { Logger } from '../../common/logging/logger';
 import { eventuallyOk } from '../testIntegrationUtils';
 
 describe('cdp transport', () => {
@@ -27,17 +26,6 @@ describe('cdp transport', () => {
 
         const a = new RawPipeTransport(Logger.null, aIn, bIn);
         const b = new RawPipeTransport(Logger.null, bIn, aIn);
-        return { a, b, dispose: () => undefined };
-      },
-    ],
-    [
-      'gzip',
-      async () => {
-        const aIn = new PassThrough();
-        const bIn = new PassThrough();
-
-        const a = new GzipPipeTransport(Logger.null, aIn, bIn);
-        const b = new GzipPipeTransport(Logger.null, bIn, aIn);
         return { a, b, dispose: () => undefined };
       },
     ],

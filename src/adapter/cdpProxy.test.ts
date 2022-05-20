@@ -163,5 +163,32 @@ describe('CdpProxyProvider', () => {
       expect(await client.CSS.enable({})).to.deep.equal({});
       expect(events).to.deep.equal([{ styleSheetId: '42' }]);
     });
+
+    it('caps replays', async () => {
+      transport.onDidSendEmitter.event(async message => {
+        await delay(0);
+        transport.injectMessage({
+          id: message.id as number,
+          result: {},
+          sessionId: message.sessionId,
+        });
+      });
+
+      const events: Cdp.Runtime.RemoteObject[] = [];
+      client.Runtime.on('consoleAPICalled', evt => events.push(evt.args[0]));
+
+      for (let i = 0; i < 1000; i++) {
+        transport.injectMessage({
+          method: 'Runtime.consoleAPICalled',
+          params: { args: [{ objectId: String(i) }] },
+          sessionId: 'sesh',
+        });
+      }
+
+      expect(await client.Runtime.enable({})).to.deep.equal({});
+      expect(events.length).to.equal(50);
+      expect(events[0].objectId).to.equal('950');
+      expect(events[events.length - 1].objectId).to.equal('999');
+    });
   });
 });

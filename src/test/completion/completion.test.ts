@@ -2,13 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { itIntegrates } from '../testIntegrationUtils';
 import { expect } from 'chai';
 import Dap from '../../dap/api';
+import { itIntegrates } from '../testIntegrationUtils';
 
 describe('completion', () => {
   const tcases: [string, Dap.CompletionItem[]][] = [
-    ['ar|', [{ label: 'arr', sortText: '~~arr', type: 'variable' }]],
+    ['ar|', [{ label: 'arr', sortText: '~~arr', type: 'variable', detail: 'Array' }]],
     [
       'arr.|',
       [
@@ -24,11 +24,13 @@ describe('completion', () => {
         },
         {
           label: 'length',
+          detail: '3',
           sortText: '~~length',
           type: 'property',
         },
         {
           label: 'at',
+          detail: 'fn(?)',
           sortText: '~~~at',
           type: 'method',
         },
@@ -40,16 +42,19 @@ describe('completion', () => {
       [
         {
           label: 'length',
+          detail: '0',
           sortText: '~~length',
           type: 'property',
         },
         {
           label: 'anchor',
+          detail: 'fn(?)',
           sortText: '~~~anchor',
           type: 'method',
         },
         {
           label: 'at',
+          detail: 'fn(?)',
           sortText: '~~~at',
           type: 'method',
         },
@@ -61,27 +66,46 @@ describe('completion', () => {
       [
         {
           label: 'bar',
+          detail: '42',
           sortText: '~~bar',
           type: 'property',
         },
         {
           label: 'baz',
+          detail: 'fn()',
           sortText: '~~baz',
           type: 'method',
         },
         {
           label: 'foo',
+          detail: 'string',
           sortText: '~~foo',
           type: 'property',
         },
       ],
     ],
-    ['ob|', [{ label: 'obj', sortText: '~~obj', type: 'variable' }]],
-    ['arr[myStr|', [{ label: 'myString', sortText: '~~myString', type: 'variable' }]],
+    ['ob|', [{ label: 'obj', sortText: '~~obj', type: 'variable', detail: 'Object' }]],
+    [
+      'arr[myStr|',
+      [{ label: 'myString', sortText: '~~myString', type: 'variable', detail: 'string' }],
+    ],
     ['const replVar = 42; replV|', [{ label: 'replVar', sortText: 'replVar', type: 'variable' }]],
-    ['MyCoolCl|', [{ label: 'MyCoolClass', sortText: '~~MyCoolClass', type: 'class' }]],
-    ['Strin|', [{ label: 'String', sortText: '~~String', type: 'class' }]],
-    ['myNeatFun|', [{ label: 'myNeatFunction', sortText: '~~myNeatFunction', type: 'function' }]],
+    [
+      'MyCoolCl|',
+      [{ label: 'MyCoolClass', sortText: '~~MyCoolClass', type: 'class', detail: 'fn()' }],
+    ],
+    ['Strin|', [{ label: 'String', sortText: '~~String', type: 'class', detail: 'fn(?)' }]],
+    [
+      'myNeatFun|',
+      [
+        {
+          label: 'myNeatFunction',
+          sortText: '~~myNeatFunction',
+          type: 'function',
+          detail: 'fn()',
+        },
+      ],
+    ],
     [
       'new Array(42).|',
       [
@@ -97,11 +121,13 @@ describe('completion', () => {
         },
         {
           label: 'length',
+          detail: '42',
           sortText: '~~length',
           type: 'property',
         },
         {
           label: 'at',
+          detail: 'fn(?)',
           sortText: '~~~at',
           type: 'method',
         },
@@ -110,17 +136,17 @@ describe('completion', () => {
     [
       'poison.|',
       [
-        { label: 'bar', sortText: '~~bar', type: 'property' },
+        { label: 'bar', sortText: '~~bar', type: 'property', detail: 'true' },
         { label: 'foo', sortText: '~~foo', type: 'property' },
-        { label: 'constructor', sortText: '~~~constructor', type: 'class' },
+        { label: 'constructor', sortText: '~~~constructor', type: 'class', detail: 'fn(?)' },
       ],
     ],
     [
       'hasPrivate.|',
       [
-        { label: 'c', sortText: '~~c', type: 'property' },
-        { label: '_a', sortText: '~~{a', type: 'property' },
-        { label: '__b', sortText: '~~{{b', type: 'property' },
+        { label: 'c', sortText: '~~c', type: 'property', detail: '3' },
+        { label: '_a', sortText: '~~{a', type: 'property', detail: '1' },
+        { label: '__b', sortText: '~~{{b', type: 'property', detail: '2' },
       ],
     ],
     [
@@ -133,9 +159,10 @@ describe('completion', () => {
           length: 1,
           type: 'property',
           sortText: '~~complex prop',
+          detail: 'true',
         },
-        { label: 'constructor', sortText: '~~~constructor', type: 'class' },
-        { label: 'hasOwnProperty', sortText: '~~~hasOwnProperty', type: 'method' },
+        { label: 'constructor', sortText: '~~~constructor', type: 'class', detail: 'fn(?)' },
+        { label: 'hasOwnProperty', sortText: '~~~hasOwnProperty', type: 'method', detail: 'fn(?)' },
       ],
     ],
     ['$returnV|', []],

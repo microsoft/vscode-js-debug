@@ -3,11 +3,14 @@
  *--------------------------------------------------------*/
 
 import { expect } from 'chai';
-import { ChildProcess } from 'child_process';
 import del from 'del';
-import { join } from 'path';
+import { join, resolve } from 'path';
+import { Worker } from 'worker_threads';
 import { Hasher } from '.';
 import { createFileTree, getTestDir } from '../../test/createFileTree';
+import { HashMode } from './hash';
+
+const hashTestCaseDir = resolve(__dirname, '../../../../testWorkspace/hashTestCases');
 
 describe('hash process', function () {
   this.timeout(15_000);
@@ -30,23 +33,24 @@ describe('hash process', function () {
     hasher.dispose();
   });
 
-  /**
-   *  different encodings for the same string: "\"1111111111111111111111111111111111111111111\""
-   */
-  // prettier-ignore
-  const utf8NoBOM = Buffer.from([0x22, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31,
+  describe('chromehash', () => {
+    /**
+     *  different encodings for the same string: "\"1111111111111111111111111111111111111111111\""
+     */
+    // prettier-ignore
+    const utf8NoBOM = Buffer.from([0x22, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31,
     0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31,
     0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31,
     0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31,
     0x31, 0x22]);
-  // prettier-ignore
-  const utf8BOM = Buffer.from([
+    // prettier-ignore
+    const utf8BOM = Buffer.from([
     0xEF, 0xBB, 0xBF, 0x22, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31,
     0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31,
     0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31,
     0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x31, 0x22]);
-  // prettier-ignore
-  const utf16BigEndianBOM = Buffer.from([
+    // prettier-ignore
+    const utf16BigEndianBOM = Buffer.from([
     0xFE, 0xFF, 0x00, 0x22, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31,
     0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31,
     0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31,
@@ -55,8 +59,8 @@ describe('hash process', function () {
     0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31,
     0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31,
     0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x22]);
-  // prettier-ignore
-  const utf16LittleEndianBOM = Buffer.from([
+    // prettier-ignore
+    const utf16LittleEndianBOM = Buffer.from([
     0xFF, 0xFE, 0x22, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00,
     0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00,
     0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00,
@@ -66,71 +70,80 @@ describe('hash process', function () {
     0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x31, 0x00,
     0x31, 0x00, 0x31, 0x00, 0x31, 0x00, 0x22, 0x00]);
 
-  it('hash bom', async () => {
-    const expected = '1d9f277f134f31935a286ff810acdf571af3498e';
-    expect(await hasher.hashBytes(utf8NoBOM)).to.equal(expected);
-    expect(await hasher.hashBytes(utf8BOM)).to.equal(expected);
-    expect(await hasher.hashBytes(utf16BigEndianBOM)).to.equal(expected);
-    expect(await hasher.hashBytes(utf16LittleEndianBOM)).to.equal(expected);
-  });
-
-  it('hash from file', async () => {
-    const expected = '1d9f277f134f31935a286ff810acdf571af3498e';
-    createFileTree(testDir, {
-      utf8NoBOM,
-      utf8BOM,
-      utf16BigEndianBOM,
-      utf16LittleEndianBOM,
+    it('bytes', async () => {
+      const expected = '1d9f277f134f31935a286ff810acdf571af3498e';
+      expect(await hasher.hashBytes(HashMode.Chromehash, utf8NoBOM)).to.equal(expected);
+      expect(await hasher.hashBytes(HashMode.Chromehash, utf8BOM)).to.equal(expected);
+      expect(await hasher.hashBytes(HashMode.Chromehash, utf16BigEndianBOM)).to.equal(expected);
+      expect(await hasher.hashBytes(HashMode.Chromehash, utf16LittleEndianBOM)).to.equal(expected);
     });
 
-    expect(await hasher.hashFile(join(testDir, 'utf8NoBOM'))).to.equal(expected);
-    expect(await hasher.hashFile(join(testDir, 'utf8BOM'))).to.equal(expected);
-    expect(await hasher.hashFile(join(testDir, 'utf16BigEndianBOM'))).to.equal(expected);
-    expect(await hasher.hashFile(join(testDir, 'utf16LittleEndianBOM'))).to.equal(expected);
-  });
-
-  /**
-   * Simple script with some emojis in a comment to test hashing of multi-byte code points
-   */
-  // prettier-ignore
-  const multiByteCodePoints = Buffer.from([
-    0xEF, 0xBB, 0xBF, 0x66, 0x75, 0x6E, 0x63, 0x74, 0x69, 0x6F, 0x6E, 0x20,
-    0x62, 0x6C, 0x75, 0x62, 0x28, 0x29, 0x20, 0x7B, 0x0D, 0x0A, 0x09, 0x2F,
-    0x2F, 0x20, 0x67, 0x72, 0x65, 0x61, 0x74, 0x20, 0x73, 0x74, 0x75, 0x66,
-    0x66, 0x20, 0xF0, 0x9F, 0x98, 0x81, 0xF0, 0x9F, 0x98, 0x82, 0xF0, 0x9F,
-    0x98, 0x83, 0xF0, 0x9F, 0x98, 0x84, 0xF0, 0x9F, 0x98, 0x81, 0xF0, 0x9F,
-    0x98, 0x82, 0xF0, 0x9F, 0x98, 0x83, 0xF0, 0x9F, 0x98, 0x84, 0xF0, 0x9F,
-    0x98, 0x81, 0xF0, 0x9F, 0x98, 0x82, 0xF0, 0x9F, 0x98, 0x83, 0xF0, 0x9F,
-    0x98, 0x84, 0xF0, 0x9F, 0x98, 0x81, 0xF0, 0x9F, 0x98, 0x82, 0xF0, 0x9F,
-    0x98, 0x83, 0xF0, 0x9F, 0x98, 0x84, 0x0D, 0x0A, 0x09, 0x72, 0x65, 0x74,
-    0x75, 0x72, 0x6E, 0x20, 0x32, 0x35, 0x3B, 0x0D, 0x0A, 0x7D]);
-
-  it('hash code points', async () => {
-    expect(await hasher.hashBytes(multiByteCodePoints.toString('utf-8'))).to.equal(
-      '0397c2213841ff201f50229790141ac12977acd1',
-    );
-  });
-
-  it('verifies files', async () => {
-    createFileTree(testDir, {
-      'test.js': 'hello world',
+    it('files', async () => {
+      expect(await hasher.hashFile(HashMode.Chromehash, join(hashTestCaseDir, 'blns.js'))).to.equal(
+        '3b33b447a9e19333659bb21c05ce7a0f414776b9',
+      );
+      expect(
+        await hasher.hashFile(HashMode.Chromehash, join(hashTestCaseDir, 'simple.js')),
+      ).to.equal('1283dfddaa33715f0e953c443e071f361de1c9c5');
+      expect(
+        await hasher.hashFile(HashMode.Chromehash, join(hashTestCaseDir, 'utf16be.js')),
+      ).to.equal('1283dfddaa33715f52d186d24885740d1de1c9c5');
+      expect(
+        await hasher.hashFile(HashMode.Chromehash, join(hashTestCaseDir, 'utf16le.js')),
+      ).to.equal('1283dfddaa33715f52d186d24885740d1de1c9c5');
+      expect(
+        await hasher.hashFile(HashMode.Chromehash, join(hashTestCaseDir, 'utf8-bom.js')),
+      ).to.equal('1283dfddaa33715f0e953c443e071f361de1c9c5');
     });
 
-    const result = await hasher.hashFile(join(testDir, 'test.js'));
-    expect(result).to.equal('1ac3c2bf96f77c71394f85ba44fd90055bb72820');
+    it('verifies files when hash matches', async () => {
+      createFileTree(testDir, {
+        'test.js': 'hello world',
+      });
+
+      const result = await hasher.verifyFile(
+        join(testDir, 'test.js'),
+        '1ac3c2bf96f77c71394f85ba44fd90055bb72820',
+        false,
+      );
+      expect(result).to.be.true;
+    });
   });
 
-  it('verifies files when hash matches', async () => {
-    createFileTree(testDir, {
-      'test.js': 'hello world',
+  describe('SHA', () => {
+    it('files', async () => {
+      expect(await hasher.hashFile(HashMode.SHA256, join(hashTestCaseDir, 'blns.js'))).to.equal(
+        'bd2f90038c4ea269f2f610d3502de20f98eb2359eec6ed2da152c52cc861d596',
+      );
+      expect(await hasher.hashFile(HashMode.SHA256, join(hashTestCaseDir, 'simple.js'))).to.equal(
+        'a8217b64f8d6315a5e8fcdc751bff2069a118575d0d9327fc069fb4f060f04a2',
+      );
+      expect(await hasher.hashFile(HashMode.SHA256, join(hashTestCaseDir, 'utf16be.js'))).to.equal(
+        'f7bc3e22e6000869ab4a70052ee353336ac8ff9b63e8d2a343a4fe6e659def9a',
+      );
+      expect(await hasher.hashFile(HashMode.SHA256, join(hashTestCaseDir, 'utf16le.js'))).to.equal(
+        'f7bc3e22e6000869ab4a70052ee353336ac8ff9b63e8d2a343a4fe6e659def9a',
+      );
+      expect(await hasher.hashFile(HashMode.SHA256, join(hashTestCaseDir, 'utf8-bom.js'))).to.equal(
+        'a8217b64f8d6315a5e8fcdc751bff2069a118575d0d9327fc069fb4f060f04a2',
+      );
     });
 
-    const result = await hasher.verifyFile(
-      join(testDir, 'test.js'),
-      '1ac3c2bf96f77c71394f85ba44fd90055bb72820',
-      false,
-    );
-    expect(result).to.be.true;
+    it('verifies files when hash matches', async () => {
+      const a = await hasher.verifyFile(
+        join(hashTestCaseDir, 'simple.js'),
+        'a8217b64f8d6315a5e8fcdc751bff2069a118575d0d9327fc069fb4f060f04a2',
+        false,
+      );
+      expect(a).to.be.true;
+
+      const b = await hasher.verifyFile(
+        join(hashTestCaseDir, 'simple.js'),
+        'b8217b64f8d6315a5e8fcdc751bff2069a118575d0d9327fc069fb4f060f04a2',
+        false,
+      );
+      expect(b).to.be.false;
+    });
   });
 
   it('verifies if wrapped in node module', async () => {
@@ -208,20 +221,22 @@ describe('hash process', function () {
   });
 
   it('gracefully recovers on failure', async () => {
-    const r = hasher.hashBytes('hello world');
-    (hasher as unknown as { instance: ChildProcess }).instance.kill();
+    const r = hasher.hashBytes(HashMode.Chromehash, 'hello world');
+    (hasher as unknown as { instance: Worker }).instance.terminate();
     expect(await r).to.equal('1ac3c2bf96f77c71394f85ba44fd90055bb72820');
   });
 
   it('errors if the hasher crashes multiple times', async () => {
     const deadHasher = new Hasher();
-    const h = deadHasher as unknown as { getProcess(): ChildProcess };
+    const h = deadHasher as unknown as { getProcess(): Worker };
     for (let i = 0; i < 4; i++) {
       const p = h.getProcess();
-      p.kill();
+      p.terminate();
       await new Promise(r => p.addListener('exit', r));
     }
 
-    await expect(deadHasher.hashBytes('hello')).to.be.rejectedWith('unexpectedly exited');
+    await expect(deadHasher.hashBytes(HashMode.Chromehash, 'hello')).to.be.rejectedWith(
+      'unexpectedly exited',
+    );
   });
 });

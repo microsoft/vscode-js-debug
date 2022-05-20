@@ -129,7 +129,7 @@ const getVersionNumber = () => {
 gulp.task('compile:dynamic', async () => {
   const [contributions, strings] = await Promise.all([
     runBuildScript('generate-contributions'),
-    runBuildScript('strings'),
+    runBuildScript('generate-strings'),
     runBuildScript('documentReadme'),
   ]);
 

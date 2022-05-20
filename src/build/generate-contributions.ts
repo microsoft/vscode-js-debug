@@ -231,6 +231,11 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
         description: refString('timeouts.sourceMaps.sourceMapCumulativePause.description'),
         default: 1000,
       },
+      hoverEvaluation: {
+        type: 'number',
+        description: refString('timeouts.hoverEvaluation.description'),
+        default: 500,
+      },
     },
     additionalProperties: false,
     markdownDescription: refString('timeouts.generalDescription.markdown'),
@@ -955,7 +960,7 @@ const extensionHostConfig: IDebugger<IExtensionHostLaunchConfiguration> = {
 const edgeLaunchConfig: IDebugger<IEdgeLaunchConfiguration> = {
   type: DebugType.Edge,
   request: 'launch',
-  label: refString('edge.launch.label'),
+  label: refString('edge.label'),
   languages: browserLanguages,
   configurationSnippets: [
     {
@@ -1458,7 +1463,10 @@ const keybindings = [
     command: Commands.StartWithStopOnEntry,
     key: 'F11',
     mac: 'F11',
-    when: forNodeDebugType('debugConfigurationType', '!inDebugMode'),
+    when: forNodeDebugType(
+      'debugConfigurationType',
+      '!inDebugMode && activeViewlet == workbench.view.debug',
+    ),
   },
 ];
 

@@ -32,7 +32,7 @@ export const mergeOptions = (
   const cast = into as Record<string, unknown>;
   for (const [key, value] of Object.entries(from)) {
     if (typeof value === 'object' && !!value) {
-      cast[key] = Object.assign(cast[key] || {}, value);
+      cast[key] = Object.assign((cast[key] || {}) as Record<string, unknown>, value);
     } else {
       cast[key] = value;
     }
