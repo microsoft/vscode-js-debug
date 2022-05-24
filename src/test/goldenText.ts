@@ -186,8 +186,7 @@ export class GoldenText {
       .replace(/VM\d+/g, 'VM<xx>')
       .replace(/\r\n/g, '\n')
       .replace(/@\ .*vscode-pwa(\/|\\)/g, '@ ')
-      .replace(/data:text\/html;base64,[a-zA-Z0-9+/]*=?/g, '<data-url>')
-      .replace(/eval-[0-9a-f]+.repl/g, 'eval-<xx>.repl');
+      .replace(/data:text\/html;base64,[a-zA-Z0-9+/]*=?/g, '<data-url>');
   }
 
   log(item: any, title?: string, stabilizeNames?: string[]): any {
