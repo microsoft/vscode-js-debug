@@ -470,7 +470,6 @@ const nodeAttachConfig: IDebugger<INodeAttachConfiguration> = {
     },
   },
   defaults: nodeAttachConfigDefaults,
-  uiMessages: { unverifiedBreakpoints: refString('debug.unverifiedBreakpoints') },
 };
 
 /**
@@ -651,7 +650,6 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
     },
   },
   defaults: nodeLaunchConfigDefaults,
-  uiMessages: { unverifiedBreakpoints: refString('debug.unverifiedBreakpoints') },
 };
 
 const nodeTerminalConfiguration: IDebugger<ITerminalLaunchConfiguration> = {
@@ -680,7 +678,6 @@ const nodeTerminalConfiguration: IDebugger<ITerminalLaunchConfiguration> = {
     },
   },
   defaults: terminalBaseDefaults,
-  uiMessages: { unverifiedBreakpoints: refString('debug.unverifiedBreakpoints') },
 };
 
 /**
@@ -880,7 +877,6 @@ const chromeLaunchConfig: IDebugger<IChromeLaunchConfiguration> = {
     },
   },
   defaults: chromeLaunchConfigDefaults,
-  uiMessages: { unverifiedBreakpoints: refString('debug.unverifiedBreakpoints') },
 };
 
 const chromeAttachConfig: IDebugger<IChromeAttachConfiguration> = {
@@ -903,7 +899,6 @@ const chromeAttachConfig: IDebugger<IChromeAttachConfiguration> = {
   ],
   configurationAttributes: chromiumAttachConfigurationAttributes,
   defaults: chromeAttachConfigDefaults,
-  uiMessages: { unverifiedBreakpoints: refString('debug.unverifiedBreakpoints') },
 };
 
 const extensionHostConfig: IDebugger<IExtensionHostLaunchConfiguration> = {
@@ -961,7 +956,6 @@ const extensionHostConfig: IDebugger<IExtensionHostLaunchConfiguration> = {
     },
   },
   defaults: extensionHostConfigDefaults,
-  uiMessages: { unverifiedBreakpoints: refString('debug.unverifiedBreakpoints') },
 };
 
 const edgeLaunchConfig: IDebugger<IEdgeLaunchConfiguration> = {
@@ -1006,7 +1000,6 @@ const edgeLaunchConfig: IDebugger<IEdgeLaunchConfiguration> = {
     },
   },
   defaults: edgeLaunchConfigDefaults,
-  uiMessages: { unverifiedBreakpoints: refString('debug.unverifiedBreakpoints') },
 };
 
 const edgeAttachConfig: IDebugger<IEdgeAttachConfiguration> = {
@@ -1037,7 +1030,6 @@ const edgeAttachConfig: IDebugger<IEdgeAttachConfiguration> = {
     },
   },
   defaults: edgeAttachConfigDefaults,
-  uiMessages: { unverifiedBreakpoints: refString('debug.unverifiedBreakpoints') },
 };
 
 export const debuggers = [
@@ -1068,6 +1060,7 @@ function buildDebuggers() {
       aiKey: appInsightsKey,
       configurationAttributes: {},
       configurationSnippets: [],
+      uiMessages: { unverifiedBreakpoints: refString('debug.unverifiedBreakpoints') },
     };
     output.push(entry);
     return entry;
