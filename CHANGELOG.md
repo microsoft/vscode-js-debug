@@ -2,6 +2,10 @@
 
 This changelog records changes to stable releases since 1.50.2. "TBA" changes here may be available in the [nightly release](https://github.com/microsoft/vscode-js-debug/#nightly-extension) before they're in stable. Note that the minor version (`v1.X.0`) corresponds to the VS Code version js-debug is shipped in, but the patch version (`v1.50.X`) is not meaningful.
 
+## Nightly (only)
+
+- fix: errors thrown in process tree lookup not being visible ([vscode#150754](https://github.com/microsoft/vscode/issues/150754))
+
 ## v1.68 (May 2022)
 
 ### v1.68.0 - 2022-05-30
