@@ -153,6 +153,23 @@ describe('NodeDebugConfigurationProvider', () => {
       });
     });
 
+    it('loads a common entrypoint if available', async () => {
+      createFileTree(testFixturesDir, {
+        'main.js': '',
+      });
+
+      const result = (await provider.resolveDebugConfiguration(folder, emptyRequest))!;
+      result.cwd = result.cwd!.toLowerCase();
+
+      expect(result).to.containSubset({
+        type: DebugType.Node,
+        cwd: testFixturesDir.toLowerCase(),
+        name: 'Launch Program',
+        program: join('${workspaceFolder}', 'main.js.js'),
+        request: 'launch',
+      });
+    });
+
     it('attempts to load the active text editor', async () => {
       createFileTree(testFixturesDir, { 'hello.js': '' });
       const doc = await vscode.workspace.openTextDocument(join(testFixturesDir, 'hello.js'));
