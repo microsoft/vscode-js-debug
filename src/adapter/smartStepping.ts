@@ -4,6 +4,7 @@
 
 import { inject, injectable } from 'inversify';
 import { ILogger, LogTag } from '../common/logging';
+import { isInstanceOf } from '../common/objUtils';
 import { AnyLaunchConfiguration } from '../configuration';
 import { isSourceWithMap, UnmappedReason } from './sources';
 import { StackFrame } from './stackTrace';
@@ -78,8 +79,8 @@ export class SmartStepper {
       return;
     }
 
-    const frame = (await pausedDetails.stackTrace.loadFrames(1))[0];
-    const should = await shouldStepOverStackFrame(frame);
+    const frame = (await pausedDetails.stackTrace.loadFrames(1)).find(isInstanceOf(StackFrame));
+    const should = frame && (await shouldStepOverStackFrame(frame));
     if (should === StackFrameStepOverReason.NotStepped) {
       this.resetSmartStepCount();
       return;

@@ -8,6 +8,7 @@ import { DebugType } from '../common/contributionUtils';
 import { EventEmitter } from '../common/events';
 import { HrTime } from '../common/hrnow';
 import { ILogger, LogTag } from '../common/logging';
+import { isInstanceOf } from '../common/objUtils';
 import { Base1Position } from '../common/positions';
 import { delay, getDeferred, IDeferred } from '../common/promiseUtil';
 import { IRenameProvider } from '../common/sourceMaps/renameProvider';
@@ -303,12 +304,26 @@ export class Thread implements IVariableStoreLocationProvider {
       );
     }
 
-    await this._cdp.Debugger.restartFrame({ callFrameId });
+    const ok = !!(await this._cdp.Debugger.restartFrame({ callFrameId }));
+    if (!ok) {
+      return errors.createUserError(
+        localize('error.unknownRestartError', 'Frame could not be restarted'),
+      );
+    }
+
     this._expectedPauseReason = {
       reason: 'frame_entry',
       description: localize('reason.description.restart', 'Paused on frame entry'),
     };
-    await this._cdp.Debugger.stepInto({});
+
+    // Chromium versions before 104 didn't have an explicit `canBeRestarted`
+    // flag on their call frame. And on those versions, when we `restartFrame`,
+    // we need to manually `stepInto` to unpause. However, with 104, restarting
+    // the frame will automatically resume execution.
+    if (!stackFrame.canExplicitlyBeRestarted) {
+      await this._cdp.Debugger.stepInto({});
+    }
+
     return {};
   }
 
@@ -770,7 +785,8 @@ export class Thread implements IVariableStoreLocationProvider {
       return false;
     }
 
-    const first = await trace.frames[0]?.uiLocation();
+    const firstFrame = trace.frames[0];
+    const first = firstFrame instanceof StackFrame && (await firstFrame.uiLocation());
     if (!first) {
       return false;
     }
@@ -792,9 +808,14 @@ export class Thread implements IVariableStoreLocationProvider {
       if (!stackLocations) {
         // for some reason, if this is assigned directly to stackLocations,
         // then TS will think it can still be undefined below
-        const x = await trace
-          .loadFrames(excludedCallerSearchDepth)
-          .then(frames => Promise.all(frames.slice(1).map(f => f.uiLocation())));
+        const x = await trace.loadFrames(excludedCallerSearchDepth).then(frames =>
+          Promise.all(
+            frames
+              .slice(1)
+              .filter(isInstanceOf(StackFrame))
+              .map(f => f.uiLocation()),
+          ),
+        );
         stackLocations = x;
       }
 
@@ -1431,7 +1452,7 @@ export class Thread implements IVariableStoreLocationProvider {
         Promise.all(
           details.hitBreakpoints
             .map(bp => this._breakpointManager._resolvedBreakpoints.get(bp))
-            .filter((bp): bp is UserDefinedBreakpoint => bp instanceof UserDefinedBreakpoint)
+            .filter(isInstanceOf(UserDefinedBreakpoint))
             .map(r => r.untilSetCompleted().then(() => r.dapId)),
         ),
       ]);

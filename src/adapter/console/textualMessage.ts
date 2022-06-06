@@ -11,7 +11,7 @@ import { formatMessage } from '../messageFormat';
 import { messageFormatters, previewAsObject } from '../objectPreview';
 import { AnyObject } from '../objectPreview/betterTypes';
 import { IUiLocation } from '../sources';
-import { StackTrace } from '../stackTrace';
+import { StackFrame, StackTrace } from '../stackTrace';
 import { Thread } from '../threads';
 import { IConsoleMessage } from './consoleMessage';
 
@@ -41,8 +41,12 @@ export abstract class TextualMessage<T extends { stackTrace?: Cdp.Runtime.StackT
     }
 
     let firstExistingLocation: IUiLocation | undefined;
-    for (let i = 0; i < stackTrace.frames.length; i++) {
-      const uiLocation = await stackTrace.frames[i].uiLocation();
+    for (const frame of stackTrace.frames) {
+      if (!(frame instanceof StackFrame)) {
+        continue;
+      }
+
+      const uiLocation = await frame.uiLocation();
       if (!uiLocation) {
         continue;
       }
