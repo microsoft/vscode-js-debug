@@ -142,7 +142,7 @@ export default class Connection {
     if (this._closed) return;
     this._closed = true;
     this._transport.dispose();
-    this.logger.info(LogTag.CdpReceive, undefined, { connectionId: this._connectionId });
+    this.logger.info(LogTag.CdpReceive, 'Connection closed', { connectionId: this._connectionId });
     for (const session of this._sessions.values()) session._onClose();
     this._sessions.clear();
     this._onDisconnectedEmitter.fire();
