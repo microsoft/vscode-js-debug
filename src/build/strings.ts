@@ -137,6 +137,8 @@ const strings = {
   'debug.terminal.welcomeWithLink': `[JavaScript Debug Terminal](command:${Commands.CreateDebuggerTerminal})\n\nYou can use the JavaScript Debug Terminal to debug Node.js processes run on the command line.\n\n[Debug URL](command:${Commands.DebugLink})`,
   'debug.terminal.toggleAuto': 'Toggle Terminal Node.js Auto Attach',
   'debug.terminal.attach': 'Attach to Node.js Terminal Process',
+  'debug.unverifiedBreakpoints':
+    "Some of your breakpoints could not be set. If you're having an issue, you can [troubleshoot your launch configuration](command:extension.js-debug.createDiagnostics).",
 
   'node.pauseForSourceMap.description':
     'Whether to wait for source maps to load for each incoming script. This has a performance overhead, and might be safely disabled when running off of disk, so long as `rootPath` is not disabled.',
