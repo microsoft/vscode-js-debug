@@ -101,7 +101,7 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostAttach
     run: IRunData<IExtensionHostAttachConfiguration>,
     target: Cdp.Target.TargetInfo,
   ) {
-    return target.openerId ? {} : { initialized: () => this.onFirstInitialize(cdp, run) };
+    return target.openerId ? {} : { initialized: () => this.onFirstInitialize(cdp, run, target) };
   }
 
   /**
@@ -111,8 +111,9 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostAttach
   protected async onFirstInitialize(
     cdp: Cdp.Api,
     run: IRunData<IExtensionHostAttachConfiguration>,
+    target: Cdp.Target.TargetInfo,
   ) {
-    this.setEnvironmentVariables(cdp, run);
+    this.setEnvironmentVariables(cdp, run, target.targetId);
     const telemetry = await this.gatherTelemetryFromCdp(cdp, run);
 
     // Monitor the process ID we read from the telemetry. Once the VS Code
@@ -136,6 +137,7 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostAttach
   private async setEnvironmentVariables(
     cdp: Cdp.Api,
     run: IRunData<IExtensionHostAttachConfiguration>,
+    targetId: string,
   ) {
     if (!run.params.autoAttachChildProcesses) {
       return;
@@ -144,6 +146,7 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostAttach
     const vars = await this.resolveEnvironment(
       run,
       new NodeBinary('node', Semver.parse(process.versions.node)),
+      { openerId: targetId },
     );
 
     for (let retries = 0; retries < 5; retries++) {
