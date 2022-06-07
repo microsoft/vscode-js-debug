@@ -224,19 +224,12 @@ export class Source {
   }
 
   /**
-   * Gets whether this source is able to be pretty-printed.
-   */
-  public canPrettyPrint(): boolean {
-    return this._container && !this._name.endsWith('-pretty.js');
-  }
-
-  /**
    * Pretty-prints the source. Generates a beauitified source map if possible
    * and it hasn't already been done, and returns the created map and created
    * ephemeral source. Returns undefined if the source can't be beautified.
    */
   public async prettyPrint(): Promise<{ map: SourceMap; source: Source } | undefined> {
-    if (!this._container || !this.canPrettyPrint()) {
+    if (!this._container) {
       return undefined;
     }
 

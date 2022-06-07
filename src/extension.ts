@@ -22,7 +22,6 @@ import { registerCustomBreakpointsUI } from './ui/customBreakpointsUI';
 import { debugNpmScript } from './ui/debugNpmScript';
 import { DebugSessionTracker } from './ui/debugSessionTracker';
 import { registerDebugTerminalUI } from './ui/debugTerminalUI';
-import { PrettyPrintTrackerFactory } from './ui/prettyPrint';
 import { attachProcess, pickProcess } from './ui/processPicker';
 import { registerProfilingCommand } from './ui/profiling';
 import { registerRequestCDPProxy } from './ui/requestCDPProxy';
@@ -87,7 +86,6 @@ export function activate(context: vscode.ExtensionContext) {
   const debugSessionTracker = services.get(DebugSessionTracker);
   debugSessionTracker.attach();
 
-  context.subscriptions.push(PrettyPrintTrackerFactory.register(debugSessionTracker));
   registerCompanionBrowserLaunch(context);
   registerCustomBreakpointsUI(context, debugSessionTracker);
   registerDebugTerminalUI(

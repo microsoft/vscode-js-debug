@@ -843,20 +843,6 @@ export namespace Dap {
     ): Promise<DisableCustomBreakpointsResult>;
 
     /**
-     * Returns whether particular source can be pretty-printed.
-     */
-    on(
-      request: 'canPrettyPrintSource',
-      handler: (params: CanPrettyPrintSourceParams) => Promise<CanPrettyPrintSourceResult | Error>,
-    ): () => void;
-    /**
-     * Returns whether particular source can be pretty-printed.
-     */
-    canPrettyPrintSourceRequest(
-      params: CanPrettyPrintSourceParams,
-    ): Promise<CanPrettyPrintSourceResult>;
-
-    /**
      * Pretty prints source for debugging.
      */
     on(
@@ -1602,11 +1588,6 @@ export namespace Dap {
     ): Promise<DisableCustomBreakpointsResult>;
 
     /**
-     * Returns whether particular source can be pretty-printed.
-     */
-    canPrettyPrintSource(params: CanPrettyPrintSourceParams): Promise<CanPrettyPrintSourceResult>;
-
-    /**
      * Pretty prints source for debugging.
      */
     prettyPrintSource(params: PrettyPrintSourceParams): Promise<PrettyPrintSourceResult>;
@@ -1879,20 +1860,6 @@ export namespace Dap {
      * Sorted set of possible breakpoint locations.
      */
     breakpoints: BreakpointLocation[];
-  }
-
-  export interface CanPrettyPrintSourceParams {
-    /**
-     * Source to be pretty printed.
-     */
-    source: Source;
-  }
-
-  export interface CanPrettyPrintSourceResult {
-    /**
-     * Whether source can be pretty printed.
-     */
-    canPrettyPrint: boolean;
   }
 
   export interface CancelParams {

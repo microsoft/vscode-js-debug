@@ -57,6 +57,13 @@ export class DebugSessionTracker implements vscode.Disposable {
   public onSessionEnded = this._onSessionEndedEmitter.event;
 
   /**
+   * Gets whether there's any active JS debug session.
+   */
+  public get isDebugging() {
+    return this.sessions.size > 0;
+  }
+
+  /**
    * Returns the session with the given ID.
    */
   public getById(id: string) {

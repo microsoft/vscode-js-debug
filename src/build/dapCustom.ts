@@ -107,29 +107,6 @@ const dapCustom: JSONSchema4 = {
       required: ['ids'],
     }),
 
-    ...makeRequest(
-      'canPrettyPrintSource',
-      'Returns whether particular source can be pretty-printed.',
-      {
-        properties: {
-          source: {
-            $ref: '#/definitions/Source',
-            description: 'Source to be pretty printed.',
-          },
-        },
-        required: ['source'],
-      },
-      {
-        required: ['canPrettyPrint'],
-        properties: {
-          canPrettyPrint: {
-            type: 'boolean',
-            description: 'Whether source can be pretty printed.',
-          },
-        },
-      },
-    ),
-
     ...makeRequest('prettyPrintSource', 'Pretty prints source for debugging.', {
       properties: {
         source: {

@@ -96,8 +96,6 @@ interface IDAPOperationClassification {
   '!enablecustombreakpoints.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   disablecustombreakpoints: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!disablecustombreakpoints.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
-  canprettyprintsource: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!canprettyprintsource.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   prettyprintsource: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!prettyprintsource.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   toggleskipfilestatus: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };

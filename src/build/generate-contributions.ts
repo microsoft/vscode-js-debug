@@ -8,6 +8,7 @@ import {
   AutoAttachMode,
   Commands,
   Configuration,
+  ContextKey,
   Contributions,
   CustomViews,
   DebugType,
@@ -1110,11 +1111,6 @@ const configurationSchema: ConfigurationAttributes<IConfigurationTypes> = {
     default: {},
     properties: nodeTerminalConfiguration.configurationAttributes as { [key: string]: JSONSchema6 },
   },
-  [Configuration.SuggestPrettyPrinting]: {
-    type: 'boolean',
-    description: refString('configuration.suggestPrettyPrinting'),
-    default: true,
-  },
   [Configuration.AutoServerTunnelOpen]: {
     type: 'boolean',
     description: refString('configuration.automaticallyTunnelRemoteServer'),
@@ -1209,6 +1205,7 @@ const commands: ReadonlyArray<{
     command: Commands.PrettyPrint,
     title: refString('pretty.print.script'),
     category: 'Debug',
+    icon: '$(json)',
   },
   {
     command: Commands.ToggleSkipping,
@@ -1450,6 +1447,13 @@ const menus: Menus = {
       command: Commands.CallersRemove,
       group: 'inline',
       when: `view == ${CustomViews.ExcludedCallers}`,
+    },
+  ],
+  'editor/title': [
+    {
+      command: Commands.PrettyPrint,
+      group: 'navigation',
+      when: `resource in ${ContextKey.CanPrettyPrint}`,
     },
   ],
 };

@@ -6,7 +6,13 @@ import { createHash } from 'crypto';
 import { inject, injectable } from 'inversify';
 import { basename } from 'path';
 import * as vscode from 'vscode';
-import { Commands, CustomViews, registerCommand } from '../common/contributionUtils';
+import {
+  Commands,
+  ContextKey,
+  CustomViews,
+  registerCommand,
+  setContextKey,
+} from '../common/contributionUtils';
 import type Dap from '../dap/api';
 import { IExtensionContribution } from '../ioc-extras';
 import { DebugSessionTracker } from './debugSessionTracker';
@@ -155,7 +161,7 @@ export class ExcludedCallersUI
 
     const hasCallers = this.allCallers.size > 0;
     if (hasCallers !== this.lastHadCallers) {
-      vscode.commands.executeCommand('setContext', 'jsDebugHasExcludedCallers', hasCallers);
+      setContextKey(vscode.commands, ContextKey.HasExcludedCallers, hasCallers);
       this.lastHadCallers = hasCallers;
     }
   }
