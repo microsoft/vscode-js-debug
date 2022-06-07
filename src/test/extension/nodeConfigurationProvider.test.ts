@@ -165,7 +165,7 @@ describe('NodeDebugConfigurationProvider', () => {
         type: DebugType.Node,
         cwd: testFixturesDir.toLowerCase(),
         name: 'Launch Program',
-        program: join('${workspaceFolder}', 'main.js.js'),
+        program: join('${workspaceFolder}', 'main.js'),
         request: 'launch',
       });
     });
