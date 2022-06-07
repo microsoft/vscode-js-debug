@@ -6,6 +6,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 - fix: debugged child processes in ext host causing teardown ([#1289](https://github.com/microsoft/vscode-js-debug/issues/1289))
 - fix: errors thrown in process tree lookup not being visible ([vscode#150754](https://github.com/microsoft/vscode/issues/150754))
+- chore: adopt new restartFrame semantics from Chrome 104 ([#1283](https://github.com/microsoft/vscode-js-debug/issues/1283))
 
 ## v1.68 (May 2022)
 
