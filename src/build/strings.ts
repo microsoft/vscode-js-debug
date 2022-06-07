@@ -280,8 +280,6 @@ const strings = {
     'Where a "Run" and "Debug" code lens should be shown in your npm scripts. It may be on "all", scripts, on "top" of the script section, or "never".',
   'configuration.terminalOptions':
     'Default launch options for the JavaScript debug terminal and npm scripts.',
-  'configuration.suggestPrettyPrinting':
-    'Whether to suggest pretty printing JavaScript code that looks minified when you step into it.',
   'configuration.automaticallyTunnelRemoteServer':
     'When debugging a remote web app, configures whether to automatically tunnel the remote server to your local machine.',
   'configuration.debugByLinkOptions':

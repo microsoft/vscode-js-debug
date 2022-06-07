@@ -134,7 +134,6 @@ export const enum Configuration {
   TerminalDebugConfig = 'debug.javascript.terminalOptions',
   PickAndAttachDebugOptions = 'debug.javascript.pickAndAttachOptions',
   DebugByLinkOptions = 'debug.javascript.debugByLinkOptions',
-  SuggestPrettyPrinting = 'debug.javascript.suggestPrettyPrinting',
   AutoServerTunnelOpen = 'debug.javascript.automaticallyTunnelRemoteServer',
   AutoAttachMode = 'debug.javascript.autoAttachFilter',
   AutoAttachSmartPatterns = 'debug.javascript.autoAttachSmartPattern',
@@ -153,7 +152,6 @@ export interface IConfigurationTypes {
   [Configuration.NpmScriptLens]: 'all' | 'top' | 'never';
   [Configuration.TerminalDebugConfig]: Partial<ITerminalLaunchConfiguration>;
   [Configuration.PickAndAttachDebugOptions]: Partial<INodeAttachConfiguration>;
-  [Configuration.SuggestPrettyPrinting]: boolean;
   [Configuration.AutoServerTunnelOpen]: boolean;
   [Configuration.DebugByLinkOptions]:
     | DebugByLinkState
@@ -256,3 +254,21 @@ export const writeConfig = <K extends keyof IConfigurationTypes>(
   value: IConfigurationTypes[K],
   target?: ConfigurationTarget,
 ) => wsp.getConfiguration().update(key, value, target);
+
+export const enum ContextKey {
+  HasExcludedCallers = 'jsDebugHasExcludedCallers',
+  CanPrettyPrint = 'jsDebugCanPrettyPrint',
+  IsProfiling = 'jsDebugIsProfiling',
+}
+
+export interface IContextKeyTypes {
+  [ContextKey.HasExcludedCallers]: boolean;
+  [ContextKey.CanPrettyPrint]: string[];
+  [ContextKey.IsProfiling]: boolean;
+}
+
+export const setContextKey = async <K extends keyof IContextKeyTypes>(
+  ns: typeof commands,
+  key: K,
+  value: IContextKeyTypes[K] | null,
+) => await ns.executeCommand('setContext', key, value);

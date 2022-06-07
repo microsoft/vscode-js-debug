@@ -102,7 +102,6 @@ export class DebugAdapter implements IDisposable {
     this.dap.on('enableCustomBreakpoints', params => this.enableCustomBreakpoints(params));
     this.dap.on('toggleSkipFileStatus', params => this._toggleSkipFileStatus(params));
     this.dap.on('disableCustomBreakpoints', params => this._disableCustomBreakpoints(params));
-    this.dap.on('canPrettyPrintSource', params => this._canPrettyPrintSource(params));
     this.dap.on('prettyPrintSource', params => this._prettyPrintSource(params));
     this.dap.on('revealPage', () => this._withThread(thread => thread.revealPage()));
     this.dap.on('getPerformance', () =>
@@ -436,20 +435,6 @@ export class DebugAdapter implements IDisposable {
     await this._services.get<ScriptSkipper>(IScriptSkipper).toggleSkippingFile(params);
     await this._refreshStackTrace();
     return {};
-  }
-
-  async _canPrettyPrintSource(
-    params: Dap.CanPrettyPrintSourceParams,
-  ): Promise<Dap.CanPrettyPrintSourceResult | Dap.Error> {
-    if (!params.source) {
-      return { canPrettyPrint: false };
-    }
-
-    params.source.path = urlUtils.platformPathToPreferredCase(params.source.path);
-    const source = this.sourceContainer.source(params.source);
-    if (!source)
-      return errors.createSilentError(localize('error.sourceNotFound', 'Source not found'));
-    return { canPrettyPrint: source.canPrettyPrint() };
   }
 
   async _prettyPrintSource(
