@@ -194,7 +194,11 @@ async function listProcesses(): Promise<IProcessItem | undefined> {
       quickPick.items = acc;
       return acc;
     }, [])
-    .then(() => (quickPick.busy = false));
+    .then(() => (quickPick.busy = false))
+    .catch(err => {
+      vscode.window.showErrorMessage(`Error listing processes: ${err.message}`);
+      quickPick.dispose();
+    });
 
   const item = await itemPromise;
   hasPicked = true;
