@@ -304,7 +304,13 @@ export class Thread implements IVariableStoreLocationProvider {
       );
     }
 
-    const ok = !!(await this._cdp.Debugger.restartFrame({ callFrameId }));
+    // Cast is necessary since the devtools-protocol is being slow to update:
+    // https://github.com/microsoft/vscode-js-debug/issues/1283#issuecomment-1148219994
+    // https://github.com/ChromeDevTools/devtools-protocol/issues/263
+    const ok = await this._cdp.Debugger.restartFrame({
+      callFrameId,
+      mode: 'StepInto',
+    } as Cdp.Debugger.RestartFrameParams);
     if (!ok) {
       return errors.createUserError(
         localize('error.unknownRestartError', 'Frame could not be restarted'),
