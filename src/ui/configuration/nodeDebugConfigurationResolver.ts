@@ -14,6 +14,7 @@ import { EnvironmentVars } from '../../common/environmentVars';
 import { findOpenPort } from '../../common/findOpenPort';
 import { existsInjected, IFsUtils, LocalFsUtils } from '../../common/fsUtils';
 import { forceForwardSlashes, isSubpathOrEqualTo } from '../../common/pathUtils';
+import { some } from '../../common/promiseUtil';
 import { nearestDirectoryWhere } from '../../common/urlUtils';
 import {
   AnyNodeConfiguration,
@@ -286,6 +287,8 @@ interface IPartialPackageJson {
   scripts?: { [key: string]: string };
 }
 
+const commonEntrypoints = ['index.js', 'main.js'];
+
 export async function createLaunchConfigFromContext(
   folder: vscode.WorkspaceFolder | undefined,
   resolve: boolean,
@@ -349,7 +352,18 @@ export async function createLaunchConfigFromContext(
     }
   }
 
-  // if we couldn't find a value for 'program', we just let the launch config use the file open in the editor
+  if (!program && folder) {
+    const basePath = folder.uri.fsPath;
+    program = await some(
+      commonEntrypoints.map(
+        async file =>
+          (await existsInjected(fs, path.join(basePath, file))) &&
+          '${workspaceFolder}' + path.sep + file,
+      ),
+    );
+  }
+
+  // just use `${file}` which'll prompt the user to open an active file
   if (!program) {
     program = '${file}';
   }
