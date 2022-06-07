@@ -323,6 +323,8 @@ interface ICDPOperationClassification {
   '!page.lifecycleevent.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   'page.backforwardcachenotused': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!page.backforwardcachenotused.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  'page.prerenderattemptcompleted': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!page.prerenderattemptcompleted.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   'page.loadeventfired': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!page.loadeventfired.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   'page.navigatedwithindocument': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };

@@ -10,6 +10,12 @@ export const removeNulls = <V>(obj: { [key: string]: V | null }) =>
 export const removeUndefined = <V>(obj: { [key: string]: V | undefined }) =>
   filterValues(obj, (v): v is V => v !== undefined);
 
+export const isInstanceOf = <T extends Function>(cls: T) =>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (obj => obj instanceof cls) as T extends { new (...args: any[]): infer R }
+    ? (obj: unknown) => obj is R
+    : never;
+
 /**
  * Asserts that the value is never. If this function is reached, it throws.
  */
