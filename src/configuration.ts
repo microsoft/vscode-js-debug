@@ -957,6 +957,7 @@ export function defaultSourceMapPathOverrides(webRoot: string): { [key: string]:
   return {
     'webpack:///./~/*': `${webRoot}/node_modules/*`,
     'webpack:////*': '/*',
+    'webpack://@?:*/?:*/*': `${webRoot}/*`,
     'webpack://?:*/*': `${webRoot}/*`,
     'webpack:///([a-z]):/(.+)': '$1:/$2',
     'meteor://💻app/*': `${webRoot}/*`,

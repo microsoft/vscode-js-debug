@@ -39,6 +39,7 @@
 <h5>Default value:</h4><pre><code>{
   "webpack:///./~/*": "${workspaceFolder}/node_modules/*",
   "webpack:////*": "/*",
+  "webpack://@?:*/?:*/*": "${workspaceFolder}/*",
   "webpack://?:*/*": "${workspaceFolder}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${workspaceFolder}/*"
@@ -93,6 +94,7 @@
 <h5>Default value:</h4><pre><code>{
   "webpack:///./~/*": "${workspaceFolder}/node_modules/*",
   "webpack:////*": "/*",
+  "webpack://@?:*/?:*/*": "${workspaceFolder}/*",
   "webpack://?:*/*": "${workspaceFolder}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${workspaceFolder}/*"
@@ -140,6 +142,7 @@
 <h5>Default value:</h4><pre><code>{
   "webpack:///./~/*": "${workspaceFolder}/node_modules/*",
   "webpack:////*": "/*",
+  "webpack://@?:*/?:*/*": "${workspaceFolder}/*",
   "webpack://?:*/*": "${workspaceFolder}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${workspaceFolder}/*"
@@ -189,6 +192,7 @@
 <h5>Default value:</h4><pre><code>{
   "webpack:///./~/*": "${workspaceFolder}/node_modules/*",
   "webpack:////*": "/*",
+  "webpack://@?:*/?:*/*": "${workspaceFolder}/*",
   "webpack://?:*/*": "${workspaceFolder}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${workspaceFolder}/*"
@@ -233,6 +237,7 @@
 <h5>Default value:</h4><pre><code>{
   "webpack:///./~/*": "${webRoot}/node_modules/*",
   "webpack:////*": "/*",
+  "webpack://@?:*/?:*/*": "${webRoot}/*",
   "webpack://?:*/*": "${webRoot}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${webRoot}/*"
@@ -279,6 +284,7 @@
 <h5>Default value:</h4><pre><code>{
   "webpack:///./~/*": "${webRoot}/node_modules/*",
   "webpack:////*": "/*",
+  "webpack://@?:*/?:*/*": "${webRoot}/*",
   "webpack://?:*/*": "${webRoot}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${webRoot}/*"
@@ -332,6 +338,7 @@
 <h5>Default value:</h4><pre><code>{
   "webpack:///./~/*": "${webRoot}/node_modules/*",
   "webpack:////*": "/*",
+  "webpack://@?:*/?:*/*": "${webRoot}/*",
   "webpack://?:*/*": "${webRoot}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${webRoot}/*"
@@ -379,6 +386,7 @@
 <h5>Default value:</h4><pre><code>{
   "webpack:///./~/*": "${webRoot}/node_modules/*",
   "webpack:////*": "/*",
+  "webpack://@?:*/?:*/*": "${webRoot}/*",
   "webpack://?:*/*": "${webRoot}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${webRoot}/*"
