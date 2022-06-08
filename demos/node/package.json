@@ -1,9 +1,0 @@
-{
-  "scripts": {
-    "start": "node main",
-    "minify": "terser main.js -m -o main.min.js --source-map \"url=main.min.js.map\" --toplevel"
-  },
-  "devDependencies": {
-    "terser": "^5.7.0"
-  }
-}
