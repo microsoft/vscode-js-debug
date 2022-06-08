@@ -1,3 +1,0 @@
-function fetchUsers() {
-  fetch('/users')
-}
