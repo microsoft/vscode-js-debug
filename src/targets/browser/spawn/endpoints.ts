@@ -3,11 +3,12 @@
  *--------------------------------------------------------*/
 
 import { promises as fs } from 'fs';
-import * as URL from 'url';
 import { CancellationToken } from 'vscode';
+import { Response } from '../../../adapter/resourceProvider';
 import { BasicResourceProvider } from '../../../adapter/resourceProvider/basicResourceProvider';
+import { CancellationTokenSource } from '../../../common/cancellation';
 import { ILogger, LogTag } from '../../../common/logging';
-import { delay } from '../../../common/promiseUtil';
+import { delay, some } from '../../../common/promiseUtil';
 
 /**
  * Returns the debugger websocket URL a process listening at the given address.
@@ -22,19 +23,19 @@ export async function getWSEndpoint(
 ): Promise<string> {
   const provider = new BasicResourceProvider(fs);
   const [jsonVersion, jsonList] = await Promise.all([
-    provider.fetchJson<{ webSocketDebuggerUrl?: string }>(
-      URL.resolve(browserURL, '/json/version'),
+    fetchJsonWithLocalhostFallback<{ webSocketDebuggerUrl?: string }>(
+      provider,
+      new URL('/json/version', browserURL),
       cancellationToken,
-      { host: 'localhost' },
     ),
     // Chrome publishes its top-level debugg on /json/version, while Node does not.
     // Request both and return whichever one got us a string. ONLY try this on
     // Node, since it'll cause a failure on browsers (vscode#123420)
     isNode
-      ? provider.fetchJson<{ webSocketDebuggerUrl: string }[]>(
-          URL.resolve(browserURL, '/json/list'),
+      ? fetchJsonWithLocalhostFallback<{ webSocketDebuggerUrl: string }[]>(
+          provider,
+          new URL('/json/list', browserURL),
           cancellationToken,
-          { host: 'localhost' },
         )
       : Promise.resolve(undefined),
   ]);
@@ -64,6 +65,42 @@ export async function getWSEndpoint(
   }
 
   throw new Error('Could not find any debuggable target');
+}
+
+/**
+ * On `localhost`, try both `127.0.0.1` and `localhost` since ipv6 interfaces
+ * might mean they're not equivalent.
+ *
+ * See https://github.com/microsoft/vscode/issues/144315
+ */
+async function fetchJsonWithLocalhostFallback<T>(
+  provider: BasicResourceProvider,
+  url: URL,
+  cancellationToken: CancellationToken,
+): Promise<Response<T>> {
+  if (url.hostname !== 'localhost') {
+    return provider.fetchJson<T>(url.toString(), cancellationToken, { host: 'localhost' });
+  }
+
+  const urlA = url.toString();
+  url.hostname = '127.0.0.1';
+  const urlB = url.toString();
+
+  const cts = new CancellationTokenSource(cancellationToken);
+  try {
+    let lastResponse: Response<T>;
+    const goodResponse = await some(
+      [urlA, urlB].map(async url => {
+        lastResponse = await provider.fetchJson<T>(url, cts.token);
+        return lastResponse.ok && lastResponse;
+      }),
+    );
+
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    return goodResponse || lastResponse!;
+  } finally {
+    cts.cancel();
+  }
 }
 
 const makeRetryGetWSEndpoint =
@@ -103,8 +140,8 @@ export const retryGetNodeEndpoint = makeRetryGetWSEndpoint(true);
 export const retryGetBrowserEndpoint = makeRetryGetWSEndpoint(false);
 
 function fixRemoteUrl(rawBrowserUrl: string, rawWebSocketUrl: string) {
-  const browserUrl = new URL.URL(rawBrowserUrl);
-  const websocketUrl = new URL.URL(rawWebSocketUrl);
+  const browserUrl = new URL(rawBrowserUrl);
+  const websocketUrl = new URL(rawWebSocketUrl);
   websocketUrl.host = browserUrl.host;
   return websocketUrl.toString();
 }
