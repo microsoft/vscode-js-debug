@@ -327,7 +327,7 @@ class VariableContext {
           this.createPropertyVar(
             p,
             object,
-            stringyProps.hasOwnProperty(p.name) ? stringyProps.value[p.name] : undefined,
+            stringyProps.value.hasOwnProperty(p.name) ? stringyProps.value[p.name] : undefined,
           ),
         );
       }
