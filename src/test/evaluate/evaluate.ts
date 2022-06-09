@@ -283,6 +283,7 @@ describe('evaluate', () => {
     const exprs = [
       'await Promise.resolve(1)',
       '{a:await Promise.resolve(1)}',
+      '4',
       '$_',
       'let {a,b} = await Promise.resolve({a: 1, b:2}), f = 5;',
       'a',
