@@ -15,7 +15,7 @@ export const getStringyProps = remoteFunction(function (this: unknown, maxLength
   }
 
   for (const [key, value] of Object.entries(this)) {
-    if (typeof value === 'object' && value && !String(this.toString).includes('[native code]')) {
+    if (typeof value === 'object' && value && !String(value.toString).includes('[native code]')) {
       out[key] = String(value).slice(0, maxLength);
     }
   }

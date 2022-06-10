@@ -136,6 +136,19 @@ describe('console format', () => {
     p.assertLog();
   });
 
+  itIntegrates('custom toString', async ({ r }) => {
+    const p = await r.launchAndLoad('blank');
+    await p.logger.evaluateAndLog(`
+      new class A {
+        prop = new class B {
+          toString() { return "hello b" }
+        }
+        toString() { return "hello a" }
+      }
+    `);
+    p.assertLog();
+  });
+
   itIntegrates('collections', async ({ r }) => {
     const p = await r.launchAndLoad(`
         <div style="display:none" class="c1 c2 c3">
