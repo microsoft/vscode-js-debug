@@ -123,6 +123,9 @@ export async function launch(
   if (dumpio) {
     browserProcess.stderr?.on('data', d => onStderr(d.toString()));
     browserProcess.stdout?.on('data', d => onStdout(d.toString()));
+  } else {
+    browserProcess.stderr?.resume();
+    browserProcess.stdout?.resume();
   }
 
   let exitListener = () => {
