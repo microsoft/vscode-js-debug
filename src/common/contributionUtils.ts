@@ -32,6 +32,7 @@ export const enum Commands {
   AutoAttachToProcess = 'extension.js-debug.autoAttachToProcess',
   CreateDebuggerTerminal = 'extension.js-debug.createDebuggerTerminal',
   CreateDiagnostics = 'extension.js-debug.createDiagnostics',
+  GetDiagnosticLogs = 'extension.js-debug.getDiagnosticLogs',
   DebugLink = 'extension.js-debug.debugLink',
   DebugNpmScript = 'extension.js-debug.npmScript',
   PickProcess = 'extension.js-debug.pickNodeProcess',
@@ -87,6 +88,7 @@ const commandsObj: { [K in Commands]: null } = {
   [Commands.AutoAttachToProcess]: null,
   [Commands.CreateDebuggerTerminal]: null,
   [Commands.CreateDiagnostics]: null,
+  [Commands.GetDiagnosticLogs]: null,
   [Commands.DebugLink]: null,
   [Commands.DebugNpmScript]: null,
   [Commands.PickProcess]: null,
@@ -184,6 +186,7 @@ export interface ICommandTypes {
     config?: Partial<ITerminalLaunchConfiguration>,
   ): void;
   [Commands.CreateDiagnostics](): void;
+  [Commands.GetDiagnosticLogs](): void;
   [Commands.ToggleSkipping](file: string | number): void;
   [Commands.PrettyPrint](): void;
   [Commands.StartProfile](args?: string | IStartProfileArguments): void;

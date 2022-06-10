@@ -96,6 +96,11 @@ export interface ILogger extends IDisposable {
    * Makes an assertion, *logging* if it failed.
    */
   assert<T>(assertion: T | false | undefined | null, message: string): assertion is T;
+
+  /**
+   * Gets recently logged items.
+   */
+  getRecentLogs(): ILogItem<unknown>[];
 }
 
 /**
@@ -119,6 +124,7 @@ export interface ILogSink extends IDisposable {
 export interface ILoggerSetupOptions {
   showWelcome?: boolean;
   sinks: ReadonlyArray<ILogSink>;
+}
 
 /**
  * Fulfills the partial config to a full logging configuration.

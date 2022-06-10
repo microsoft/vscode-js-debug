@@ -25,6 +25,19 @@ export class DiagnosticsUI implements IExtensionContribution {
 
   public register(context: vscode.ExtensionContext) {
     context.subscriptions.push(
+      registerCommand(vscode.commands, Commands.GetDiagnosticLogs, async () => {
+        const session = await this.getTargetSession();
+        if (!session) {
+          return;
+        }
+
+        const uri = await vscode.window.showSaveDialog({ filters: { JSON: ['json'] } });
+        if (uri) {
+          session.customRequest('saveDiagnosticLogs', {
+            toFile: uri.fsPath,
+          });
+        }
+      }),
       registerCommand(vscode.commands, Commands.CreateDiagnostics, async () =>
         this.getDiagnosticInfo(await this.getTargetSession()),
       ),

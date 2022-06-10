@@ -15,7 +15,7 @@ import { AnyLaunchConfiguration } from '../configuration';
 import Dap from '../dap/api';
 import * as errors from '../dap/errors';
 import { ProtocolError } from '../dap/protocolError';
-import { disposeContainer } from '../ioc-extras';
+import { disposeContainer, FS, FsPromises } from '../ioc-extras';
 import { ITarget } from '../targets/targets';
 import { ITelemetryReporter } from '../telemetry/telemetryReporter';
 import { IAsyncStackPolicy } from './asyncStackPolicy';
@@ -115,6 +115,15 @@ export class DebugAdapter implements IDisposable {
     this.dap.on('createDiagnostics', params => this._dumpDiagnostics(params));
     this.dap.on('requestCDPProxy', () => this._requestCDPProxy());
     this.dap.on('setExcludedCallers', params => this._onSetExcludedCallers(params));
+    this.dap.on('saveDiagnosticLogs', ({ toFile }) => this._saveDiagnosticLogs(toFile));
+  }
+
+  private async _saveDiagnosticLogs(toFile: string): Promise<Dap.SaveDiagnosticLogsResult> {
+    const logs = this._services.get<ILogger>(ILogger).getRecentLogs();
+    await this._services
+      .get<FsPromises>(FS)
+      .writeFile(toFile, logs.map(l => JSON.stringify(l)).join('\n'));
+    return {};
   }
 
   public async launchBlocker(): Promise<void> {

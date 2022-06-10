@@ -1532,7 +1532,7 @@ export namespace Cdp {
 
     /**
      * Details for issues around "Attribution Reporting API" usage.
-     * Explainer: https://github.com/WICG/conversion-measurement-api
+     * Explainer: https://github.com/WICG/attribution-reporting-api
      */
     export interface AttributionReportingIssueDetails {
       violationType: AttributionReportingIssueType;
@@ -1613,7 +1613,6 @@ export namespace Cdp {
       | 'NotificationInsecureOrigin'
       | 'NotificationPermissionRequestedIframe'
       | 'ObsoleteWebRtcCipherSuite'
-      | 'PaymentRequestBasicCard'
       | 'PictureSourceSrc'
       | 'PrefixedCancelAnimationFrame'
       | 'PrefixedRequestAnimationFrame'
@@ -4959,8 +4958,19 @@ export namespace Cdp {
     ): Promise<Debugger.RemoveBreakpointResult | undefined>;
 
     /**
-     * Restarts particular call frame from the beginning.
-     * @deprecated
+     * Restarts particular call frame from the beginning. The old, deprecated
+     * behavior of `restartFrame` is to stay paused and allow further CDP commands
+     * after a restart was scheduled. This can cause problems with restarting, so
+     * we now continue execution immediatly after it has been scheduled until we
+     * reach the beginning of the restarted frame.
+     *
+     * To stay back-wards compatible, `restartFrame` now expects a `mode`
+     * parameter to be present. If the `mode` parameter is missing, `restartFrame`
+     * errors out.
+     *
+     * The various return values are deprecated and `callFrames` is always empty.
+     * Use the call frames from the `Debugger#paused` events instead, that fires
+     * once V8 pauses at the beginning of the restarted function.
      */
     restartFrame(
       params: Debugger.RestartFrameParams,
@@ -5384,6 +5394,12 @@ export namespace Cdp {
        * Call frame identifier to evaluate on.
        */
       callFrameId: CallFrameId;
+
+      /**
+       * The `mode` parameter must be present and set to 'StepInto', otherwise
+       * `restartFrame` will error out.
+       */
+      mode?: 'StepInto';
     }
 
     /**
@@ -5392,16 +5408,19 @@ export namespace Cdp {
     export interface RestartFrameResult {
       /**
        * New stack trace.
+       * @deprecated
        */
       callFrames: CallFrame[];
 
       /**
        * Async stack trace, if any.
+       * @deprecated
        */
       asyncStackTrace?: Runtime.StackTrace;
 
       /**
        * Async stack trace, if any.
+       * @deprecated
        */
       asyncStackTraceId?: Runtime.StackTraceId;
     }
@@ -11432,12 +11451,21 @@ export namespace Cdp {
        */
       reportProgress?: boolean;
 
+      /**
+       * Deprecated in favor of `exposeInternals`.
+       * @deprecated
+       */
       treatGlobalObjectsAsRoots?: boolean;
 
       /**
        * If true, numerical values are included in the snapshot
        */
       captureNumericValue?: boolean;
+
+      /**
+       * If true, exposes internals of the snapshot.
+       */
+      exposeInternals?: boolean;
     }
 
     /**
@@ -11455,7 +11483,9 @@ export namespace Cdp {
       reportProgress?: boolean;
 
       /**
-       * If true, a raw snapshot without artificial roots will be generated
+       * If true, a raw snapshot without artificial roots will be generated.
+       * Deprecated in favor of `exposeInternals`.
+       * @deprecated
        */
       treatGlobalObjectsAsRoots?: boolean;
 
@@ -11463,6 +11493,11 @@ export namespace Cdp {
        * If true, numerical values are included in the snapshot
        */
       captureNumericValue?: boolean;
+
+      /**
+       * If true, exposes internals of the snapshot.
+       */
+      exposeInternals?: boolean;
     }
 
     /**
@@ -17346,9 +17381,10 @@ export namespace Cdp {
     export type CrossOriginOpenerPolicyValue =
       | 'SameOrigin'
       | 'SameOriginAllowPopups'
+      | 'RestrictProperties'
       | 'UnsafeNone'
       | 'SameOriginPlusCoep'
-      | 'SameOriginAllowPopupsPlusCoep';
+      | 'RestrictPropertiesPlusCoep';
 
     export interface CrossOriginOpenerPolicyStatus {
       value: CrossOriginOpenerPolicyValue;
@@ -20892,6 +20928,12 @@ export namespace Cdp {
        * JavaScript stack trace of when frame was attached, only set if frame initiated from script.
        */
       stack?: Runtime.StackTrace;
+
+      /**
+       * Identifies the bottom-most script which caused the frame to be labelled
+       * as an ad. Only sent if frame is labelled as an ad and id is available.
+       */
+      adScriptId?: AdScriptId;
     }
 
     /**
@@ -21287,6 +21329,23 @@ export namespace Cdp {
       adFrameType: AdFrameType;
 
       explanations?: AdFrameExplanation[];
+    }
+
+    /**
+     * Identifies the bottom-most script which caused the frame to be labelled
+     * as an ad.
+     */
+    export interface AdScriptId {
+      /**
+       * Script Id of the bottom-most script which caused the frame to be labelled
+       * as an ad.
+       */
+      scriptId: Runtime.ScriptId;
+
+      /**
+       * Id of adScriptId's debugger.
+       */
+      debuggerId: Runtime.UniqueDebuggerId;
     }
 
     /**

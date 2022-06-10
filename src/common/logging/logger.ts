@@ -10,6 +10,25 @@ import { IDisposable } from '../events';
 import { TestLogSink } from './testLogSink';
 
 /**
+ * Ring buffer used to get logs to diagnose issues.
+ */
+class RingBuffer {
+  private readonly items: ILogItem<unknown>[] = [];
+  private i = 0;
+
+  constructor(private readonly size = 512) {}
+
+  public write(item: ILogItem<unknown>): void {
+    this.items[this.i] = item;
+    this.i = (this.i + 1) % this.size;
+  }
+
+  public read() {
+    return this.items.slice(this.i).concat(this.items.slice(0, this.i));
+  }
+}
+
+/**
  * Implementation of ILogger for the extension.
  */
 @injectable()
@@ -19,6 +38,11 @@ export class Logger implements ILogger, IDisposable {
    * to write once we get sinks.
    */
   private logTarget: { queue: ILogItem<unknown>[] } | { sinks: ILogSink[] } = { queue: [] };
+
+  /**
+   * Log buffer for replaying diagnostics.
+   */
+  private readonly logBuffer = new RingBuffer();
 
   /**
    * A no-op logger that never logs anything.
@@ -125,6 +149,8 @@ export class Logger implements ILogger, IDisposable {
    * @inheritdoc
    */
   public log(data: ILogItem<unknown>): void {
+    this.logBuffer.write(data);
+
     if ('queue' in this.logTarget) {
       this.logTarget.queue.push(data);
       return;
@@ -133,6 +159,13 @@ export class Logger implements ILogger, IDisposable {
     for (const sink of this.logTarget.sinks) {
       sink.write(data);
     }
+  }
+
+  /**
+   * @inheritdog
+   */
+  public getRecentLogs() {
+    return this.logBuffer.read();
   }
 
   /**

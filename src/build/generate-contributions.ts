@@ -1255,6 +1255,11 @@ const commands: ReadonlyArray<{
     category: 'Debug',
   },
   {
+    command: Commands.GetDiagnosticLogs,
+    title: refString('getDiagnosticLogs.label'),
+    category: 'Debug',
+  },
+  {
     command: Commands.StartWithStopOnEntry,
     title: refString('startWithStopOnEntry.label'),
     category: 'Debug',
@@ -1321,6 +1326,11 @@ const menus: Menus = {
     {
       command: Commands.CreateDiagnostics,
       title: refString('createDiagnostics.label'),
+      when: forAnyDebugType('debugType', 'inDebugMode'),
+    },
+    {
+      command: Commands.GetDiagnosticLogs,
+      title: refString('getDiagnosticLogs.label'),
       when: forAnyDebugType('debugType', 'inDebugMode'),
     },
     {

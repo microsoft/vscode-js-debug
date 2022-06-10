@@ -461,6 +461,20 @@ const dapCustom: JSONSchema4 = {
         required: ['file'],
       },
     ),
+    ...makeRequest(
+      'saveDiagnosticLogs',
+      'Saves recent diagnostic logs for the debug session.',
+      {
+        properties: {
+          toFile: {
+            type: 'string',
+            description: 'File where logs should be saved',
+          },
+        },
+        required: ['toFile'],
+      },
+      {},
+    ),
     ...makeEvent(
       'suggestDiagnosticTool',
       "Shows a prompt to the user suggesting they use the diagnostic tool if breakpoints don't bind.",
