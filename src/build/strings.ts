@@ -13,10 +13,7 @@ const strings = {
   'remove.browser.breakpoint.all': 'Remove All Browser Breakpoints',
   'trace.description': 'Configures what diagnostic output is produced.',
   'trace.boolean.description': "Trace may be set to 'true' to write diagnostic logs to the disk.",
-  'trace.tags.description': 'Configures what types of logs are recorded.',
   'trace.logFile.description': 'Configures where on disk logs are written.',
-  'trace.level.description': 'Configures the level of logs recorded.',
-  'trace.console.description': 'Configures whether logs are also returned to the debug console.',
   'trace.stdio.description':
     'Whether to return trace data from the launched application or browser.',
 

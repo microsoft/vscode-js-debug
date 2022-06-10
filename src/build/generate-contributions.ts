@@ -254,28 +254,13 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
         type: 'object',
         additionalProperties: false,
         properties: {
-          console: {
-            type: 'boolean',
-            description: refString('trace.stdio.description'),
-          },
           stdio: {
             type: 'boolean',
-            description: refString('trace.console.description'),
-          },
-          level: {
-            enum: ['fatal', 'error', 'warn', 'info', 'verbose'],
-            description: refString('trace.level.description'),
+            description: refString('trace.stdio.description'),
           },
           logFile: {
             type: ['string', 'null'],
             description: refString('trace.logFile.description'),
-          },
-          tags: {
-            type: 'array',
-            description: refString('trace.tags.description'),
-            items: {
-              enum: ['cdp', 'dap', 'runtime'],
-            },
           },
         },
       },

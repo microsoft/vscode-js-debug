@@ -8,7 +8,6 @@ import * as path from 'path';
 import { ILoggingConfiguration } from '../../configuration';
 import Dap from '../../dap/api';
 import { IDisposable } from '../disposable';
-import { ConsoleLogSink } from './consoleLogSink';
 import { FileLogSink } from './fileLogSink';
 
 export const enum LogLevel {
@@ -118,28 +117,8 @@ export interface ILogSink extends IDisposable {
  * Setup options provided to MasterLogger instances.
  */
 export interface ILoggerSetupOptions {
-  tags?: ReadonlyArray<string>;
   showWelcome?: boolean;
-  level: LogLevel;
   sinks: ReadonlyArray<ILogSink>;
-}
-
-const stringToLogLevel = (str: string) => {
-  switch (str.toLowerCase()) {
-    case 'verbose':
-      return LogLevel.Verbose;
-    case 'info':
-      return LogLevel.Info;
-    case 'warn':
-      return LogLevel.Warn;
-    case 'error':
-      return LogLevel.Error;
-    case 'fatal':
-      return LogLevel.Fatal;
-    default:
-      throw new Error(`Unknown log level "${str}"`);
-  }
-};
 
 /**
  * Fulfills the partial config to a full logging configuration.
@@ -149,15 +128,12 @@ export function fulfillLoggerOptions(
   logDir = tmpdir(),
 ): ILoggingConfiguration {
   if (config === false) {
-    return { console: false, level: 'fatal', stdio: false, logFile: null, tags: [] };
+    return { stdio: false, logFile: null };
   }
 
   const defaults: ILoggingConfiguration = {
-    console: false,
-    level: 'verbose',
     stdio: true,
     logFile: path.join(logDir, `vscode-debugadapter-${randomBytes(4).toString('hex')}.json.gz`),
-    tags: [],
   };
 
   if (config === true) {
@@ -176,14 +152,8 @@ export function resolveLoggerOptions(
 ): ILoggerSetupOptions {
   const fulfilled = fulfillLoggerOptions(config);
   const options = {
-    tags: fulfilled.tags,
-    level: fulfilled.level === undefined ? LogLevel.Verbose : stringToLogLevel(fulfilled.level),
     sinks: [] as ILogSink[],
   };
-
-  if (fulfilled.console) {
-    options.sinks.push(new ConsoleLogSink(dap));
-  }
 
   if (fulfilled.logFile) {
     options.sinks.push(new FileLogSink(fulfilled.logFile, dap));
