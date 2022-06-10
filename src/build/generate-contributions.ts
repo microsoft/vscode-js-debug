@@ -254,28 +254,13 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
         type: 'object',
         additionalProperties: false,
         properties: {
-          console: {
-            type: 'boolean',
-            description: refString('trace.stdio.description'),
-          },
           stdio: {
             type: 'boolean',
-            description: refString('trace.console.description'),
-          },
-          level: {
-            enum: ['fatal', 'error', 'warn', 'info', 'verbose'],
-            description: refString('trace.level.description'),
+            description: refString('trace.stdio.description'),
           },
           logFile: {
             type: ['string', 'null'],
             description: refString('trace.logFile.description'),
-          },
-          tags: {
-            type: 'array',
-            description: refString('trace.tags.description'),
-            items: {
-              enum: ['cdp', 'dap', 'runtime'],
-            },
           },
         },
       },
@@ -1270,6 +1255,11 @@ const commands: ReadonlyArray<{
     category: 'Debug',
   },
   {
+    command: Commands.GetDiagnosticLogs,
+    title: refString('getDiagnosticLogs.label'),
+    category: 'Debug',
+  },
+  {
     command: Commands.StartWithStopOnEntry,
     title: refString('startWithStopOnEntry.label'),
     category: 'Debug',
@@ -1336,6 +1326,11 @@ const menus: Menus = {
     {
       command: Commands.CreateDiagnostics,
       title: refString('createDiagnostics.label'),
+      when: forAnyDebugType('debugType', 'inDebugMode'),
+    },
+    {
+      command: Commands.GetDiagnosticLogs,
+      title: refString('getDiagnosticLogs.label'),
       when: forAnyDebugType('debugType', 'inDebugMode'),
     },
     {

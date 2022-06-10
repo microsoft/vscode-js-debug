@@ -1041,6 +1041,18 @@ export namespace Dap {
     createDiagnosticsRequest(params: CreateDiagnosticsParams): Promise<CreateDiagnosticsResult>;
 
     /**
+     * Saves recent diagnostic logs for the debug session.
+     */
+    on(
+      request: 'saveDiagnosticLogs',
+      handler: (params: SaveDiagnosticLogsParams) => Promise<SaveDiagnosticLogsResult | Error>,
+    ): () => void;
+    /**
+     * Saves recent diagnostic logs for the debug session.
+     */
+    saveDiagnosticLogsRequest(params: SaveDiagnosticLogsParams): Promise<SaveDiagnosticLogsResult>;
+
+    /**
      * Shows a prompt to the user suggesting they use the diagnostic tool if breakpoints don't bind.
      */
     suggestDiagnosticTool(params: SuggestDiagnosticToolEventParams): void;
@@ -1761,6 +1773,11 @@ export namespace Dap {
      * Generates diagnostic information for the debug session.
      */
     createDiagnostics(params: CreateDiagnosticsParams): Promise<CreateDiagnosticsResult>;
+
+    /**
+     * Saves recent diagnostic logs for the debug session.
+     */
+    saveDiagnosticLogs(params: SaveDiagnosticLogsParams): Promise<SaveDiagnosticLogsResult>;
 
     /**
      * Shows a prompt to the user suggesting they use the diagnostic tool if breakpoints don't bind.
@@ -3054,6 +3071,15 @@ export namespace Dap {
      */
     shellProcessId?: integer;
   }
+
+  export interface SaveDiagnosticLogsParams {
+    /**
+     * File where logs should be saved
+     */
+    toFile: string;
+  }
+
+  export interface SaveDiagnosticLogsResult {}
 
   export interface ScopesParams {
     /**

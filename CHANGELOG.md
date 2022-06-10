@@ -5,6 +5,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 ## Nightly (only)
 
 - feat: simplify pretty print to align with devtools ([vscode#151410](https://github.com/microsoft/vscode/issues/151410))
+- feat: add a new **Debug: Save Diagnostic JS Debug Logs** command ([#1301](https://github.com/microsoft/vscode-js-debug/issues/1301))
 - feat: use custom `toString()` methods to generate object descriptions ([#1284](https://github.com/microsoft/vscode-js-debug/issues/1284))
 - fix: debugged child processes in ext host causing teardown ([#1289](https://github.com/microsoft/vscode-js-debug/issues/1289))
 - fix: errors thrown in process tree lookup not being visible ([vscode#150754](https://github.com/microsoft/vscode/issues/150754))

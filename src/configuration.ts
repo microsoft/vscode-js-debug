@@ -44,17 +44,6 @@ export const enum OutputSource {
 
 export interface ILoggingConfiguration {
   /**
-   * Configures whether logs are also returned to the debug console.
-   * Defaults to false.
-   */
-  console: boolean;
-
-  /**
-   * Configures the level of logs recorded. Defaults to "Verbose".
-   */
-  level: string;
-
-  /**
    * Whether to return trace data from the launched application or browser.
    */
   stdio: boolean;
@@ -65,13 +54,6 @@ export interface ILoggingConfiguration {
    * OS tmpdir (in VS) will be used.
    */
   logFile: string | null;
-
-  /**
-   * Configures what types of logs recorded. For instance, `cdp` will log all
-   * CDP protocol messages. If this is empty or not provided, tags will not
-   * be filtered.
-   */
-  tags: ReadonlyArray<string>;
 }
 
 /**

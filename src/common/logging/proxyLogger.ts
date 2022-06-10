@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { ILogger, ILogItem, LogTag, LogLevel } from '.';
+import { ILogger, ILogItem, LogLevel, LogTag } from '.';
 
 export class ProxyLogger implements ILogger {
   private target?: { logger: ILogger } | { queue: ILogItem[] } = { queue: [] };
@@ -88,6 +88,19 @@ export class ProxyLogger implements ILogger {
       this.target.queue.push(data);
     } else {
       this.target.logger.log(data);
+    }
+  }
+
+  /**
+   * @inheritdoc
+   */
+  public getRecentLogs(): ILogItem<unknown>[] {
+    if (!this.target) {
+      return [];
+    } else if ('queue' in this.target) {
+      return this.target.queue;
+    } else {
+      return this.target.logger.getRecentLogs();
     }
   }
 

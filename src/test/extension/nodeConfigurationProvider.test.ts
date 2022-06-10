@@ -55,11 +55,8 @@ describe('NodeDebugConfigurationProvider', () => {
     it('does not log by default', async () => {
       const result = await provider.resolveDebugConfiguration(folder, emptyRequest);
       expect(result!.trace).to.deep.equal({
-        console: false,
-        level: 'fatal',
         stdio: false,
         logFile: null,
-        tags: [],
       });
     });
 
@@ -69,27 +66,7 @@ describe('NodeDebugConfigurationProvider', () => {
         trace: true,
       });
       expect(result!.trace).to.containSubset({
-        console: false,
-        level: 'verbose',
         stdio: true,
-        tags: [],
-      });
-    });
-
-    it('applies overrides', async () => {
-      const result = await provider.resolveDebugConfiguration(folder, {
-        ...emptyRequest,
-        trace: {
-          level: 'warn',
-          tags: ['cdp'],
-        },
-      });
-      expect(result!.trace).to.deep.equal({
-        console: false,
-        level: 'warn',
-        logFile: (result as any).trace.logFile,
-        stdio: true,
-        tags: ['cdp'],
       });
     });
   });
