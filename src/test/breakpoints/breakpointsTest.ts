@@ -1116,4 +1116,36 @@ describe('breakpoints', () => {
     await waitForPause(handle);
     handle.assertLog({ substring: true });
   });
+
+  itIntegrates('toggles source map stepping', async ({ r }) => {
+    const p = await r.launchUrl('basic.html');
+    await p.dap.setBreakpoints({
+      source: {
+        path: p.workspacePath('web/basic.ts'),
+      },
+      breakpoints: [{ line: 12 }],
+    });
+
+    p.load();
+
+    // sourcemaps enabled:
+    {
+      const bp = p.dap.once('breakpoint');
+      const { threadId } = p.log(await p.dap.once('stopped'));
+      await r.log(await bp, 'Initial breakpoint resolution');
+      await p.logger.logStackTrace(threadId);
+    }
+
+    // disables and moves breakpoint and pause location:
+    p.dap.setSourceMapStepping({ enabled: false });
+    const bp = p.dap.once('breakpoint');
+    const { threadId } = p.log(await p.dap.once('stopped'));
+    await r.log(await bp, 'Demapped breakpoint');
+    await p.logger.logStackTrace(threadId);
+
+    // steps in demapped code when enabled
+    await p.dap.stepIn({ threadId });
+    await waitForPause(p);
+    p.assertLog();
+  });
 });

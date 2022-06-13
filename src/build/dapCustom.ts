@@ -554,6 +554,15 @@ const dapCustom: JSONSchema4 = {
       },
       required: ['callers'],
     }),
+
+    ...makeRequest('setSourceMapStepping', 'Configures whether source map stepping is enabled.', {
+      properties: {
+        enabled: {
+          type: 'boolean',
+        },
+      },
+      required: ['enabled'],
+    }),
   },
 };
 

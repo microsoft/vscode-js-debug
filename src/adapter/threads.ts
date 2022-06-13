@@ -74,6 +74,7 @@ export type ExpectedPauseReason =
 export interface IPausedDetails {
   thread: Thread;
   reason: PausedReason;
+  event: Cdp.Debugger.PausedEvent;
   description: string;
   stackTrace: StackTrace;
   hitBreakpoints?: string[];
@@ -161,7 +162,6 @@ export class Thread implements IVariableStoreLocationProvider {
   private _expectedPauseReason?: ExpectedPauseReason;
   private _excludedCallers: readonly Dap.ExcludedCaller[] = [];
   private readonly _sourceScripts = new WeakMap<Source, Set<Script>>();
-  private readonly _pausedDetailsEvent = new WeakMap<IPausedDetails, Cdp.Debugger.PausedEvent>();
   private readonly _onPausedEmitter = new EventEmitter<IPausedDetails>();
   private readonly _dap: DeferredContainer<Dap.Api>;
   private disposed = false;
@@ -197,6 +197,7 @@ export class Thread implements IVariableStoreLocationProvider {
     this._cdp = cdp;
     this.id = Thread._lastThreadId++;
     this.replVariables = new VariableStore(renameProvider, this._cdp, dap, launchConfig, this);
+    sourceContainer.onSourceMappedSteppingChange(() => this.refreshStackTrace());
     this._initialize();
   }
 
@@ -624,11 +625,7 @@ export class Thread implements IVariableStoreLocationProvider {
       return;
     }
 
-    const event = this._pausedDetailsEvent.get(this._pausedDetails);
-    if (event) {
-      this._pausedDetails = this._createPausedDetails(event);
-    }
-
+    this._pausedDetails = this._createPausedDetails(this._pausedDetails.event);
     this._onThreadResumed();
     await this._onThreadPaused(this._pausedDetails);
   }
@@ -772,7 +769,6 @@ export class Thread implements IVariableStoreLocationProvider {
     }
 
     this._waitingForStepIn = undefined;
-    this._pausedDetailsEvent.set(pausedDetails, event);
     this._pausedVariables = this.replVariables.createDetached();
 
     await this._onThreadPaused(pausedDetails);
@@ -1029,6 +1025,7 @@ export class Thread implements IVariableStoreLocationProvider {
     if (event.data?.__rewriteAs === 'breakpoint') {
       return {
         thread: this,
+        event,
         stackTrace,
         reason: 'breakpoint',
         description: localize('pause.breakpoint', 'Paused on breakpoint'),
@@ -1038,6 +1035,7 @@ export class Thread implements IVariableStoreLocationProvider {
     if (event.data?.__rewriteAs === 'step') {
       return {
         thread: this,
+        event,
         stackTrace,
         reason: 'step',
         description: localize('pause.default', 'Paused'),
@@ -1048,6 +1046,7 @@ export class Thread implements IVariableStoreLocationProvider {
       case 'assert':
         return {
           thread: this,
+          event,
           stackTrace,
           reason: 'exception',
           description: localize('pause.assert', 'Paused on assert'),
@@ -1055,6 +1054,7 @@ export class Thread implements IVariableStoreLocationProvider {
       case 'debugCommand':
         return {
           thread: this,
+          event,
           stackTrace,
           reason: 'pause',
           description: localize('pause.debugCommand', 'Paused on debug() call'),
@@ -1062,6 +1062,7 @@ export class Thread implements IVariableStoreLocationProvider {
       case 'DOM':
         return {
           thread: this,
+          event,
           stackTrace,
           reason: 'data breakpoint',
           description: localize('pause.DomBreakpoint', 'Paused on DOM breakpoint'),
@@ -1071,6 +1072,7 @@ export class Thread implements IVariableStoreLocationProvider {
       case 'exception':
         return {
           thread: this,
+          event,
           stackTrace,
           reason: 'exception',
           description: localize('pause.exception', 'Paused on exception'),
@@ -1079,6 +1081,7 @@ export class Thread implements IVariableStoreLocationProvider {
       case 'promiseRejection':
         return {
           thread: this,
+          event,
           stackTrace,
           reason: 'exception',
           description: localize('pause.promiseRejection', 'Paused on promise rejection'),
@@ -1088,6 +1091,7 @@ export class Thread implements IVariableStoreLocationProvider {
         if (event.data && event.data['scriptId']) {
           return {
             thread: this,
+            event,
             stackTrace,
             reason: 'step',
             description: localize('pause.default', 'Paused'),
@@ -1095,6 +1099,7 @@ export class Thread implements IVariableStoreLocationProvider {
         }
         return {
           thread: this,
+          event,
           stackTrace,
           reason: 'function breakpoint',
           description: localize('pause.instrumentation', 'Paused on instrumentation breakpoint'),
@@ -1102,6 +1107,7 @@ export class Thread implements IVariableStoreLocationProvider {
       case 'XHR':
         return {
           thread: this,
+          event,
           stackTrace,
           reason: 'data breakpoint',
           description: localize('pause.xhr', 'Paused on XMLHttpRequest or fetch'),
@@ -1109,6 +1115,7 @@ export class Thread implements IVariableStoreLocationProvider {
       case 'OOM':
         return {
           thread: this,
+          event,
           stackTrace,
           reason: 'exception',
           description: localize('pause.oom', 'Paused before Out Of Memory exception'),
@@ -1142,6 +1149,7 @@ export class Thread implements IVariableStoreLocationProvider {
           }
           return {
             thread: this,
+            event,
             stackTrace,
             hitBreakpoints: event.hitBreakpoints,
             reason: isStopOnEntry ? 'entry' : 'breakpoint',
@@ -1151,6 +1159,7 @@ export class Thread implements IVariableStoreLocationProvider {
         if (this._expectedPauseReason) {
           return {
             thread: this,
+            event,
             stackTrace,
             description: localize('pause.default', 'Paused'),
             ...this._expectedPauseReason,
@@ -1158,6 +1167,7 @@ export class Thread implements IVariableStoreLocationProvider {
         }
         return {
           thread: this,
+          event,
           stackTrace,
           reason: 'pause',
           description: localize('pause.default', 'Paused on debugger statement'),
@@ -1176,6 +1186,7 @@ export class Thread implements IVariableStoreLocationProvider {
       const details = breakpoint.details(data);
       return {
         thread: this,
+        event,
         stackTrace,
         reason: 'function breakpoint',
         description: details.short,
@@ -1184,6 +1195,7 @@ export class Thread implements IVariableStoreLocationProvider {
     }
     return {
       thread: this,
+      event,
       stackTrace,
       reason: 'function breakpoint',
       description: localize('pause.eventListener', 'Paused on event listener'),
@@ -1253,7 +1265,7 @@ export class Thread implements IVariableStoreLocationProvider {
         : undefined;
 
       let resolvedSourceMapUrl: string | undefined;
-      if (event.sourceMapURL && this.launchConfig.sourceMaps) {
+      if (event.sourceMapURL) {
         // Note: we should in theory refetch source maps with relative urls, if the base url has changed,
         // but in practice that usually means new scripts with new source maps anyway.
         resolvedSourceMapUrl = urlUtils.isDataUri(event.sourceMapURL)

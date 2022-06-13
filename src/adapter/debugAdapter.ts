@@ -116,6 +116,14 @@ export class DebugAdapter implements IDisposable {
     this.dap.on('requestCDPProxy', () => this._requestCDPProxy());
     this.dap.on('setExcludedCallers', params => this._onSetExcludedCallers(params));
     this.dap.on('saveDiagnosticLogs', ({ toFile }) => this._saveDiagnosticLogs(toFile));
+    this.dap.on('setSourceMapStepping', params => this._setSourceMapStepping(params));
+  }
+
+  private _setSourceMapStepping({
+    enabled,
+  }: Dap.SetSourceMapSteppingParams): Promise<Dap.SetSourceMapSteppingResult> {
+    this.sourceContainer.doSourceMappedStepping = enabled;
+    return Promise.resolve({});
   }
 
   private async _saveDiagnosticLogs(toFile: string): Promise<Dap.SaveDiagnosticLogsResult> {

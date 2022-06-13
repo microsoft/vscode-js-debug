@@ -319,6 +319,8 @@ A common case to disable certificate verification can be done by passing \`{ "ht
   'commands.callersRemoveAll.label': 'Remove all excluded callers',
   'commands.callersGoToCaller.label': 'Go to caller location',
   'commands.callersGoToTarget.label': 'Go to target location',
+  'commands.enableSourceMapStepping.label': 'Enable Source Mapped Stepping',
+  'commands.disableSourceMapStepping.label': 'Disable Source Mapped Stepping',
 };
 
 export default strings;

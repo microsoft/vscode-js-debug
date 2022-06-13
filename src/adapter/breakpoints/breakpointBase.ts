@@ -136,7 +136,7 @@ export abstract class Breakpoint {
 
   /**
    * Updates the source location for the breakpoint. It is assumed that the
-   * updated location is equivalent to the original on.  This is used to move
+   * updated location is equivalent to the original one.  This is used to move
    * the breakpoints when we pretty print a source. This is dangerous with
    * sharp edges, use with caution.
    */
@@ -153,6 +153,20 @@ export abstract class Breakpoint {
             }
           : bp,
       ),
+    );
+  }
+
+  /**
+   * Refreshes the `uiLocations` of the breakpoint. Should be used when the
+   * resolution strategy for sources change.
+   */
+  public async refreshUiLocations(thread: Thread) {
+    await Promise.all(
+      this.cdpBreakpoints
+        .filter(
+          (bp): bp is IBreakpointCdpReferenceApplied => bp.state === CdpReferenceState.Applied,
+        )
+        .map(bp => this.updateUiLocations(thread, bp.cdpId, bp.locations)),
     );
   }
 
@@ -201,7 +215,7 @@ export abstract class Breakpoint {
   public async updateUiLocations(
     thread: Thread,
     cdpId: Cdp.Debugger.BreakpointId,
-    resolvedLocations: Cdp.Debugger.Location[],
+    resolvedLocations: readonly Cdp.Debugger.Location[],
   ) {
     const uiLocation = (
       await Promise.all(
@@ -219,18 +233,18 @@ export abstract class Breakpoint {
     }
 
     this.updateCdpRefs(list =>
-      list.map(bp =>
-        bp.state === CdpReferenceState.Applied && bp.cdpId === cdpId
-          ? {
-              ...bp,
-              locations: resolvedLocations,
-              uiLocations: [
-                ...bp.uiLocations,
-                ...this._manager._sourceContainer.currentSiblingUiLocations(uiLocation, source),
-              ],
-            }
-          : bp,
-      ),
+      list.map(bp => {
+        if (bp.state !== CdpReferenceState.Applied || bp.cdpId !== cdpId) {
+          return bp;
+        }
+        const locations = this._manager._sourceContainer.currentSiblingUiLocations(uiLocation);
+        const inPreferredSource = locations.filter(l => l.source === source);
+        return {
+          ...bp,
+          locations: resolvedLocations,
+          uiLocations: inPreferredSource.length ? inPreferredSource : locations,
+        };
+      }),
     );
   }
 
