@@ -7,9 +7,11 @@ import { join } from 'path';
 import * as vscode from 'vscode';
 import { DebugType } from '../../common/contributionUtils';
 import { EnvironmentVars } from '../../common/environmentVars';
+import { upcastPartial } from '../../common/objUtils';
 import { ExtensionHostConfigurationResolver } from '../../ui/configuration/extensionHostConfigurationResolver';
-import { testFixturesDir } from '../test';
 import { createFileTree } from '../createFileTree';
+import { testFixturesDir } from '../test';
+import { TestMemento } from '../testMemento';
 
 describe('ExtensionHostConfigurationProvider', () => {
   let provider: ExtensionHostConfigurationResolver;
@@ -27,7 +29,12 @@ describe('ExtensionHostConfigurationProvider', () => {
   };
 
   beforeEach(() => {
-    provider = new ExtensionHostConfigurationResolver({ logPath: testFixturesDir } as any);
+    provider = new ExtensionHostConfigurationResolver(
+      upcastPartial<vscode.ExtensionContext>({
+        logPath: testFixturesDir,
+        workspaceState: new TestMemento(),
+      }),
+    );
     EnvironmentVars.platform = 'linux';
   });
 

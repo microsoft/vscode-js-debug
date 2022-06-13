@@ -1446,6 +1446,14 @@ const menus: Menus = {
         `view == workbench.debug.callStackView && !${ContextKey.IsMapSteppingDisabled}`,
       ),
     },
+    {
+      command: Commands.EnableSourceMapStepping,
+      group: 'navigation',
+      when: forAnyDebugType(
+        'debugType',
+        `view == workbench.debug.callStackView && ${ContextKey.IsMapSteppingDisabled}`,
+      ),
+    },
   ],
   'view/item/context': [
     {
