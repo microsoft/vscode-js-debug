@@ -1060,6 +1060,7 @@ function buildDebuggers() {
       const entry = ensureEntryForType(preferred, d);
       delete entry.languages;
       entries.unshift(entry);
+      primary.deprecated = `Please use type ${preferred} instead`;
     }
 
     entries[0].configurationSnippets.push(...d.configurationSnippets);

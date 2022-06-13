@@ -63,6 +63,9 @@ export const preferredDebugTypes: ReadonlyMap<DebugType, string> = new Map([
   [DebugType.Edge, 'msedge'],
 ]);
 
+export const getPreferredOrDebugType = <T extends DebugType>(t: T) =>
+  (preferredDebugTypes.get(t) as T) || t;
+
 export const enum DebugType {
   ExtensionHost = 'pwa-extensionHost',
   Terminal = 'node-terminal',
