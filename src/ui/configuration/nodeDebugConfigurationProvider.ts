@@ -6,7 +6,7 @@ import { injectable } from 'inversify';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
-import { DebugType } from '../../common/contributionUtils';
+import { DebugType, getPreferredOrDebugType } from '../../common/contributionUtils';
 import { flatten } from '../../common/objUtils';
 import {
   AnyNodeConfiguration,
@@ -80,7 +80,7 @@ export class NodeDynamicDebugConfigurationProvider extends BaseConfigurationProv
    */
   protected async getFromNpmScripts(folder?: vscode.WorkspaceFolder): Promise<DynamicConfig[]> {
     const openTerminal: AnyResolvingConfiguration = {
-      type: DebugType.Terminal,
+      type: getPreferredOrDebugType(DebugType.Terminal),
       name: localize('debug.terminal.label', 'JavaScript Debug Terminal'),
       request: 'launch',
       cwd: folder?.uri.fsPath,
@@ -98,7 +98,7 @@ export class NodeDynamicDebugConfigurationProvider extends BaseConfigurationProv
     const packageManager = await getPackageManager(folder);
     return scripts
       .map<DynamicConfig>(script => ({
-        type: DebugType.Terminal,
+        type: getPreferredOrDebugType(DebugType.Terminal),
         name: localize('node.launch.script', 'Run Script: {0}', script.name),
         request: 'launch',
         command: `${packageManager} run ${script.name}`,
@@ -122,7 +122,7 @@ export class NodeDynamicDebugConfigurationProvider extends BaseConfigurationProv
 
     return [
       {
-        type: DebugType.Node,
+        type: getPreferredOrDebugType(DebugType.Node),
         name: localize('node.launch.currentFile', 'Run Current File'),
         request: 'launch',
         program: editor.document.uri.fsPath,
