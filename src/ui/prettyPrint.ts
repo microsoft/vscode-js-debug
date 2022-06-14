@@ -9,7 +9,7 @@ import { Commands, ContextKey, registerCommand } from '../common/contributionUti
 import Dap from '../dap/api';
 import { IExtensionContribution } from '../ioc-extras';
 import { DebugSessionTracker } from './debugSessionTracker';
-import { ManagedContextKey } from './manageContextKey';
+import { ManagedContextKey } from './managedContextKey';
 
 @injectable()
 export class PrettyPrintUI implements IExtensionContribution {

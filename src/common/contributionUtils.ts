@@ -47,6 +47,8 @@ export const enum Commands {
   StopProfile = 'extension.js-debug.stopProfile',
   ToggleSkipping = 'extension.js-debug.toggleSkippingFile',
   OpenEdgeDevTools = 'extension.js-debug.openEdgeDevTools',
+  DisableSourceMapStepping = 'extension.js-debug.disableSourceMapStepping',
+  EnableSourceMapStepping = 'extension.js-debug.enableSourceMapStepping',
   //#region Excluded callers view
   CallersGoToCaller = 'extension.js-debug.callers.goToCaller',
   CallersGoToTarget = 'extension.js-debug.callers.gotToTarget',
@@ -107,6 +109,8 @@ const commandsObj: { [K in Commands]: null } = {
   [Commands.CallersGoToTarget]: null,
   [Commands.CallersRemove]: null,
   [Commands.CallersRemoveAll]: null,
+  [Commands.EnableSourceMapStepping]: null,
+  [Commands.DisableSourceMapStepping]: null,
 };
 
 /**
@@ -208,6 +212,8 @@ export interface ICommandTypes {
   [Commands.CallersGoToTarget](caller: ExcludedCaller): void;
   [Commands.CallersRemove](caller: ExcludedCaller): void;
   [Commands.CallersRemoveAll](): void;
+  [Commands.EnableSourceMapStepping](): void;
+  [Commands.DisableSourceMapStepping](): void;
 }
 
 /**
@@ -262,12 +268,14 @@ export const enum ContextKey {
   HasExcludedCallers = 'jsDebugHasExcludedCallers',
   CanPrettyPrint = 'jsDebugCanPrettyPrint',
   IsProfiling = 'jsDebugIsProfiling',
+  IsMapSteppingDisabled = 'jsDebugIsMapSteppingDisabled',
 }
 
 export interface IContextKeyTypes {
   [ContextKey.HasExcludedCallers]: boolean;
   [ContextKey.CanPrettyPrint]: string[];
   [ContextKey.IsProfiling]: boolean;
+  [ContextKey.IsMapSteppingDisabled]: boolean;
 }
 
 export const setContextKey = async <K extends keyof IContextKeyTypes>(

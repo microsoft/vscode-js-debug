@@ -41,10 +41,8 @@ export class FileGlobList {
  */
 @injectable()
 export class OutFiles extends FileGlobList {
-  constructor(
-    @inject(AnyLaunchConfiguration) { rootPath, outFiles, sourceMaps }: AnyLaunchConfiguration,
-  ) {
-    super({ rootPath, patterns: sourceMaps === false ? [] : outFiles });
+  constructor(@inject(AnyLaunchConfiguration) { rootPath, outFiles }: AnyLaunchConfiguration) {
+    super({ rootPath, patterns: outFiles });
   }
 }
 

@@ -128,4 +128,6 @@ interface IDAPOperationClassification {
   '!requestcdpproxy.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   setexcludedcallers: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!setexcludedcallers.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  setsourcemapstepping: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!setsourcemapstepping.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
 }

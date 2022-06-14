@@ -1085,6 +1085,20 @@ export namespace Dap {
      * Adds an excluded caller/target pair.
      */
     setExcludedCallersRequest(params: SetExcludedCallersParams): Promise<SetExcludedCallersResult>;
+
+    /**
+     * Configures whether source map stepping is enabled.
+     */
+    on(
+      request: 'setSourceMapStepping',
+      handler: (params: SetSourceMapSteppingParams) => Promise<SetSourceMapSteppingResult | Error>,
+    ): () => void;
+    /**
+     * Configures whether source map stepping is enabled.
+     */
+    setSourceMapSteppingRequest(
+      params: SetSourceMapSteppingParams,
+    ): Promise<SetSourceMapSteppingResult>;
   }
 
   export interface TestApi {
@@ -1820,6 +1834,11 @@ export namespace Dap {
      * Adds an excluded caller/target pair.
      */
     setExcludedCallers(params: SetExcludedCallersParams): Promise<SetExcludedCallersResult>;
+
+    /**
+     * Configures whether source map stepping is enabled.
+     */
+    setSourceMapStepping(params: SetSourceMapSteppingParams): Promise<SetSourceMapSteppingResult>;
   }
 
   export interface AttachParams {
@@ -3258,6 +3277,12 @@ export namespace Dap {
      */
     breakpoints: Breakpoint[];
   }
+
+  export interface SetSourceMapSteppingParams {
+    enabled: boolean;
+  }
+
+  export interface SetSourceMapSteppingResult {}
 
   export interface SetVariableParams {
     /**

@@ -1295,6 +1295,16 @@ const commands: ReadonlyArray<{
     title: refString('commands.callersGoToTarget.label'),
     icon: '$(call-incoming)',
   },
+  {
+    command: Commands.EnableSourceMapStepping,
+    title: refString('commands.enableSourceMapStepping.label'),
+    icon: '$(compass-dot)',
+  },
+  {
+    command: Commands.DisableSourceMapStepping,
+    title: refString('commands.disableSourceMapStepping.label'),
+    icon: '$(compass)',
+  },
 ];
 
 const menus: Menus = {
@@ -1351,6 +1361,18 @@ const menus: Menus = {
       command: Commands.CallersGoToTarget,
       when: 'false',
     },
+    {
+      command: Commands.EnableSourceMapStepping,
+      when: ContextKey.IsMapSteppingDisabled,
+    },
+    {
+      command: Commands.DisableSourceMapStepping,
+      when: `!${ContextKey.IsMapSteppingDisabled}`,
+    },
+    {
+      command: Commands.EnableSourceMapStepping,
+      when: ContextKey.IsMapSteppingDisabled,
+    },
   ],
   'debug/callstack/context': [
     {
@@ -1397,6 +1419,10 @@ const menus: Menus = {
       command: Commands.OpenEdgeDevTools,
       when: `debugType == ${DebugType.Edge}`,
     },
+    {
+      command: Commands.EnableSourceMapStepping,
+      when: ContextKey.IsMapSteppingDisabled,
+    },
   ],
   'view/title': [
     {
@@ -1411,6 +1437,22 @@ const menus: Menus = {
       command: Commands.CallersRemoveAll,
       group: 'navigation',
       when: `view == ${CustomViews.ExcludedCallers}`,
+    },
+    {
+      command: Commands.DisableSourceMapStepping,
+      group: 'navigation',
+      when: forAnyDebugType(
+        'debugType',
+        `view == workbench.debug.callStackView && !${ContextKey.IsMapSteppingDisabled}`,
+      ),
+    },
+    {
+      command: Commands.EnableSourceMapStepping,
+      group: 'navigation',
+      when: forAnyDebugType(
+        'debugType',
+        `view == workbench.debug.callStackView && ${ContextKey.IsMapSteppingDisabled}`,
+      ),
     },
   ],
   'view/item/context': [

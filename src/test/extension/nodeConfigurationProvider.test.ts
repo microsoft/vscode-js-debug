@@ -10,10 +10,12 @@ import * as vscode from 'vscode';
 import { DebugType } from '../../common/contributionUtils';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { LocalFsUtils } from '../../common/fsUtils';
+import { upcastPartial } from '../../common/objUtils';
 import { INodeLaunchConfiguration } from '../../configuration';
 import { NodeConfigurationResolver } from '../../ui/configuration/nodeDebugConfigurationResolver';
 import { createFileTree } from '../createFileTree';
 import { testFixturesDir } from '../test';
+import { TestMemento } from '../testMemento';
 
 describe('NodeDebugConfigurationProvider', () => {
   let provider: NodeConfigurationResolver;
@@ -27,7 +29,10 @@ describe('NodeDebugConfigurationProvider', () => {
   beforeEach(() => {
     nvmResolver = { resolveNvmVersionPath: stub() };
     provider = new NodeConfigurationResolver(
-      { logPath: testFixturesDir } as any,
+      upcastPartial<vscode.ExtensionContext>({
+        logPath: testFixturesDir,
+        workspaceState: new TestMemento(),
+      }),
       nvmResolver,
       new LocalFsUtils(fsPromises),
     );

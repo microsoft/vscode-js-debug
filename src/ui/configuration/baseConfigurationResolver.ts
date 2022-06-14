@@ -15,6 +15,7 @@ import {
   ResolvingConfiguration,
 } from '../../configuration';
 import { ExtensionContext } from '../../ioc-extras';
+import { sourceMapSteppingEnabled } from '../sourceSteppingUI';
 import { IDebugConfigurationResolver } from './configurationProvider';
 
 /**
@@ -53,6 +54,8 @@ export abstract class BaseConfigurationResolver<T extends AnyLaunchConfiguration
     }
 
     const castConfig = config as ResolvingConfiguration<T>;
+    castConfig.sourceMaps ??= sourceMapSteppingEnabled.read(this.extensionContext.workspaceState);
+
     try {
       const resolved = await this.resolveDebugConfigurationAsync(folder, castConfig, token);
       return resolved && this.commonResolution(resolved, folder);
