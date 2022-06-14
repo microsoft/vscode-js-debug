@@ -7,8 +7,8 @@
 stepInTargets line 3{
     targets : [
         [0] : {
-            column : 15
-            columnNumber : 33
+            column : 16
+            endColumn : 19
             endLine : 4
             id : <number>
             label : Foo(...)
@@ -36,24 +36,24 @@ doTest @ ${workspaceFolder}/web/stepInTargets.js:4:12
 stepInTargets line 4{
     targets : [
         [0] : {
-            column : 11
-            columnNumber : 30
+            column : 12
+            endColumn : 20
             endLine : 5
             id : <number>
             label : identity(...)
             line : 5
         }
         [1] : {
-            column : 24
-            columnNumber : 51
+            column : 25
+            endColumn : 28
             endLine : 5
             id : <number>
             label : Foo(...)
             line : 5
         }
         [2] : {
-            column : 20
-            columnNumber : 53
+            column : 21
+            endColumn : 34
             endLine : 5
             id : <number>
             label : new Foo().bar(...)
