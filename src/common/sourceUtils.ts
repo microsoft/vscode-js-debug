@@ -2,9 +2,9 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { parseExpressionAt, Parser } from 'acorn';
+import { Node as AcornNode, parseExpressionAt, Parser } from 'acorn';
 import { generate } from 'astring';
-import { replace, VisitorOption } from 'estraverse';
+import { replace, traverse, VisitorOption } from 'estraverse';
 import {
   Expression,
   ExpressionStatement,
@@ -357,4 +357,53 @@ export function getSyntaxErrorIn(code: string): Error | void {
   } catch (e) {
     return e;
   }
+}
+
+export function getBestSteppableExpressionAt(src: string, offset: number) {
+  const ast = parseProgram(src);
+  let other: Node | undefined;
+  let steppable: Node | undefined;
+  traverse(ast, {
+    enter: node => {
+      const asAcorn = node as AcornNode;
+      if (offset >= asAcorn.start && offset < asAcorn.end) {
+        if (node.type === 'CallExpression' || node.type === 'NewExpression') {
+          steppable = node;
+        } else {
+          other = node;
+        }
+      }
+    },
+  });
+
+  return steppable || other;
+}
+
+const notParensRe = /^[^()]+/g;
+
+/**
+ * Gets a "step into" target at the given offset in the line of code.
+ */
+export function getStepTargetInfo(line: string, offset: number) {
+  // try being smart by extracting the callable expression
+  try {
+    const node = getBestSteppableExpressionAt(line, offset);
+    if (node && 'callee' in node) {
+      const c = node.callee as AcornNode;
+      return { text: `${line.slice(c.start, c.end)}(...)`, start: c.start, end: c.end };
+    } else {
+      const c = node as AcornNode;
+      return { text: line.slice(c.start, c.end), start: c.start, end: c.end };
+    }
+  } catch {
+    // ignored
+  }
+
+  notParensRe.lastIndex = offset - 1;
+  const match = notParensRe.exec(line);
+  if (match) {
+    return { text: match[0], start: offset, end: offset + match[0].length };
+  }
+
+  return undefined;
 }

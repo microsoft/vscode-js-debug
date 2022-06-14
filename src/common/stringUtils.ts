@@ -56,13 +56,17 @@ export class PositionToOffset {
   private readonly lines: number[] = [];
 
   constructor(public readonly source: string) {
-    let last = 0;
-    for (let i = source.indexOf('\n'); i !== -1; i = source.indexOf('\n', last)) {
-      this.lines.push(i - last);
-      last = i + 1;
+    this.lines.push(0);
+    for (let i = source.indexOf('\n'); i !== -1; i = source.indexOf('\n', i + 1)) {
+      this.lines.push(i + 1);
     }
+  }
 
-    this.lines.push(source.length - last);
+  /**
+   * Gets the base-0 line number.
+   */
+  public getLineOffset(n: number) {
+    return n >= this.lines.length ? this.source.length : this.lines[n];
   }
 
   /**
@@ -74,11 +78,9 @@ export class PositionToOffset {
       return this.source.length;
     }
 
-    let offset = 0;
-    for (let i = 0; i < base0.lineNumber; i++) {
-      offset += this.lines[i] + 1;
-    }
+    const thisLine = this.lines[base0.lineNumber];
+    const nextLine = this.lines[base0.lineNumber + 1] ?? this.source.length + 1;
 
-    return offset + Math.min(this.lines[base0.lineNumber], base0.columnNumber);
+    return thisLine + Math.min(nextLine - thisLine - 1, base0.columnNumber);
   }
 }
