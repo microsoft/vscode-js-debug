@@ -732,7 +732,7 @@ export class Thread implements IVariableStoreLocationProvider {
           line: preferred.lineNumber,
           column: target.start,
           endLine: preferred.lineNumber,
-          columnNumber: target.start + target.end,
+          endColumn: target.start + target.end,
         };
       })
       .filter(truthy);
