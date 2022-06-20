@@ -151,14 +151,26 @@ export class StackTrace {
   }
 
   async formatAsNative(): Promise<string> {
-    const stackFrames = await this.loadFrames(50);
-    const promises = stackFrames.map(frame => frame.formatAsNative());
-    return (await Promise.all(promises)).join('\n') + '\n';
+    return await this.formatWithMapper(frame => frame.formatAsNative());
   }
 
   async format(): Promise<string> {
-    const stackFrames = await this.loadFrames(50);
-    const promises = stackFrames.map(frame => frame.format());
+    return await this.formatWithMapper(frame => frame.format());
+  }
+
+  private async formatWithMapper(
+    mapper: (frame: FrameElement) => Promise<string>,
+  ): Promise<string> {
+    let stackFrames = await this.loadFrames(50);
+    // REPL may call back into itself; slice at the highest REPL eval in the call chain.
+    for (let i = stackFrames.length - 1; i >= 0; i--) {
+      const frame = stackFrames[i];
+      if (frame instanceof StackFrame && frame.isReplEval) {
+        stackFrames = stackFrames.slice(0, i + 1);
+        break;
+      }
+    }
+    const promises = stackFrames.map(mapper);
     return (await Promise.all(promises)).join('\n') + '\n';
   }
 
@@ -216,6 +228,7 @@ export class StackFrame implements IFrameElement {
     | undefined;
   private _scope: IScope | undefined;
   private _thread: Thread;
+  public readonly isReplEval: boolean;
 
   public get rawPosition() {
     // todo: move RawLocation to use Positions, then just return that.
@@ -254,6 +267,7 @@ export class StackFrame implements IFrameElement {
     this._rawLocation = rawLocation;
     this.uiLocation = once(() => thread.rawLocationToUiLocation(rawLocation));
     this._thread = thread;
+    this.isReplEval = callFrame.url.endsWith(SourceConstants.ReplExtension);
   }
 
   /**
@@ -405,9 +419,7 @@ export class StackFrame implements IFrameElement {
   async formatAsNative(): Promise<string> {
     const uiLocation = await this.uiLocation();
     const url =
-      (await uiLocation?.source.existingAbsolutePath()) ||
-      uiLocation?.source.url ||
-      (await uiLocation?.source.prettyName());
+      (await uiLocation?.source.existingAbsolutePath()) || (await uiLocation?.source.prettyName());
     const { lineNumber, columnNumber } = uiLocation || this._rawLocation;
     return `    at ${this._name} (${url}:${lineNumber}:${columnNumber})`;
   }

@@ -447,7 +447,7 @@ describe('console format', () => {
 
     const evaluation = handle.dap.evaluate({
       expression: 'doLog("hello world");\n//# sourceURL=dont-ignore-me.js',
-      context: 'repl',
+      context: 'watch',
     });
     const output = await handle.dap.once('output');
     await evaluation;

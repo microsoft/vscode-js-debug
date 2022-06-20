@@ -70,6 +70,13 @@ export const enum SourceConstants {
    * this suffix will be ignored when displaying sources or stacktracees.
    */
   InternalExtension = '.cdp',
+
+  /**
+   * Extension of evaluated REPL source. Stack traces which include frames
+   * from this suffix will be truncated to keep only frames from code called
+   * by the REPL.
+   */
+  ReplExtension = '.repl',
 }
 
 export type SourceMapTimeouts = {
@@ -330,6 +337,10 @@ export class Source {
   private _fullyQualifiedName(): string {
     if (!this.url) {
       return '<eval>/VM' + this.sourceReference;
+    }
+
+    if (this.url.endsWith(SourceConstants.ReplExtension)) {
+      return 'repl';
     }
 
     if (this.absolutePath.startsWith('<node_internals>')) {
