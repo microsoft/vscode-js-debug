@@ -144,6 +144,14 @@ export class BreakpointManager {
 
     _breakpointsPredictor?.onLongParse(() => dap.longPrediction({}));
 
+    sourceContainer.onSourceMappedSteppingChange(() => {
+      if (this._thread) {
+        for (const bp of this.allUserBreakpoints) {
+          bp.refreshUiLocations(this._thread);
+        }
+      }
+    });
+
     this._scriptSourceMapHandler = async (script, sources) => {
       if (
         !logger.assert(

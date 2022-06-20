@@ -21,6 +21,7 @@ import { StackFrame, StackTrace } from './stackTrace';
 import { getSourceSuffix, RemoteException } from './templates';
 import { getArrayProperties } from './templates/getArrayProperties';
 import { getArraySlots } from './templates/getArraySlots';
+import { getStringyProps, getToStringIfCustom } from './templates/getStringyProps';
 import { invokeGetter } from './templates/invokeGetter';
 import { readMemory } from './templates/readMemory';
 import { writeMemory } from './templates/writeMemory';
@@ -220,13 +221,17 @@ class VariableContext {
     return v;
   }
 
-  public createVariableByType(ctx: IContextInit, object: Cdp.Runtime.RemoteObject) {
+  public createVariableByType(
+    ctx: IContextInit,
+    object: Cdp.Runtime.RemoteObject,
+    customStringRepr?: string,
+  ) {
     if (objectPreview.isArray(object)) {
       return this.createVariable(ArrayVariable, ctx, object);
     }
 
     if (object.objectId && !objectPreview.subtypesWithoutPreview.has(object.subtype)) {
-      return this.createVariable(ObjectVariable, ctx, object);
+      return this.createVariable(ObjectVariable, ctx, object, customStringRepr);
     }
 
     return this.createVariable(Variable, ctx, object);
@@ -265,7 +270,7 @@ class VariableContext {
       return [];
     }
 
-    const [accessorsProperties, ownProperties] = await Promise.all([
+    const [accessorsProperties, ownProperties, stringyProps] = await Promise.all([
       this.cdp.Runtime.getProperties({
         objectId: object.objectId,
         accessorPropertiesOnly: true,
@@ -277,6 +282,13 @@ class VariableContext {
         ownProperties: true,
         generatePreview: true,
       }),
+      getStringyProps({
+        cdp: this.cdp,
+        args: [64],
+        objectId: object.objectId,
+        throwOnSideEffect: true,
+        returnByValue: true,
+      }).catch(() => ({ value: {} as Record<string, string> })),
     ]);
     if (!accessorsProperties || !ownProperties) return [];
 
@@ -311,7 +323,13 @@ class VariableContext {
     // Push own properties & accessors and symbols
     for (const propertiesCollection of [propertiesMap.values(), propertySymbols.values()]) {
       for (const p of propertiesCollection) {
-        properties.push(this.createPropertyVar(p, object));
+        properties.push(
+          this.createPropertyVar(
+            p,
+            object,
+            stringyProps.value.hasOwnProperty(p.name) ? stringyProps.value[p.name] : undefined,
+          ),
+        );
       }
     }
 
@@ -393,6 +411,7 @@ class VariableContext {
   private async createPropertyVar(
     p: AnyPropertyDescriptor,
     owner: Cdp.Runtime.RemoteObject,
+    customStringRepr: string | undefined,
   ): Promise<Variable[]> {
     const result: Variable[] = [];
     const ctx: Required<IContextInit> = {
@@ -421,7 +440,7 @@ class VariableContext {
 
     // If the value is simply present, add that
     if ('value' in p && p.value) {
-      result.push(this.createVariableByType(ctx, p.value));
+      result.push(this.createVariableByType(ctx, p.value, customStringRepr));
     }
 
     // if it's a getter, auto expand as requested
@@ -680,24 +699,65 @@ class ErrorVariable extends Variable {
   }
 }
 
+const NoCustomStringRepr = Symbol('NoStringRepr');
+
 class ObjectVariable extends Variable implements IMemoryReadable {
+  constructor(
+    context: VariableContext,
+    remoteObject: Cdp.Runtime.RemoteObject,
+    private customStringRepr?: string | typeof NoCustomStringRepr,
+  ) {
+    super(context, remoteObject);
+  }
+
   public override async toDap(
     previewContext: PreviewContextType,
     valueFormat?: Dap.ValueFormat,
   ): Promise<Dap.Variable> {
+    const [parentDap, value] = await Promise.all([
+      await super.toDap(previewContext, valueFormat),
+      await this.getValueRepresentation(previewContext),
+    ]);
+
     return {
-      ...(await super.toDap(previewContext, valueFormat)),
+      ...parentDap,
       type: this.remoteObject.className || this.remoteObject.subtype || this.remoteObject.type,
       variablesReference: this.id,
       memoryReference: memoryReadableTypes.has(this.remoteObject.subtype)
         ? String(this.id)
         : undefined,
-      value: await this.context.getCustomObjectDescription(
-        this.context.name,
-        this.remoteObject,
-        previewContext,
-      ),
+      value,
     };
+  }
+
+  private async getValueRepresentation(previewContext: PreviewContextType) {
+    if (typeof this.customStringRepr === 'string') {
+      return this.customStringRepr;
+    }
+
+    // for the first level of evaluations, toString it on-demand
+    if (!this.context.parent && this.customStringRepr !== NoCustomStringRepr) {
+      try {
+        const result = await getToStringIfCustom({
+          cdp: this.context.cdp,
+          args: [64],
+          objectId: this.remoteObject.objectId,
+          returnByValue: true,
+        });
+        if (result.value) {
+          return (this.customStringRepr = result.value);
+        }
+      } catch (e) {
+        this.customStringRepr = NoCustomStringRepr;
+        // ignored
+      }
+    }
+
+    return await this.context.getCustomObjectDescription(
+      this.context.name,
+      this.remoteObject,
+      previewContext,
+    );
   }
 
   /** @inheritdoc */
@@ -733,7 +793,7 @@ class ArrayVariable extends ObjectVariable {
   private length = 0;
 
   constructor(context: VariableContext, remoteObject: Cdp.Runtime.RemoteObject) {
-    super(context, remoteObject);
+    super(context, remoteObject, NoCustomStringRepr);
     const match = String(remoteObject.description).match(/\(([0-9]+)\)/);
     this.length = match ? +match[1] : 0;
   }

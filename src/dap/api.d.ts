@@ -843,20 +843,6 @@ export namespace Dap {
     ): Promise<DisableCustomBreakpointsResult>;
 
     /**
-     * Returns whether particular source can be pretty-printed.
-     */
-    on(
-      request: 'canPrettyPrintSource',
-      handler: (params: CanPrettyPrintSourceParams) => Promise<CanPrettyPrintSourceResult | Error>,
-    ): () => void;
-    /**
-     * Returns whether particular source can be pretty-printed.
-     */
-    canPrettyPrintSourceRequest(
-      params: CanPrettyPrintSourceParams,
-    ): Promise<CanPrettyPrintSourceResult>;
-
-    /**
      * Pretty prints source for debugging.
      */
     on(
@@ -1055,6 +1041,18 @@ export namespace Dap {
     createDiagnosticsRequest(params: CreateDiagnosticsParams): Promise<CreateDiagnosticsResult>;
 
     /**
+     * Saves recent diagnostic logs for the debug session.
+     */
+    on(
+      request: 'saveDiagnosticLogs',
+      handler: (params: SaveDiagnosticLogsParams) => Promise<SaveDiagnosticLogsResult | Error>,
+    ): () => void;
+    /**
+     * Saves recent diagnostic logs for the debug session.
+     */
+    saveDiagnosticLogsRequest(params: SaveDiagnosticLogsParams): Promise<SaveDiagnosticLogsResult>;
+
+    /**
      * Shows a prompt to the user suggesting they use the diagnostic tool if breakpoints don't bind.
      */
     suggestDiagnosticTool(params: SuggestDiagnosticToolEventParams): void;
@@ -1087,6 +1085,20 @@ export namespace Dap {
      * Adds an excluded caller/target pair.
      */
     setExcludedCallersRequest(params: SetExcludedCallersParams): Promise<SetExcludedCallersResult>;
+
+    /**
+     * Configures whether source map stepping is enabled.
+     */
+    on(
+      request: 'setSourceMapStepping',
+      handler: (params: SetSourceMapSteppingParams) => Promise<SetSourceMapSteppingResult | Error>,
+    ): () => void;
+    /**
+     * Configures whether source map stepping is enabled.
+     */
+    setSourceMapSteppingRequest(
+      params: SetSourceMapSteppingParams,
+    ): Promise<SetSourceMapSteppingResult>;
   }
 
   export interface TestApi {
@@ -1602,11 +1614,6 @@ export namespace Dap {
     ): Promise<DisableCustomBreakpointsResult>;
 
     /**
-     * Returns whether particular source can be pretty-printed.
-     */
-    canPrettyPrintSource(params: CanPrettyPrintSourceParams): Promise<CanPrettyPrintSourceResult>;
-
-    /**
      * Pretty prints source for debugging.
      */
     prettyPrintSource(params: PrettyPrintSourceParams): Promise<PrettyPrintSourceResult>;
@@ -1782,6 +1789,11 @@ export namespace Dap {
     createDiagnostics(params: CreateDiagnosticsParams): Promise<CreateDiagnosticsResult>;
 
     /**
+     * Saves recent diagnostic logs for the debug session.
+     */
+    saveDiagnosticLogs(params: SaveDiagnosticLogsParams): Promise<SaveDiagnosticLogsResult>;
+
+    /**
      * Shows a prompt to the user suggesting they use the diagnostic tool if breakpoints don't bind.
      */
     on(
@@ -1822,6 +1834,11 @@ export namespace Dap {
      * Adds an excluded caller/target pair.
      */
     setExcludedCallers(params: SetExcludedCallersParams): Promise<SetExcludedCallersResult>;
+
+    /**
+     * Configures whether source map stepping is enabled.
+     */
+    setSourceMapStepping(params: SetSourceMapSteppingParams): Promise<SetSourceMapSteppingResult>;
   }
 
   export interface AttachParams {
@@ -1879,20 +1896,6 @@ export namespace Dap {
      * Sorted set of possible breakpoint locations.
      */
     breakpoints: BreakpointLocation[];
-  }
-
-  export interface CanPrettyPrintSourceParams {
-    /**
-     * Source to be pretty printed.
-     */
-    source: Source;
-  }
-
-  export interface CanPrettyPrintSourceResult {
-    /**
-     * Whether source can be pretty printed.
-     */
-    canPrettyPrint: boolean;
   }
 
   export interface CancelParams {
@@ -3088,6 +3091,15 @@ export namespace Dap {
     shellProcessId?: integer;
   }
 
+  export interface SaveDiagnosticLogsParams {
+    /**
+     * File where logs should be saved
+     */
+    toFile: string;
+  }
+
+  export interface SaveDiagnosticLogsResult {}
+
   export interface ScopesParams {
     /**
      * Retrieve the scopes for this stackframe.
@@ -3265,6 +3277,12 @@ export namespace Dap {
      */
     breakpoints: Breakpoint[];
   }
+
+  export interface SetSourceMapSteppingParams {
+    enabled: boolean;
+  }
+
+  export interface SetSourceMapSteppingResult {}
 
   export interface SetVariableParams {
     /**

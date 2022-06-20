@@ -8,7 +8,7 @@ import { basename, join } from 'path';
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
 import { ProfilerFactory } from '../../adapter/profiling';
-import { Commands } from '../../common/contributionUtils';
+import { Commands, ContextKey, setContextKey } from '../../common/contributionUtils';
 import { DisposableList, IDisposable } from '../../common/disposable';
 import { moveFile } from '../../common/fsUtils';
 import { AnyLaunchConfiguration } from '../../configuration';
@@ -264,7 +264,7 @@ export class UiProfileManager implements IDisposable {
   private updateStatusBar() {
     if (this.activeSessions.size === 0) {
       this.statusBarItem?.hide();
-      vscode.commands.executeCommand('setContext', 'jsDebugIsProfiling', false);
+      setContextKey(vscode.commands, ContextKey.IsProfiling, false);
       return;
     }
 
@@ -273,7 +273,7 @@ export class UiProfileManager implements IDisposable {
       this.statusBarItem.command = Commands.StopProfile;
     }
 
-    vscode.commands.executeCommand('setContext', 'jsDebugIsProfiling', true);
+    setContextKey(vscode.commands, ContextKey.IsProfiling, true);
 
     if (this.activeSessions.size === 1) {
       const session: UiProfileSession = this.activeSessions.values().next().value;

@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import 'reflect-metadata';
-import { LogLevel, LogTag } from '../../common/logging';
+import { LogTag } from '../../common/logging';
 import { Logger } from '../../common/logging/logger';
 import { NullTelemetryReporter } from '../../telemetry/nullTelemetryReporter';
 import { installUnhandledErrorReporter } from '../../telemetry/unhandledErrorReporter';
@@ -14,7 +14,6 @@ const info: IWatchdogInfo = JSON.parse(process.env.NODE_INSPECTOR_INFO!);
 
 const logger = new Logger();
 logger.setup({
-  level: LogLevel.Info,
   sinks: [
     /*new FileLogSink(require('path').join(require('os').homedir(), 'watchdog.txt'))*/
   ],

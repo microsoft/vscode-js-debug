@@ -13,10 +13,7 @@ const strings = {
   'remove.browser.breakpoint.all': 'Remove All Browser Breakpoints',
   'trace.description': 'Configures what diagnostic output is produced.',
   'trace.boolean.description': "Trace may be set to 'true' to write diagnostic logs to the disk.",
-  'trace.tags.description': 'Configures what types of logs are recorded.',
   'trace.logFile.description': 'Configures where on disk logs are written.',
-  'trace.level.description': 'Configures the level of logs recorded.',
-  'trace.console.description': 'Configures whether logs are also returned to the debug console.',
   'trace.stdio.description':
     'Whether to return trace data from the launched application or browser.',
 
@@ -38,11 +35,13 @@ const strings = {
   'extensionHost.snippet.launch.description': 'Launch a VS Code extension in debug mode',
   'extensionHost.snippet.launch.label': 'VS Code Extension Development',
 
-  'edge.useWebView.description':
-    "(Edge (Chromium) only) When 'true', the debugger will treat the runtime executable as a host application that contains a WebView allowing you to debug the WebView script content.",
+  'edge.useWebView.launch.description':
+    "When 'true', the debugger will treat the runtime executable as a host application that contains a WebView allowing you to debug the WebView script content.",
+  'edge.useWebView.attach.description':
+    'An object containing the `pipeName` of a debug pipe for a UWP hosted Webview2. This is the "MyTestSharedMemory" when creating the pipe "\\\\.\\pipe\\LOCAL\\MyTestSharedMemory"',
 
-  'chrome.label': 'Chrome',
-  'edge.label': 'Edge',
+  'chrome.label': 'Web App (Chrome)',
+  'edge.label': 'Web App (Edge)',
   'edge.launch.label': 'Edge: Launch',
   'edge.attach.label': 'Edge: Attach',
   'edge.launch.description': 'Launch Edge to debug a URL',
@@ -135,6 +134,8 @@ const strings = {
   'debug.terminal.welcomeWithLink': `[JavaScript Debug Terminal](command:${Commands.CreateDebuggerTerminal})\n\nYou can use the JavaScript Debug Terminal to debug Node.js processes run on the command line.\n\n[Debug URL](command:${Commands.DebugLink})`,
   'debug.terminal.toggleAuto': 'Toggle Terminal Node.js Auto Attach',
   'debug.terminal.attach': 'Attach to Node.js Terminal Process',
+  'debug.unverifiedBreakpoints':
+    "Some of your breakpoints could not be set. If you're having an issue, you can [troubleshoot your launch configuration](command:extension.js-debug.createDiagnostics).",
 
   'node.pauseForSourceMap.description':
     'Whether to wait for source maps to load for each incoming script. This has a performance overhead, and might be safely disabled when running off of disk, so long as `rootPath` is not disabled.',
@@ -276,8 +277,6 @@ const strings = {
     'Where a "Run" and "Debug" code lens should be shown in your npm scripts. It may be on "all", scripts, on "top" of the script section, or "never".',
   'configuration.terminalOptions':
     'Default launch options for the JavaScript debug terminal and npm scripts.',
-  'configuration.suggestPrettyPrinting':
-    'Whether to suggest pretty printing JavaScript code that looks minified when you step into it.',
   'configuration.automaticallyTunnelRemoteServer':
     'When debugging a remote web app, configures whether to automatically tunnel the remote server to your local machine.',
   'configuration.debugByLinkOptions':
@@ -308,6 +307,7 @@ A common case to disable certificate verification can be done by passing \`{ "ht
   'profile.stop': 'Stop Performance Profile',
   'debugLink.label': 'Open Link',
   'createDiagnostics.label': 'Diagnose Breakpoint Problems',
+  'getDiagnosticLogs.label': 'Save Diagnostic JS Debug Logs',
   'startWithStopOnEntry.label': 'Start Debugging and Stop on Entry',
   'requestCDPProxy.label': 'Request CDP Proxy for Debug Session',
   'openEdgeDevTools.label': 'Open Browser Devtools',
@@ -319,6 +319,8 @@ A common case to disable certificate verification can be done by passing \`{ "ht
   'commands.callersRemoveAll.label': 'Remove all excluded callers',
   'commands.callersGoToCaller.label': 'Go to caller location',
   'commands.callersGoToTarget.label': 'Go to target location',
+  'commands.enableSourceMapStepping.label': 'Enable Source Mapped Stepping',
+  'commands.disableSourceMapStepping.label': 'Disable Source Mapped Stepping',
 };
 
 export default strings;

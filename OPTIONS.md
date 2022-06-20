@@ -39,6 +39,7 @@
 <h5>Default value:</h4><pre><code>{
   "webpack:///./~/*": "${workspaceFolder}/node_modules/*",
   "webpack:////*": "/*",
+  "webpack://@?:*/?:*/*": "${workspaceFolder}/*",
   "webpack://?:*/*": "${workspaceFolder}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${workspaceFolder}/*"
@@ -93,6 +94,7 @@
 <h5>Default value:</h4><pre><code>{
   "webpack:///./~/*": "${workspaceFolder}/node_modules/*",
   "webpack:////*": "/*",
+  "webpack://@?:*/?:*/*": "${workspaceFolder}/*",
   "webpack://?:*/*": "${workspaceFolder}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${workspaceFolder}/*"
@@ -140,6 +142,7 @@
 <h5>Default value:</h4><pre><code>{
   "webpack:///./~/*": "${workspaceFolder}/node_modules/*",
   "webpack:////*": "/*",
+  "webpack://@?:*/?:*/*": "${workspaceFolder}/*",
   "webpack://?:*/*": "${workspaceFolder}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${workspaceFolder}/*"
@@ -189,6 +192,7 @@
 <h5>Default value:</h4><pre><code>{
   "webpack:///./~/*": "${workspaceFolder}/node_modules/*",
   "webpack:////*": "/*",
+  "webpack://@?:*/?:*/*": "${workspaceFolder}/*",
   "webpack://?:*/*": "${workspaceFolder}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${workspaceFolder}/*"
@@ -233,6 +237,7 @@
 <h5>Default value:</h4><pre><code>{
   "webpack:///./~/*": "${webRoot}/node_modules/*",
   "webpack:////*": "/*",
+  "webpack://@?:*/?:*/*": "${webRoot}/*",
   "webpack://?:*/*": "${webRoot}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${webRoot}/*"
@@ -279,6 +284,7 @@
 <h5>Default value:</h4><pre><code>{
   "webpack:///./~/*": "${webRoot}/node_modules/*",
   "webpack:////*": "/*",
+  "webpack://@?:*/?:*/*": "${webRoot}/*",
   "webpack://?:*/*": "${webRoot}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${webRoot}/*"
@@ -332,6 +338,7 @@
 <h5>Default value:</h4><pre><code>{
   "webpack:///./~/*": "${webRoot}/node_modules/*",
   "webpack:////*": "/*",
+  "webpack://@?:*/?:*/*": "${webRoot}/*",
   "webpack://?:*/*": "${webRoot}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${webRoot}/*"
@@ -343,7 +350,7 @@
 <h5>Default value:</h4><pre><code>false</pre></code><h4>url</h4><p>Will search for a tab with this exact url and attach to it, if found</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>urlFilter</h4><p>Will search for a page with this url and attach to it, if found. Can have * wildcards.</p>
 <h5>Default value:</h4><pre><code>"*"</pre></code><h4>userDataDir</h4><p>By default, the browser is launched with a separate user profile in a temp folder. Use this option to override it. Set to false to launch with your default user profile. A new browser can&#39;t be launched if an instance is already running from <code>userDataDir</code>.</p>
-<h5>Default value:</h4><pre><code>true</pre></code><h4>useWebView</h4><p>(Edge (Chromium) only) When &#39;true&#39;, the debugger will treat the runtime executable as a host application that contains a WebView allowing you to debug the WebView script content.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>useWebView</h4><p>When &#39;true&#39;, the debugger will treat the runtime executable as a host application that contains a WebView allowing you to debug the WebView script content.</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>vueComponentPaths</h4><p>A list of file glob patterns to find <code>*.vue</code> components. By default, searches the entire workspace. This needs to be specified due to extra lookups that Vue&#39;s sourcemaps require in Vue CLI 4. You can disable this special handling by setting this to an empty array.</p>
 <h5>Default value:</h4><pre><code>[
   "${workspaceFolder}/**/*.vue",
@@ -379,6 +386,7 @@
 <h5>Default value:</h4><pre><code>{
   "webpack:///./~/*": "${webRoot}/node_modules/*",
   "webpack:////*": "/*",
+  "webpack://@?:*/?:*/*": "${webRoot}/*",
   "webpack://?:*/*": "${webRoot}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${webRoot}/*"
@@ -390,7 +398,7 @@
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>url</h4><p>Will search for a tab with this exact url and attach to it, if found</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>urlFilter</h4><p>Will search for a page with this url and attach to it, if found. Can have * wildcards.</p>
-<h5>Default value:</h4><pre><code>""</pre></code><h4>useWebView</h4><p>(Edge (Chromium) only) When &#39;true&#39;, the debugger will treat the runtime executable as a host application that contains a WebView allowing you to debug the WebView script content.</p>
+<h5>Default value:</h4><pre><code>""</pre></code><h4>useWebView</h4><p>An object containing the <code>pipeName</code> of a debug pipe for a UWP hosted Webview2. This is the &quot;MyTestSharedMemory&quot; when creating the pipe &quot;\.\pipe\LOCAL\MyTestSharedMemory&quot;</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>vueComponentPaths</h4><p>A list of file glob patterns to find <code>*.vue</code> components. By default, searches the entire workspace. This needs to be specified due to extra lookups that Vue&#39;s sourcemaps require in Vue CLI 4. You can disable this special handling by setting this to an empty array.</p>
 <h5>Default value:</h4><pre><code>[
   "${workspaceFolder}/**/*.vue",

@@ -107,29 +107,6 @@ const dapCustom: JSONSchema4 = {
       required: ['ids'],
     }),
 
-    ...makeRequest(
-      'canPrettyPrintSource',
-      'Returns whether particular source can be pretty-printed.',
-      {
-        properties: {
-          source: {
-            $ref: '#/definitions/Source',
-            description: 'Source to be pretty printed.',
-          },
-        },
-        required: ['source'],
-      },
-      {
-        required: ['canPrettyPrint'],
-        properties: {
-          canPrettyPrint: {
-            type: 'boolean',
-            description: 'Whether source can be pretty printed.',
-          },
-        },
-      },
-    ),
-
     ...makeRequest('prettyPrintSource', 'Pretty prints source for debugging.', {
       properties: {
         source: {
@@ -484,6 +461,20 @@ const dapCustom: JSONSchema4 = {
         required: ['file'],
       },
     ),
+    ...makeRequest(
+      'saveDiagnosticLogs',
+      'Saves recent diagnostic logs for the debug session.',
+      {
+        properties: {
+          toFile: {
+            type: 'string',
+            description: 'File where logs should be saved',
+          },
+        },
+        required: ['toFile'],
+      },
+      {},
+    ),
     ...makeEvent(
       'suggestDiagnosticTool',
       "Shows a prompt to the user suggesting they use the diagnostic tool if breakpoints don't bind.",
@@ -562,6 +553,15 @@ const dapCustom: JSONSchema4 = {
         },
       },
       required: ['callers'],
+    }),
+
+    ...makeRequest('setSourceMapStepping', 'Configures whether source map stepping is enabled.', {
+      properties: {
+        enabled: {
+          type: 'boolean',
+        },
+      },
+      required: ['enabled'],
     }),
   },
 };

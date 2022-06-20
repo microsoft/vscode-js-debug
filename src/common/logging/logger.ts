@@ -2,12 +2,31 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { IDisposable } from '../events';
 import { injectable } from 'inversify';
 import * as os from 'os';
-import { ILogger, ILogItem, ILogSink, ILoggerSetupOptions, LogLevel, LogTag, allLogTags } from '.';
-import { TestLogSink } from './testLogSink';
+import { ILogger, ILoggerSetupOptions, ILogItem, ILogSink, LogLevel, LogTag } from '.';
 import { packageName, packageVersion } from '../../configuration';
+import { IDisposable } from '../events';
+import { TestLogSink } from './testLogSink';
+
+/**
+ * Ring buffer used to get logs to diagnose issues.
+ */
+class RingBuffer {
+  private readonly items: ILogItem<unknown>[] = [];
+  private i = 0;
+
+  constructor(private readonly size = 512) {}
+
+  public write(item: ILogItem<unknown>): void {
+    this.items[this.i] = item;
+    this.i = (this.i + 1) % this.size;
+  }
+
+  public read() {
+    return this.items.slice(this.i).concat(this.items.slice(0, this.i));
+  }
+}
 
 /**
  * Implementation of ILogger for the extension.
@@ -21,30 +40,25 @@ export class Logger implements ILogger, IDisposable {
   private logTarget: { queue: ILogItem<unknown>[] } | { sinks: ILogSink[] } = { queue: [] };
 
   /**
-   * Minimum log level.
+   * Log buffer for replaying diagnostics.
    */
-  private minLevel = LogLevel.Verbose;
-
-  /**
-   * Log tag filter.
-   */
-  private tags?: ReadonlySet<LogTag>;
+  private readonly logBuffer = new RingBuffer();
 
   /**
    * A no-op logger that never logs anything.
    */
   public static null = (() => {
     const logger = new Logger();
-    logger.setup({ sinks: [], level: LogLevel.Fatal + 1 });
+    logger.setup({ sinks: [] });
     return logger;
   })();
 
   /**
    * Creates a logger with the TestLogSink hooked up.
    */
-  public static async test(level: LogLevel = LogLevel.Info) {
+  public static async test() {
     const logger = new Logger();
-    logger.setup({ sinks: [new TestLogSink()], level, showWelcome: false });
+    logger.setup({ sinks: [new TestLogSink()], showWelcome: false });
     return logger;
   }
 
@@ -135,22 +149,23 @@ export class Logger implements ILogger, IDisposable {
    * @inheritdoc
    */
   public log(data: ILogItem<unknown>): void {
+    this.logBuffer.write(data);
+
     if ('queue' in this.logTarget) {
       this.logTarget.queue.push(data);
-      return;
-    }
-
-    if (data.level < this.minLevel) {
-      return;
-    }
-
-    if (this.tags && !this.tags.has(data.tag)) {
       return;
     }
 
     for (const sink of this.logTarget.sinks) {
       sink.write(data);
     }
+  }
+
+  /**
+   * @inheritdog
+   */
+  public getRecentLogs() {
+    return this.logBuffer.read();
   }
 
   /**
@@ -176,20 +191,6 @@ export class Logger implements ILogger, IDisposable {
    * Adds the given sinks to the loggers. Plays back any items buffered in the queue.
    */
   public async setup(options: ILoggerSetupOptions): Promise<void> {
-    this.minLevel = options.level;
-
-    if (options.tags && options.tags.length) {
-      // Add all log tags that equal or are children of the one given in the
-      // options. For instance, `cdp` adds the tags `cdp`, `cdp.send`, etc.
-      this.tags = new Set(
-        options.tags
-          .map(src => allLogTags.filter(tag => tag === src || tag.startsWith(`${src}.`)))
-          .reduce((acc, tags) => [...acc, ...tags], []),
-      );
-    } else {
-      this.tags = undefined;
-    }
-
     await Promise.all(options.sinks.map(s => s.setup()));
 
     if (options.showWelcome !== false) {

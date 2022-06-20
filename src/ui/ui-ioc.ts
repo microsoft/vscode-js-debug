@@ -21,11 +21,13 @@ import { ILinkedBreakpointLocation } from './linkedBreakpointLocation';
 import { LinkedBreakpointLocationUI } from './linkedBreakpointLocationUI';
 import { LongPredictionUI } from './longPredictionUI';
 import { JsDebugPortAttributesProvider } from './portAttributesProvider';
+import { PrettyPrintUI } from './prettyPrint';
 import { BreakpointTerminationConditionFactory } from './profiling/breakpointTerminationCondition';
 import { DurationTerminationConditionFactory } from './profiling/durationTerminationCondition';
 import { ManualTerminationConditionFactory } from './profiling/manualTerminationCondition';
 import { ITerminationConditionFactory } from './profiling/terminationCondition';
 import { UiProfileManager } from './profiling/uiProfileManager';
+import { SourceSteppingUI } from './sourceSteppingUI';
 import { StartDebugingAndStopOnEntry } from './startDebuggingAndStopOnEntry';
 import { TerminalLinkHandler } from './terminalLinkHandler';
 
@@ -51,6 +53,8 @@ export const registerUiComponents = (container: Container) => {
   container.bind(IExtensionContribution).to(JsDebugPortAttributesProvider).inSingletonScope();
   container.bind(IExtensionContribution).to(EdgeDevToolOpener).inSingletonScope();
   container.bind(IExtensionContribution).to(ExcludedCallersUI).inSingletonScope();
+  container.bind(IExtensionContribution).to(PrettyPrintUI).inSingletonScope();
+  container.bind(IExtensionContribution).to(SourceSteppingUI).inSingletonScope();
   container.bind(ILinkedBreakpointLocation).to(LinkedBreakpointLocationUI).inSingletonScope();
   container.bind(DebugSessionTracker).toSelf().inSingletonScope().onActivation(trackDispose);
   container.bind(UiProfileManager).toSelf().inSingletonScope().onActivation(trackDispose);

@@ -2,13 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { ITransport } from './transport';
-import { ILogger, LogTag } from '../common/logging';
-import { Duplex, Readable, Writable } from 'stream';
 import split from 'split2';
-import { once } from '../common/objUtils';
+import { Duplex, Readable, Writable } from 'stream';
 import { EventEmitter } from '../common/events';
 import { HrTime } from '../common/hrnow';
+import { ILogger, LogTag } from '../common/logging';
+import { once } from '../common/objUtils';
+import { ITransport } from './transport';
 
 export class RawPipeTransport implements ITransport {
   private readonly messageEmitter = new EventEmitter<[string, HrTime]>();

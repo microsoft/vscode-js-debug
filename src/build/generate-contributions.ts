@@ -8,6 +8,7 @@ import {
   AutoAttachMode,
   Commands,
   Configuration,
+  ContextKey,
   Contributions,
   CustomViews,
   DebugType,
@@ -126,6 +127,7 @@ interface IDebugger<T extends AnyLaunchConfiguration> {
   } & Described)[];
   configurationAttributes: ConfigurationAttributes<T>;
   defaults: T;
+  uiMessages?: { unverifiedBreakpoints?: string };
 }
 
 const commonLanguages = ['javascript', 'typescript', 'javascriptreact', 'typescriptreact'];
@@ -234,7 +236,7 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
       hoverEvaluation: {
         type: 'number',
         description: refString('timeouts.hoverEvaluation.description'),
-        default: 10000,
+        default: 500,
       },
     },
     additionalProperties: false,
@@ -252,28 +254,13 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
         type: 'object',
         additionalProperties: false,
         properties: {
-          console: {
-            type: 'boolean',
-            description: refString('trace.stdio.description'),
-          },
           stdio: {
             type: 'boolean',
-            description: refString('trace.console.description'),
-          },
-          level: {
-            enum: ['fatal', 'error', 'warn', 'info', 'verbose'],
-            description: refString('trace.level.description'),
+            description: refString('trace.stdio.description'),
           },
           logFile: {
             type: ['string', 'null'],
             description: refString('trace.logFile.description'),
-          },
-          tags: {
-            type: 'array',
-            description: refString('trace.tags.description'),
-            items: {
-              enum: ['cdp', 'dap', 'runtime'],
-            },
           },
         },
       },
@@ -960,7 +947,7 @@ const extensionHostConfig: IDebugger<IExtensionHostLaunchConfiguration> = {
 const edgeLaunchConfig: IDebugger<IEdgeLaunchConfiguration> = {
   type: DebugType.Edge,
   request: 'launch',
-  label: refString('edge.launch.label'),
+  label: refString('edge.label'),
   languages: browserLanguages,
   configurationSnippets: [
     {
@@ -984,7 +971,7 @@ const edgeLaunchConfig: IDebugger<IEdgeLaunchConfiguration> = {
     },
     useWebView: {
       type: 'boolean',
-      description: refString('edge.useWebView.description'),
+      description: refString('edge.useWebView.launch.description'),
       default: false,
     },
     address: {
@@ -1022,9 +1009,10 @@ const edgeAttachConfig: IDebugger<IEdgeAttachConfiguration> = {
   configurationAttributes: {
     ...chromiumAttachConfigurationAttributes,
     useWebView: {
-      type: 'boolean',
-      description: refString('edge.useWebView.description'),
-      default: false,
+      type: 'object',
+      properties: { pipeName: { type: 'string' } },
+      description: refString('edge.useWebView.attach.description'),
+      default: { pipeName: 'MyPipeName' },
     },
   },
   defaults: edgeAttachConfigDefaults,
@@ -1058,6 +1046,7 @@ function buildDebuggers() {
       aiKey: appInsightsKey,
       configurationAttributes: {},
       configurationSnippets: [],
+      uiMessages: { unverifiedBreakpoints: refString('debug.unverifiedBreakpoints') },
     };
     output.push(entry);
     return entry;
@@ -1071,6 +1060,7 @@ function buildDebuggers() {
       const entry = ensureEntryForType(preferred, d);
       delete entry.languages;
       entries.unshift(entry);
+      primary.deprecated = `Please use type ${preferred} instead`;
     }
 
     entries[0].configurationSnippets.push(...d.configurationSnippets);
@@ -1106,11 +1096,6 @@ const configurationSchema: ConfigurationAttributes<IConfigurationTypes> = {
     description: refString('configuration.terminalOptions'),
     default: {},
     properties: nodeTerminalConfiguration.configurationAttributes as { [key: string]: JSONSchema6 },
-  },
-  [Configuration.SuggestPrettyPrinting]: {
-    type: 'boolean',
-    description: refString('configuration.suggestPrettyPrinting'),
-    default: true,
   },
   [Configuration.AutoServerTunnelOpen]: {
     type: 'boolean',
@@ -1206,6 +1191,7 @@ const commands: ReadonlyArray<{
     command: Commands.PrettyPrint,
     title: refString('pretty.print.script'),
     category: 'Debug',
+    icon: '$(json)',
   },
   {
     command: Commands.ToggleSkipping,
@@ -1270,6 +1256,11 @@ const commands: ReadonlyArray<{
     category: 'Debug',
   },
   {
+    command: Commands.GetDiagnosticLogs,
+    title: refString('getDiagnosticLogs.label'),
+    category: 'Debug',
+  },
+  {
     command: Commands.StartWithStopOnEntry,
     title: refString('startWithStopOnEntry.label'),
     category: 'Debug',
@@ -1305,6 +1296,16 @@ const commands: ReadonlyArray<{
     title: refString('commands.callersGoToTarget.label'),
     icon: '$(call-incoming)',
   },
+  {
+    command: Commands.EnableSourceMapStepping,
+    title: refString('commands.enableSourceMapStepping.label'),
+    icon: '$(compass-dot)',
+  },
+  {
+    command: Commands.DisableSourceMapStepping,
+    title: refString('commands.disableSourceMapStepping.label'),
+    icon: '$(compass)',
+  },
 ];
 
 const menus: Menus = {
@@ -1339,6 +1340,11 @@ const menus: Menus = {
       when: forAnyDebugType('debugType', 'inDebugMode'),
     },
     {
+      command: Commands.GetDiagnosticLogs,
+      title: refString('getDiagnosticLogs.label'),
+      when: forAnyDebugType('debugType', 'inDebugMode'),
+    },
+    {
       command: Commands.OpenEdgeDevTools,
       title: refString('openEdgeDevTools.label'),
       when: `debugType == ${DebugType.Edge}`,
@@ -1355,6 +1361,18 @@ const menus: Menus = {
     {
       command: Commands.CallersGoToTarget,
       when: 'false',
+    },
+    {
+      command: Commands.EnableSourceMapStepping,
+      when: ContextKey.IsMapSteppingDisabled,
+    },
+    {
+      command: Commands.DisableSourceMapStepping,
+      when: `!${ContextKey.IsMapSteppingDisabled}`,
+    },
+    {
+      command: Commands.EnableSourceMapStepping,
+      when: ContextKey.IsMapSteppingDisabled,
     },
   ],
   'debug/callstack/context': [
@@ -1402,6 +1420,10 @@ const menus: Menus = {
       command: Commands.OpenEdgeDevTools,
       when: `debugType == ${DebugType.Edge}`,
     },
+    {
+      command: Commands.EnableSourceMapStepping,
+      when: ContextKey.IsMapSteppingDisabled,
+    },
   ],
   'view/title': [
     {
@@ -1416,6 +1438,22 @@ const menus: Menus = {
       command: Commands.CallersRemoveAll,
       group: 'navigation',
       when: `view == ${CustomViews.ExcludedCallers}`,
+    },
+    {
+      command: Commands.DisableSourceMapStepping,
+      group: 'navigation',
+      when: forAnyDebugType(
+        'debugType',
+        `view == workbench.debug.callStackView && !${ContextKey.IsMapSteppingDisabled}`,
+      ),
+    },
+    {
+      command: Commands.EnableSourceMapStepping,
+      group: 'navigation',
+      when: forAnyDebugType(
+        'debugType',
+        `view == workbench.debug.callStackView && ${ContextKey.IsMapSteppingDisabled}`,
+      ),
     },
   ],
   'view/item/context': [
@@ -1447,6 +1485,13 @@ const menus: Menus = {
       command: Commands.CallersRemove,
       group: 'inline',
       when: `view == ${CustomViews.ExcludedCallers}`,
+    },
+  ],
+  'editor/title': [
+    {
+      command: Commands.PrettyPrint,
+      group: 'navigation',
+      when: `resource in ${ContextKey.CanPrettyPrint}`,
     },
   ],
 };

@@ -32,6 +32,7 @@ export const enum Commands {
   AutoAttachToProcess = 'extension.js-debug.autoAttachToProcess',
   CreateDebuggerTerminal = 'extension.js-debug.createDebuggerTerminal',
   CreateDiagnostics = 'extension.js-debug.createDiagnostics',
+  GetDiagnosticLogs = 'extension.js-debug.getDiagnosticLogs',
   DebugLink = 'extension.js-debug.debugLink',
   DebugNpmScript = 'extension.js-debug.npmScript',
   PickProcess = 'extension.js-debug.pickNodeProcess',
@@ -46,6 +47,8 @@ export const enum Commands {
   StopProfile = 'extension.js-debug.stopProfile',
   ToggleSkipping = 'extension.js-debug.toggleSkippingFile',
   OpenEdgeDevTools = 'extension.js-debug.openEdgeDevTools',
+  DisableSourceMapStepping = 'extension.js-debug.disableSourceMapStepping',
+  EnableSourceMapStepping = 'extension.js-debug.enableSourceMapStepping',
   //#region Excluded callers view
   CallersGoToCaller = 'extension.js-debug.callers.goToCaller',
   CallersGoToTarget = 'extension.js-debug.callers.gotToTarget',
@@ -61,6 +64,9 @@ export const preferredDebugTypes: ReadonlyMap<DebugType, string> = new Map([
   [DebugType.ExtensionHost, 'extensionHost'],
   [DebugType.Edge, 'msedge'],
 ]);
+
+export const getPreferredOrDebugType = <T extends DebugType>(t: T) =>
+  (preferredDebugTypes.get(t) as T) || t;
 
 export const enum DebugType {
   ExtensionHost = 'pwa-extensionHost',
@@ -87,6 +93,7 @@ const commandsObj: { [K in Commands]: null } = {
   [Commands.AutoAttachToProcess]: null,
   [Commands.CreateDebuggerTerminal]: null,
   [Commands.CreateDiagnostics]: null,
+  [Commands.GetDiagnosticLogs]: null,
   [Commands.DebugLink]: null,
   [Commands.DebugNpmScript]: null,
   [Commands.PickProcess]: null,
@@ -105,6 +112,8 @@ const commandsObj: { [K in Commands]: null } = {
   [Commands.CallersGoToTarget]: null,
   [Commands.CallersRemove]: null,
   [Commands.CallersRemoveAll]: null,
+  [Commands.EnableSourceMapStepping]: null,
+  [Commands.DisableSourceMapStepping]: null,
 };
 
 /**
@@ -134,7 +143,6 @@ export const enum Configuration {
   TerminalDebugConfig = 'debug.javascript.terminalOptions',
   PickAndAttachDebugOptions = 'debug.javascript.pickAndAttachOptions',
   DebugByLinkOptions = 'debug.javascript.debugByLinkOptions',
-  SuggestPrettyPrinting = 'debug.javascript.suggestPrettyPrinting',
   AutoServerTunnelOpen = 'debug.javascript.automaticallyTunnelRemoteServer',
   AutoAttachMode = 'debug.javascript.autoAttachFilter',
   AutoAttachSmartPatterns = 'debug.javascript.autoAttachSmartPattern',
@@ -153,7 +161,6 @@ export interface IConfigurationTypes {
   [Configuration.NpmScriptLens]: 'all' | 'top' | 'never';
   [Configuration.TerminalDebugConfig]: Partial<ITerminalLaunchConfiguration>;
   [Configuration.PickAndAttachDebugOptions]: Partial<INodeAttachConfiguration>;
-  [Configuration.SuggestPrettyPrinting]: boolean;
   [Configuration.AutoServerTunnelOpen]: boolean;
   [Configuration.DebugByLinkOptions]:
     | DebugByLinkState
@@ -186,6 +193,7 @@ export interface ICommandTypes {
     config?: Partial<ITerminalLaunchConfiguration>,
   ): void;
   [Commands.CreateDiagnostics](): void;
+  [Commands.GetDiagnosticLogs](): void;
   [Commands.ToggleSkipping](file: string | number): void;
   [Commands.PrettyPrint](): void;
   [Commands.StartProfile](args?: string | IStartProfileArguments): void;
@@ -207,6 +215,8 @@ export interface ICommandTypes {
   [Commands.CallersGoToTarget](caller: ExcludedCaller): void;
   [Commands.CallersRemove](caller: ExcludedCaller): void;
   [Commands.CallersRemoveAll](): void;
+  [Commands.EnableSourceMapStepping](): void;
+  [Commands.DisableSourceMapStepping](): void;
 }
 
 /**
@@ -256,3 +266,23 @@ export const writeConfig = <K extends keyof IConfigurationTypes>(
   value: IConfigurationTypes[K],
   target?: ConfigurationTarget,
 ) => wsp.getConfiguration().update(key, value, target);
+
+export const enum ContextKey {
+  HasExcludedCallers = 'jsDebugHasExcludedCallers',
+  CanPrettyPrint = 'jsDebugCanPrettyPrint',
+  IsProfiling = 'jsDebugIsProfiling',
+  IsMapSteppingDisabled = 'jsDebugIsMapSteppingDisabled',
+}
+
+export interface IContextKeyTypes {
+  [ContextKey.HasExcludedCallers]: boolean;
+  [ContextKey.CanPrettyPrint]: string[];
+  [ContextKey.IsProfiling]: boolean;
+  [ContextKey.IsMapSteppingDisabled]: boolean;
+}
+
+export const setContextKey = async <K extends keyof IContextKeyTypes>(
+  ns: typeof commands,
+  key: K,
+  value: IContextKeyTypes[K] | null,
+) => await ns.executeCommand('setContext', key, value);

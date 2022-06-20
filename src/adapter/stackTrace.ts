@@ -16,17 +16,28 @@ import { IExtraProperty, IScopeRef, IVariableContainer } from './variableStore';
 
 const localize = nls.loadMessageBundle();
 
+export interface IFrameElement {
+  /** Formats the stack element as V8 would format it */
+  formatAsNative(): Promise<string>;
+  /** Pretty formats the stack element as text */
+  format(): Promise<string>;
+  /** Formats the element for DAP */
+  toDap(format?: Dap.StackFrameFormat): Promise<Dap.StackFrame>;
+}
+
+type FrameElement = StackFrame | AsyncSeparator;
+
 export class StackTrace {
-  public readonly frames: StackFrame[] = [];
+  public readonly frames: FrameElement[] = [];
   private _frameById: Map<number, StackFrame> = new Map();
   private _asyncStackTraceId?: Cdp.Runtime.StackTraceId;
   private _lastFrameThread?: Thread;
 
   public static fromRuntime(thread: Thread, stack: Cdp.Runtime.StackTrace): StackTrace {
     const result = new StackTrace(thread);
-    for (let frameNo = 0; frameNo < stack.callFrames.length; frameNo++) {
-      if (!stack.callFrames[frameNo].url.endsWith(SourceConstants.InternalExtension)) {
-        result.frames.push(StackFrame.fromRuntime(thread, stack.callFrames[frameNo], false));
+    for (const frame of stack.callFrames) {
+      if (!frame.url.endsWith(SourceConstants.InternalExtension)) {
+        result.frames.push(StackFrame.fromRuntime(thread, frame, false));
       }
     }
 
@@ -88,7 +99,7 @@ export class StackTrace {
     this._lastFrameThread = thread;
   }
 
-  async loadFrames(limit: number): Promise<StackFrame[]> {
+  async loadFrames(limit: number): Promise<FrameElement[]> {
     while (this.frames.length < limit && this._asyncStackTraceId) {
       if (this._asyncStackTraceId.debuggerId)
         this._lastFrameThread = Thread.threadForDebuggerId(this._asyncStackTraceId.debuggerId);
@@ -117,9 +128,10 @@ export class StackTrace {
         stackTrace.callFrames.shift();
 
       if (stackTrace.callFrames.length) {
-        this._appendFrame(StackFrame.asyncSeparator(thread, stackTrace.description || 'async'));
-        for (const callFrame of stackTrace.callFrames)
+        this._appendFrame(new AsyncSeparator(stackTrace.description || 'async'));
+        for (const callFrame of stackTrace.callFrames) {
           this._appendFrame(StackFrame.fromRuntime(thread, callFrame, true));
+        }
       }
 
       if (stackTrace.parentId) {
@@ -131,9 +143,11 @@ export class StackTrace {
     }
   }
 
-  _appendFrame(frame: StackFrame) {
+  _appendFrame(frame: FrameElement) {
     this.frames.push(frame);
-    this._frameById.set(frame._id, frame);
+    if (frame instanceof StackFrame) {
+      this._frameById.set(frame._id, frame);
+    }
   }
 
   async formatAsNative(): Promise<string> {
@@ -144,11 +158,14 @@ export class StackTrace {
     return await this.formatWithMapper(frame => frame.format());
   }
 
-  private async formatWithMapper(mapper: (frame: StackFrame) => Promise<string>): Promise<string> {
+  private async formatWithMapper(
+    mapper: (frame: FrameElement) => Promise<string>,
+  ): Promise<string> {
     let stackFrames = await this.loadFrames(50);
     // REPL may call back into itself; slice at the highest REPL eval in the call chain.
     for (let i = stackFrames.length - 1; i >= 0; i--) {
-      if (stackFrames[i].isReplEval) {
+      const frame = stackFrames[i];
+      if (frame instanceof StackFrame && frame.isReplEval) {
         stackFrames = stackFrames.slice(0, i + 1);
         break;
       }
@@ -183,7 +200,23 @@ interface IScope {
   callFrameId: string;
 }
 
-export class StackFrame {
+export class AsyncSeparator implements IFrameElement {
+  constructor(private readonly label = 'async') {}
+
+  public async toDap(): Promise<Dap.StackFrame> {
+    return { name: this.label, id: 0, line: 0, column: 0, presentationHint: 'label' };
+  }
+
+  public async formatAsNative(): Promise<string> {
+    return `    --- ${this.label} ---`;
+  }
+
+  public async format(): Promise<string> {
+    return `◀ ${this.label} ▶`;
+  }
+}
+
+export class StackFrame implements IFrameElement {
   private static _lastFrameId = 0;
 
   _id: number;
@@ -193,7 +226,6 @@ export class StackFrame {
     | Promise<IPreferredUiLocation | undefined>
     | IPreferredUiLocation
     | undefined;
-  private _isAsyncSeparator = false;
   private _scope: IScope | undefined;
   private _thread: Thread;
 
@@ -209,7 +241,7 @@ export class StackFrame {
   ): StackFrame {
     return new StackFrame(
       thread,
-      callFrame.functionName,
+      callFrame,
       thread.rawLocation(callFrame),
       isAsync,
       callFrame.url.endsWith(SourceConstants.ReplExtension),
@@ -219,7 +251,7 @@ export class StackFrame {
   static fromDebugger(thread: Thread, callFrame: Cdp.Debugger.CallFrame): StackFrame {
     const result = new StackFrame(
       thread,
-      callFrame.functionName,
+      callFrame,
       thread.rawLocation(callFrame),
       undefined,
       callFrame.url.endsWith(SourceConstants.ReplExtension),
@@ -235,38 +267,33 @@ export class StackFrame {
     return result;
   }
 
-  static asyncSeparator(thread: Thread, name: string): StackFrame {
-    // todo@connor4312: this should probably be a different type of object
-    const result = new StackFrame(
-      thread,
-      name,
-      { lineNumber: 1, columnNumber: 1, scriptId: '' },
-      true,
-    );
-    result._isAsyncSeparator = true;
-    return result;
-  }
-
   constructor(
     thread: Thread,
-    name: string,
+    private readonly callFrame: Cdp.Debugger.CallFrame | Cdp.Runtime.CallFrame,
     rawLocation: RawLocation,
     private readonly isAsync = false,
     public readonly isReplEval = false,
   ) {
     this._id = ++StackFrame._lastFrameId;
-    this._name = name || '<anonymous>';
+    this._name = callFrame.functionName || '<anonymous>';
     this._rawLocation = rawLocation;
     this.uiLocation = once(() => thread.rawLocationToUiLocation(rawLocation));
     this._thread = thread;
   }
 
   /**
+   * Gets whether the runtime explicitly said this frame can be restarted.
+   */
+  public get canExplicitlyBeRestarted() {
+    return !!(this.callFrame as Cdp.Debugger.CallFrame).canBeRestarted;
+  }
+
+  /**
    * Gets whether this stackframe is at the same position as the other frame.
    */
-  public equivalentTo(other: StackFrame | undefined) {
+  public equivalentTo(other: unknown) {
     return (
-      other &&
+      other instanceof StackFrame &&
       other._rawLocation.columnNumber === this._rawLocation.columnNumber &&
       other._rawLocation.lineNumber === this._rawLocation.lineNumber &&
       other._rawLocation.scriptId === this._rawLocation.scriptId
@@ -358,15 +385,12 @@ export class StackFrame {
     return { scopes };
   }
 
+  /** @inheritdoc */
   async toDap(format?: Dap.StackFrameFormat): Promise<Dap.StackFrame> {
     const uiLocation = await this.uiLocation();
     const source = uiLocation ? await uiLocation.source.toDap() : undefined;
     const isSmartStepped = await shouldStepOverStackFrame(this);
-    const presentationHint = this._isAsyncSeparator
-      ? 'label'
-      : isSmartStepped
-      ? 'deemphasize'
-      : 'normal';
+    const presentationHint = isSmartStepped ? 'deemphasize' : 'normal';
     if (isSmartStepped && source) {
       source.origin =
         isSmartStepped === StackFrameStepOverReason.SmartStep
@@ -396,12 +420,14 @@ export class StackFrame {
       column,
       source,
       presentationHint,
-      canRestart: !this.isAsync,
+      // If `canBeRestarted` is present, use that
+      // https://github.com/microsoft/vscode-js-debug/issues/1283
+      canRestart: (this.callFrame as Cdp.Debugger.CallFrame).canBeRestarted ?? !this.isAsync,
     } as Dap.StackFrame;
   }
 
+  /** @inheritdoc */
   async formatAsNative(): Promise<string> {
-    if (this._isAsyncSeparator) return `    --- ${this._name} ---`;
     const uiLocation = await this.uiLocation();
     const url =
       (await uiLocation?.source.existingAbsolutePath()) || (await uiLocation?.source.prettyName());
@@ -409,8 +435,8 @@ export class StackFrame {
     return `    at ${this._name} (${url}:${lineNumber}:${columnNumber})`;
   }
 
+  /** @inheritdoc */
   async format(): Promise<string> {
-    if (this._isAsyncSeparator) return `◀ ${this._name} ▶`;
     const uiLocation = await this.uiLocation();
     const prettyName = (await uiLocation?.source.prettyName()) || '<unknown>';
     const anyLocation = uiLocation || this._rawLocation;

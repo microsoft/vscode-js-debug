@@ -1526,21 +1526,13 @@ export namespace Cdp {
 
     export type AttributionReportingIssueType =
       | 'PermissionPolicyDisabled'
-      | 'InvalidAttributionSourceEventId'
-      | 'InvalidAttributionData'
       | 'AttributionSourceUntrustworthyOrigin'
       | 'AttributionUntrustworthyOrigin'
-      | 'AttributionTriggerDataTooLarge'
-      | 'AttributionEventSourceTriggerDataTooLarge'
-      | 'InvalidAttributionSourceExpiry'
-      | 'InvalidAttributionSourcePriority'
-      | 'InvalidEventSourceTriggerData'
-      | 'InvalidTriggerPriority'
-      | 'InvalidTriggerDedupKey';
+      | 'InvalidHeader';
 
     /**
      * Details for issues around "Attribution Reporting API" usage.
-     * Explainer: https://github.com/WICG/conversion-measurement-api
+     * Explainer: https://github.com/WICG/attribution-reporting-api
      */
     export interface AttributionReportingIssueDetails {
       violationType: AttributionReportingIssueType;
@@ -1594,33 +1586,67 @@ export namespace Cdp {
       frameId?: Page.FrameId;
     }
 
+    export type DeprecationIssueType =
+      | 'AuthorizationCoveredByWildcard'
+      | 'CanRequestURLHTTPContainingNewline'
+      | 'ChromeLoadTimesConnectionInfo'
+      | 'ChromeLoadTimesFirstPaintAfterLoadTime'
+      | 'ChromeLoadTimesWasAlternateProtocolAvailable'
+      | 'CookieWithTruncatingChar'
+      | 'CrossOriginAccessBasedOnDocumentDomain'
+      | 'CrossOriginWindowAlert'
+      | 'CrossOriginWindowConfirm'
+      | 'CSSSelectorInternalMediaControlsOverlayCastButton'
+      | 'DeprecationExample'
+      | 'DocumentDomainSettingWithoutOriginAgentClusterHeader'
+      | 'EventPath'
+      | 'GeolocationInsecureOrigin'
+      | 'GeolocationInsecureOriginDeprecatedNotRemoved'
+      | 'GetUserMediaInsecureOrigin'
+      | 'HostCandidateAttributeGetter'
+      | 'InsecurePrivateNetworkSubresourceRequest'
+      | 'LegacyConstraintGoogIPv6'
+      | 'LocalCSSFileExtensionRejected'
+      | 'MediaSourceAbortRemove'
+      | 'MediaSourceDurationTruncatingBuffered'
+      | 'NoSysexWebMIDIWithoutPermission'
+      | 'NotificationInsecureOrigin'
+      | 'NotificationPermissionRequestedIframe'
+      | 'ObsoleteWebRtcCipherSuite'
+      | 'PictureSourceSrc'
+      | 'PrefixedCancelAnimationFrame'
+      | 'PrefixedRequestAnimationFrame'
+      | 'PrefixedStorageInfo'
+      | 'PrefixedVideoDisplayingFullscreen'
+      | 'PrefixedVideoEnterFullscreen'
+      | 'PrefixedVideoEnterFullScreen'
+      | 'PrefixedVideoExitFullscreen'
+      | 'PrefixedVideoExitFullScreen'
+      | 'PrefixedVideoSupportsFullscreen'
+      | 'RangeExpand'
+      | 'RequestedSubresourceWithEmbeddedCredentials'
+      | 'RTCConstraintEnableDtlsSrtpFalse'
+      | 'RTCConstraintEnableDtlsSrtpTrue'
+      | 'RTCPeerConnectionComplexPlanBSdpUsingDefaultSdpSemantics'
+      | 'RTCPeerConnectionSdpSemanticsPlanB'
+      | 'RtcpMuxPolicyNegotiate'
+      | 'SharedArrayBufferConstructedWithoutIsolation'
+      | 'TextToSpeech_DisallowedByAutoplay'
+      | 'V8SharedArrayBufferConstructedInExtensionWithoutIsolation'
+      | 'XHRJSONEncodingDetection'
+      | 'XMLHttpRequestSynchronousInNonWorkerOutsideBeforeUnload'
+      | 'XRSupportsSession';
+
     /**
      * This issue tracks information needed to print a deprecation message.
-     * The formatting is inherited from the old console.log version, see more at:
-     * https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/renderer/core/frame/deprecation.cc
-     * TODO(crbug.com/1264960): Re-work format to add i18n support per:
-     * https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/public/devtools_protocol/README.md
+     * https://source.chromium.org/chromium/chromium/src/+/main:third_party/blink/renderer/core/frame/third_party/blink/renderer/core/frame/deprecation/README.md
      */
     export interface DeprecationIssueDetails {
       affectedFrame?: AffectedFrame;
 
       sourceCodeLocation: SourceCodeLocation;
 
-      /**
-       * The content of an untranslated deprecation issue,
-       * e.g. "window.inefficientLegacyStorageMethod will be removed in M97,
-       * around January 2022. Please use Web Storage or Indexed Database
-       * instead. This standard was abandoned in January, 1970. See
-       * https://www.chromestatus.com/feature/5684870116278272 for more details."
-       * @deprecated
-       */
-      message?: string;
-
-      /**
-       * The id of an untranslated deprecation issue e.g. PrefixedStorageInfo.
-       * @deprecated
-       */
-      deprecationType: string;
+      type: DeprecationIssueType;
     }
 
     export type ClientHintIssueReason = 'MetaTagAllowListInvalidOrigin' | 'MetaTagModifiedHTML';
@@ -1638,6 +1664,11 @@ export namespace Cdp {
     export type FederatedAuthRequestIssueReason =
       | 'ApprovalDeclined'
       | 'TooManyRequests'
+      | 'ManifestListHttpNotFound'
+      | 'ManifestListNoResponse'
+      | 'ManifestListInvalidResponse'
+      | 'ManifestNotInManifestList'
+      | 'ManifestListTooBig'
       | 'ManifestHttpNotFound'
       | 'ManifestNoResponse'
       | 'ManifestInvalidResponse'
@@ -4927,8 +4958,19 @@ export namespace Cdp {
     ): Promise<Debugger.RemoveBreakpointResult | undefined>;
 
     /**
-     * Restarts particular call frame from the beginning.
-     * @deprecated
+     * Restarts particular call frame from the beginning. The old, deprecated
+     * behavior of `restartFrame` is to stay paused and allow further CDP commands
+     * after a restart was scheduled. This can cause problems with restarting, so
+     * we now continue execution immediatly after it has been scheduled until we
+     * reach the beginning of the restarted frame.
+     *
+     * To stay back-wards compatible, `restartFrame` now expects a `mode`
+     * parameter to be present. If the `mode` parameter is missing, `restartFrame`
+     * errors out.
+     *
+     * The various return values are deprecated and `callFrames` is always empty.
+     * Use the call frames from the `Debugger#paused` events instead, that fires
+     * once V8 pauses at the beginning of the restarted function.
      */
     restartFrame(
       params: Debugger.RestartFrameParams,
@@ -5352,6 +5394,12 @@ export namespace Cdp {
        * Call frame identifier to evaluate on.
        */
       callFrameId: CallFrameId;
+
+      /**
+       * The `mode` parameter must be present and set to 'StepInto', otherwise
+       * `restartFrame` will error out.
+       */
+      mode?: 'StepInto';
     }
 
     /**
@@ -5360,16 +5408,19 @@ export namespace Cdp {
     export interface RestartFrameResult {
       /**
        * New stack trace.
+       * @deprecated
        */
       callFrames: CallFrame[];
 
       /**
        * Async stack trace, if any.
+       * @deprecated
        */
       asyncStackTrace?: Runtime.StackTrace;
 
       /**
        * Async stack trace, if any.
+       * @deprecated
        */
       asyncStackTraceId?: Runtime.StackTraceId;
     }
@@ -5906,7 +5957,7 @@ export namespace Cdp {
       executionContextId: Runtime.ExecutionContextId;
 
       /**
-       * Content hash of the script.
+       * Content hash of the script, SHA-256.
        */
       hash: string;
 
@@ -5996,7 +6047,7 @@ export namespace Cdp {
       executionContextId: Runtime.ExecutionContextId;
 
       /**
-       * Content hash of the script.
+       * Content hash of the script, SHA-256.
        */
       hash: string;
 
@@ -6132,6 +6183,9 @@ export namespace Cdp {
 
       /**
        * JavaScript script name or url.
+       * Deprecated in favor of using the `location.scriptId` to resolve the URL via a previously
+       * sent `Debugger.scriptParsed` event.
+       * @deprecated
        */
       url: string;
 
@@ -6149,6 +6203,14 @@ export namespace Cdp {
        * The value being returned, if the function is at return point.
        */
       returnValue?: Runtime.RemoteObject;
+
+      /**
+       * Valid only while the VM is paused and indicates whether this frame
+       * can be restarted or not. Note that a `true` value here does not
+       * guarantee that Debugger#restartFrame with this CallFrameId will be
+       * successful, but it is very likely.
+       */
+      canBeRestarted?: boolean;
     }
 
     /**
@@ -8234,6 +8296,8 @@ export namespace Cdp {
       isSVG?: boolean;
 
       compatibilityMode?: CompatibilityMode;
+
+      assignedSlot?: BackendNode;
     }
 
     /**
@@ -9547,6 +9611,8 @@ export namespace Cdp {
       storageId: StorageId;
     }
 
+    export type SerializedStorageKey = string;
+
     /**
      * DOM Storage identifier.
      */
@@ -9554,7 +9620,12 @@ export namespace Cdp {
       /**
        * Security origin for the storage.
        */
-      securityOrigin: string;
+      securityOrigin?: string;
+
+      /**
+       * Represents a key by which DOM Storage keys its CachedStorageAreas
+       */
+      storageKey?: SerializedStorageKey;
 
       /**
        * Whether the storage is local storage (not session storage).
@@ -9748,6 +9819,10 @@ export namespace Cdp {
     setDisabledImageTypes(
       params: Emulation.SetDisabledImageTypesParams,
     ): Promise<Emulation.SetDisabledImageTypesResult | undefined>;
+
+    setHardwareConcurrencyOverride(
+      params: Emulation.SetHardwareConcurrencyOverrideParams,
+    ): Promise<Emulation.SetHardwareConcurrencyOverrideResult | undefined>;
 
     /**
      * Allows overriding user agent with the given string.
@@ -10274,6 +10349,21 @@ export namespace Cdp {
     export interface SetDisabledImageTypesResult {}
 
     /**
+     * Parameters of the 'Emulation.setHardwareConcurrencyOverride' method.
+     */
+    export interface SetHardwareConcurrencyOverrideParams {
+      /**
+       * Hardware concurrency to report
+       */
+      hardwareConcurrency: integer;
+    }
+
+    /**
+     * Return value of the 'Emulation.setHardwareConcurrencyOverride' method.
+     */
+    export interface SetHardwareConcurrencyOverrideResult {}
+
+    /**
      * Parameters of the 'Emulation.setUserAgentOverride' method.
      */
     export interface SetUserAgentOverrideParams {
@@ -10405,6 +10495,10 @@ export namespace Cdp {
       model: string;
 
       mobile: boolean;
+
+      bitness?: string;
+
+      wow64?: boolean;
     }
 
     /**
@@ -10983,7 +11077,7 @@ export namespace Cdp {
      * Sends a BeginFrame to the target and returns when the frame was completed. Optionally captures a
      * screenshot from the resulting frame. Requires that the target was created with enabled
      * BeginFrameControl. Designed for use with --run-all-compositor-stages-before-draw, see also
-     * https://goo.gl/3zHXhB for more background.
+     * https://goo.gle/chrome-headless-rendering for more background.
      */
     beginFrame(
       params: HeadlessExperimental.BeginFrameParams,
@@ -11357,12 +11451,21 @@ export namespace Cdp {
        */
       reportProgress?: boolean;
 
+      /**
+       * Deprecated in favor of `exposeInternals`.
+       * @deprecated
+       */
       treatGlobalObjectsAsRoots?: boolean;
 
       /**
        * If true, numerical values are included in the snapshot
        */
       captureNumericValue?: boolean;
+
+      /**
+       * If true, exposes internals of the snapshot.
+       */
+      exposeInternals?: boolean;
     }
 
     /**
@@ -11380,7 +11483,9 @@ export namespace Cdp {
       reportProgress?: boolean;
 
       /**
-       * If true, a raw snapshot without artificial roots will be generated
+       * If true, a raw snapshot without artificial roots will be generated.
+       * Deprecated in favor of `exposeInternals`.
+       * @deprecated
        */
       treatGlobalObjectsAsRoots?: boolean;
 
@@ -11388,6 +11493,11 @@ export namespace Cdp {
        * If true, numerical values are included in the snapshot
        */
       captureNumericValue?: boolean;
+
+      /**
+       * If true, exposes internals of the snapshot.
+       */
+      exposeInternals?: boolean;
     }
 
     /**
@@ -13748,19 +13858,42 @@ export namespace Cdp {
     }
 
     /**
+     * Represents logged source line numbers reported in an error.
+     * NOTE: file and line are from chromium c++ implementation code, not js.
+     */
+    export interface PlayerErrorSourceLocation {
+      file: string;
+
+      line: integer;
+    }
+
+    /**
      * Corresponds to kMediaError
      */
     export interface PlayerError {
-      type: 'pipeline_error' | 'media_error';
+      errorType: string;
 
       /**
-       * When this switches to using media::Status instead of PipelineStatus
-       * we can remove "errorCode" and replace it with the fields from
-       * a Status instance. This also seems like a duplicate of the error
-       * level enum - there is a todo bug to have that level removed and
-       * use this instead. (crbug.com/1068454)
+       * Code is the numeric enum entry for a specific set of error codes, such
+       * as PipelineStatusCodes in media/base/pipeline_status.h
        */
-      errorCode: string;
+      code: integer;
+
+      /**
+       * A trace of where this error was caused / where it passed through.
+       */
+      stack: PlayerErrorSourceLocation[];
+
+      /**
+       * Errors potentially have a root cause error, ie, a DecoderError might be
+       * caused by an WindowsError
+       */
+      cause: PlayerError[];
+
+      /**
+       * Extra data attached to an error, such as an HRESULT, Video Codec, etc.
+       */
+      data: any;
     }
   }
 
@@ -17248,9 +17381,10 @@ export namespace Cdp {
     export type CrossOriginOpenerPolicyValue =
       | 'SameOrigin'
       | 'SameOriginAllowPopups'
+      | 'RestrictProperties'
       | 'UnsafeNone'
       | 'SameOriginPlusCoep'
-      | 'SameOriginAllowPopupsPlusCoep';
+      | 'RestrictPropertiesPlusCoep';
 
     export interface CrossOriginOpenerPolicyStatus {
       value: CrossOriginOpenerPolicyValue;
@@ -19490,6 +19624,14 @@ export namespace Cdp {
       listener: (event: Page.BackForwardCacheNotUsedEvent) => void,
     ): IDisposable;
 
+    /**
+     * Fired when a prerender attempt is completed.
+     */
+    on(
+      event: 'prerenderAttemptCompleted',
+      listener: (event: Page.PrerenderAttemptCompletedEvent) => void,
+    ): IDisposable;
+
     on(event: 'loadEventFired', listener: (event: Page.LoadEventFiredEvent) => void): IDisposable;
 
     /**
@@ -19862,19 +20004,19 @@ export namespace Cdp {
      */
     export interface GetLayoutMetricsResult {
       /**
-       * Deprecated metrics relating to the layout viewport. Can be in DP or in CSS pixels depending on the `enable-use-zoom-for-dsf` flag. Use `cssLayoutViewport` instead.
+       * Deprecated metrics relating to the layout viewport. Is in device pixels. Use `cssLayoutViewport` instead.
        * @deprecated
        */
       layoutViewport: LayoutViewport;
 
       /**
-       * Deprecated metrics relating to the visual viewport. Can be in DP or in CSS pixels depending on the `enable-use-zoom-for-dsf` flag. Use `cssVisualViewport` instead.
+       * Deprecated metrics relating to the visual viewport. Is in device pixels. Use `cssVisualViewport` instead.
        * @deprecated
        */
       visualViewport: VisualViewport;
 
       /**
-       * Deprecated size of scrollable area. Can be in DP or in CSS pixels depending on the `enable-use-zoom-for-dsf` flag. Use `cssContentSize` instead.
+       * Deprecated size of scrollable area. Is in DP. Use `cssContentSize` instead.
        * @deprecated
        */
       contentSize: DOM.Rect;
@@ -20031,7 +20173,8 @@ export namespace Cdp {
       frameId: FrameId;
 
       /**
-       * Loader identifier.
+       * Loader identifier. This is omitted in case of same-document navigation,
+       * as the previously committed loaderId would not change.
        */
       loaderId?: Network.LoaderId;
 
@@ -20111,16 +20254,16 @@ export namespace Cdp {
       marginRight?: number;
 
       /**
-       * Paper ranges to print, e.g., '1-5, 8, 11-13'. Defaults to the empty string, which means
-       * print all pages.
+       * Paper ranges to print, one based, e.g., '1-5, 8, 11-13'. Pages are
+       * printed in the document order, not in the order specified, and no
+       * more than once.
+       * Defaults to empty string, which implies the entire document is printed.
+       * The page numbers are quietly capped to actual page count of the
+       * document, and ranges beyond the end of the document are ignored.
+       * If this results in no pages to print, an error is reported.
+       * It is an error to specify a range with start greater than end.
        */
       pageRanges?: string;
-
-      /**
-       * Whether to silently ignore invalid but successfully parsed page ranges, such as '3-2'.
-       * Defaults to false.
-       */
-      ignoreInvalidPageRanges?: boolean;
 
       /**
        * HTML template for the print header. Should be valid HTML markup with following
@@ -20785,6 +20928,12 @@ export namespace Cdp {
        * JavaScript stack trace of when frame was attached, only set if frame initiated from script.
        */
       stack?: Runtime.StackTrace;
+
+      /**
+       * Identifies the bottom-most script which caused the frame to be labelled
+       * as an ad. Only sent if frame is labelled as an ad and id is available.
+       */
+      adScriptId?: AdScriptId;
     }
 
     /**
@@ -21059,6 +21208,20 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'Page.prerenderAttemptCompleted' event.
+     */
+    export interface PrerenderAttemptCompletedEvent {
+      /**
+       * The frame id of the frame initiating prerendering.
+       */
+      initiatingFrameId: FrameId;
+
+      prerenderingUrl: string;
+
+      finalStatus: PrerenderFinalStatus;
+    }
+
+    /**
      * Parameters of the 'Page.loadEventFired' event.
      */
     export interface LoadEventFiredEvent {
@@ -21169,6 +21332,23 @@ export namespace Cdp {
     }
 
     /**
+     * Identifies the bottom-most script which caused the frame to be labelled
+     * as an ad.
+     */
+    export interface AdScriptId {
+      /**
+       * Script Id of the bottom-most script which caused the frame to be labelled
+       * as an ad.
+       */
+      scriptId: Runtime.ScriptId;
+
+      /**
+       * Id of adScriptId's debugger.
+       */
+      debuggerId: Runtime.UniqueDebuggerId;
+    }
+
+    /**
      * Indicates whether the frame is a secure context and why it is the case.
      */
     export type SecureContextType =
@@ -21200,6 +21380,7 @@ export namespace Cdp {
       | 'ambient-light-sensor'
       | 'attribution-reporting'
       | 'autoplay'
+      | 'bluetooth'
       | 'browsing-topics'
       | 'camera'
       | 'ch-dpr'
@@ -21208,6 +21389,7 @@ export namespace Cdp {
       | 'ch-ect'
       | 'ch-prefers-color-scheme'
       | 'ch-rtt'
+      | 'ch-save-data'
       | 'ch-ua'
       | 'ch-ua-arch'
       | 'ch-ua-bitness'
@@ -21223,7 +21405,6 @@ export namespace Cdp {
       | 'ch-viewport-height'
       | 'ch-viewport-width'
       | 'ch-width'
-      | 'ch-partitioned-cookies'
       | 'clipboard-read'
       | 'clipboard-write'
       | 'cross-origin-isolated'
@@ -21244,6 +21425,7 @@ export namespace Cdp {
       | 'interest-cohort'
       | 'join-ad-interest-group'
       | 'keyboard-map'
+      | 'local-fonts'
       | 'magnetometer'
       | 'microphone'
       | 'midi'
@@ -21767,9 +21949,9 @@ export namespace Cdp {
       fantasy?: string;
 
       /**
-       * The pictograph font-family.
+       * The math font-family.
        */
-      pictograph?: string;
+      math?: string;
     }
 
     /**
@@ -21895,7 +22077,6 @@ export namespace Cdp {
       | 'JavaScriptExecution'
       | 'RendererProcessKilled'
       | 'RendererProcessCrashed'
-      | 'GrantedMediaStreamAccess'
       | 'SchedulerTrackedFeatureUsed'
       | 'ConflictingBrowsingInstance'
       | 'CacheFlushed'
@@ -21922,7 +22103,6 @@ export namespace Cdp {
       | 'ForegroundCacheLimit'
       | 'BrowsingInstanceNotSwapped'
       | 'BackForwardCacheDisabledForDelegate'
-      | 'OptInUnloadHeaderNotPresent'
       | 'UnloadHandlerExistsInMainFrame'
       | 'UnloadHandlerExistsInSubFrame'
       | 'ServiceWorkerUnregistration'
@@ -21933,6 +22113,7 @@ export namespace Cdp {
       | 'Unknown'
       | 'ActivationNavigationsDisallowedForBug1234857'
       | 'ErrorDocument'
+      | 'FencedFramesEmbedder'
       | 'WebSocket'
       | 'WebTransport'
       | 'WebRTC'
@@ -21985,7 +22166,6 @@ export namespace Cdp {
       | 'ContentMediaDevicesDispatcherHost'
       | 'ContentWebBluetooth'
       | 'ContentWebUSB'
-      | 'ContentMediaSession'
       | 'ContentMediaSessionService'
       | 'ContentScreenReader'
       | 'EmbedderPopupBlockerTabHelper'
@@ -22047,6 +22227,44 @@ export namespace Cdp {
        */
       children: BackForwardCacheNotRestoredExplanationTree[];
     }
+
+    /**
+     * List of FinalStatus reasons for Prerender2.
+     */
+    export type PrerenderFinalStatus =
+      | 'Activated'
+      | 'Destroyed'
+      | 'LowEndDevice'
+      | 'CrossOriginRedirect'
+      | 'CrossOriginNavigation'
+      | 'InvalidSchemeRedirect'
+      | 'InvalidSchemeNavigation'
+      | 'InProgressNavigation'
+      | 'NavigationRequestBlockedByCsp'
+      | 'MainFrameNavigation'
+      | 'MojoBinderPolicy'
+      | 'RendererProcessCrashed'
+      | 'RendererProcessKilled'
+      | 'Download'
+      | 'TriggerDestroyed'
+      | 'NavigationNotCommitted'
+      | 'NavigationBadHttpStatus'
+      | 'ClientCertRequested'
+      | 'NavigationRequestNetworkError'
+      | 'MaxNumOfRunningPrerendersExceeded'
+      | 'CancelAllHostsForTesting'
+      | 'DidFailLoad'
+      | 'Stop'
+      | 'SslCertificateError'
+      | 'LoginAuthRequested'
+      | 'UaChangeRequiresReload'
+      | 'BlockedByClient'
+      | 'AudioOutputDeviceRequested'
+      | 'MixedContent'
+      | 'TriggerBackgrounded'
+      | 'EmbedderTriggeredAndSameOriginRedirected'
+      | 'EmbedderTriggeredAndCrossOriginRedirected'
+      | 'EmbedderTriggeredAndDestroyed';
   }
 
   /**
@@ -22978,6 +23196,17 @@ export namespace Cdp {
     ): Promise<Runtime.RemoveBindingResult | undefined>;
 
     /**
+     * This method tries to lookup and populate exception details for a
+     * JavaScript Error object.
+     * Note that the stackTrace portion of the resulting exceptionDetails will
+     * only be populated if the Runtime domain was enabled at the time when the
+     * Error was thrown.
+     */
+    getExceptionDetails(
+      params: Runtime.GetExceptionDetailsParams,
+    ): Promise<Runtime.GetExceptionDetailsResult | undefined>;
+
+    /**
      * Notification is issued every time when binding is called.
      */
     on(event: 'bindingCalled', listener: (event: Runtime.BindingCalledEvent) => void): IDisposable;
@@ -23143,6 +23372,13 @@ export namespace Cdp {
        * Whether to throw an exception if side effect cannot be ruled out during evaluation.
        */
       throwOnSideEffect?: boolean;
+
+      /**
+       * Whether the result should contain `webDriverValue`, serialized according to
+       * https://w3c.github.io/webdriver-bidi. This is mutually exclusive with `returnByValue`, but
+       * resulting `objectId` is still provided.
+       */
+      generateWebDriverValue?: boolean;
     }
 
     /**
@@ -23326,6 +23562,11 @@ export namespace Cdp {
        * This is mutually exclusive with `contextId`.
        */
       uniqueContextId?: string;
+
+      /**
+       * Whether the result should be serialized according to https://w3c.github.io/webdriver-bidi.
+       */
+      generateWebDriverValue?: boolean;
     }
 
     /**
@@ -23676,6 +23917,23 @@ export namespace Cdp {
     export interface RemoveBindingResult {}
 
     /**
+     * Parameters of the 'Runtime.getExceptionDetails' method.
+     */
+    export interface GetExceptionDetailsParams {
+      /**
+       * The error object for which to resolve the exception details.
+       */
+      errorObjectId: RemoteObjectId;
+    }
+
+    /**
+     * Return value of the 'Runtime.getExceptionDetails' method.
+     */
+    export interface GetExceptionDetailsResult {
+      exceptionDetails?: ExceptionDetails;
+    }
+
+    /**
      * Parameters of the 'Runtime.bindingCalled' event.
      */
     export interface BindingCalledEvent {
@@ -23818,6 +24076,41 @@ export namespace Cdp {
     export type ScriptId = string;
 
     /**
+     * Represents the value serialiazed by the WebDriver BiDi specification
+     * https://w3c.github.io/webdriver-bidi.
+     */
+    export interface WebDriverValue {
+      type:
+        | 'undefined'
+        | 'null'
+        | 'string'
+        | 'number'
+        | 'boolean'
+        | 'bigint'
+        | 'regexp'
+        | 'date'
+        | 'symbol'
+        | 'array'
+        | 'object'
+        | 'function'
+        | 'map'
+        | 'set'
+        | 'weakmap'
+        | 'weakset'
+        | 'error'
+        | 'proxy'
+        | 'promise'
+        | 'typedarray'
+        | 'arraybuffer'
+        | 'node'
+        | 'window';
+
+      value?: any;
+
+      objectId?: string;
+    }
+
+    /**
      * Unique object identifier.
      */
     export type RemoteObjectId = string;
@@ -23891,6 +24184,11 @@ export namespace Cdp {
        * String representation of the object.
        */
       description?: string;
+
+      /**
+       * WebDriver BiDi representation of the value.
+       */
+      webDriverValue?: WebDriverValue;
 
       /**
        * Unique object identifier (for non-primitive values).
@@ -25178,6 +25476,13 @@ export namespace Cdp {
    */
   export interface StorageApi {
     /**
+     * Returns a storage key given a frame id.
+     */
+    getStorageKeyForFrame(
+      params: Storage.GetStorageKeyForFrameParams,
+    ): Promise<Storage.GetStorageKeyForFrameResult | undefined>;
+
+    /**
      * Clears storage for origin.
      */
     clearDataForOrigin(
@@ -25318,6 +25623,20 @@ export namespace Cdp {
    * Types of the 'Storage' domain.
    */
   export namespace Storage {
+    /**
+     * Parameters of the 'Storage.getStorageKeyForFrame' method.
+     */
+    export interface GetStorageKeyForFrameParams {
+      frameId: Page.FrameId;
+    }
+
+    /**
+     * Return value of the 'Storage.getStorageKeyForFrame' method.
+     */
+    export interface GetStorageKeyForFrameResult {
+      storageKey: SerializedStorageKey;
+    }
+
     /**
      * Parameters of the 'Storage.clearDataForOrigin' method.
      */
@@ -25638,6 +25957,8 @@ export namespace Cdp {
 
       name: string;
     }
+
+    export type SerializedStorageKey = string;
 
     /**
      * Enum of possible storage types.
@@ -27596,7 +27917,16 @@ export namespace Cdp {
     /**
      * Parameters of the 'WebAuthn.enable' method.
      */
-    export interface EnableParams {}
+    export interface EnableParams {
+      /**
+       * Whether to enable the WebAuthn user interface. Enabling the UI is
+       * recommended for debugging and demo purposes, as it is closer to the real
+       * experience. Disabling the UI is recommended for automated testing.
+       * Supported at the embedder's discretion if UI is available.
+       * Defaults to false.
+       */
+      enableUI?: boolean;
+    }
 
     /**
      * Return value of the 'WebAuthn.enable' method.

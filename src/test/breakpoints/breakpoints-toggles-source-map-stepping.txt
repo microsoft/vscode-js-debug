@@ -1,0 +1,52 @@
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+Initial breakpoint resolution{
+    breakpoint : {
+        column : 16
+        id : <number>
+        line : 12
+        source : {
+            name : basic.ts
+            path : ${workspaceFolder}/web/basic.ts
+            sourceReference : <number>
+        }
+        verified : true
+    }
+    reason : changed
+}
+abcdef @ ${workspaceFolder}/web/basic.ts:12:16
+<anonymous> @ ${workspaceFolder}/web/basic.ts:21:1
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+Demapped breakpoint{
+    breakpoint : {
+        column : 16
+        id : <number>
+        line : 11
+        source : {
+            name : localhost꞉8001/basic.js
+            path : ${workspaceFolder}/web/basic.js
+            sourceReference : <number>
+        }
+        verified : true
+    }
+    reason : changed
+}
+abcdef @ ${workspaceFolder}/web/basic.js:11:16
+<anonymous> @ ${workspaceFolder}/web/basic.js:19:1
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+abcdef @ ${workspaceFolder}/web/basic.js:16:5
+<anonymous> @ ${workspaceFolder}/web/basic.js:19:1

@@ -2,63 +2,29 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { inject, injectable } from 'inversify';
 import * as qs from 'querystring';
 import * as vscode from 'vscode';
-import { ConfigurationTarget } from 'vscode';
-import * as nls from 'vscode-nls';
-import {
-  allDebugTypes,
-  Commands,
-  Configuration,
-  readConfig,
-  registerCommand,
-  writeConfig,
-} from '../common/contributionUtils';
-import { DisposableList, IDisposable } from '../common/disposable';
+import { Commands, ContextKey, registerCommand } from '../common/contributionUtils';
 import Dap from '../dap/api';
-import { Message as DapMessage } from '../dap/transport';
+import { IExtensionContribution } from '../ioc-extras';
 import { DebugSessionTracker } from './debugSessionTracker';
+import { ManagedContextKey } from './managedContextKey';
 
-const localize = nls.loadMessageBundle();
+@injectable()
+export class PrettyPrintUI implements IExtensionContribution {
+  private readonly canPrettyPrintKey = new ManagedContextKey(ContextKey.CanPrettyPrint);
 
-export class PrettyPrintTrackerFactory implements vscode.DebugAdapterTrackerFactory, IDisposable {
-  private readonly sessions = new DisposableList();
+  constructor(@inject(DebugSessionTracker) private readonly tracker: DebugSessionTracker) {}
 
-  /**
-   * Attaches the tracker to the VS Code workspace.
-   */
-  public static register(tracker: DebugSessionTracker): PrettyPrintTrackerFactory {
-    const factory = new PrettyPrintTrackerFactory(tracker);
-    for (const debugType of allDebugTypes) {
-      vscode.debug.registerDebugAdapterTrackerFactory(debugType, factory);
-    }
-
-    registerCommand(vscode.commands, Commands.PrettyPrint, () => factory.prettifyActive());
-
-    return factory;
-  }
-
-  constructor(private readonly tracker: DebugSessionTracker) {}
-
-  /**
-   * @inheritdoc
-   */
-  public createDebugAdapterTracker(
-    session: vscode.DebugSession,
-  ): vscode.ProviderResult<vscode.DebugAdapterTracker> {
-    if (!readConfig(vscode.workspace, Configuration.SuggestPrettyPrinting)) {
-      return;
-    }
-
-    const tracker = new PrettyPrintSession(session);
-    this.sessions.push(tracker);
-    vscode.debug.onDidTerminateDebugSession(s => {
-      if (s === session) {
-        this.sessions.disposeObject(tracker);
-      }
-    });
-
-    return tracker;
+  /** @inheritdoc */
+  public register(context: vscode.ExtensionContext): void {
+    context.subscriptions.push(
+      registerCommand(vscode.commands, Commands.PrettyPrint, () => this.prettifyActive()),
+      vscode.window.onDidChangeActiveTextEditor(editor => this.updateEditorState(editor)),
+      this.tracker.onSessionAdded(() => this.updateEditorState(vscode.window.activeTextEditor)),
+      this.tracker.onSessionEnded(() => this.updateEditorState(vscode.window.activeTextEditor)),
+    );
   }
 
   /**
@@ -66,7 +32,7 @@ export class PrettyPrintTrackerFactory implements vscode.DebugAdapterTrackerFact
    */
   public async prettifyActive() {
     const editor = vscode.window.activeTextEditor;
-    if (editor?.document.languageId !== 'javascript') {
+    if (!editor || !this.canPrettyPrint(editor)) {
       return;
     }
 
@@ -85,118 +51,25 @@ export class PrettyPrintTrackerFactory implements vscode.DebugAdapterTrackerFact
     }
   }
 
-  /**
-   * @inheritdoc
-   */
-  public dispose() {
-    this.sessions.dispose();
-  }
-}
-
-/**
- * Session tracker for pretty printing. It monitors open files in the editor,
- * and suggests formatting ones that look minified.
- *
- * It can suggest printing ephemeral files that have a source reference set.
- * It will also suggest printing
- */
-class PrettyPrintSession implements IDisposable, vscode.DebugAdapterTracker {
-  private readonly candidatePaths = new Set<string>();
-  private readonly disposable = new DisposableList();
-  private readonly suggested = new Set<string | number>();
-
-  constructor(private readonly session: vscode.DebugSession) {
-    this.disposable.push(
-      vscode.window.onDidChangeActiveTextEditor(editor => this.onEditorChange(editor)),
+  private canPrettyPrint(editor: vscode.TextEditor) {
+    return (
+      this.tracker.isDebugging &&
+      editor.document.languageId === 'javascript' &&
+      !editor.document.fileName.endsWith('-pretty.js')
     );
   }
 
-  /**
-   * @inheritdoc
-   */
-  public onDidSendMessage(message: DapMessage) {
-    if (message.type !== 'response' || message.command !== 'stackTrace' || !message.body) {
+  private updateEditorState(editor: vscode.TextEditor | undefined) {
+    if (!this.tracker.isDebugging) {
+      this.canPrettyPrintKey.value = undefined;
       return;
     }
 
-    const frames = (message.body as Dap.StackTraceResult).stackFrames;
-    if (!frames) {
-      return;
-    }
-
-    for (const frame of frames) {
-      const path = frame.source?.path;
-      if (path) {
-        this.candidatePaths.add(path);
+    if (editor && this.canPrettyPrint(editor)) {
+      const value = editor.document.uri.toString();
+      if (value !== this.canPrettyPrintKey.value?.[0]) {
+        this.canPrettyPrintKey.value = [editor.document.uri.toString()];
       }
-    }
-
-    // If the file that's currently opened is the top of the stacktrace,
-    // indicating we're probably about to break on it, then prompt immediately.
-    const first = frames[0]?.source?.path;
-    if (first && vscode.window.activeTextEditor?.document.uri.path === first) {
-      this.onEditorChange(vscode.window.activeTextEditor);
-    }
-  }
-
-  /**
-   * @inheritdoc
-   */
-  public dispose() {
-    this.disposable.dispose();
-  }
-
-  private onEditorChange(editor: vscode.TextEditor | undefined) {
-    if (editor?.document.languageId !== 'javascript') {
-      return;
-    }
-
-    const { source } = sourceForUri(editor.document.uri);
-    if (!this.candidatePaths.has(source.path) && source.sourceReference === 0) {
-      return;
-    }
-
-    const key = source.sourceReference || source.path;
-    if (this.suggested.has(key)) {
-      return;
-    }
-
-    this.suggested.add(key);
-    if (!isMinified(editor.document)) {
-      return;
-    }
-
-    return this.trySuggestPrinting(source, editor.selection.start);
-  }
-
-  private async trySuggestPrinting(source: Dap.Source, cursor: vscode.Position) {
-    const canPrettyPrint = await this.session.customRequest('canPrettyPrintSource', {
-      source,
-    });
-
-    if (!canPrettyPrint?.canPrettyPrint) {
-      return;
-    }
-
-    const yes = localize('yes', 'Yes');
-    const no = localize('no', 'No');
-    const never = localize('never', 'Never');
-    const response = await vscode.window.showInformationMessage(
-      'This JavaScript file seems to be minified.\nWould you like to pretty print it?',
-      yes,
-      no,
-      never,
-    );
-
-    if (response === yes) {
-      sendPrintCommand(this.session, source, cursor);
-    } else if (response === never) {
-      writeConfig(
-        vscode.workspace,
-        Configuration.SuggestPrettyPrinting,
-        false,
-        ConfigurationTarget.Global,
-      );
     }
   }
 }
@@ -225,19 +98,3 @@ const sourceForUri = (uri: vscode.Uri) => {
 
   return { sessionId, source };
 };
-
-/**
- * Heuristic check to see if a document is minified.
- */
-function isMinified(document: vscode.TextDocument): boolean {
-  const maxNonMinifiedLength = 500;
-  const linesToCheck = 10;
-  for (let i = 0; i < linesToCheck && i < document.lineCount; ++i) {
-    const line = document.lineAt(i).text;
-    if (line.length > maxNonMinifiedLength && !line.startsWith('//#')) {
-      return true;
-    }
-  }
-
-  return false;
-}

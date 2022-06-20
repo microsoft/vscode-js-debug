@@ -2,6 +2,30 @@
 
 This changelog records changes to stable releases since 1.50.2. "TBA" changes here may be available in the [nightly release](https://github.com/microsoft/vscode-js-debug/#nightly-extension) before they're in stable. Note that the minor version (`v1.X.0`) corresponds to the VS Code version js-debug is shipped in, but the patch version (`v1.50.X`) is not meaningful.
 
+## Nightly (only)
+
+- feat: simplify pretty print to align with devtools ([vscode#151410](https://github.com/microsoft/vscode/issues/151410))
+- feat: add a new **Debug: Save Diagnostic JS Debug Logs** command ([#1301](https://github.com/microsoft/vscode-js-debug/issues/1301))
+- feat: use custom `toString()` methods to generate object descriptions ([#1284](https://github.com/microsoft/vscode-js-debug/issues/1284))
+- feat: allow easy toggling between compiled and sourcemapped sources ([vscode#151412](https://github.com/microsoft/vscode/issues/151412))
+- fix: debugged child processes in ext host causing teardown ([#1289](https://github.com/microsoft/vscode-js-debug/issues/1289))
+- fix: errors thrown in process tree lookup not being visible ([vscode#150754](https://github.com/microsoft/vscode/issues/150754))
+- fix: extension debugging not working with two ipv6 interfaces ([vscode#144315](https://github.com/microsoft/vscode/issues/144315))
+- fix: rare freezes if browsers logged information to stdout
+- chore: adopt new restartFrame semantics from Chrome 104 ([#1283](https://github.com/microsoft/vscode-js-debug/issues/1283))
+
+## v1.68 (May 2022)
+
+### v1.68.0 - 2022-05-30
+
+- chore: support new sha script hashes from chrome ([#1244](https://github.com/microsoft/vscode-js-debug/issues/1244))
+- fix: bigint value previews not working in some cases ([#1277](https://github.com/microsoft/vscode-js-debug/issues/1277))
+- fix: snap versions in alternate install locations resulting in warning ([#1239](https://github.com/microsoft/vscode-js-debug/issues/1239))
+- fix: align hoverEvaluation config suggestion with actual default
+- fix: remove query strings from sourcemapped URLs ([#1225](https://github.com/microsoft/vscode-js-debug/issues/1225))
+- fix: prefer to parse source map directly before failling back to path mapping ([vscode#148864](https://github.com/microsoft/vscode/issues/148864))
+- fix: only enter debug mode on f11 when debug view is visible ([vscode#141157](https://github.com/microsoft/vscode/issues/141157))
+
 ## v1.67 (April 2022)
 
 ### v1.67.2 - 2022-04-29
@@ -23,6 +47,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 ### v1.66.1 - 2022-03-24
 
 - feat: adopt `CompletionItem.detail` ([vscode#145645](https://github.com/microsoft/vscode/issues/145645))
+- feat: support for debugging webviews in UWPs ([#1209](https://github.com/microsoft/vscode-js-debug/issues/1209))
 - fix: accessor properties not being writable ([vscode#146001](https://github.com/microsoft/vscode/issues/146001))
 - fix: completions sometimes throwing issue on accessor ([#1218](https://github.com/microsoft/vscode-js-debug/issues/1218))
 

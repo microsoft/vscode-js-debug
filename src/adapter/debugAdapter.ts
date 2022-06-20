@@ -15,7 +15,7 @@ import { AnyLaunchConfiguration } from '../configuration';
 import Dap from '../dap/api';
 import * as errors from '../dap/errors';
 import { ProtocolError } from '../dap/protocolError';
-import { disposeContainer } from '../ioc-extras';
+import { disposeContainer, FS, FsPromises } from '../ioc-extras';
 import { ITarget } from '../targets/targets';
 import { ITelemetryReporter } from '../telemetry/telemetryReporter';
 import { IAsyncStackPolicy } from './asyncStackPolicy';
@@ -102,7 +102,6 @@ export class DebugAdapter implements IDisposable {
     this.dap.on('enableCustomBreakpoints', params => this.enableCustomBreakpoints(params));
     this.dap.on('toggleSkipFileStatus', params => this._toggleSkipFileStatus(params));
     this.dap.on('disableCustomBreakpoints', params => this._disableCustomBreakpoints(params));
-    this.dap.on('canPrettyPrintSource', params => this._canPrettyPrintSource(params));
     this.dap.on('prettyPrintSource', params => this._prettyPrintSource(params));
     this.dap.on('revealPage', () => this._withThread(thread => thread.revealPage()));
     this.dap.on('getPerformance', () =>
@@ -116,6 +115,23 @@ export class DebugAdapter implements IDisposable {
     this.dap.on('createDiagnostics', params => this._dumpDiagnostics(params));
     this.dap.on('requestCDPProxy', () => this._requestCDPProxy());
     this.dap.on('setExcludedCallers', params => this._onSetExcludedCallers(params));
+    this.dap.on('saveDiagnosticLogs', ({ toFile }) => this._saveDiagnosticLogs(toFile));
+    this.dap.on('setSourceMapStepping', params => this._setSourceMapStepping(params));
+  }
+
+  private _setSourceMapStepping({
+    enabled,
+  }: Dap.SetSourceMapSteppingParams): Promise<Dap.SetSourceMapSteppingResult> {
+    this.sourceContainer.doSourceMappedStepping = enabled;
+    return Promise.resolve({});
+  }
+
+  private async _saveDiagnosticLogs(toFile: string): Promise<Dap.SaveDiagnosticLogsResult> {
+    const logs = this._services.get<ILogger>(ILogger).getRecentLogs();
+    await this._services
+      .get<FsPromises>(FS)
+      .writeFile(toFile, logs.map(l => JSON.stringify(l)).join('\n'));
+    return {};
   }
 
   public async launchBlocker(): Promise<void> {
@@ -436,20 +452,6 @@ export class DebugAdapter implements IDisposable {
     await this._services.get<ScriptSkipper>(IScriptSkipper).toggleSkippingFile(params);
     await this._refreshStackTrace();
     return {};
-  }
-
-  async _canPrettyPrintSource(
-    params: Dap.CanPrettyPrintSourceParams,
-  ): Promise<Dap.CanPrettyPrintSourceResult | Dap.Error> {
-    if (!params.source) {
-      return { canPrettyPrint: false };
-    }
-
-    params.source.path = urlUtils.platformPathToPreferredCase(params.source.path);
-    const source = this.sourceContainer.source(params.source);
-    if (!source)
-      return errors.createSilentError(localize('error.sourceNotFound', 'Source not found'));
-    return { canPrettyPrint: source.canPrettyPrint() };
   }
 
   async _prettyPrintSource(

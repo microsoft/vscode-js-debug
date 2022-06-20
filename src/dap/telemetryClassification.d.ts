@@ -96,8 +96,6 @@ interface IDAPOperationClassification {
   '!enablecustombreakpoints.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   disablecustombreakpoints: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!disablecustombreakpoints.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
-  canprettyprintsource: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!canprettyprintsource.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   prettyprintsource: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!prettyprintsource.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   toggleskipfilestatus: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
@@ -124,8 +122,12 @@ interface IDAPOperationClassification {
   '!disablesourcemap.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   creatediagnostics: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!creatediagnostics.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  savediagnosticlogs: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!savediagnosticlogs.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   requestcdpproxy: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!requestcdpproxy.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   setexcludedcallers: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!setexcludedcallers.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  setsourcemapstepping: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!setsourcemapstepping.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
 }

@@ -231,19 +231,12 @@ export class Source {
   }
 
   /**
-   * Gets whether this source is able to be pretty-printed.
-   */
-  public canPrettyPrint(): boolean {
-    return this._container && !this._name.endsWith('-pretty.js');
-  }
-
-  /**
    * Pretty-prints the source. Generates a beauitified source map if possible
    * and it hasn't already been done, and returns the created map and created
    * ephemeral source. Returns undefined if the source can't be beautified.
    */
   public async prettyPrint(): Promise<{ map: SourceMap; source: Source } | undefined> {
-    if (!this._container || !this.canPrettyPrint()) {
+    if (!this._container) {
       return undefined;
     }
 
@@ -483,6 +476,7 @@ export class SourceContainer {
    */
   private readonly scriptsById: Map<Cdp.Runtime.ScriptId, Script> = new Map();
 
+  private onSourceMappedSteppingChangeEmitter = new EventEmitter<boolean>();
   private onScriptEmitter = new EventEmitter<Script>();
   private _dap: Dap.Api;
   private _sourceByOriginalUrl: Map<string, Source> = new MapUsingProjection(s => s.toLowerCase());
@@ -530,6 +524,30 @@ export class SourceContainer {
   public statistics(): IStatistics {
     return this._statistics;
   }
+
+  private _doSourceMappedStepping = this.launchConfig.sourceMaps;
+
+  /**
+   * Gets whether source stepping is enabled.
+   */
+  public get doSourceMappedStepping() {
+    return this._doSourceMappedStepping;
+  }
+
+  /**
+   * Sets whether source stepping is enabled.
+   */
+  public set doSourceMappedStepping(enabled: boolean) {
+    if (enabled !== this._doSourceMappedStepping) {
+      this._doSourceMappedStepping = enabled;
+      this.onSourceMappedSteppingChangeEmitter.fire(enabled);
+    }
+  }
+
+  /**
+   * Fires whenever `doSourceMappedStepping` is changed.
+   */
+  public readonly onSourceMappedSteppingChange = this.onSourceMappedSteppingChangeEmitter.event;
 
   constructor(
     @inject(IDapApi) dap: Dap.Api,
@@ -655,32 +673,34 @@ export class SourceContainer {
   public async preferredUiLocation(uiLocation: IUiLocation): Promise<IPreferredUiLocation> {
     let isMapped = false;
     let unmappedReason: UnmappedReason | undefined = UnmappedReason.CannotMap;
-    while (true) {
-      if (!isSourceWithMap(uiLocation.source)) {
-        break;
-      }
+    if (this._doSourceMappedStepping) {
+      while (true) {
+        if (!isSourceWithMap(uiLocation.source)) {
+          break;
+        }
 
-      const sourceMap = this._sourceMaps.get(uiLocation.source.sourceMap.url);
-      if (
-        !this.logger.assert(
-          sourceMap,
-          `Expected to have sourcemap for loaded source ${uiLocation.source.sourceMap.url}`,
-        )
-      ) {
-        break;
-      }
+        const sourceMap = this._sourceMaps.get(uiLocation.source.sourceMap.url);
+        if (
+          !this.logger.assert(
+            sourceMap,
+            `Expected to have sourcemap for loaded source ${uiLocation.source.sourceMap.url}`,
+          )
+        ) {
+          break;
+        }
 
-      await Promise.race([sourceMap.loaded, delay(this._sourceMapTimeouts.resolveLocation)]);
-      if (!sourceMap.map) return { ...uiLocation, isMapped, unmappedReason };
-      const sourceMapped = this._sourceMappedUiLocation(uiLocation, sourceMap.map);
-      if (!isUiLocation(sourceMapped)) {
-        unmappedReason = isMapped ? undefined : sourceMapped;
-        break;
-      }
+        await Promise.race([sourceMap.loaded, delay(this._sourceMapTimeouts.resolveLocation)]);
+        if (!sourceMap.map) return { ...uiLocation, isMapped, unmappedReason };
+        const sourceMapped = this._sourceMappedUiLocation(uiLocation, sourceMap.map);
+        if (!isUiLocation(sourceMapped)) {
+          unmappedReason = isMapped ? undefined : sourceMapped;
+          break;
+        }
 
-      uiLocation = sourceMapped;
-      isMapped = true;
-      unmappedReason = undefined;
+        uiLocation = sourceMapped;
+        isMapped = true;
+        unmappedReason = undefined;
+      }
     }
 
     return { ...uiLocation, isMapped, unmappedReason };
@@ -729,7 +749,7 @@ export class SourceContainer {
    * Returns all UI locations the given location maps to.
    */
   private getSourceMapUiLocations(uiLocation: IUiLocation): IUiLocation[] {
-    if (!isSourceWithMap(uiLocation.source)) return [];
+    if (!isSourceWithMap(uiLocation.source) || !this._doSourceMappedStepping) return [];
     const map = this._sourceMaps.get(uiLocation.source.sourceMap.url)?.map;
     if (!map) return [];
     const sourceMapUiLocation = this._sourceMappedUiLocation(uiLocation, map);
@@ -1078,7 +1098,7 @@ export class SourceContainer {
       const fileUrl = absolutePath && utils.absolutePathToFileUrl(absolutePath);
       const content = this.sourceMapFactory.guardSourceMapFn(
         map,
-        () => map.sourceContentFor(url),
+        () => map.sourceContentFor(url, true),
         () => null,
       );
 

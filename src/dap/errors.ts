@@ -238,6 +238,19 @@ export const sourceMapParseFailed = (compiledUrl: string, message: string) =>
     localize('sourcemapParseError', 'Could not read source map for {0}: {1}', compiledUrl, message),
   );
 
+export const uwpPipeNotAvailable = () =>
+  createUserError(
+    localize('uwpPipeNotAvailable', 'UWP webview debugging is not available on your platform.'),
+  );
+
+export const noUwpPipeFound = () =>
+  createUserError(
+    localize(
+      'noUwpPipeFound',
+      'Could not connect to any UWP Webview pipe. Make sure your webview is hosted in debug mode, and that the `pipeName` in your `launch.json` is correct.',
+    ),
+  );
+
 /**
  * Returns if the value looks like a DAP error.
  */

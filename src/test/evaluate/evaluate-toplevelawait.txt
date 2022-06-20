@@ -2,8 +2,10 @@ Evaluating: 'await Promise.resolve(1)'
 result: 1
 Evaluating: '{a:await Promise.resolve(1)}'
 > result: {a: 1}
+Evaluating: '4'
+result: 4
 Evaluating: '$_'
-> result: {a: 1}
+result: 4
 Evaluating: 'let {a,b} = await Promise.resolve({a: 1, b:2}), f = 5;'
 result: undefined
 Evaluating: 'a'

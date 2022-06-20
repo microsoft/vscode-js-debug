@@ -19,6 +19,7 @@
     "**/.DS_Store": true,
     "**/.dynamic-testWorkspace": true,
     "**/.vscode-test": true,
+    "**/demos": true,
   },
   "[typescript]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"

@@ -129,9 +129,23 @@ describe('console format', () => {
       'new Boolean(true)',
       'new Set([1, 2, 3, 4])',
       'new Set([1, 2, 3, 4, 5, 6, 7, 8])',
+      'new class { toString() { return "custom to string" } }',
     ];
     const expressions = variables.map(v => [`console.log(${v})`, `console.log([${v}])`]);
     await p.logger.evaluateAndLog(([] as string[]).concat(...expressions), { depth: 0 });
+    p.assertLog();
+  });
+
+  itIntegrates('custom toString', async ({ r }) => {
+    const p = await r.launchAndLoad('blank');
+    await p.logger.evaluateAndLog(`
+      new class A {
+        prop = new class B {
+          toString() { return "hello b" }
+        }
+        toString() { return "hello a" }
+      }
+    `);
     p.assertLog();
   });
 

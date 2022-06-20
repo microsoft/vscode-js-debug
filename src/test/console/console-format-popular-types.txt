@@ -256,3 +256,9 @@ stdout> > Set(8) {size: 8, 1, 2, 3, 4, 5, …}
 Evaluating: 'console.log([new Set([1, 2, 3, 4, 5, 6, 7, 8])])'
 stdout> > (1) [Set(8)]
 
+Evaluating: 'console.log(new class { toString() { return "custom to string" } })'
+stdout> > custom to string
+
+Evaluating: 'console.log([new class { toString() { return "custom to string" } }])'
+stdout> > (1) [{…}]
+

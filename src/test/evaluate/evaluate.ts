@@ -283,6 +283,7 @@ describe('evaluate', () => {
     const exprs = [
       'await Promise.resolve(1)',
       '{a:await Promise.resolve(1)}',
+      '4',
       '$_',
       'let {a,b} = await Promise.resolve({a: 1, b:2}), f = 5;',
       'a',
@@ -492,6 +493,12 @@ describe('evaluate', () => {
     await evaluateAtReturn('42');
     await evaluateAtReturn('{ a: { b: true } }');
     await evaluateAtReturn('undefined');
+    r.assertLog();
+  });
+
+  itIntegrates('supports bigint map keys (#1277)', async ({ r }) => {
+    const p = await r.launchUrlAndLoad('index.html');
+    await p.logger.evaluateAndLog(`new Map([[1n, 'one'], [2n, 'two']])`);
     r.assertLog();
   });
 });

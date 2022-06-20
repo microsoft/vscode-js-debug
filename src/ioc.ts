@@ -84,6 +84,7 @@ import { EdgeLauncher } from './targets/browser/edgeLauncher';
 import { RemoteBrowserAttacher } from './targets/browser/remoteBrowserAttacher';
 import { RemoteBrowserHelper } from './targets/browser/remoteBrowserHelper';
 import { RemoteBrowserLauncher } from './targets/browser/remoteBrowserLauncher';
+import { UWPWebviewBrowserAttacher } from './targets/browser/uwpWebviewBrowserAttacher';
 import { VSCodeRendererAttacher } from './targets/browser/vscodeRendererAttacher';
 import { DelegateLauncherFactory } from './targets/delegate/delegateLauncherFactory';
 import { ExtensionHostAttacher } from './targets/node/extensionHostAttacher';
@@ -266,6 +267,11 @@ export const createTopLevelSessionContainer = (parent: Container) => {
   container.bind(ILauncher).to(EdgeLauncher).inSingletonScope().onActivation(trackDispose);
   container.bind(ILauncher).to(RemoteBrowserLauncher).inSingletonScope().onActivation(trackDispose);
   container.bind(ILauncher).to(RemoteBrowserAttacher).inSingletonScope().onActivation(trackDispose);
+  container
+    .bind(ILauncher)
+    .to(UWPWebviewBrowserAttacher)
+    .inSingletonScope()
+    .onActivation(trackDispose);
 
   container.bind(ILauncher).to(BrowserAttacher).onActivation(trackDispose);
   container
