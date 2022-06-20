@@ -550,10 +550,7 @@ export class Thread implements IVariableStoreLocationProvider {
       const resultVar = await this.replVariables
         .createFloatingVariable(response.result)
         .toDap(PreviewContextType.Repl, format);
-      return {
-        variablesReference: resultVar.variablesReference,
-        result: `${contextName}${resultVar.value}`,
-      };
+      return { ...resultVar, result: `${contextName}${resultVar.value}` };
     }
   }
 
