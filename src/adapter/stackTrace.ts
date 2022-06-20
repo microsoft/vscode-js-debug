@@ -228,6 +228,7 @@ export class StackFrame implements IFrameElement {
     | undefined;
   private _scope: IScope | undefined;
   private _thread: Thread;
+  public readonly isReplEval: boolean;
 
   public get rawPosition() {
     // todo: move RawLocation to use Positions, then just return that.
@@ -239,23 +240,11 @@ export class StackFrame implements IFrameElement {
     callFrame: Cdp.Runtime.CallFrame,
     isAsync: boolean,
   ): StackFrame {
-    return new StackFrame(
-      thread,
-      callFrame,
-      thread.rawLocation(callFrame),
-      isAsync,
-      callFrame.url.endsWith(SourceConstants.ReplExtension),
-    );
+    return new StackFrame(thread, callFrame, thread.rawLocation(callFrame), isAsync);
   }
 
   static fromDebugger(thread: Thread, callFrame: Cdp.Debugger.CallFrame): StackFrame {
-    const result = new StackFrame(
-      thread,
-      callFrame,
-      thread.rawLocation(callFrame),
-      undefined,
-      callFrame.url.endsWith(SourceConstants.ReplExtension),
-    );
+    const result = new StackFrame(thread, callFrame, thread.rawLocation(callFrame));
     result._scope = {
       chain: callFrame.scopeChain,
       thisObject: callFrame.this,
@@ -272,13 +261,13 @@ export class StackFrame implements IFrameElement {
     private readonly callFrame: Cdp.Debugger.CallFrame | Cdp.Runtime.CallFrame,
     rawLocation: RawLocation,
     private readonly isAsync = false,
-    public readonly isReplEval = false,
   ) {
     this._id = ++StackFrame._lastFrameId;
     this._name = callFrame.functionName || '<anonymous>';
     this._rawLocation = rawLocation;
     this.uiLocation = once(() => thread.rawLocationToUiLocation(rawLocation));
     this._thread = thread;
+    this.isReplEval = callFrame.url.endsWith(SourceConstants.ReplExtension);
   }
 
   /**
