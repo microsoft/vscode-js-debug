@@ -1,10 +1,16 @@
 
 setExpression a: {
+    evaluateName :
+    name :
+    type : number
     value : 42
     variablesReference : <number>
 }
 
 setExpression a: {
+    evaluateName :
+    name :
+    type : string
     value : 'hello world'
     variablesReference : <number>
 }
