@@ -1099,6 +1099,11 @@ export namespace Dap {
     setSourceMapSteppingRequest(
       params: SetSourceMapSteppingParams,
     ): Promise<SetSourceMapSteppingResult>;
+
+    /**
+     * Configures whether source map stepping is enabled.
+     */
+    on(request: 'setDebuggerProperty', handler: (params: SetDebuggerPropertyParams) => void): void;
   }
 
   export interface TestApi {
@@ -3158,6 +3163,18 @@ export namespace Dap {
     breakpoints: Breakpoint[];
   }
 
+  export interface SetDebuggerPropertyParams {
+    /**
+     * The name of the property
+     */
+    name: string;
+
+    /**
+     * The value of the property
+     */
+    enabled: boolean;
+  }
+
   export interface SetExceptionBreakpointsParams {
     /**
      * Set of exception filters specified by their ID. The set of all possible exception filters is defined by the 'exceptionBreakpointFilters' capability. The 'filter' and 'filterOptions' sets are additive.
@@ -4779,6 +4796,11 @@ export namespace Dap {
      * The debug adapter supports the 'singleThread' property on the execution requests ('continue', 'next', 'stepIn', 'stepOut', 'reverseContinue', 'stepBack').
      */
     supportsSingleThreadExecutionRequests?: boolean;
+
+    /**
+     * The debug adapter supports receiving debugger properties.
+     */
+    supportsDebuggerProperties?: boolean;
   }
 
   /**

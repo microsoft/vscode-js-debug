@@ -117,6 +117,11 @@ export class DebugAdapter implements IDisposable {
     this.dap.on('setExcludedCallers', params => this._onSetExcludedCallers(params));
     this.dap.on('saveDiagnosticLogs', ({ toFile }) => this._saveDiagnosticLogs(toFile));
     this.dap.on('setSourceMapStepping', params => this._setSourceMapStepping(params));
+    this.dap.on('setDebuggerProperty', params => this._setDebuggerProperty(params));
+  }
+
+  private _setDebuggerProperty(params: Dap.SetDebuggerPropertyParams) {
+    this._thread?.cdp().DotnetDebugger.setDebuggerProperty(params);
   }
 
   private _setSourceMapStepping({
@@ -214,6 +219,7 @@ export class DebugAdapter implements IDisposable {
       supportsBreakpointLocationsRequest: true,
       supportsClipboardContext: true,
       supportsExceptionFilterOptions: true,
+      supportsDebuggerProperties: true,
       //supportsDataBreakpoints: false,
       //supportsDisassembleRequest: false,
     };

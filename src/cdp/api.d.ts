@@ -40,6 +40,7 @@ export namespace Cdp {
     DOMDebugger: DOMDebuggerApi;
     DOMSnapshot: DOMSnapshotApi;
     DOMStorage: DOMStorageApi;
+    DotnetDebugger: DotnetDebuggerApi;
     Emulation: EmulationApi;
     EventBreakpoints: EventBreakpointsApi;
     Fetch: FetchApi;
@@ -9639,6 +9640,31 @@ export namespace Cdp {
     export type Item = string[];
   }
 
+  /**
+   * Methods and events of the 'DotnetDebuggerApi' domain.
+   */
+   export interface DotnetDebuggerApi {
+    /**
+     * Set debugger property value.
+     */
+    setDebuggerProperty(params: DotnetDebugger.SetDebuggerPropertyParams): void;
+   }
+
+   /**
+   * Types of the 'DotnetDebugger' domain.
+   */
+  export namespace DotnetDebugger {
+    /**
+     * Parameters of the 'DotnetDebugger.setDebuggerProperty' method.
+     */
+    export interface SetDebuggerPropertyParams {
+      /**
+       * Whether to enable to disable debugger property.
+       */
+      name: string;
+      enabled: boolean;
+    }
+  }
   /**
    * Methods and events of the 'Emulation' domain.
    */
