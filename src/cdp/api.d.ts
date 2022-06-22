@@ -9659,7 +9659,7 @@ export namespace Cdp {
      */
     export interface SetDebuggerPropertyParams {
       /**
-       * Whether to enable to disable debugger property.
+       * Whether to enable or disable debugger property.
        */
       name: string;
       enabled: boolean;
