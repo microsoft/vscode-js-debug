@@ -1101,7 +1101,7 @@ export namespace Dap {
     ): Promise<SetSourceMapSteppingResult>;
 
     /**
-     * Configures whether source map stepping is enabled.
+     * Receives the debugger properties and passes it to IDE
      */
     on(request: 'setDebuggerProperty', handler: (params: SetDebuggerPropertyParams) => void): void;
   }
