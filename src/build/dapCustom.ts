@@ -563,6 +563,28 @@ const dapCustom: JSONSchema4 = {
       },
       required: ['enabled'],
     }),
+
+    ...makeRequest('setDebuggerProperty', 'Sets debugger properties.', {
+      properties: {
+        params: {
+          $ref: '#/definitions/SetDebuggerPropertyParams',
+        },
+      },
+      required: ['params'],
+    }),
+
+    SetDebuggerPropertyParams: {
+      type: 'object',
+      required: ['name', 'value'],
+      properties: {
+        name: {
+          type: 'string',
+        },
+        value: {
+          type: 'any',
+        },
+      },
+    },
   },
 };
 

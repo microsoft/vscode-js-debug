@@ -122,6 +122,8 @@ interface ICDPOperationClassification {
   'domstorage.domstorageitemscleared': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!domstorage.domstorageitemscleared.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
 
+  // Domain: DotnetDebugger
+
   // Domain: Emulation
   'emulation.virtualtimebudgetexpired': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!emulation.virtualtimebudgetexpired.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };

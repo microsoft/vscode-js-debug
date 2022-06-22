@@ -1101,9 +1101,18 @@ export namespace Dap {
     ): Promise<SetSourceMapSteppingResult>;
 
     /**
-     * Receives the debugger properties and passes it to IDE
+     * Sets debugger properties.
      */
-    on(request: 'setDebuggerProperty', handler: (params: SetDebuggerPropertyParams) => void): void;
+    on(
+      request: 'setDebuggerProperty',
+      handler: (params: SetDebuggerPropertyParams) => Promise<SetDebuggerPropertyResult | Error>,
+    ): () => void;
+    /**
+     * Sets debugger properties.
+     */
+    setDebuggerPropertyRequest(
+      params: SetDebuggerPropertyParams,
+    ): Promise<SetDebuggerPropertyResult>;
   }
 
   export interface TestApi {
@@ -1844,6 +1853,11 @@ export namespace Dap {
      * Configures whether source map stepping is enabled.
      */
     setSourceMapStepping(params: SetSourceMapSteppingParams): Promise<SetSourceMapSteppingResult>;
+
+    /**
+     * Sets debugger properties.
+     */
+    setDebuggerProperty(params: SetDebuggerPropertyParams): Promise<SetDebuggerPropertyResult>;
   }
 
   export interface AttachParams {
@@ -3164,16 +3178,10 @@ export namespace Dap {
   }
 
   export interface SetDebuggerPropertyParams {
-    /**
-     * The name of the property
-     */
-    name: string;
-
-    /**
-     * The value of the property
-     */
-    enabled: boolean;
+    params: SetDebuggerPropertyParams;
   }
+
+  export interface SetDebuggerPropertyResult {}
 
   export interface SetExceptionBreakpointsParams {
     /**
@@ -4030,6 +4038,12 @@ export namespace Dap {
     condition?: string;
   }
 
+  export interface SetDebuggerPropertyParams {
+    name: string;
+
+    value: any;
+  }
+
   /**
    * Properties of a data breakpoint passed to the setDataBreakpoints request.
    */
@@ -4796,11 +4810,6 @@ export namespace Dap {
      * The debug adapter supports the 'singleThread' property on the execution requests ('continue', 'next', 'stepIn', 'stepOut', 'reverseContinue', 'stepBack').
      */
     supportsSingleThreadExecutionRequests?: boolean;
-
-    /**
-     * The debug adapter supports receiving debugger properties.
-     */
-    supportsDebuggerProperties?: boolean;
   }
 
   /**

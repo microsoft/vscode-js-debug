@@ -39,6 +39,9 @@ import { VariableStore } from './variableStore';
 
 const localize = nls.loadMessageBundle();
 
+export interface DapCapabilitiesExtended extends Dap.Capabilities {
+  supportsDebuggerProperties?: boolean;
+}
 // This class collects configuration issued before "launch" request,
 // to be applied after launch.
 export class DebugAdapter implements IDisposable {
@@ -120,8 +123,11 @@ export class DebugAdapter implements IDisposable {
     this.dap.on('setDebuggerProperty', params => this._setDebuggerProperty(params));
   }
 
-  private _setDebuggerProperty(params: Dap.SetDebuggerPropertyParams) {
+  private _setDebuggerProperty(
+    params: Dap.SetDebuggerPropertyParams,
+  ): Promise<Dap.SetDebuggerPropertyResult> {
     this._thread?.cdp().DotnetDebugger.setDebuggerProperty(params);
+    return Promise.resolve({});
   }
 
   private _setSourceMapStepping({
@@ -162,7 +168,7 @@ export class DebugAdapter implements IDisposable {
     return capabilities;
   }
 
-  static capabilities(): Dap.Capabilities {
+  static capabilities(): DapCapabilitiesExtended {
     return {
       supportsConfigurationDoneRequest: true,
       supportsFunctionBreakpoints: false,

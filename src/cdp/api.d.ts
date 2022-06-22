@@ -9641,16 +9641,18 @@ export namespace Cdp {
   }
 
   /**
-   * Methods and events of the 'DotnetDebuggerApi' domain.
+   * Methods and events of the 'DotnetDebugger' domain.
    */
-   export interface DotnetDebuggerApi {
+  export interface DotnetDebuggerApi {
     /**
-     * Set debugger property value.
+     * Sets debugger properties.
      */
-    setDebuggerProperty(params: DotnetDebugger.SetDebuggerPropertyParams): void;
-   }
+    setDebuggerProperty(
+      params: DotnetDebugger.SetDebuggerPropertyParams,
+    ): Promise<DotnetDebugger.SetDebuggerPropertyResult | undefined>;
+  }
 
-   /**
+  /**
    * Types of the 'DotnetDebugger' domain.
    */
   export namespace DotnetDebugger {
@@ -9658,13 +9660,27 @@ export namespace Cdp {
      * Parameters of the 'DotnetDebugger.setDebuggerProperty' method.
      */
     export interface SetDebuggerPropertyParams {
+      params: SetDebuggerPropertyParams;
+    }
+
+    /**
+     * Return value of the 'DotnetDebugger.setDebuggerProperty' method.
+     */
+    export interface SetDebuggerPropertyResult {}
+
+    export interface SetDebuggerPropertyParams {
       /**
-       * Whether to enable or disable debugger property.
+       * Name of the debugger property.
        */
       name: string;
-      enabled: boolean;
+
+      /**
+       * Value of the property.
+       */
+      value: any;
     }
   }
+
   /**
    * Methods and events of the 'Emulation' domain.
    */
