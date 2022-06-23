@@ -9645,7 +9645,7 @@ export namespace Cdp {
    */
   export interface DotnetDebuggerApi {
     /**
-     * Sets debugger properties.
+     * Sets a debugger property.
      */
     setDebuggerProperty(
       params: DotnetDebugger.SetDebuggerPropertyParams,
@@ -9668,16 +9668,11 @@ export namespace Cdp {
      */
     export interface SetDebuggerPropertyResult {}
 
+    /**
+     * Arguments for "setDebuggerProperty" request. Properties are determined by debugger.
+     */
     export interface SetDebuggerPropertyParams {
-      /**
-       * Name of the debugger property.
-       */
-      name: string;
-
-      /**
-       * Value of the property.
-       */
-      value: any;
+      [key: string]: any;
     }
   }
 

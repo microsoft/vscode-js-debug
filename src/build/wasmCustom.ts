@@ -15,24 +15,14 @@ export default {
         {
           id: 'SetDebuggerPropertyParams',
           type: 'object',
-          properties: [
-            {
-              name: 'name',
-              description: 'Name of the debugger property.',
-              type: 'string',
-            },
-            {
-              name: 'value',
-              description: 'Value of the property.',
-              type: 'any',
-            },
-          ],
+          description:
+            'Arguments for "setDebuggerProperty" request. Properties are determined by debugger.',
         },
       ],
       commands: [
         {
           name: 'setDebuggerProperty',
-          description: 'Sets debugger properties.',
+          description: 'Sets a debugger property.',
           parameters: [
             {
               name: 'params',

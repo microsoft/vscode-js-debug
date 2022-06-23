@@ -4038,11 +4038,10 @@ export namespace Dap {
     condition?: string;
   }
 
-  export interface SetDebuggerPropertyParams {
-    name: string;
-
-    value: any;
-  }
+  /**
+   * Arguments for "setDebuggerProperty" request. Properties are determined by debugger.
+   */
+  export interface SetDebuggerPropertyParams {}
 
   /**
    * Properties of a data breakpoint passed to the setDataBreakpoints request.
