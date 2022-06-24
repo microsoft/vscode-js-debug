@@ -4,7 +4,7 @@
 
 import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
-import { once } from '../common/objUtils';
+import { once, posInt32Counter } from '../common/objUtils';
 import { Base0Position } from '../common/positions';
 import Dap from '../dap/api';
 import { asyncScopesNotAvailable } from '../dap/errors';
@@ -17,6 +17,8 @@ import { IExtraProperty, IScopeRef, IVariableContainer } from './variableStore';
 const localize = nls.loadMessageBundle();
 
 export interface IFrameElement {
+  /** DAP stack frame ID */
+  frameId: number;
   /** Formats the stack element as V8 would format it */
   formatAsNative(): Promise<string>;
   /** Pretty formats the stack element as text */
@@ -146,7 +148,7 @@ export class StackTrace {
   _appendFrame(frame: FrameElement) {
     this.frames.push(frame);
     if (frame instanceof StackFrame) {
-      this._frameById.set(frame._id, frame);
+      this._frameById.set(frame.frameId, frame);
     }
   }
 
@@ -200,7 +202,11 @@ interface IScope {
   callFrameId: string;
 }
 
+const frameIdCounter = posInt32Counter();
+
 export class AsyncSeparator implements IFrameElement {
+  public readonly frameId = frameIdCounter();
+
   constructor(private readonly label = 'async') {}
 
   public async toDap(): Promise<Dap.StackFrame> {
@@ -217,9 +223,8 @@ export class AsyncSeparator implements IFrameElement {
 }
 
 export class StackFrame implements IFrameElement {
-  private static _lastFrameId = 0;
+  public readonly frameId = frameIdCounter();
 
-  _id: number;
   private _name: string;
   private _rawLocation: RawLocation;
   public readonly uiLocation: () =>
@@ -262,7 +267,6 @@ export class StackFrame implements IFrameElement {
     rawLocation: RawLocation,
     private readonly isAsync = false,
   ) {
-    this._id = ++StackFrame._lastFrameId;
     this._name = callFrame.functionName || '<anonymous>';
     this._rawLocation = rawLocation;
     this.uiLocation = once(() => thread.rawLocationToUiLocation(rawLocation));
@@ -403,7 +407,7 @@ export class StackFrame implements IFrameElement {
     }
 
     return {
-      id: this._id,
+      id: this.frameId,
       name: formattedName, // TODO: Use params to format the name
       line,
       column,

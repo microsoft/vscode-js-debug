@@ -1148,4 +1148,57 @@ describe('breakpoints', () => {
     await waitForPause(p);
     p.assertLog();
   });
+
+  itIntegrates('stepInTargets', async ({ r }) => {
+    const p = await r.launchUrl('stepInTargets.html');
+    const src = p.waitForSource('stepInTargets.js');
+    await p.load();
+
+    await p.dap.setBreakpoints({
+      source: (await src).source,
+      breakpoints: [
+        { line: 4, column: 1 },
+        { line: 5, column: 1 },
+      ],
+    });
+
+    const evaluation = p.dap.evaluate({ expression: 'doTest()' });
+
+    // line 3
+    {
+      const { threadId: threadId1 } = p.log(await p.dap.once('stopped'));
+      const { stackFrames } = await p.dap.stackTrace({ threadId: threadId1 });
+
+      const { targets } = p.log(
+        await p.dap.stepInTargets({ frameId: stackFrames[0].id }),
+        'stepInTargets line 3',
+      );
+
+      p.log(
+        await p.dap.stepIn({ threadId: threadId1, targetId: targets[0].id }),
+        'step in new Foo()',
+      );
+      await waitForPause(p);
+    }
+
+    // line 4
+    {
+      const { threadId: threadId1 } = p.log(await p.dap.once('stopped'));
+      const { stackFrames } = await p.dap.stackTrace({ threadId: threadId1 });
+
+      const { targets } = p.log(
+        await p.dap.stepInTargets({ frameId: stackFrames[0].id }),
+        'stepInTargets line 4',
+      );
+
+      p.log(
+        await p.dap.stepIn({ threadId: threadId1, targetId: targets[2].id }),
+        'step in new Foo().bar()',
+      );
+      await waitForPause(p);
+    }
+
+    await evaluation;
+    p.assertLog();
+  });
 });
