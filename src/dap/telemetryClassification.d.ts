@@ -132,4 +132,6 @@ interface IDAPOperationClassification {
   '!setsourcemapstepping.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   setdebuggerproperty: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!setdebuggerproperty.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  capabilitiesextended: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!capabilitiesextended.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
 }

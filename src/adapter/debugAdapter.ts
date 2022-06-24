@@ -39,9 +39,6 @@ import { VariableStore } from './variableStore';
 
 const localize = nls.loadMessageBundle();
 
-export interface DapCapabilitiesExtended extends Dap.Capabilities {
-  supportsDebuggerProperties?: boolean;
-}
 // This class collects configuration issued before "launch" request,
 // to be applied after launch.
 export class DebugAdapter implements IDisposable {
@@ -168,7 +165,7 @@ export class DebugAdapter implements IDisposable {
     return capabilities;
   }
 
-  static capabilities(): DapCapabilitiesExtended {
+  static capabilities(): Dap.CapabilitiesExtended {
     return {
       supportsConfigurationDoneRequest: true,
       supportsFunctionBreakpoints: false,

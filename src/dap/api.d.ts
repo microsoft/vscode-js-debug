@@ -1113,6 +1113,20 @@ export namespace Dap {
     setDebuggerPropertyRequest(
       params: SetDebuggerPropertyParams,
     ): Promise<SetDebuggerPropertyResult>;
+
+    /**
+     * The event indicates that one or more capabilities have changed.
+     */
+    on(
+      request: 'capabilitiesExtended',
+      handler: (params: CapabilitiesExtendedParams) => Promise<CapabilitiesExtendedResult | Error>,
+    ): () => void;
+    /**
+     * The event indicates that one or more capabilities have changed.
+     */
+    capabilitiesExtendedRequest(
+      params: CapabilitiesExtendedParams,
+    ): Promise<CapabilitiesExtendedResult>;
   }
 
   export interface TestApi {
@@ -1858,6 +1872,11 @@ export namespace Dap {
      * Sets debugger properties.
      */
     setDebuggerProperty(params: SetDebuggerPropertyParams): Promise<SetDebuggerPropertyResult>;
+
+    /**
+     * The event indicates that one or more capabilities have changed.
+     */
+    capabilitiesExtended(params: CapabilitiesExtendedParams): Promise<CapabilitiesExtendedResult>;
   }
 
   export interface AttachParams {
@@ -1939,6 +1958,12 @@ export namespace Dap {
      */
     capabilities: Capabilities;
   }
+
+  export interface CapabilitiesExtendedParams {
+    params: CapabilitiesExtended;
+  }
+
+  export interface CapabilitiesExtendedResult {}
 
   export interface CompletionsParams {
     /**
@@ -4610,6 +4635,10 @@ export namespace Dap {
    * Some predefined types for the CompletionItem. Please note that not all clients have specific icons for all of them.
    */
   export type CompletionItemType = string;
+
+  export interface CapabilitiesExtended extends Capabilities {
+    supportsDebuggerProperties?: boolean;
+  }
 
   /**
    * Information about the capabilities of a debug adapter.
