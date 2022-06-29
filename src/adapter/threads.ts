@@ -2,18 +2,20 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { randomBytes } from 'crypto';
 import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
 import { DebugType } from '../common/contributionUtils';
 import { EventEmitter } from '../common/events';
 import { HrTime } from '../common/hrnow';
 import { ILogger, LogTag } from '../common/logging';
-import { isInstanceOf } from '../common/objUtils';
+import { isInstanceOf, truthy } from '../common/objUtils';
 import { Base1Position } from '../common/positions';
 import { delay, getDeferred, IDeferred } from '../common/promiseUtil';
 import { IRenameProvider } from '../common/sourceMaps/renameProvider';
 import * as sourceUtils from '../common/sourceUtils';
 import { StackTraceParser } from '../common/stackTraceParser';
+import { PositionToOffset } from '../common/stringUtils';
 import * as urlUtils from '../common/urlUtils';
 import { fileUrlToAbsolutePath } from '../common/urlUtils';
 import { AnyLaunchConfiguration, IChromiumBaseConfiguration, OutputSource } from '../configuration';
@@ -22,7 +24,7 @@ import * as errors from '../dap/errors';
 import { ProtocolError } from '../dap/protocolError';
 import { NodeWorkerTarget } from '../targets/node/nodeWorkerTarget';
 import { ITarget } from '../targets/targets';
-import { BreakpointManager, EntryBreakpointMode } from './breakpoints';
+import { BreakpointManager, EntryBreakpointMode, IPossibleBreakLocation } from './breakpoints';
 import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
 import { ICompletions } from './completions';
 import { ExceptionMessage, IConsole, QueryObjectsMessage } from './console';
@@ -77,6 +79,7 @@ export interface IPausedDetails {
   event: Cdp.Debugger.PausedEvent;
   description: string;
   stackTrace: StackTrace;
+  stepInTargets?: IPossibleBreakLocation[];
   hitBreakpoints?: string[];
   text?: string;
   exception?: Cdp.Runtime.RemoteObject;
@@ -141,6 +144,9 @@ const sourcesEqual = (a: Dap.Source, b: Dap.Source) =>
   a.sourceReference === b.sourceReference &&
   urlUtils.comparePathsWithoutCasing(a.path || '', b.path || '');
 
+const getReplSourceSuffix = () =>
+  `\n//# sourceURL=eval-${randomBytes(4).toString('hex')}${SourceConstants.ReplExtension}\n`;
+
 export class Thread implements IVariableStoreLocationProvider {
   private static _lastThreadId = 0;
   public readonly id: number;
@@ -170,10 +176,15 @@ export class Thread implements IVariableStoreLocationProvider {
 
   /**
    * Details set when a "step in" is issued. Used allow async stepping in
-   * sourcemapped worker scripts.
+   * sourcemapped worker scripts, and step in targets.
    * @see https://github.com/microsoft/vscode-js-debug/issues/223
    */
-  private _waitingForStepIn?: IPausedDetails;
+  private _waitingForStepIn?: {
+    // Last paused details
+    lastDetails?: IPausedDetails;
+    // Target we're stepping into, if we stepped into a target
+    intoTargetBreakpoint?: Cdp.Debugger.BreakpointId;
+  };
 
   public readonly onPaused = this._onPausedEmitter.event;
 
@@ -261,12 +272,23 @@ export class Thread implements IVariableStoreLocationProvider {
     return errors.createSilentError(localize('error.stepOverDidFail', 'Unable to step next'));
   }
 
-  async stepInto(): Promise<Dap.StepInResult | Dap.Error> {
-    this._waitingForStepIn = this._pausedDetails;
+  async stepInto(targetId?: number): Promise<Dap.StepInResult | Dap.Error> {
+    this._waitingForStepIn = { lastDetails: this._pausedDetails };
     this._expectedPauseReason = { reason: 'step', direction: StepDirection.In };
 
-    if (await this._cdp.Debugger.stepInto({ breakOnAsyncCall: true })) {
-      return {};
+    const stepInTarget = this._pausedDetails?.stepInTargets?.[targetId as number];
+    if (stepInTarget) {
+      const breakpoint = await this._cdp.Debugger.setBreakpoint({
+        location: stepInTarget.breakLocation,
+      });
+      this._waitingForStepIn.intoTargetBreakpoint = breakpoint?.breakpointId;
+      if (await this._cdp.Debugger.resume({})) {
+        return {};
+      }
+    } else {
+      if (await this._cdp.Debugger.stepInto({ breakOnAsyncCall: true })) {
+        return {};
+      }
     }
 
     return errors.createSilentError(localize('error.stepInDidFail', 'Unable to step in'));
@@ -469,6 +491,7 @@ export class Thread implements IVariableStoreLocationProvider {
           params.awaitPromise = true;
         }
       }
+      params.expression += getReplSourceSuffix();
     }
 
     if (args.evaluationOptions)
@@ -556,10 +579,7 @@ export class Thread implements IVariableStoreLocationProvider {
       const resultVar = await this.replVariables
         .createFloatingVariable(response.result)
         .toDap(PreviewContextType.Repl, format);
-      return {
-        variablesReference: resultVar.variablesReference,
-        result: `${contextName}${resultVar.value}`,
-      };
+      return { ...resultVar, result: `${contextName}${resultVar.value}` };
     }
   }
 
@@ -624,6 +644,106 @@ export class Thread implements IVariableStoreLocationProvider {
 
   dapInitialized() {
     this._dap.resolve();
+  }
+
+  /**
+   * Implements DAP `stepInTargets` request.
+   *
+   * @todo location information is patched in until ratification of
+   * https://github.com/microsoft/debug-adapter-protocol/issues/274
+   */
+  public async getStepInTargets(frameId: number): Promise<
+    (Dap.StepInTarget & {
+      line?: number;
+      column?: number;
+      endLine?: number;
+      endColumn?: number;
+    })[]
+  > {
+    const pausedDetails = this._pausedDetails;
+    if (!pausedDetails) {
+      return [];
+    }
+
+    const frame = pausedDetails.stackTrace.frames.find(f => f.frameId === frameId);
+    if (!(frame instanceof StackFrame)) {
+      return [];
+    }
+
+    const pausedLocation = await frame.uiLocation();
+    if (!pausedLocation) {
+      return [];
+    }
+
+    const rawPausedLocation = pausedDetails.event.callFrames[0].location;
+    const [locations, content] = await Promise.all([
+      this._breakpointManager
+        .getBreakpointLocations(
+          this,
+          pausedLocation.source,
+          new Base1Position(pausedLocation.lineNumber, 1),
+          new Base1Position(pausedLocation.lineNumber + 1, 1),
+        )
+        .then(l =>
+          // remove the currently-paused location
+          l.filter(
+            l =>
+              l.breakLocation.lineNumber !== rawPausedLocation.lineNumber ||
+              l.breakLocation.columnNumber !== rawPausedLocation.columnNumber,
+          ),
+        ),
+      pausedLocation.source.content(),
+    ]);
+
+    // V8's breakpoint locations are placed directly before the function to
+    // be called, which is perfect, e.g `this.*greet()`. However, once mapped,
+    // many tools will make the entire `this.greet(` a single range, which
+    // means default behavior of reading the next word will not give a good
+    // location. Instead, look over the source content manually to build ranges.
+
+    const idStart = pausedDetails.stepInTargets?.length || 0;
+    pausedDetails.stepInTargets = pausedDetails.stepInTargets?.concat(locations) || locations;
+
+    const lines = content && new PositionToOffset(content);
+
+    return locations
+      .map((location, i) => {
+        const preferred = location.uiLocations.find(l => l.source === pausedLocation.source);
+        if (!preferred) {
+          return;
+        }
+
+        if (!lines) {
+          return {
+            id: idStart + i,
+            label: `Column ${preferred}`,
+            line: preferred.lineNumber,
+            column: preferred.columnNumber,
+          };
+        }
+
+        const target = sourceUtils.getStepTargetInfo(
+          content.slice(
+            lines.getLineOffset(preferred.lineNumber - 1),
+            lines.getLineOffset(preferred.lineNumber),
+          ),
+          preferred.columnNumber - 1,
+        );
+
+        if (!target) {
+          return;
+        }
+
+        return {
+          id: idStart + i,
+          label: target.text,
+          line: preferred.lineNumber,
+          column: target.start + 1,
+          endLine: preferred.lineNumber,
+          endColumn: target.end + 1,
+        };
+      })
+      .filter(truthy);
   }
 
   async refreshStackTrace() {
@@ -727,6 +847,20 @@ export class Thread implements IVariableStoreLocationProvider {
       if (!wantsPause) {
         return this.resume();
       }
+    }
+
+    const stepInBreakpoint = this._waitingForStepIn?.intoTargetBreakpoint;
+    if (stepInBreakpoint) {
+      if (event.hitBreakpoints?.includes(stepInBreakpoint)) {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        this._waitingForStepIn!.intoTargetBreakpoint = undefined;
+        await this._cdp.Debugger.removeBreakpoint({ breakpointId: stepInBreakpoint });
+        await this._cdp.Debugger.stepInto({ breakOnAsyncCall: false });
+      } else {
+        this.resume();
+      }
+
+      return;
     }
 
     if (isInspectBrk) {
@@ -1513,11 +1647,11 @@ export class Thread implements IVariableStoreLocationProvider {
     }
 
     const parent = Thread.threadForDebuggerId(event.asyncStackTraceId.debuggerId);
-    if (!parent || !parent._waitingForStepIn) {
+    if (!parent || !parent._waitingForStepIn?.lastDetails) {
       return false;
     }
 
-    const originalStack = parent._waitingForStepIn.stackTrace;
+    const originalStack = parent._waitingForStepIn.lastDetails.stackTrace;
     return parent._cdp.Debugger.getStackTrace({ stackTraceId: event.asyncStackTraceId }).then(
       trace => {
         if (!trace || !trace.stackTrace.callFrames.length) {

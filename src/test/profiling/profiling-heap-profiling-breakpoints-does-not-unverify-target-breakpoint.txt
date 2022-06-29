@@ -2,7 +2,7 @@
     breakpoints : [
         [0] : {
             column : 16
-            id : 1
+            id : 0
             line : 6
             source : {
                 name : simpleNode/profilePlayground.js
@@ -13,7 +13,7 @@
         }
         [1] : {
             column : 3
-            id : 2
+            id : 1
             line : 17
             source : {
                 name : simpleNode/profilePlayground.js
@@ -26,7 +26,7 @@
 }
 {
     breakpoint : {
-        id : 1
+        id : 0
         message : Unbound breakpoint
         verified : false
     }
@@ -35,7 +35,7 @@
 {
     breakpoint : {
         column : 16
-        id : 1
+        id : 0
         line : 6
         source : {
             name : simpleNode/profilePlayground.js

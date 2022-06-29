@@ -143,7 +143,7 @@ export class Logger {
     result: Dap.EvaluateResult,
     options?: ILogOptions,
   ): Promise<Dap.Variable> {
-    const variable = { name: 'result', value: result.result, ...result };
+    const variable = { ...result, name: 'result', value: result.result };
     await this.logVariable(variable, options);
     return variable;
   }

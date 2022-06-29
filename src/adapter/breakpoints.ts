@@ -6,6 +6,7 @@ import { inject, injectable } from 'inversify';
 import Cdp from '../cdp/api';
 import { ILogger, LogTag } from '../common/logging';
 import { bisectArray, flatten } from '../common/objUtils';
+import { IPosition } from '../common/positions';
 import { delay } from '../common/promiseUtil';
 import { SourceMap } from '../common/sourceMaps/sourceMap';
 import * as urlUtils from '../common/urlUtils';
@@ -71,6 +72,11 @@ const DontCompare = Symbol('DontCompare');
 export const enum EntryBreakpointMode {
   Exact,
   Greedy,
+}
+
+export interface IPossibleBreakLocation {
+  uiLocations: IUiLocation[];
+  breakLocation: Cdp.Debugger.BreakLocation;
 }
 
 @injectable()
@@ -287,25 +293,22 @@ export class BreakpointManager {
    */
   public async getBreakpointLocations(
     thread: Thread,
-    request: Dap.BreakpointLocationsParams,
-  ): Promise<Dap.BreakpointLocation[]> {
-    // Find the source we're querying in, then resolve all possibly sourcemapped
-    // locations for that script.
-    const source = this._sourceContainer.source(request.source);
-    if (!source) {
-      return [];
-    }
-
+    source: Source,
+    start: IPosition,
+    end: IPosition,
+  ) {
+    const start1 = start.base1;
     const startLocations = this._sourceContainer.currentSiblingUiLocations({
       source,
-      lineNumber: request.line,
-      columnNumber: request.column === undefined ? 1 : request.column,
+      lineNumber: start1.lineNumber,
+      columnNumber: start1.columnNumber,
     });
 
+    const end1 = end.base1;
     const endLocations = this._sourceContainer.currentSiblingUiLocations({
       source,
-      lineNumber: request.endLine === undefined ? request.line + 1 : request.endLine,
-      columnNumber: request.endColumn === undefined ? 1 : request.endColumn,
+      lineNumber: end1.lineNumber,
+      columnNumber: end1.columnNumber,
     });
 
     // As far as I know the number of start and end locations should be the
@@ -321,7 +324,8 @@ export class BreakpointManager {
     // For each viable location, attempt to identify its script ID and then ask
     // Chrome for the breakpoints in the given range. For almost all scripts
     // we'll only every find one viable location with a script.
-    const todo: Promise<Dap.BreakpointLocation[]>[] = [];
+    const todo: Promise<void>[] = [];
+    const result: IPossibleBreakLocation[] = [];
     for (let i = 0; i < startLocations.length; i++) {
       const start = startLocations[i];
       const end = endLocations[i];
@@ -354,39 +358,28 @@ export class BreakpointManager {
           })
           .then(r => {
             if (!r) {
-              return [];
+              return;
             }
 
             // Map the locations from CDP back to their original source positions.
             // Discard any that map outside of the source we're interested in,
             // which is possible (e.g. if a section of code from one source is
             // inlined amongst the range we request).
-            const result: Dap.BreakpointLocation[] = [];
-            for (const location of r.locations) {
-              const { lineNumber, columnNumber = 0 } = location;
-              const sourceLocations = this._sourceContainer.currentSiblingUiLocations(
-                {
-                  source: lsrc,
-                  ...rawToUiOffset(
-                    base0To1({ lineNumber, columnNumber }),
-                    lsrc.runtimeScriptOffset,
-                  ),
-                },
-                source,
-              );
+            for (const breakLocation of r.locations) {
+              const { lineNumber, columnNumber = 0 } = breakLocation;
+              const uiLocations = this._sourceContainer.currentSiblingUiLocations({
+                source: lsrc,
+                ...rawToUiOffset(base0To1({ lineNumber, columnNumber }), lsrc.runtimeScriptOffset),
+              });
 
-              for (const srcLocation of sourceLocations) {
-                result.push({ line: srcLocation.lineNumber, column: srcLocation.columnNumber });
-              }
+              result.push({ breakLocation, uiLocations });
             }
-
-            return result;
           }),
       );
     }
+    await Promise.all(todo);
 
-    // Gather our results and flatten the array.
-    return (await Promise.all(todo)).reduce((acc, r) => [...acc, ...r], []);
+    return result;
   }
 
   /**

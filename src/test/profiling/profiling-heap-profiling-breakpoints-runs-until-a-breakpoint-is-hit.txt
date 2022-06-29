@@ -11,7 +11,7 @@ finished profile{
 reenabled breakpoint{
     breakpoint : {
         column : 1
-        id : 1
+        id : 0
         line : 20
         source : {
             name : simpleNode/profilePlayground.js

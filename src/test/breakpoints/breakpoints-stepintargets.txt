@@ -1,0 +1,74 @@
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+stepInTargets line 3{
+    targets : [
+        [0] : {
+            column : 16
+            endColumn : 19
+            endLine : 4
+            id : <number>
+            label : Foo(...)
+            line : 4
+        }
+    ]
+}
+step in new Foo(){
+}
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+Foo @ ${workspaceFolder}/web/stepInTargets.js:2:3
+doTest @ ${workspaceFolder}/web/stepInTargets.js:4:12
+<anonymous> @ <eval>/VM<xx>:1:1
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+stepInTargets line 4{
+    targets : [
+        [0] : {
+            column : 12
+            endColumn : 20
+            endLine : 5
+            id : <number>
+            label : identity(...)
+            line : 5
+        }
+        [1] : {
+            column : 25
+            endColumn : 28
+            endLine : 5
+            id : <number>
+            label : Foo(...)
+            line : 5
+        }
+        [2] : {
+            column : 21
+            endColumn : 34
+            endLine : 5
+            id : <number>
+            label : new Foo().bar(...)
+            line : 5
+        }
+    ]
+}
+step in new Foo().bar(){
+}
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+bar @ ${workspaceFolder}/web/stepInTargets.js:2:23
+doTest @ ${workspaceFolder}/web/stepInTargets.js:5:31
+<anonymous> @ <eval>/VM<xx>:1:1

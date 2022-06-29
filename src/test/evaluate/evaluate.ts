@@ -153,6 +153,14 @@ describe('evaluate', () => {
     await p.logger.logOutput(e3);
     p.log('');
 
+    // vscode#152643
+    await p.logger.evaluateAndLog(
+      `new Uint8Array(100_000).fill(0)`,
+      { logInternalInfo: true, depth: 0 },
+      'repl',
+    );
+    p.log('');
+
     p.assertLog();
   });
 

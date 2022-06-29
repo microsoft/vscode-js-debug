@@ -4,7 +4,7 @@
 
 import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
-import { once } from '../common/objUtils';
+import { once, posInt32Counter } from '../common/objUtils';
 import { Base0Position } from '../common/positions';
 import Dap from '../dap/api';
 import { asyncScopesNotAvailable } from '../dap/errors';
@@ -17,6 +17,8 @@ import { IExtraProperty, IScopeRef, IVariableContainer } from './variableStore';
 const localize = nls.loadMessageBundle();
 
 export interface IFrameElement {
+  /** DAP stack frame ID */
+  frameId: number;
   /** Formats the stack element as V8 would format it */
   formatAsNative(): Promise<string>;
   /** Pretty formats the stack element as text */
@@ -151,19 +153,31 @@ export class StackTrace {
   _appendFrame(frame: FrameElement) {
     this.frames.push(frame);
     if (frame instanceof StackFrame) {
-      this._frameById.set(frame._id, frame);
+      this._frameById.set(frame.frameId, frame);
     }
   }
 
   async formatAsNative(): Promise<string> {
-    const stackFrames = await this.loadFrames(50);
-    const promises = stackFrames.map(frame => frame.formatAsNative());
-    return (await Promise.all(promises)).join('\n') + '\n';
+    return await this.formatWithMapper(frame => frame.formatAsNative());
   }
 
   async format(): Promise<string> {
-    const stackFrames = await this.loadFrames(50);
-    const promises = stackFrames.map(frame => frame.format());
+    return await this.formatWithMapper(frame => frame.format());
+  }
+
+  private async formatWithMapper(
+    mapper: (frame: FrameElement) => Promise<string>,
+  ): Promise<string> {
+    let stackFrames = await this.loadFrames(50);
+    // REPL may call back into itself; slice at the highest REPL eval in the call chain.
+    for (let i = stackFrames.length - 1; i >= 0; i--) {
+      const frame = stackFrames[i];
+      if (frame instanceof StackFrame && frame.isReplEval) {
+        stackFrames = stackFrames.slice(0, i + 1);
+        break;
+      }
+    }
+    const promises = stackFrames.map(mapper);
     return (await Promise.all(promises)).join('\n') + '\n';
   }
 
@@ -193,7 +207,11 @@ interface IScope {
   callFrameId: string;
 }
 
+const frameIdCounter = posInt32Counter();
+
 export class AsyncSeparator implements IFrameElement {
+  public readonly frameId = frameIdCounter();
+
   constructor(private readonly label = 'async') {}
 
   public async toDap(): Promise<Dap.StackFrame> {
@@ -210,9 +228,8 @@ export class AsyncSeparator implements IFrameElement {
 }
 
 export class StackFrame implements IFrameElement {
-  private static _lastFrameId = 0;
+  public readonly frameId = frameIdCounter();
 
-  _id: number;
   private _name: string;
   private _rawLocation: RawLocation;
   public readonly uiLocation: () =>
@@ -221,6 +238,7 @@ export class StackFrame implements IFrameElement {
     | undefined;
   private _scope: IScope | undefined;
   private _thread: Thread;
+  public readonly isReplEval: boolean;
 
   public get rawPosition() {
     // todo: move RawLocation to use Positions, then just return that.
@@ -254,11 +272,11 @@ export class StackFrame implements IFrameElement {
     rawLocation: RawLocation,
     private readonly isAsync = false,
   ) {
-    this._id = ++StackFrame._lastFrameId;
     this._name = callFrame.functionName || '<anonymous>';
     this._rawLocation = rawLocation;
     this.uiLocation = once(() => thread.rawLocationToUiLocation(rawLocation));
     this._thread = thread;
+    this.isReplEval = callFrame.url.endsWith(SourceConstants.ReplExtension);
   }
 
   /**
@@ -394,7 +412,7 @@ export class StackFrame implements IFrameElement {
     }
 
     return {
-      id: this._id,
+      id: this.frameId,
       name: formattedName, // TODO: Use params to format the name
       line,
       column,
@@ -410,9 +428,7 @@ export class StackFrame implements IFrameElement {
   async formatAsNative(): Promise<string> {
     const uiLocation = await this.uiLocation();
     const url =
-      (await uiLocation?.source.existingAbsolutePath()) ||
-      uiLocation?.source.url ||
-      (await uiLocation?.source.prettyName());
+      (await uiLocation?.source.existingAbsolutePath()) || (await uiLocation?.source.prettyName());
     const { lineNumber, columnNumber } = uiLocation || this._rawLocation;
     return `    at ${this._name} (${url}:${lineNumber}:${columnNumber})`;
   }

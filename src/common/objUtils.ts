@@ -373,3 +373,13 @@ export function invertMap<K, V>(map: ReadonlyMap<K, V>): Map<V, K> {
 
   return result;
 }
+
+const maxInt32 = 2 ** 31 - 1;
+
+/**
+ * Creates a new counter that return a positive int32 value on each invokation.
+ */
+export const posInt32Counter = () => {
+  let last = 0;
+  return () => last++ & maxInt32;
+};
