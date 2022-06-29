@@ -7,6 +7,8 @@ import * as nls from 'vscode-nls';
 import { Cdp } from '../cdp/api';
 import { DisposableList, IDisposable } from '../common/disposable';
 import { ILogger, LogTag } from '../common/logging';
+import { posInt32Counter, truthy } from '../common/objUtils';
+import { Base1Position } from '../common/positions';
 import { getDeferred, IDeferred } from '../common/promiseUtil';
 import { IRenameProvider } from '../common/sourceMaps/renameProvider';
 import * as sourceUtils from '../common/sourceUtils';
@@ -50,7 +52,7 @@ export class DebugAdapter implements IDisposable {
   private _thread: Thread | undefined;
   private _threadDeferred = getDeferred<Thread>();
   private _configurationDoneDeferred: IDeferred<void>;
-  private lastBreakpointId = 0;
+  private breakpointIdCounter = posInt32Counter();
   private readonly _cdpProxyProvider = this._services.get<ICdpProxyProvider>(ICdpProxyProvider);
 
   constructor(
@@ -92,7 +94,7 @@ export class DebugAdapter implements IDisposable {
     this.dap.on('continue', () => this._withThread(thread => thread.resume()));
     this.dap.on('pause', () => this._withThread(thread => thread.pause()));
     this.dap.on('next', () => this._withThread(thread => thread.stepOver()));
-    this.dap.on('stepIn', () => this._withThread(thread => thread.stepInto()));
+    this.dap.on('stepIn', params => this._withThread(thread => thread.stepInto(params.targetId)));
     this.dap.on('stepOut', () => this._withThread(thread => thread.stepOut()));
     this.dap.on('restartFrame', params => this._withThread(thread => thread.restartFrame(params)));
     this.dap.on('scopes', params => this._withThread(thread => thread.scopes(params)));
@@ -107,16 +109,13 @@ export class DebugAdapter implements IDisposable {
     this.dap.on('getPerformance', () =>
       this._withThread(thread => performanceProvider.retrieve(thread.cdp())),
     );
-    this.dap.on('breakpointLocations', params =>
-      this._withThread(async thread => ({
-        breakpoints: await this.breakpointManager.getBreakpointLocations(thread, params),
-      })),
-    );
+    this.dap.on('breakpointLocations', params => this._breakpointLocations(params));
     this.dap.on('createDiagnostics', params => this._dumpDiagnostics(params));
     this.dap.on('requestCDPProxy', () => this._requestCDPProxy());
     this.dap.on('setExcludedCallers', params => this._onSetExcludedCallers(params));
     this.dap.on('saveDiagnosticLogs', ({ toFile }) => this._saveDiagnosticLogs(toFile));
     this.dap.on('setSourceMapStepping', params => this._setSourceMapStepping(params));
+    this.dap.on('stepInTargets', params => this._stepInTargets(params));
     this.dap.on('setDebuggerProperty', params => this._setDebuggerProperty(params));
   }
 
@@ -125,6 +124,40 @@ export class DebugAdapter implements IDisposable {
   ): Promise<Dap.SetDebuggerPropertyResult> {
     this._thread?.cdp().DotnetDebugger.setDebuggerProperty(params);
     return Promise.resolve({});
+  }
+
+  private _breakpointLocations(
+    params: Dap.BreakpointLocationsParams,
+  ): Promise<Dap.BreakpointLocationsResult> {
+    return this._withThread(async thread => {
+      const source = this.sourceContainer.source(params.source);
+      if (!source) {
+        return { breakpoints: [] };
+      }
+
+      const possibleBps = await this.breakpointManager.getBreakpointLocations(
+        thread,
+        source,
+        new Base1Position(params.line, params.column || 1),
+        new Base1Position(
+          params.endLine || params.line + 1,
+          params.endColumn || params.column || 1,
+        ),
+      );
+
+      return {
+        breakpoints: possibleBps
+          .map(bp => bp.uiLocations.find(l => l.source === source))
+          .filter(truthy)
+          .map(bp => ({ line: bp.lineNumber, column: bp.columnNumber })),
+      };
+    });
+  }
+
+  private _stepInTargets(params: Dap.StepInTargetsParams): Promise<Dap.StepInTargetsResult> {
+    return this._withThread(async thread => ({
+      targets: await thread.getStepInTargets(params.frameId),
+    }));
   }
 
   private _setSourceMapStepping({
@@ -202,7 +235,7 @@ export class DebugAdapter implements IDisposable {
       supportsSetVariable: true,
       supportsRestartFrame: true,
       supportsGotoTargetsRequest: false,
-      supportsStepInTargetsRequest: false,
+      supportsStepInTargetsRequest: true,
       supportsCompletionsRequest: true,
       supportsModulesRequest: false,
       additionalModuleColumns: [],
@@ -233,7 +266,7 @@ export class DebugAdapter implements IDisposable {
   ): Promise<Dap.SetBreakpointsResult | Dap.Error> {
     return this.breakpointManager.setBreakpoints(
       params,
-      params.breakpoints?.map(() => ++this.lastBreakpointId) ?? [],
+      params.breakpoints?.map(() => this.breakpointIdCounter()) ?? [],
     );
   }
 

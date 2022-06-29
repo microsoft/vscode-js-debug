@@ -50,7 +50,7 @@
     supportsSetExpression : true
     supportsSetVariable : true
     supportsStepBack : false
-    supportsStepInTargetsRequest : false
+    supportsStepInTargetsRequest : true
     supportsTerminateRequest : false
     supportsTerminateThreadsRequest : false
     supportsValueFormattingOptions : true

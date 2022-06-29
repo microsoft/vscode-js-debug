@@ -73,14 +73,14 @@ result: 3
 
 Evaluating#1: setTimeout(() => { throw new Error('bar')}, 0)
 stderr> Uncaught Error Error: bar
-    at <anonymous> (http://localhost:8001/eval1.js:1:26)
+    at <anonymous> (localhost꞉8001/eval1.js:1:26)
     --- setTimeout ---
-    at <anonymous> (http://localhost:8001/eval1.js:1:1)
+    at <anonymous> (localhost꞉8001/eval1.js:1:1)
 stderr>
 > Uncaught Error Error: bar
-    at <anonymous> (http://localhost:8001/eval1.js:1:26)
+    at <anonymous> (localhost꞉8001/eval1.js:1:26)
     --- setTimeout ---
-    at <anonymous> (http://localhost:8001/eval1.js:1:1)
+    at <anonymous> (localhost꞉8001/eval1.js:1:1)
 stderr>
 <anonymous> @ localhost꞉8001/eval1.js:1:26
 ◀ setTimeout ▶
