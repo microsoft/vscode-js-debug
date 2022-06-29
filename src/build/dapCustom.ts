@@ -602,6 +602,123 @@ const dapCustom: JSONSchema4 = {
             supportsDebuggerProperties: {
               type: 'boolean',
             },
+            supportsEvaluationOptions: {
+              type: 'boolean',
+            },
+          },
+        },
+      ],
+    },
+
+    ...makeRequest('evaluationOptions', 'Used by evaluate and variables.', {
+      properties: {
+        evaluateParams: {
+          $ref: '#/definitions/EvaluateParamsExtended',
+        },
+        variablesParams: {
+          $ref: '#/definitions/VariablesParamsExtended',
+        },
+        stackTraceParams: {
+          $ref: '#/definitions/StackTraceParamsExtended',
+        },
+      },
+    }),
+
+    EvaluationOptions: {
+      type: 'object',
+      description:
+        'Options passed to expression evaluation commands ("evaluate" and "variables") to control how the evaluation occurs.',
+      properties: {
+        treatAsStatement: {
+          type: 'boolean',
+          description: 'Evaluate the expression as a statement.',
+        },
+        allowImplicitVars: {
+          type: 'boolean',
+          description: 'Allow variables to be declared as part of the expression.',
+        },
+        noSideEffects: {
+          type: 'boolean',
+          description: 'Evaluate without side effects.',
+        },
+        noFuncEval: {
+          type: 'boolean',
+          description: 'Exclude funceval during evaluation.',
+        },
+        noToString: {
+          type: 'boolean',
+          description: 'Exclude calling `ToString` during evaluation.',
+        },
+        forceEvaluationNow: {
+          type: 'boolean',
+          description: 'Evaluation should take place immediately if possible.',
+        },
+        forceRealFuncEval: {
+          type: 'boolean',
+          description: 'Exclude interpretation from evaluation methods.',
+        },
+        runAllThreads: {
+          type: 'boolean',
+          description: 'Allow all threads to run during the evaluation.',
+        },
+        rawStructures: {
+          type: 'boolean',
+          description:
+            "The 'raw' view of objects and structions should be shown - visualization improvements should be disabled.",
+        },
+        filterToFavorites: {
+          type: 'boolean',
+          description:
+            'Variables responses containing favorites should be filtered to only those items',
+        },
+        simpleDisplayString: {
+          type: 'boolean',
+          description:
+            'Auto generated display strings for variables with favorites should not include field names.',
+        },
+      },
+    },
+
+    EvaluateParamsExtended: {
+      allOf: [
+        { $ref: '#/definitions/EvaluateParams' },
+        {
+          type: 'object',
+          description: 'Extension of EvaluateParams',
+          properties: {
+            evaluationOptions: {
+              $ref: '#/definitions/EvaluationOptions',
+            },
+          },
+        },
+      ],
+    },
+
+    VariablesParamsExtended: {
+      allOf: [
+        { $ref: '#/definitions/VariablesParams' },
+        {
+          type: 'object',
+          description: 'Extension of VariablesParams',
+          properties: {
+            evaluationOptions: {
+              $ref: '#/definitions/EvaluationOptions',
+            },
+          },
+        },
+      ],
+    },
+
+    StackTraceParamsExtended: {
+      allOf: [
+        { $ref: '#/definitions/StackTraceParams' },
+        {
+          type: 'object',
+          description: 'Extension of StackTraceParams',
+          properties: {
+            noFuncEval: {
+              type: 'boolean',
+            },
           },
         },
       ],

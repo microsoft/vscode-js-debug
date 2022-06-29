@@ -99,7 +99,7 @@ export class StackTrace {
     this._lastFrameThread = thread;
   }
 
-  async loadFrames(limit: number): Promise<FrameElement[]> {
+  async loadFrames(limit: number, noFuncEval?: boolean): Promise<FrameElement[]> {
     while (this.frames.length < limit && this._asyncStackTraceId) {
       if (this._asyncStackTraceId.debuggerId)
         this._lastFrameThread = Thread.threadForDebuggerId(this._asyncStackTraceId.debuggerId);
@@ -107,6 +107,11 @@ export class StackTrace {
         this._asyncStackTraceId = undefined;
         break;
       }
+      if (noFuncEval)
+        this._lastFrameThread
+          .cdp()
+          .DotnetDebugger.setEvaluationOptions({ options: { noFuncEval }, type: 'stackFrame' });
+
       const response = await this._lastFrameThread
         .cdp()
         .Debugger.getStackTrace({ stackTraceId: this._asyncStackTraceId });
@@ -162,10 +167,10 @@ export class StackTrace {
     return (await Promise.all(promises)).join('\n') + '\n';
   }
 
-  async toDap(params: Dap.StackTraceParams): Promise<Dap.StackTraceResult> {
+  async toDap(params: Dap.StackTraceParamsExtended): Promise<Dap.StackTraceResult> {
     const from = params.startFrame || 0;
     let to = (params.levels || 50) + from;
-    const frames = await this.loadFrames(to);
+    const frames = await this.loadFrames(to, params.noFuncEval);
     to = Math.min(frames.length, params.levels ? to : frames.length);
 
     const result: Promise<Dap.StackFrame>[] = [];

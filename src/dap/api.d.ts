@@ -1127,6 +1127,18 @@ export namespace Dap {
     capabilitiesExtendedRequest(
       params: CapabilitiesExtendedParams,
     ): Promise<CapabilitiesExtendedResult>;
+
+    /**
+     * Used by evaluate and variables.
+     */
+    on(
+      request: 'evaluationOptions',
+      handler: (params: EvaluationOptionsParams) => Promise<EvaluationOptionsResult | Error>,
+    ): () => void;
+    /**
+     * Used by evaluate and variables.
+     */
+    evaluationOptionsRequest(params: EvaluationOptionsParams): Promise<EvaluationOptionsResult>;
   }
 
   export interface TestApi {
@@ -1877,6 +1889,11 @@ export namespace Dap {
      * The event indicates that one or more capabilities have changed.
      */
     capabilitiesExtended(params: CapabilitiesExtendedParams): Promise<CapabilitiesExtendedResult>;
+
+    /**
+     * Used by evaluate and variables.
+     */
+    evaluationOptions(params: EvaluationOptionsParams): Promise<EvaluationOptionsResult>;
   }
 
   export interface AttachParams {
@@ -2237,6 +2254,16 @@ export namespace Dap {
      */
     memoryReference?: string;
   }
+
+  export interface EvaluationOptionsParams {
+    evaluateParams?: EvaluateParamsExtended;
+
+    variablesParams?: VariablesParamsExtended;
+
+    stackTraceParams?: StackTraceParamsExtended;
+  }
+
+  export interface EvaluationOptionsResult {}
 
   export interface ExceptionInfoParams {
     /**
@@ -4461,6 +4488,78 @@ export namespace Dap {
    */
   export type ExceptionBreakMode = string;
 
+  export interface StackTraceParamsExtended extends StackTraceParams {
+    noFuncEval?: boolean;
+  }
+
+  export interface VariablesParamsExtended extends VariablesParams {
+    evaluationOptions?: EvaluationOptions;
+  }
+
+  /**
+   * Options passed to expression evaluation commands ("evaluate" and "variables") to control how the evaluation occurs.
+   */
+  export interface EvaluationOptions {
+    /**
+     * Evaluate the expression as a statement.
+     */
+    treatAsStatement?: boolean;
+
+    /**
+     * Allow variables to be declared as part of the expression.
+     */
+    allowImplicitVars?: boolean;
+
+    /**
+     * Evaluate without side effects.
+     */
+    noSideEffects?: boolean;
+
+    /**
+     * Exclude funceval during evaluation.
+     */
+    noFuncEval?: boolean;
+
+    /**
+     * Exclude calling `ToString` during evaluation.
+     */
+    noToString?: boolean;
+
+    /**
+     * Evaluation should take place immediately if possible.
+     */
+    forceEvaluationNow?: boolean;
+
+    /**
+     * Exclude interpretation from evaluation methods.
+     */
+    forceRealFuncEval?: boolean;
+
+    /**
+     * Allow all threads to run during the evaluation.
+     */
+    runAllThreads?: boolean;
+
+    /**
+     * The 'raw' view of objects and structions should be shown - visualization improvements should be disabled.
+     */
+    rawStructures?: boolean;
+
+    /**
+     * Variables responses containing favorites should be filtered to only those items
+     */
+    filterToFavorites?: boolean;
+
+    /**
+     * Auto generated display strings for variables with favorites should not include field names.
+     */
+    simpleDisplayString?: boolean;
+  }
+
+  export interface EvaluateParamsExtended extends EvaluateParams {
+    evaluationOptions?: EvaluationOptions;
+  }
+
   /**
    * Optional properties of a variable that can be used to determine how to render the variable in the UI.
    */
@@ -4638,6 +4737,8 @@ export namespace Dap {
 
   export interface CapabilitiesExtended extends Capabilities {
     supportsDebuggerProperties?: boolean;
+
+    supportsEvaluationOptions?: boolean;
   }
 
   /**

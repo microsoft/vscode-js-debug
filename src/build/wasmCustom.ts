@@ -18,6 +18,11 @@ export default {
           description:
             'Arguments for "setDebuggerProperty" request. Properties are determined by debugger.',
         },
+        {
+          id: 'EvaluationOptions',
+          type: 'object',
+          description: 'Options that will be used to evaluate or to get variables.',
+        },
       ],
       commands: [
         {
@@ -27,6 +32,20 @@ export default {
             {
               name: 'params',
               $ref: 'SetDebuggerPropertyParams',
+            },
+          ],
+        },
+        {
+          name: 'setEvaluationOptions',
+          description: 'Set options for evaluation',
+          parameters: [
+            {
+              name: 'options',
+              $ref: 'EvaluationOptions',
+            },
+            {
+              name: 'type',
+              type: 'string',
             },
           ],
         },
