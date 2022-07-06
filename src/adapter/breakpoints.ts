@@ -116,7 +116,12 @@ export class BreakpointManager {
     return this._byPath;
   }
 
-  private _sourceMapHandlerInstalled = false;
+  /**
+   * Object set once the source map handler is installed. Contains a promise
+   * that resolves to true/false based on whether a sourcemap instrumentation
+   * breakpoint (or equivalent) was able to be set.
+   */
+  private _sourceMapHandlerInstalled?: { entryBpSet: Promise<boolean> };
 
   /**
    * User-defined breakpoints by `sourceReference`.
@@ -458,34 +463,29 @@ export class BreakpointManager {
     }
   }
 
-  setSourceMapPauseDisabledForTest() {
-    // this._sourceMapPauseDisabledForTest = disabled;
-  }
-
   setPredictorDisabledForTest(disabled: boolean) {
     this._predictorDisabledForTest = disabled;
   }
 
-  private async _installSourceMapHandler(thread: Thread) {
-    this._sourceMapHandlerInstalled = true;
+  private _installSourceMapHandler(thread: Thread) {
     const perScriptSm =
       (this.launchConfig as IChromiumBaseConfiguration).perScriptSourcemaps === 'yes';
 
     if (perScriptSm) {
-      await Promise.all([
+      return Promise.all([
         this.updateEntryBreakpointMode(thread, EntryBreakpointMode.Greedy),
         thread.setScriptSourceMapHandler(false, this._scriptSourceMapHandler),
-      ]);
+      ]).then(() => true);
     } else if (this._breakpointsPredictor && !this.launchConfig.pauseForSourceMap) {
-      await thread.setScriptSourceMapHandler(false, this._scriptSourceMapHandler);
+      return thread.setScriptSourceMapHandler(false, this._scriptSourceMapHandler);
     } else {
-      await thread.setScriptSourceMapHandler(true, this._scriptSourceMapHandler);
+      return thread.setScriptSourceMapHandler(true, this._scriptSourceMapHandler);
     }
   }
 
   private async _uninstallSourceMapHandler(thread: Thread) {
     thread.setScriptSourceMapHandler(false);
-    this._sourceMapHandlerInstalled = false;
+    this._sourceMapHandlerInstalled = undefined;
   }
 
   private _setBreakpoint(b: Breakpoint, thread: Thread): void {
@@ -501,26 +501,33 @@ export class BreakpointManager {
     ids: number[],
   ): Promise<Dap.SetBreakpointsResult> {
     if (!this._sourceMapHandlerInstalled && this._thread && params.breakpoints?.length) {
-      await this._installSourceMapHandler(this._thread);
+      this._sourceMapHandlerInstalled = { entryBpSet: this._installSourceMapHandler(this._thread) };
     }
 
+    const wasEntryBpSet = await this._sourceMapHandlerInstalled?.entryBpSet;
     params.source.path = urlUtils.platformPathToPreferredCase(params.source.path);
 
     // If we see we want to set breakpoints in file by source reference ID but
     // it doesn't exist, they were probably from a previous section. The
     // references for scripts just auto-increment per session and are entirely
     // ephemeral. Remove the reference so that we fall back to a path if possible.
+    const containedSource = this._sourceContainer.source(params.source);
     if (
       params.source.sourceReference /* not (undefined or 0=on disk) */ &&
       params.source.path &&
-      !this._sourceContainer.source(params.source)
+      !containedSource
     ) {
       params.source.sourceReference = undefined;
     }
 
     // Wait until the breakpoint predictor finishes to be sure that we
-    // can place correctly in breakpoint.set().
-    if (!this._predictorDisabledForTest && this._breakpointsPredictor) {
+    // can place correctly in breakpoint.set(), if:
+    //  1) We don't have a instrumentation bp, which will be able
+    //     to pause before we hit the breakpoint
+    //  2) We already have loaded the source at least once in the runtime.
+    //     It's possible the source can be loaded again from a different script,
+    //     but we'd prefer to verify the breakpoint ASAP.
+    if (!wasEntryBpSet && this._breakpointsPredictor && !containedSource) {
       const promise = this._breakpointsPredictor.predictBreakpoints(params);
       this.addLaunchBlocker(promise);
       await promise;
