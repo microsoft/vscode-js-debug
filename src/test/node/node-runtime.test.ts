@@ -119,10 +119,11 @@ describe('node runtime', () => {
       'test.js': ['const message = "hello world!";', 'console.log(message);', 'debugger;'],
     });
     const chakracore = join(testWorkspace, 'chakracore', 'ChakraCore.Debugger.Sample.exe');
+    const port = await findOpenPort();
     const handle = await r.runScript('test.js', {
       runtimeExecutable: chakracore,
-      runtimeArgs: ['--inspect-brk', '--port', '9229'],
-      attachSimplePort: 9229,
+      runtimeArgs: ['--inspect-brk', '--port', `${port}`],
+      attachSimplePort: port,
       continueOnAttach: true,
     });
 
@@ -325,9 +326,10 @@ describe('node runtime', () => {
         'test.js': ['setInterval(() => { debugger; }, 500)'],
       });
 
-      child = spawn('node', ['--inspect', join(testFixturesDir, 'test')]);
+      const port = await findOpenPort();
+      child = spawn('node', [`--inspect=${port}`, join(testFixturesDir, 'test')]);
       await delay(500); // give it a moment to boot
-      const handle = await r.attachNode(child.pid!);
+      const handle = await r.attachNode(child.pid!, { port });
       await waitForPause(handle);
       handle.assertLog({ substring: true });
     });
@@ -339,8 +341,9 @@ describe('node runtime', () => {
         'test.js': ['console.log("");', 'debugger;'],
       });
 
-      child = spawn('node', ['--inspect-brk', join(testFixturesDir, 'test')]);
-      const handle = await r.attachNode(0, { continueOnAttach: true });
+      const port = await findOpenPort();
+      child = spawn('node', [`--inspect-brk=${port}`, join(testFixturesDir, 'test')]);
+      const handle = await r.attachNode(child.pid!, { continueOnAttach: true, port });
       await waitForPause(handle); // pauses on 2nd line, not 1st
       handle.assertLog({ substring: true });
     });
@@ -350,9 +353,10 @@ describe('node runtime', () => {
         'test.js': ['setInterval(() => { debugger; }, 500)'],
       });
 
-      const handleProm = r.attachNode(0, { port: 9229 });
+      const port = await findOpenPort();
+      const handleProm = r.attachNode(0, { port });
       await delay(500); // give it a moment to start trying to attach
-      child = spawn('node', ['--inspect', join(testFixturesDir, 'test')]);
+      child = spawn('node', [`--inspect=${port}`, join(testFixturesDir, 'test')]);
       const handle = await handleProm;
       await waitForPause(handle);
       handle.assertLog({ substring: true });
@@ -367,9 +371,10 @@ describe('node runtime', () => {
         'child.js': '(function foo() { debugger; })();',
       });
 
-      child = spawn('node', ['--inspect', join(testFixturesDir, 'test')]);
+      const port = await findOpenPort();
+      child = spawn('node', [`--inspect=${port}`, join(testFixturesDir, 'test')]);
       await delay(500); // give it a moment to boot
-      const handle = await r.attachNode(child.pid!);
+      const handle = await r.attachNode(child.pid!, { port });
       handle.load();
 
       const worker = await r.worker();
@@ -391,9 +396,10 @@ describe('node runtime', () => {
         `,
       });
 
-      child = spawn('node', ['--inspect', join(testFixturesDir, 'test')]);
+      const port = await findOpenPort();
+      child = spawn('node', [`--inspect=${port}`, join(testFixturesDir, 'test')]);
       await delay(500); // give it a moment to boot
-      const handle = await r.attachNode(child.pid!);
+      const handle = await r.attachNode(child.pid!, { port });
       handle.load();
 
       const worker = await r.worker();
@@ -408,13 +414,14 @@ describe('node runtime', () => {
         'test.js': ['setInterval(() => { debugger; }, 100)'],
       });
 
-      child = spawn('node', ['--inspect', join(testFixturesDir, 'test')]);
-      const handle = await r.attachNode(0, { port: 9229, restart: true });
+      const port = await findOpenPort();
+      child = spawn('node', [`--inspect=${port}`, join(testFixturesDir, 'test')]);
+      const handle = await r.attachNode(0, { port, restart: true });
 
       handle.log(await handle.dap.once('stopped'));
       await handle.dap.evaluate({ expression: 'process.exit(0)' });
 
-      child = spawn('node', ['--inspect', join(testFixturesDir, 'test')]);
+      child = spawn('node', [`--inspect=${port}`, join(testFixturesDir, 'test')]);
       const reconnect = await r.waitForTopLevel();
       reconnect.load();
 
@@ -427,11 +434,14 @@ describe('node runtime', () => {
         'test.js': ['setInterval(() => { debugger; }, 100)'],
       });
 
-      child = spawn('node', ['--inspect', join(testFixturesDir, 'test')], { stdio: 'pipe' });
+      const port = await findOpenPort();
+      child = spawn('node', [`--inspect=${port}`, join(testFixturesDir, 'test')], {
+        stdio: 'pipe',
+      });
       const lines: string[] = [];
       child.stderr?.pipe(split()).on('data', line => lines.push(line));
 
-      const handle = await r.attachNode(0, { port: 9229, restart: true });
+      const handle = await r.attachNode(0, { port, restart: true });
       await handle.dap.once('stopped');
       await r.rootDap().disconnect({});
 
