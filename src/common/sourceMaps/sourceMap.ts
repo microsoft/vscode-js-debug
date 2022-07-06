@@ -13,11 +13,11 @@ import {
   SourceMapConsumer,
 } from 'source-map';
 import { fixDriveLetterAndSlashes } from '../pathUtils';
-import { completeUrlEscapingRoot } from '../urlUtils';
+import { completeUrlEscapingRoot, isDataUri } from '../urlUtils';
 
 export interface ISourceMapMetadata {
   sourceMapUrl: string;
-  mtime?: number;
+  cacheKey?: number;
   compiledPath: string;
 }
 
@@ -80,7 +80,7 @@ export class SourceMap implements SourceMapConsumer {
   public computedSourceUrl(sourceUrl: string) {
     return fixDriveLetterAndSlashes(
       completeUrlEscapingRoot(
-        this.metadata.sourceMapUrl.startsWith('data:')
+        isDataUri(this.metadata.sourceMapUrl)
           ? this.metadata.compiledPath
           : this.metadata.sourceMapUrl,
         this.sourceRoot + sourceUrl,

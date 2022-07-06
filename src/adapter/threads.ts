@@ -1706,11 +1706,7 @@ export class Thread implements IVariableStoreLocationProvider {
   }
 
   private _shouldEnablePerScriptSms(event: Cdp.Debugger.PausedEvent) {
-    if (
-      event.reason !== 'instrumentation' ||
-      !event.data ||
-      !event.data.sourceMapURL?.startsWith('data:')
-    ) {
+    if (event.reason !== 'instrumentation' || !urlUtils.isDataUri(event.data?.sourceMapURL)) {
       return false;
     }
 

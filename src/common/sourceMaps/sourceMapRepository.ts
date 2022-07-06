@@ -2,10 +2,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { xxHash32 } from 'js-xxhash';
 import { FileGlobList } from '../fileGlobList';
 import { readfile, stat } from '../fsUtils';
 import { parseSourceMappingUrl } from '../sourceUtils';
-import { absolutePathToFileUrl, completeUrl, fileUrlToAbsolutePath } from '../urlUtils';
+import { absolutePathToFileUrl, completeUrl, fileUrlToAbsolutePath, isDataUri } from '../urlUtils';
 import { ISourceMapMetadata } from './sourceMap';
 
 /**
@@ -44,7 +45,10 @@ export interface ISearchStrategy {
  * @param compiledPath -- Absolute path of the .js file on disk
  * @param fileContents -- Read contents of the file
  */
-export const createMetadataForFile = async (compiledPath: string, fileContents?: string) => {
+export const createMetadataForFile = async (
+  compiledPath: string,
+  fileContents?: string,
+): Promise<Required<ISourceMapMetadata> | undefined> => {
   if (typeof fileContents === 'undefined') {
     fileContents = await readfile(compiledPath);
   }
@@ -54,7 +58,11 @@ export const createMetadataForFile = async (compiledPath: string, fileContents?:
     return;
   }
 
-  sourceMapUrl = completeUrl(absolutePathToFileUrl(compiledPath), sourceMapUrl);
+  const smIsDataUri = isDataUri(sourceMapUrl);
+  if (!smIsDataUri) {
+    sourceMapUrl = completeUrl(absolutePathToFileUrl(compiledPath), sourceMapUrl);
+  }
+
   if (!sourceMapUrl) {
     return;
   }
@@ -63,14 +71,20 @@ export const createMetadataForFile = async (compiledPath: string, fileContents?:
     return;
   }
 
-  const stats = await stat(fileUrlToAbsolutePath(sourceMapUrl) || compiledPath);
-  if (!stats) {
-    return;
+  let cacheKey: number;
+  if (smIsDataUri) {
+    cacheKey = xxHash32(sourceMapUrl);
+  } else {
+    const stats = await stat(fileUrlToAbsolutePath(sourceMapUrl) || compiledPath);
+    if (!stats) {
+      return; // ENOENT, usually
+    }
+    cacheKey = stats.mtimeMs;
   }
 
   return {
     compiledPath,
     sourceMapUrl,
-    mtime: stats && stats.mtimeMs,
+    cacheKey,
   };
 };

@@ -217,7 +217,7 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
 
     try {
       await this.repo.streamChildrenWithSourcemaps(this.outFiles, async metadata => {
-        const cached = await this.cache?.lookup(metadata.compiledPath, metadata.mtime);
+        const cached = await this.cache?.lookup(metadata.compiledPath, metadata.cacheKey);
         if (cached) {
           cached.forEach(c => addDiscovery({ ...c, ...metadata }));
           return;
@@ -247,7 +247,7 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
 
         this.cache?.store(
           metadata.compiledPath,
-          metadata.mtime,
+          metadata.cacheKey,
           discovered.map(d => ({ resolvedPath: d.resolvedPath, sourceUrl: d.sourceUrl })),
         );
       });
