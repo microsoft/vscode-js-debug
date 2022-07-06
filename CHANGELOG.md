@@ -4,7 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
-Nothing (yet)
+- fix: performance improvements for setting breakpoints in large projects ([vscode#153470](https://github.com/microsoft/vscode/issues/153470))
 
 ## v1.69 (June 2022)
 

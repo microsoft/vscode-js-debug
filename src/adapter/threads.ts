@@ -1663,10 +1663,16 @@ export class Thread implements IVariableStoreLocationProvider {
     );
   }
 
+  /**
+   * Based on whether `pause` is true, sets or unsets an instrumentation
+   * breakpoint in the runtime that is hit before sources with scripts.
+   * Returns true if the breakpoint was able to be set, which is usually
+   * (always?) `false` in Node runtimes.
+   */
   public async setScriptSourceMapHandler(
     pause: boolean,
     handler?: ScriptWithSourceMapHandler,
-  ): Promise<void> {
+  ): Promise<boolean> {
     this._scriptWithSourceMapHandler = handler;
 
     const needsPause =
@@ -1681,6 +1687,8 @@ export class Thread implements IVariableStoreLocationProvider {
       this._pauseOnSourceMapBreakpointId = undefined;
       await this._cdp.Debugger.removeBreakpoint({ breakpointId });
     }
+
+    return !!this._pauseOnSourceMapBreakpointId;
   }
 
   /**
@@ -1706,11 +1714,7 @@ export class Thread implements IVariableStoreLocationProvider {
   }
 
   private _shouldEnablePerScriptSms(event: Cdp.Debugger.PausedEvent) {
-    if (
-      event.reason !== 'instrumentation' ||
-      !event.data ||
-      !event.data.sourceMapURL?.startsWith('data:')
-    ) {
+    if (event.reason !== 'instrumentation' || !urlUtils.isDataUri(event.data?.sourceMapURL)) {
       return false;
     }
 

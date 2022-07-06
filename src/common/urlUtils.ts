@@ -286,8 +286,8 @@ export function isAbsolute(_path: string): boolean {
 /**
  * Returns whether the uri looks like a data URI.
  */
-export function isDataUri(uri: string): boolean {
-  return /^data:[a-z]+\/[a-z]/.test(uri);
+export function isDataUri(uri: string | undefined | null): uri is string {
+  return !!uri && uri.startsWith('data:');
 }
 
 const urlToRegexChar = (char: string, arr: Set<string>, escapeRegex: boolean) => {
