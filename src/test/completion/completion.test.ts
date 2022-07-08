@@ -196,6 +196,41 @@ describe('completion', () => {
     }
   });
 
+  itIntegrates('completes in scope (vscode#153651)', async ({ r }) => {
+    const p = await r.launch(`
+      <script>
+        function foo() {
+          const helloWorld = '';
+          debugger;
+        }
+
+        foo();
+      </script>
+    `);
+
+    const untilStopped = p.dap.once('stopped');
+    p.load();
+
+    const frame = (
+      await p.dap.stackTrace({
+        threadId: (await untilStopped).threadId!,
+      })
+    ).stackFrames[0];
+
+    const actual = await p.dap.completions({
+      text: 'helloW',
+      column: 7,
+      frameId: frame.id,
+    });
+
+    expect(actual.targets).to.deep.equal([
+      {
+        label: 'helloWorld',
+        type: 'property',
+      },
+    ]);
+  });
+
   itIntegrates('$returnValue', async ({ r }) => {
     const getFrameId = async () =>
       (

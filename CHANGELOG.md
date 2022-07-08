@@ -5,6 +5,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 ## Nightly (only)
 
 - fix: performance improvements for setting breakpoints in large projects ([vscode#153470](https://github.com/microsoft/vscode/issues/153470))
+- fix: completions not returning stack variables ([vscode#153651](https://github.com/microsoft/vscode/issues/153651))
 
 ## v1.69 (June 2022)
 
