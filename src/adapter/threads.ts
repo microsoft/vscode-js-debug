@@ -1086,6 +1086,11 @@ export class Thread implements IVariableStoreLocationProvider {
     });
   }
 
+  public getScriptById(scriptId: string) {
+    const script = this._sourceContainer.getScriptById(scriptId);
+    return script;
+  }
+
   /**
    * Gets a script ID if it exists, or waits to up maxTime. In rare cases we
    * can get a request (like a stacktrace request) from DAP before Chrome

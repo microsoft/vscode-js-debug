@@ -6187,7 +6187,7 @@ export namespace Cdp {
        * sent `Debugger.scriptParsed` event.
        * @deprecated
        */
-      url?: string;
+      url: string;
 
       /**
        * Scope chain for this call frame.
