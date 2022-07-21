@@ -99,6 +99,8 @@ interface ICDPOperationClassification {
   '!dom.inlinestyleinvalidated.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   'dom.pseudoelementadded': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!dom.pseudoelementadded.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  'dom.toplayerelementsupdated': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!dom.toplayerelementsupdated.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   'dom.pseudoelementremoved': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!dom.pseudoelementremoved.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   'dom.setchildnodes': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };

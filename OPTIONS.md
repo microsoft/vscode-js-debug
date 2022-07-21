@@ -53,7 +53,7 @@
 
 ### pwa-node: launch
 
-<details><h4>args</h4><p>Command line arguments passed to the program.</p>
+<details><h4>args</h4><p>Command line arguments passed to the program.<br><br>Can be an array of strings or a single string. When the program is launched in a terminal, setting this property to a single string will result in the arguments not being escaped for the shell.</p>
 <h5>Default value:</h4><pre><code>[]</pre></code><h4>attachSimplePort</h4><p>If set, attaches to the process via the given port. This is generally no longer necessary for Node.js programs and loses the ability to debug child processes, but can be useful in more esoteric scenarios such as with Deno and Docker launches. If set to 0, a random port will be chosen and --inspect-brk added to the launch arguments automatically.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>autoAttachChildProcesses</h4><p>Attach debugger to new child processes automatically.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>cascadeTerminateToConfigurations</h4><p>A list of debug sessions which, when this debug session is terminated, will also be stopped.</p>
@@ -155,7 +155,7 @@
 
 ### pwa-extensionHost: launch
 
-<details><h4>args</h4><p>Command line arguments passed to the program.</p>
+<details><h4>args</h4><p>Command line arguments passed to the program.<br><br>Can be an array of strings or a single string. When the program is launched in a terminal, setting this property to a single string will result in the arguments not being escaped for the shell.</p>
 <h5>Default value:</h4><pre><code>[
   "--extensionDevelopmentPath=${workspaceFolder}"
 ]</pre></code><h4>autoAttachChildProcesses</h4><p>Attach debugger to new child processes automatically.</p>
