@@ -4,8 +4,11 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
+- feat: support providing terminal args as a string to avoid escaping ([#1335](https://github.com/microsoft/vscode-js-debug/issues/1335))
 - fix: performance improvements for setting breakpoints in large projects ([vscode#153470](https://github.com/microsoft/vscode/issues/153470))
 - fix: completions not returning stack variables ([vscode#153651](https://github.com/microsoft/vscode/issues/153651))
+- fix: react native windows direct debugging not showing variables ([vscode#154976](https://github.com/microsoft/vscode/issues/154976))
+- fix: previews showing in some cases `[object Object]` ([#1338](https://github.com/microsoft/vscode-js-debug/issues/1338))
 
 ## v1.69 (June 2022)
 
