@@ -15,13 +15,11 @@ export const getStringyProps = remoteFunction(function (this: unknown, maxLength
   }
 
   for (const [key, value] of Object.entries(this)) {
-    if (
-      typeof value === 'object' &&
-      value &&
-      !String(value.toString).includes('[native code]') &&
-      !String(this).includes('[object ')
-    ) {
-      out[key] = String(value).slice(0, maxLength);
+    if (typeof value === 'object' && value && !String(value.toString).includes('[native code]')) {
+      const str = String(value);
+      if (!str.startsWith('[object ')) {
+        out[key] = str.slice(0, maxLength);
+      }
     }
   }
 
@@ -29,12 +27,10 @@ export const getStringyProps = remoteFunction(function (this: unknown, maxLength
 });
 
 export const getToStringIfCustom = remoteFunction(function (this: unknown, maxLength: number) {
-  if (
-    typeof this === 'object' &&
-    this &&
-    !String(this.toString).includes('[native code]') &&
-    !String(this).includes('[object ')
-  ) {
-    return String(this).slice(0, maxLength);
+  if (typeof this === 'object' && this && !String(this.toString).includes('[native code]')) {
+    const str = String(this);
+    if (!str.startsWith('[object ')) {
+      return str.slice(0, maxLength);
+    }
   }
 });
