@@ -367,7 +367,7 @@ export interface INodeLaunchConfiguration extends INodeBaseConfiguration, IConfi
   /**
    * Command line arguments passed to the program.
    */
-  args: ReadonlyArray<string>;
+  args: string | ReadonlyArray<string>;
 
   /**
    * Restart session after Node.js has terminated.

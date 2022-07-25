@@ -1600,19 +1600,24 @@ export namespace Cdp {
       | 'DeprecationExample'
       | 'DocumentDomainSettingWithoutOriginAgentClusterHeader'
       | 'EventPath'
+      | 'ExpectCTHeader'
       | 'GeolocationInsecureOrigin'
       | 'GeolocationInsecureOriginDeprecatedNotRemoved'
       | 'GetUserMediaInsecureOrigin'
       | 'HostCandidateAttributeGetter'
+      | 'IdentityInCanMakePaymentEvent'
       | 'InsecurePrivateNetworkSubresourceRequest'
       | 'LegacyConstraintGoogIPv6'
       | 'LocalCSSFileExtensionRejected'
       | 'MediaSourceAbortRemove'
       | 'MediaSourceDurationTruncatingBuffered'
+      | 'NavigateEventRestoreScroll'
+      | 'NavigateEventTransitionWhile'
       | 'NoSysexWebMIDIWithoutPermission'
       | 'NotificationInsecureOrigin'
       | 'NotificationPermissionRequestedIframe'
       | 'ObsoleteWebRtcCipherSuite'
+      | 'OpenWebDatabaseInsecureContext'
       | 'PictureSourceSrc'
       | 'PrefixedCancelAnimationFrame'
       | 'PrefixedRequestAnimationFrame'
@@ -3346,6 +3351,11 @@ export namespace Cdp {
     ): Promise<CSS.SetSupportsTextResult | undefined>;
 
     /**
+     * Modifies the expression of a scope at-rule.
+     */
+    setScopeText(params: CSS.SetScopeTextParams): Promise<CSS.SetScopeTextResult | undefined>;
+
+    /**
      * Modifies the rule selector.
      */
     setRuleSelector(
@@ -3661,6 +3671,11 @@ export namespace Cdp {
        * A list of CSS keyframed animations matching this node.
        */
       cssKeyframesRules?: CSSKeyframesRule[];
+
+      /**
+       * Id of the first parent element that does not have display: contents.
+       */
+      parentLayoutNodeId?: DOM.NodeId;
     }
 
     /**
@@ -3854,6 +3869,27 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'CSS.setScopeText' method.
+     */
+    export interface SetScopeTextParams {
+      styleSheetId: StyleSheetId;
+
+      range: SourceRange;
+
+      text: string;
+    }
+
+    /**
+     * Return value of the 'CSS.setScopeText' method.
+     */
+    export interface SetScopeTextResult {
+      /**
+       * The resulting CSS Scope rule after modification.
+       */
+      scope: CSSScope;
+    }
+
+    /**
      * Parameters of the 'CSS.setRuleSelector' method.
      */
     export interface SetRuleSelectorParams {
@@ -4023,6 +4059,11 @@ export namespace Cdp {
        * Pseudo element type.
        */
       pseudoType: DOM.PseudoType;
+
+      /**
+       * Pseudo element custom ident.
+       */
+      pseudoIdentifier?: string;
 
       /**
        * Matches of CSS rules applicable to the pseudo style.
@@ -4245,6 +4286,12 @@ export namespace Cdp {
        * with the innermost layer and going outwards.
        */
       layers?: CSSLayer[];
+
+      /**
+       * @scope CSS at-rule array.
+       * The array enumerates @scope at-rules starting with the innermost one, going outwards.
+       */
+      scopes?: CSSScope[];
     }
 
     /**
@@ -4540,6 +4587,27 @@ export namespace Cdp {
     }
 
     /**
+     * CSS Scope at-rule descriptor.
+     */
+    export interface CSSScope {
+      /**
+       * Scope rule text.
+       */
+      text: string;
+
+      /**
+       * The associated rule header range in the enclosing stylesheet (if
+       * available).
+       */
+      range?: SourceRange;
+
+      /**
+       * Identifier of the stylesheet containing this object (if exists).
+       */
+      styleSheetId?: StyleSheetId;
+    }
+
+    /**
      * CSS Layer at-rule descriptor.
      */
     export interface CSSLayer {
@@ -4660,6 +4728,11 @@ export namespace Cdp {
        * The font-stretch.
        */
       fontStretch: string;
+
+      /**
+       * The font-display.
+       */
+      fontDisplay: string;
 
       /**
        * The unicode-range.
@@ -4922,6 +4995,20 @@ export namespace Cdp {
       params: Debugger.GetScriptSourceParams,
     ): Promise<Debugger.GetScriptSourceResult | undefined>;
 
+    disassembleWasmModule(
+      params: Debugger.DisassembleWasmModuleParams,
+    ): Promise<Debugger.DisassembleWasmModuleResult | undefined>;
+
+    /**
+     * Disassemble the next chunk of lines for the module corresponding to the
+     * stream. If disassembly is complete, this API will invalidate the streamId
+     * and return an empty chunk. Any subsequent calls for the now invalid stream
+     * will return errors.
+     */
+    nextWasmDisassemblyChunk(
+      params: Debugger.NextWasmDisassemblyChunkParams,
+    ): Promise<Debugger.NextWasmDisassemblyChunkResult | undefined>;
+
     /**
      * This command is deprecated. Use getScriptSource instead.
      * @deprecated
@@ -5071,6 +5158,12 @@ export namespace Cdp {
 
     /**
      * Edits JavaScript source live.
+     *
+     * In general, functions that are currently on the stack can not be edited with
+     * a single exception: If the edited function is the top-most stack frame and
+     * that is the only activation of that function on the stack. In this case
+     * the live edit will be successful and a `Debugger.restartFrame` for the
+     * top-most function is automatically triggered.
      */
     setScriptSource(
       params: Debugger.SetScriptSourceParams,
@@ -5313,6 +5406,60 @@ export namespace Cdp {
        * Wasm bytecode. (Encoded as a base64 string when passed over JSON)
        */
       bytecode?: string;
+    }
+
+    /**
+     * Parameters of the 'Debugger.disassembleWasmModule' method.
+     */
+    export interface DisassembleWasmModuleParams {
+      /**
+       * Id of the script to disassemble
+       */
+      scriptId: Runtime.ScriptId;
+    }
+
+    /**
+     * Return value of the 'Debugger.disassembleWasmModule' method.
+     */
+    export interface DisassembleWasmModuleResult {
+      /**
+       * For large modules, return a stream from which additional chunks of
+       * disassembly can be read successively.
+       */
+      streamId?: string;
+
+      /**
+       * The total number of lines in the disassembly text.
+       */
+      totalNumberOfLines: integer;
+
+      /**
+       * The offsets of all function bodies plus one additional entry pointing
+       * one by past the end of the last function.
+       */
+      functionBodyOffsets: integer[];
+
+      /**
+       * The first chunk of disassembly.
+       */
+      chunk: WasmDisassemblyChunk;
+    }
+
+    /**
+     * Parameters of the 'Debugger.nextWasmDisassemblyChunk' method.
+     */
+    export interface NextWasmDisassemblyChunkParams {
+      streamId: string;
+    }
+
+    /**
+     * Return value of the 'Debugger.nextWasmDisassemblyChunk' method.
+     */
+    export interface NextWasmDisassemblyChunkResult {
+      /**
+       * The next chunk of disassembly.
+       */
+      chunk: WasmDisassemblyChunk;
     }
 
     /**
@@ -5720,6 +5867,12 @@ export namespace Cdp {
        * description without actually modifying the code.
        */
       dryRun?: boolean;
+
+      /**
+       * If true, then `scriptSource` is allowed to change the function on top of the stack
+       * as long as the top-most stack frame is the only activation of that function.
+       */
+      allowTopFrameEditing?: boolean;
     }
 
     /**
@@ -5728,26 +5881,37 @@ export namespace Cdp {
     export interface SetScriptSourceResult {
       /**
        * New stack trace in case editing has happened while VM was stopped.
+       * @deprecated
        */
       callFrames?: CallFrame[];
 
       /**
        * Whether current call stack  was modified after applying the changes.
+       * @deprecated
        */
       stackChanged?: boolean;
 
       /**
        * Async stack trace, if any.
+       * @deprecated
        */
       asyncStackTrace?: Runtime.StackTrace;
 
       /**
        * Async stack trace, if any.
+       * @deprecated
        */
       asyncStackTraceId?: Runtime.StackTraceId;
 
       /**
-       * Exception details if any.
+       * Whether the operation was successful or not. Only `Ok` denotes a
+       * successful live edit while the other enum variants denote why
+       * the live edit failed.
+       */
+      status: 'Ok' | 'CompileError' | 'BlockedByActiveGenerator' | 'BlockedByActiveFunction';
+
+      /**
+       * Exception details if any. Only present when `status` is `CompileError`.
        */
       exceptionDetails?: Runtime.ExceptionDetails;
     }
@@ -6286,6 +6450,18 @@ export namespace Cdp {
       type?: 'debuggerStatement' | 'call' | 'return';
     }
 
+    export interface WasmDisassemblyChunk {
+      /**
+       * The next chunk of disassembled lines.
+       */
+      lines: string[];
+
+      /**
+       * The bytecode offsets describing the start of each line.
+       */
+      bytecodeOffsets: integer[];
+    }
+
     /**
      * Enum of possible script languages.
      */
@@ -6549,6 +6725,15 @@ export namespace Cdp {
     ): Promise<DOM.QuerySelectorAllResult | undefined>;
 
     /**
+     * Returns NodeIds of current top layer elements.
+     * Top layer is rendered closest to the user within a viewport, therefore its elements always
+     * appear on top of all other content.
+     */
+    getTopLayerElements(
+      params: DOM.GetTopLayerElementsParams,
+    ): Promise<DOM.GetTopLayerElementsResult | undefined>;
+
+    /**
      * Re-does the last undone action.
      */
     redo(params: DOM.RedoParams): Promise<DOM.RedoResult | undefined>;
@@ -6753,6 +6938,14 @@ export namespace Cdp {
     on(
       event: 'pseudoElementAdded',
       listener: (event: DOM.PseudoElementAddedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Called when top layer elements are changed.
+     */
+    on(
+      event: 'topLayerElementsUpdated',
+      listener: (event: DOM.TopLayerElementsUpdatedEvent) => void,
     ): IDisposable;
 
     /**
@@ -7462,6 +7655,21 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'DOM.getTopLayerElements' method.
+     */
+    export interface GetTopLayerElementsParams {}
+
+    /**
+     * Return value of the 'DOM.getTopLayerElements' method.
+     */
+    export interface GetTopLayerElementsResult {
+      /**
+       * NodeIds of top layer elements
+       */
+      nodeIds: NodeId[];
+    }
+
+    /**
      * Parameters of the 'DOM.redo' method.
      */
     export interface RedoParams {}
@@ -8018,6 +8226,11 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'DOM.topLayerElementsUpdated' event.
+     */
+    export interface TopLayerElementsUpdatedEvent {}
+
+    /**
      * Parameters of the 'DOM.pseudoElementRemoved' event.
      */
     export interface PseudoElementRemovedEvent {
@@ -8246,6 +8459,12 @@ export namespace Cdp {
        * Pseudo element type for this node.
        */
       pseudoType?: PseudoType;
+
+      /**
+       * Pseudo element identifier for this node. Only present if there is a
+       * valid pseudoType.
+       */
+      pseudoIdentifier?: string;
 
       /**
        * Shadow root type.
@@ -9332,6 +9551,12 @@ export namespace Cdp {
        * Type of a pseudo element node.
        */
       pseudoType?: RareStringData;
+
+      /**
+       * Pseudo element identifier for this node. Only present if there is a
+       * valid pseudoType.
+       */
+      pseudoIdentifier?: RareStringData;
 
       /**
        * Whether this DOM node responds to mouse clicks. This includes nodes that have had click
@@ -16142,6 +16367,7 @@ export namespace Cdp {
       | 'TextTrack'
       | 'XHR'
       | 'Fetch'
+      | 'Prefetch'
       | 'EventSource'
       | 'WebSocket'
       | 'Manifest'
@@ -16537,6 +16763,18 @@ export namespace Cdp {
        * Whether the request complied with Certificate Transparency policy
        */
       certificateTransparencyCompliance: CertificateTransparencyCompliance;
+
+      /**
+       * The signature algorithm used by the server in the TLS server signature,
+       * represented as a TLS SignatureScheme code point. Omitted if not
+       * applicable or not known.
+       */
+      serverSignatureAlgorithm?: integer;
+
+      /**
+       * Whether the connection used Encrypted ClientHello
+       */
+      encryptedClientHello: boolean;
     }
 
     /**
@@ -20900,14 +21138,14 @@ export namespace Cdp {
       frameId: FrameId;
 
       /**
-       * Input node id.
-       */
-      backendNodeId: DOM.BackendNodeId;
-
-      /**
        * Input mode.
        */
       mode: 'selectSingle' | 'selectMultiple';
+
+      /**
+       * Input node id. Only present for file choosers opened via an <input type="file"> element.
+       */
+      backendNodeId?: DOM.BackendNodeId;
     }
 
     /**
@@ -21414,6 +21652,7 @@ export namespace Cdp {
       | 'encrypted-media'
       | 'execution-while-out-of-viewport'
       | 'execution-while-not-rendered'
+      | 'federated-credentials'
       | 'focus-without-user-activation'
       | 'fullscreen'
       | 'frobulate'
@@ -21437,6 +21676,7 @@ export namespace Cdp {
       | 'screen-wake-lock'
       | 'serial'
       | 'shared-autofill'
+      | 'shared-storage'
       | 'storage-access-api'
       | 'sync-xhr'
       | 'trust-token-redemption'
@@ -21449,7 +21689,11 @@ export namespace Cdp {
     /**
      * Reason for a permissions policy feature to be disabled.
      */
-    export type PermissionsPolicyBlockReason = 'Header' | 'IframeAttribute' | 'InFencedFrameTree';
+    export type PermissionsPolicyBlockReason =
+      | 'Header'
+      | 'IframeAttribute'
+      | 'InFencedFrameTree'
+      | 'InIsolatedApp';
 
     export interface PermissionsPolicyBlockLocator {
       frameId: FrameId;
@@ -27325,6 +27569,12 @@ export namespace Cdp {
         | 'recordContinuously'
         | 'recordAsMuchAsPossible'
         | 'echoToConsole';
+
+      /**
+       * Size of the trace buffer in kilobytes. If not specified or zero is passed, a default value
+       * of 200 MB would be used.
+       */
+      traceBufferSizeInKb?: number;
 
       /**
        * Turns on JavaScript stack sampling.

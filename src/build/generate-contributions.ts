@@ -589,7 +589,7 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
       default: 'internalConsole',
     },
     args: {
-      type: 'array',
+      type: ['array', 'string'],
       description: refString('node.launch.args.description'),
       items: {
         type: 'string',

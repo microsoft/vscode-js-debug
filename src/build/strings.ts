@@ -97,7 +97,8 @@ const strings = {
     'Will search for a page with this url and attach to it, if found. Can have * wildcards.',
   'browser.webRoot.description':
     'This specifies the workspace absolute path to the webserver root. Used to resolve paths like `/app.js` to files on disk. Shorthand for a pathMapping for "/"',
-  'node.launch.args.description': 'Command line arguments passed to the program.',
+  'node.launch.args.description':
+    'Command line arguments passed to the program.\n\nCan be an array of strings or a single string. When the program is launched in a terminal, setting this property to a single string will result in the arguments not being escaped for the shell.',
   'browser.runtimeArgs.description': 'Optional arguments passed to the runtime executable.',
   'browser.server.description':
     "Configures a web server to start up. Takes the same configuration as the 'node' launch task.",
