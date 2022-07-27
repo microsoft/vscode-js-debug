@@ -2,7 +2,9 @@
 
 This changelog records changes to stable releases since 1.50.2. "TBA" changes here may be available in the [nightly release](https://github.com/microsoft/vscode-js-debug/#nightly-extension) before they're in stable. Note that the minor version (`v1.X.0`) corresponds to the VS Code version js-debug is shipped in, but the patch version (`v1.50.X`) is not meaningful.
 
-## Nightly (only)
+## v1.70 (July 2022)
+
+### v1.70.0 - 2022-07-27
 
 - feat: support providing terminal args as a string to avoid escaping ([#1335](https://github.com/microsoft/vscode-js-debug/issues/1335))
 - fix: performance improvements for setting breakpoints in large projects ([vscode#153470](https://github.com/microsoft/vscode/issues/153470))
