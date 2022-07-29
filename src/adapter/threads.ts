@@ -529,6 +529,8 @@ export class Thread implements IVariableStoreLocationProvider {
       );
     }
 
+    if (args.context == undefined) args.context = 'watch';
+
     const variable = await variableStore
       .createFloatingVariable(response.result)
       .toDap(args.context as PreviewContextType, args.format);
