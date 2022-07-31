@@ -136,12 +136,14 @@ describe('NodeBinaryProvider', function () {
     });
 
     it('remaps to node version on electron with .cmd', async () => {
-      getVersionText.withArgs('/foo/electron.cmd').resolves('\nv6.1.2\n');
-      getVersionText.withArgs('/node').resolves('v14.5.0');
-      resolveBinaryLocation.withArgs('electron').returns('/foo/electron.cmd');
+      if (process.platform === 'win32') {
+        getVersionText.withArgs('/foo/electron.cmd').resolves('\nv6.1.2\n');
+        getVersionText.withArgs('/node').resolves('v14.5.0');
+        resolveBinaryLocation.withArgs('electron').returns('/foo/electron.cmd');
 
-      const binary = await p.resolveAndValidate(EnvironmentVars.empty, 'electron');
-      expect(binary.version).to.deep.equal(new Semver(12, 0, 0));
+        const binary = await p.resolveAndValidate(EnvironmentVars.empty, 'electron');
+        expect(binary.version).to.deep.equal(new Semver(12, 0, 0));
+      }
     });
 
     it('remaps to node version on electron with no ext', async () => {

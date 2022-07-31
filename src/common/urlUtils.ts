@@ -57,6 +57,26 @@ export function caseNormalizedMap<V>(): Map<string, V> {
   return getCaseSensitivePaths() ? new Map() : new MapUsingProjection(lowerCaseInsensitivePath);
 }
 
+const win32PathExt =
+  process.platform === 'win32' ? process.env.PATHEXT?.toLowerCase().split(';') : undefined;
+
+/**
+ * Gets a case-normalized binary name suitable for comparison. On Windows,
+ * removes any executable extension.
+ */
+export const getNormalizedBinaryName = (binaryPath: string) => {
+  const filename = lowerCaseInsensitivePath(path.basename(binaryPath));
+  if (win32PathExt) {
+    for (const ext of win32PathExt) {
+      if (filename.endsWith(ext)) {
+        return filename.slice(0, -ext.length);
+      }
+    }
+  }
+
+  return filename;
+};
+
 /**
  * Returns the closest parent directory where the predicate returns true.
  */

@@ -421,4 +421,60 @@ describe('NodeDebugConfigurationProvider', () => {
       expect(result?.outFiles).to.deep.equal(['${workspaceFolder}/**/*.js', '!**/node_modules/**']);
     });
   });
+
+  describe('deno', () => {
+    it('fills in default deno options', async () => {
+      const result = (await provider.resolveDebugConfiguration(folder, {
+        type: DebugType.Node,
+        name: '',
+        request: 'launch',
+        program: 'hello.js',
+        runtimeExecutable: 'deno',
+      })) as INodeLaunchConfiguration;
+
+      const port = result.attachSimplePort!;
+      expect(port).to.be.a('number');
+      expect(result.runtimeArgs).to.deep.equal([
+        'run',
+        `--inspect-brk=127.0.0.1:${port}`,
+        '--allow-all',
+      ]);
+      expect(result.continueOnAttach).to.be.true;
+    });
+
+    it('allows manual application', async () => {
+      const result = (await provider.resolveDebugConfiguration(folder, {
+        type: DebugType.Node,
+        name: '',
+        request: 'launch',
+        program: 'hello.js',
+        runtimeExecutable: 'deno',
+        runtimeArgs: ['run', '--inspect-brk=9229'],
+        attachSimplePort: 9229,
+      })) as INodeLaunchConfiguration;
+
+      expect(result.attachSimplePort).to.equal(9229);
+      expect(result.runtimeArgs).to.deep.equal(['run', `--inspect-brk=9229`]);
+    });
+
+    it('allows partial run args', async () => {
+      const result = (await provider.resolveDebugConfiguration(folder, {
+        type: DebugType.Node,
+        name: '',
+        request: 'launch',
+        program: 'hello.js',
+        runtimeExecutable: 'deno',
+        runtimeArgs: ['--some-arg'],
+      })) as INodeLaunchConfiguration;
+
+      const port = result.attachSimplePort!;
+      expect(port).to.be.a('number');
+      expect(result.runtimeArgs).to.deep.equal([
+        'run',
+        `--inspect-brk=127.0.0.1:${port}`,
+        '--allow-all',
+        '--some-arg',
+      ]);
+    });
+  });
 });

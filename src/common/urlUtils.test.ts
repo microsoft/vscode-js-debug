@@ -7,6 +7,7 @@ import { SinonStub, stub } from 'sinon';
 import {
   createTargetFilter,
   fileUrlToAbsolutePath,
+  getNormalizedBinaryName,
   isLoopback,
   overridePlatform,
   resetCaseSensitivePaths,
@@ -306,6 +307,17 @@ describe('urlUtils', () => {
 
     for (const [ip, expected] of Object.entries(ttable)) {
       it(ip, async () => expect(await isLoopback(ip)).to.equal(expected));
+    }
+  });
+
+  it('getNormalizedBinaryName', () => {
+    if (process.platform === 'win32') {
+      expect(getNormalizedBinaryName('baR')).to.equal('bar');
+      expect(getNormalizedBinaryName('baR.exe')).to.equal('bar');
+      expect(getNormalizedBinaryName('C:\\foo\\BAR.exe')).to.equal('bar');
+    } else {
+      expect(getNormalizedBinaryName('/foo/bar')).to.equal('bar');
+      expect(getNormalizedBinaryName('bar')).to.equal('bar');
     }
   });
 });
