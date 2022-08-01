@@ -5,6 +5,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 ## Nightly (only)
 
 - feat: make Deno easier to configure
+- fix: extraneous warnings when restarting debugging ([vscode#156432](https://github.com/microsoft/vscode/issues/156432))
 
 ## v1.70 (July 2022)
 
