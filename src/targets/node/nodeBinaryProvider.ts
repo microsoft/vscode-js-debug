@@ -11,6 +11,7 @@ import { ILogger, LogTag } from '../../common/logging';
 import { findExecutable, findInPath } from '../../common/pathUtils';
 import { spawnAsync } from '../../common/processUtils';
 import { Semver } from '../../common/semver';
+import { getNormalizedBinaryName } from '../../common/urlUtils';
 import {
   cannotFindNodeBinary,
   ErrorCodes,
@@ -152,7 +153,7 @@ export class NodeBinaryOutOfDateError extends ProtocolError {
   }
 }
 
-const exeRe = /^(node|electron)(64)?(\.exe|\.cmd)?$/i;
+const nodeOrElectronBinaries = ['node', 'node64', 'electron'];
 
 /**
  * Mapping of electron versions to *effective* node versions. This is not
@@ -267,8 +268,8 @@ export class NodeBinaryProvider {
     // If the runtime executable doesn't look like Node.js (could be a shell
     // script that boots Node by itself, for instance) try to find Node itself
     // on the path as a fallback.
-    const exeInfo = exeRe.exec(basename(location).toLowerCase());
-    if (!exeInfo) {
+    const exeName = getNormalizedBinaryName(location);
+    if (!nodeOrElectronBinaries.includes(exeName)) {
       if (isPackageManager(location)) {
         const packageJson = await this.packageJson.getPath();
         if (packageJson) {
@@ -321,7 +322,7 @@ export class NodeBinaryProvider {
     let version = new Semver(major, minor, patch);
 
     // remap the node version bundled if we're running electron
-    if (exeInfo[1] === 'electron') {
+    if (exeName === 'electron') {
       const nodeVersion = await this.resolveAndValidate(env);
       version = Semver.min(
         electronNodeVersion.get(version.major) ?? assumedVersion,

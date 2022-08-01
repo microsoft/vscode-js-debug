@@ -786,7 +786,10 @@ export class Thread implements IVariableStoreLocationProvider {
     );
     // "Break on start" is not actually a by-spec reason in CDP, it's added on from Node.js, so cast `as string`:
     // https://github.com/nodejs/node/blob/9cbf6af5b5ace0cc53c1a1da3234aeca02522ec6/src/node_contextify.cc#L913
-    const isInspectBrk = (event.reason as string) === 'Break on start';
+    // And Deno uses `debugCommand:
+    // https://github.com/denoland/deno/blob/2703996dea73c496d79fcedf165886a1659622d1/core/inspector.rs#L571
+    const isInspectBrk =
+      (event.reason as string) === 'Break on start' || event.reason === 'debugCommand';
     const location = event.callFrames[0].location;
     const scriptId = event.data?.scriptId || location.scriptId;
     const isSourceMapPause =
