@@ -42,7 +42,7 @@ const hover: IPreviewContext = {
 };
 const copy: IPreviewContext = { budget: Infinity, quoted: false };
 const watch: IPreviewContext = { budget: 1000, quoted: true, postProcess: escape };
-const fallback: IPreviewContext = { budget: Infinity, quoted: true };
+const fallback: IPreviewContext = { budget: 100_000, quoted: true };
 
 export const getContextForType = (type: PreviewContextType | string | undefined) => {
   switch (type) {
