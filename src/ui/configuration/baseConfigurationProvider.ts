@@ -3,9 +3,10 @@
  *--------------------------------------------------------*/
 
 import { injectable } from 'inversify';
+import * as vscode from 'vscode';
+import { preferredDebugTypes } from '../../common/contributionUtils';
 import { AnyLaunchConfiguration, ResolvingConfiguration } from '../../configuration';
 import { IDebugConfigurationProvider } from './configurationProvider';
-import * as vscode from 'vscode';
 
 /**
  * Base configuration provider that handles some resolution around common
@@ -39,7 +40,15 @@ export abstract class BaseConfigurationProvider<T extends AnyLaunchConfiguration
         return [];
       }
 
-      return r instanceof Array ? r : [r];
+      const configs = r instanceof Array ? r : [r];
+      const preferredType = preferredDebugTypes.get(this.type);
+      if (preferredType) {
+        for (const config of configs) {
+          config.type = preferredType as T['type'];
+        }
+      }
+
+      return configs;
     } catch (err) {
       vscode.window.showErrorMessage(err.message, { modal: true });
       return [];
