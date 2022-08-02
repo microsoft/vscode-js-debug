@@ -215,6 +215,17 @@ describe('BrowserPathResolver', () => {
         ),
       ).to.equal(urlToRegex('https://example.com/abs/x.js'));
     });
+
+    it('allows overriding resolution of workspaceFolder (for #1308)', () => {
+      expect(
+        resolver({
+          pathMapping: {
+            '/': path.join(testFixturesDir, 'web'),
+            '/override': path.join(testFixturesDir, 'web'),
+          },
+        }).absolutePathToUrlRegexp(path.join(testFixturesDir, 'web', 'x.js')),
+      ).to.equal(urlToRegex('http://localhost:1234/override/x.js'));
+    });
   });
 
   [
