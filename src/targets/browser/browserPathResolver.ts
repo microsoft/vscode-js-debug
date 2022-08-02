@@ -10,7 +10,7 @@ import { IFsUtils } from '../../common/fsUtils';
 import { ILogger } from '../../common/logging';
 import {
   fixDriveLetterAndSlashes,
-  isSubdirectoryOf,
+  isSubpathOrEqualTo,
   properRelative,
   properResolve,
 } from '../../common/pathUtils';
@@ -58,8 +58,11 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
     const defaultMapping = ['/', pathMapping['/']] as const;
     const bestMatch =
       Object.entries(pathMapping)
-        .sort(([, directoryA], [, directoryB]) => directoryB.length - directoryA.length)
-        .find(([, directory]) => isSubdirectoryOf(directory, absolutePath)) || defaultMapping;
+        .sort(
+          ([p1, directoryA], [p2, directoryB]) =>
+            directoryB.length - directoryA.length || p2.length - p1.length,
+        )
+        .find(([, directory]) => isSubpathOrEqualTo(directory, absolutePath)) || defaultMapping;
     if (!bestMatch) {
       return { url: utils.absolutePathToFileUrl(absolutePath), needsWildcard: false };
     }
