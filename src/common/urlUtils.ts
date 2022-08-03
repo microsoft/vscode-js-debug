@@ -235,7 +235,7 @@ export function stripTrailingSlash(aPath: string): string {
 }
 
 const vscodeWebviewResourceSchemeRe =
-  /^https:\/\/([a-z0-9\-]+)\+\.vscode-resource\.vscode-webview\.net\/(.+)/i;
+  /^https:\/\/([a-z0-9\-]+)\+\.vscode-resource\.vscode-(?:webview|cdn)\.net\/(.+)/i;
 
 /**
  * If urlOrPath is a file URL, removes the 'file:///', adjusting for platform differences

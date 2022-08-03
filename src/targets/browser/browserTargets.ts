@@ -55,7 +55,6 @@ export type PauseOnExceptionsState = 'none' | 'uncaught' | 'all';
 
 export class BrowserTarget implements ITarget {
   readonly parentTarget: BrowserTarget | undefined;
-  private _manager: BrowserTargetManager;
   private _cdp: Cdp.Api;
   private _ondispose: (t: BrowserTarget) => void;
   private _waitingForDebugger: boolean;
@@ -94,8 +93,10 @@ export class BrowserTarget implements ITarget {
 
   _children: Map<Cdp.Target.TargetID, BrowserTarget> = new Map();
 
+  public readonly sourcePathResolver = this._manager._sourcePathResolver;
+
   constructor(
-    targetManager: BrowserTargetManager,
+    private readonly _manager: BrowserTargetManager,
     private _targetInfo: Cdp.Target.TargetInfo,
     cdp: Cdp.Api,
     parentTarget: BrowserTarget | undefined,
@@ -108,7 +109,6 @@ export class BrowserTarget implements ITarget {
     this._cdp = cdp;
     cdp.pause();
 
-    this._manager = targetManager;
     this.parentTarget = parentTarget;
     this._waitingForDebugger = waitingForDebugger;
     this._updateFromInfo(_targetInfo);
