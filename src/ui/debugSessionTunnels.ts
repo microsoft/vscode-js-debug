@@ -56,6 +56,7 @@ export class DebugSessionTunnels implements IDisposable {
         localAddressPort: opts.localPort ?? opts.remotePort,
         label: opts.label,
       });
+      this.tunnels.set(sessionId, tunnel);
     }
 
     let localAddress: { host: string; port: number };
