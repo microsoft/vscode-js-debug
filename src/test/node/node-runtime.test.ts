@@ -497,10 +497,6 @@ describe('node runtime', () => {
   });
 
   itIntegrates('sets arguments', async ({ r }) => {
-    if (process.platform === 'darwin') {
-      return; // the ADO runner on Darwin seems to use the wrong Node version
-    }
-
     createFileTree(testFixturesDir, { 'test.js': 'debugger' });
     const handle = await r.runScript('test.js', {
       args: ['--some', 'very fancy', '--arguments'],
