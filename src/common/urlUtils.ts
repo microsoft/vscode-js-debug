@@ -412,7 +412,7 @@ export function urlToRegex(
           /^(file:\\\/\\\/\\\/)?([a-z]):/i,
           (_, file = '', letter) => `${file}[${letter.toUpperCase()}${letter.toLowerCase()}]:`,
         )
-        .concat('($|?)'),
+        .concat('($|\\?)'),
     );
   }
 
