@@ -6,6 +6,7 @@ import { IDiagnosticDump, IDiagnosticSource } from '../adapter/diagnosics';
 import { DebugType } from '../common/contributionUtils';
 
 const nodeInternalMarker = '<node_internals>';
+const node16InternalUrl = 'node:';
 
 export const isNodeType = (dump: IDiagnosticDump) =>
   dump.config.type === DebugType.Node ||
@@ -16,11 +17,14 @@ export const isBrowserType = (dump: IDiagnosticDump) =>
   dump.config.type === DebugType.Chrome || dump.config.type === DebugType.Edge;
 
 export const sortScore = (source: IDiagnosticSource) => {
-  if (source.absolutePath.startsWith(nodeInternalMarker)) {
+  if (
+    source.absolutePath.startsWith(nodeInternalMarker) ||
+    source.url.startsWith(node16InternalUrl)
+  ) {
     return 2;
   }
 
-  if (source.absolutePath.includes('node_moeules')) {
+  if (source.absolutePath.includes('node_modules')) {
     return 1;
   }
 
@@ -31,6 +35,10 @@ export const prettyName = (
   source: { absolutePath: string; url: string },
   dump: IDiagnosticDump,
 ) => {
+  if (source.url.startsWith(node16InternalUrl)) {
+    return source.url;
+  }
+
   if (source.absolutePath.startsWith(nodeInternalMarker)) {
     return source.absolutePath;
   }
@@ -57,18 +65,17 @@ export const isAbsolutePosix = (path: string) => path.startsWith('/');
 export const isAbsoluteWin32 = (path: string) => /^[a-z]:/i.test(path);
 
 export const relative = (fromPath: string, toPath: string) => {
-  const parts = fromPath.split('/');
-  for (const segment of toPath.split('/')) {
-    if (segment === '..') {
-      parts.pop();
-    } else if (segment === '.') {
-      // no-op
-    } else {
-      parts.push(segment);
-    }
+  // shift off the shared prefix of both paths
+  const fromParts = fromPath.split('/');
+  const toParts = toPath.split('/');
+  while (fromParts.length && toParts[0] === fromParts[0]) {
+    fromParts.shift();
+    toParts.shift();
   }
 
-  return parts.join('/');
+  // ".." for each remaining level in the fromParts
+  const nav = fromParts.length ? new Array(fromParts.length).fill('..') : ['.'];
+  return nav.concat(toParts).join('/');
 };
 
 export const properRelative = (fromPath: string, toPath: string): string => {
