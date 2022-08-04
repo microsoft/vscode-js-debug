@@ -110,6 +110,7 @@ export abstract class TextualMessage<T extends { stackTrace?: Cdp.Runtime.StackT
     if (args.some(a => a.subtype === 'error') || StackTraceParser.isStackLike(output)) {
       await this.getUiLocation(thread); // ensure the source is loaded before decoding stack
       output = await thread.replacePathsInStackTrace(output);
+      includeStackInVariables = true;
     }
 
     const outputVar = thread.replVariables.createVariableForOutput(

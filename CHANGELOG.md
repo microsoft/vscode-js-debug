@@ -8,6 +8,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: allow overriding resolution of workspaceFolder in pathMapping ([#1308](https://github.com/microsoft/vscode-js-debug/issues/1308))
 - fix: extraneous warnings when restarting debugging ([vscode#156432](https://github.com/microsoft/vscode/issues/156432))
 - fix: webview debugging ([#1344](https://github.com/microsoft/vscode-js-debug/issues/1344))
+- fix: stack traces logged immediately before exit not being sourcemapped ([vscode#142197](https://github.com/microsoft/vscode/issues/142197))
 
 ## v1.70 (July 2022)
 
