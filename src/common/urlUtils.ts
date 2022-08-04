@@ -407,10 +407,12 @@ export function urlToRegex(
     // fancy regex above), replace `file:///c:/` or simple `c:/` patterns with
     // an insensitive drive letter.
     patterns.push(
-      `${rePrefix}${re}${reSuffix}`.replace(
-        /^(file:\\\/\\\/\\\/)?([a-z]):/i,
-        (_, file = '', letter) => `${file}[${letter.toUpperCase()}${letter.toLowerCase()}]:`,
-      ),
+      `${rePrefix}${re}${reSuffix}`
+        .replace(
+          /^(file:\\\/\\\/\\\/)?([a-z]):/i,
+          (_, file = '', letter) => `${file}[${letter.toUpperCase()}${letter.toLowerCase()}]:`,
+        )
+        .concat('($|\\?)'),
     );
   }
 
