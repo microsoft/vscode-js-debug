@@ -5,6 +5,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 ## Nightly (only)
 
 - feat: make Deno easier to configure
+- fix: path display issues in breakpoint diagnostic tool ([#1343](https://github.com/microsoft/vscode-js-debug/issues/1343))
 - fix: improve breakpoint resolution in webpack HMR ([vscode#155331](https://github.com/microsoft/vscode/issues/155331))
 - fix: allow overriding resolution of workspaceFolder in pathMapping ([#1308](https://github.com/microsoft/vscode-js-debug/issues/1308))
 - fix: extraneous warnings when restarting debugging ([vscode#156432](https://github.com/microsoft/vscode/issues/156432))
