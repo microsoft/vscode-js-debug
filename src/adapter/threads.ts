@@ -992,17 +992,19 @@ export class Thread implements IVariableStoreLocationProvider {
    */
   async dispose() {
     this.disposed = true;
-    this._removeAllScripts(true /* silent */);
     for (const [debuggerId, thread] of Thread._allThreadsByDebuggerId) {
       if (thread === this) Thread._allThreadsByDebuggerId.delete(debuggerId);
     }
-
-    this._executionContextsCleared();
 
     if (this.console.length) {
       await new Promise(r => this.console.onDrained(r));
     }
     this.console.dispose();
+
+    // Wait for consoles to log before disposing scripts to ensure locations map
+    // https://github.com/microsoft/vscode/issues/142197
+    this._removeAllScripts(true /* silent */);
+    this._executionContextsCleared();
 
     // Send 'exited' after all other thread-releated events
     await this._dap.with(dap =>
