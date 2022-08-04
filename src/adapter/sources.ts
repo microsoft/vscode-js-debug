@@ -102,6 +102,9 @@ export type SourceMapTimeouts = {
   output: number;
 };
 
+/** Gets whether the URL is a compiled source containing a webpack HMR */
+const isWebpackHMR = (url: string) => url.endsWith('.hot-update.js');
+
 const defaultTimeouts: SourceMapTimeouts = {
   load: 0,
   resolveLocation: 2000,
@@ -1033,6 +1036,9 @@ export class SourceContainer {
     this._sourceByReference.delete(source.sourceReference);
     if (source instanceof SourceFromMap) {
       this._sourceMapSourcesByUrl.delete(source.url);
+      for (const [compiled, key] of source.compiledToSourceUrl) {
+        compiled.sourceMap.sourceByUrl.delete(key);
+      }
     }
 
     this._sourceByAbsolutePath.delete(source.absolutePath);
@@ -1082,9 +1088,15 @@ export class SourceContainer {
 
       const existing = this._sourceMapSourcesByUrl.get(resolvedUrl);
       if (existing) {
-        existing.compiledToSourceUrl.set(compiled, url);
-        compiled.sourceMap.sourceByUrl.set(url, existing);
-        continue;
+        // In the case of a Webpack HMR, remove the old source entirely and
+        // replace it with the new one.
+        if (isWebpackHMR(compiled.url)) {
+          this.removeSource(existing);
+        } else {
+          existing.compiledToSourceUrl.set(compiled, url);
+          compiled.sourceMap.sourceByUrl.set(url, existing);
+          continue;
+        }
       }
 
       this.logger.verbose(LogTag.RuntimeSourceCreate, 'Creating source from source map', {
@@ -1126,7 +1138,10 @@ export class SourceContainer {
   private _removeSourceMapSources(compiled: ISourceWithMap, map: SourceMap, silent: boolean) {
     for (const url of map.sources) {
       const source = compiled.sourceMap.sourceByUrl.get(url);
-      if (!this.logger.assert(source, `Unknown source ${url} in removeSourceMapSources`)) {
+      if (!source) {
+        // Previously, we would have always expected the source to exist here.
+        // However, with webpack HMR, we can unload sources that get replaced,
+        // so replaced sources will no longer exist in the map.
         continue;
       }
 
