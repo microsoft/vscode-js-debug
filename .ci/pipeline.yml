@@ -6,7 +6,7 @@ jobs:
 - job: macOS
   timeoutInMinutes: 20
   pool:
-    vmImage: 'macOS-10.15'
+    vmImage: 'macos-latest'
   steps:
   - template: common-validation.yml
   variables:
