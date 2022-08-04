@@ -55,17 +55,17 @@ describe('BlazorSourcePathResolver.absolutePathToUrlRegexp', () => {
 
     if (getCaseSensitivePaths()) {
       expect(regexp).to.equal(
-        'file:\\/\\/\\/c\\/Users\\/digeff\\/source\\/repos\\/MyBlazorApp\\/MyBlazorApp\\/Pages\\/Counter\\.razor' +
-          '|\\/c\\/Users\\/digeff\\/source\\/repos\\/MyBlazorApp\\/MyBlazorApp\\/Pages\\/Counter\\.razor',
+        'file:\\/\\/\\/c\\/Users\\/digeff\\/source\\/repos\\/MyBlazorApp\\/MyBlazorApp\\/Pages\\/Counter\\.razor($|?)' +
+          '|\\/c\\/Users\\/digeff\\/source\\/repos\\/MyBlazorApp\\/MyBlazorApp\\/Pages\\/Counter\\.razor($|?)',
       );
     } else {
       // This regexp was generated from running the real scenario, verifying that the breakpoint with this regexp works, and then copying it here
       expect(regexp).to.equal(
         '[fF][iI][lL][eE]:\\/\\/\\/[cC]:\\/[uU][sS][eE][rR][sS]\\/[dD][iI][gG][eE][fF][fF]\\/[sS][oO][uU][rR][cC][eE]\\/' +
           '[rR][eE][pP][oO][sS]\\/[mM][yY][bB][lL][aA][zZ][oO][rR][aA][pP][pP]\\/[mM][yY][bB][lL][aA][zZ][oO][rR][aA][pP][pP]\\/' +
-          '[pP][aA][gG][eE][sS]\\/[cC][oO][uU][nN][tT][eE][rR]\\.[rR][aA][zZ][oO][rR]|[cC]:\\\\[uU][sS][eE][rR][sS]\\\\[dD][iI][gG][eE][fF][fF]\\\\' +
+          '[pP][aA][gG][eE][sS]\\/[cC][oO][uU][nN][tT][eE][rR]\\.[rR][aA][zZ][oO][rR]($|?)|[cC]:\\\\[uU][sS][eE][rR][sS]\\\\[dD][iI][gG][eE][fF][fF]\\\\' +
           '[sS][oO][uU][rR][cC][eE]\\\\[rR][eE][pP][oO][sS]\\\\[mM][yY][bB][lL][aA][zZ][oO][rR][aA][pP][pP]\\\\[mM][yY][bB][lL][aA][zZ][oO][rR][aA][pP][pP]\\\\' +
-          '[pP][aA][gG][eE][sS]\\\\[cC][oO][uU][nN][tT][eE][rR]\\.[rR][aA][zZ][oO][rR]',
+          '[pP][aA][gG][eE][sS]\\\\[cC][oO][uU][nN][tT][eE][rR]\\.[rR][aA][zZ][oO][rR]($|?)',
       );
     }
   });
@@ -92,7 +92,7 @@ describe('BlazorSourcePathResolver.absolutePathToUrlRegexp', () => {
       // This regexp was generated from running the real scenario, verifying that the breakpoint with this regexp works, and then copying it here
       expect(regexp).to.equal(
         'dotnet://.*\\.dll/[cC]\\/[wW][oO][rR][kK][sS][pP][aA][cC][eE]\\/[nN][eE][wW][bB][lL][aA][zZ][oO][rR][wW][aA][sS][mM]\\/' +
-          '[nN][eE][wW][bB][lL][aA][zZ][oO][rR][wW][aA][sS][mM]\\/[pP][aA][gG][eE][sS]\\/[cC][oO][uU][nN][tT][eE][rR]\\.[rR][aA][zZ][oO][rR]',
+          '[nN][eE][wW][bB][lL][aA][zZ][oO][rR][wW][aA][sS][mM]\\/[pP][aA][gG][eE][sS]\\/[cC][oO][uU][nN][tT][eE][rR]\\.[rR][aA][zZ][oO][rR]($|?)',
       );
     });
   }
