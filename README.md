@@ -11,12 +11,11 @@ This is a [DAP](https://microsoft.github.io/debug-adapter-protocol/)-based JavaS
 
 ### Nightly Extension
 
-The shipped version of VS Code includes the js-debug version at the time of its release, however you may want to install our nightly build to get the latest fixes and features. The nightly build runs at 5PM PST on each day that there are changes ([see pipeline](https://dev.azure.com/vscode/VS%20Code%20debug%20adapters/_build?definitionId=28)). To get the build:
+The shipped version of VS Code includes the js-debug version at the time of its release, however you may want to install our pre-release build to get the latest fixes and features. The build runs at 5PM PST on each day that there are changes ([see pipeline](https://dev.azure.com/vscode/VS%20Code%20debug%20adapters/_build?definitionId=28)). To get the build:
 
 1. Open the extensions view (ctrl+shift+x) and search for `@builtin @id:ms-vscode.js-debug`
-2. Right click on the `JavaScript Debugger` extension and `Disable` it.
-3. Search for `@id:ms-vscode.js-debug-nightly` in the extensions view.
-4. Install that extension.
+2. Right click on the `JavaScript Debugger` extension and select `Switch to Pre-Release Version`.
+3. Reload VS Code
 
 ## What's new?
 

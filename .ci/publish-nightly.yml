@@ -1,4 +1,13 @@
+trigger: none
 pr: none
+
+schedules:
+  - cron: '0 9 * * Mon-Thu'
+    displayName: Nightly Release Schedule
+    always: true
+    branches:
+      include:
+        - main
 
 resources:
   repositories:
@@ -8,17 +17,10 @@ resources:
       ref: main
       endpoint: Monaco
 
-parameters:
-  - name: publishExtension
-    displayName: 🚀 Publish Extension
-    type: boolean
-    default: true
-
 extends:
   template: azure-pipelines/extension/pre-release.yml@templates
   parameters:
     workingDirectory: dist
-    usePreReleaseChannel: false
     vscePackageArgs: --no-dependencies
     cgIgnoreDirectories: 'testdata,demos,.vscode-test'
     buildSteps:
@@ -26,4 +28,4 @@ extends:
         displayName: Install dependencies
 
       - script: npm run compile -- package:prepare --nightly
-        displayName: Package
+        displayName: Package Stable
