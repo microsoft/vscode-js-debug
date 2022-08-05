@@ -44,9 +44,9 @@ const nodeTargetsDir = `targets/node`;
 const isNightly = process.argv.includes('--nightly') || process.argv.includes('watch');
 
 /**
- * Extension ID to build. Appended with '-nightly' as necessary.
+ * Extension ID to build.
  */
-const extensionName = isNightly ? 'js-debug-nightly' : 'js-debug';
+const extensionName = 'js-debug';
 
 function runBuildScript(name) {
   return new Promise((resolve, reject) =>
@@ -100,14 +100,6 @@ gulp.task('compile:ts', () =>
     .pipe(gulp.dest(buildSrcDir)),
 );
 
-async function fixNightlyReadme() {
-  const readmePath = `${buildDir}/README.md`;
-  const readmeText = await readFile(readmePath);
-  const readmeNightlyText = await readFile(`README.nightly.md`);
-
-  await writeFile(readmePath, readmeNightlyText + '\n' + readmeText);
-}
-
 const getVersionNumber = () => {
   if (process.env.JS_DEBUG_VERSION) {
     return process.env.JS_DEBUG_VERSION;
@@ -136,10 +128,8 @@ gulp.task('compile:dynamic', async () => {
   let packageJson = await readJson(`${buildDir}/package.json`);
   packageJson.name = extensionName;
   if (isNightly) {
-    packageJson.displayName += ' (Nightly)';
     packageJson.version = getVersionNumber();
-    packageJson.preview = true;
-    await fixNightlyReadme();
+    packageJson.isNightly = true;
   }
 
   packageJson = deepmerge(packageJson, contributions);
