@@ -55,9 +55,9 @@ class VSDebugSession implements IDebugSessionLike {
 class VsDebugServer implements ISessionLauncher<VSDebugSession> {
   private readonly sessionServer: ServerSessionManager<VSDebugSession>;
 
-  constructor(inputStream?: Readable, outputStream?: Writable) {
+  constructor(host?: string, inputStream?: Readable, outputStream?: Writable) {
     const services = createGlobalContainer({ storagePath, isVsCode: false });
-    this.sessionServer = new ServerSessionManager(services, this);
+    this.sessionServer = new ServerSessionManager(services, this, host);
 
     const deferredConnection: IDeferred<DapConnection> = getDeferred();
     const rootSession = new VSDebugSession(
@@ -126,15 +126,34 @@ class VsDebugServer implements ISessionLauncher<VSDebugSession> {
   }
 }
 
-const debugServerPort = process.argv.length >= 3 ? +process.argv[2] : undefined;
+let debugServerPort: number | undefined = undefined;
+let debugServerHost: string | undefined = undefined;
+if (process.argv.length >= 3) {
+  // Interpret the argument as either a port number, or 'address:port'.
+  const address = process.argv[2];
+  const colonIndex = address.lastIndexOf(':');
+  if (colonIndex === -1) {
+    debugServerPort = +address;
+  } else {
+    debugServerHost = address.substring(0, colonIndex);
+    debugServerPort = +address.substring(colonIndex + 1);
+  }
+}
+
 if (debugServerPort !== undefined) {
   const server = net
     .createServer(socket => {
-      new VsDebugServer(socket, socket);
+      new VsDebugServer(debugServerHost, socket, socket);
     })
-    .listen(debugServerPort);
+    .listen(debugServerPort, debugServerHost);
 
-  console.log(`Listening at ${(server.address() as net.AddressInfo).port}`);
+  server.on('listening', () => {
+    console.log(
+      `Listening at ${(server.address() as net.AddressInfo).address}:${
+        (server.address() as net.AddressInfo).port
+      }`,
+    );
+  });
 } else {
-  new VsDebugServer();
+  new VsDebugServer(debugServerHost);
 }

@@ -97,10 +97,10 @@ export function acquirePortNumber(port: number, ct: CancellationToken = NeverCan
  * @returns the listening server
  */
 export const makeAcquireTcpServer =
-  (onSocket: (socket: net.Socket) => void): PortTesterFn<net.Server> =>
+  (onSocket: (socket: net.Socket) => void, host?: string): PortTesterFn<net.Server> =>
   (port, ct) => {
     const server = net.createServer(onSocket);
-    server.listen(port, '127.0.0.1');
+    server.listen(port, host);
     return waitForServerToListen(server, ct);
   };
 

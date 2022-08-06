@@ -26,11 +26,12 @@ export const acquireTrackedServer = async (
   tracker: IPortLeaseTracker,
   onSocket: (s: net.Socket) => void,
   overridePort?: number,
+  host?: string,
   ct = NeverCancelled,
 ) => {
   const server = overridePort
-    ? await waitForServerToListen(net.createServer(onSocket).listen(overridePort, '127.0.0.1'), ct)
-    : await findOpenPort({ tester: makeAcquireTcpServer(onSocket) }, ct);
+    ? await waitForServerToListen(net.createServer(onSocket).listen(overridePort, host), ct)
+    : await findOpenPort({ tester: makeAcquireTcpServer(onSocket, host) }, ct);
   const dispose = tracker.register((server.address() as net.AddressInfo).port);
   server.on('close', () => dispose.dispose());
   server.on('error', () => dispose.dispose());
