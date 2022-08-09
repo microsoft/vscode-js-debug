@@ -128,15 +128,11 @@ class VsDebugServer implements ISessionLauncher<VSDebugSession> {
 
 let debugServerPort: number | undefined = undefined;
 let debugServerHost: string | undefined = undefined;
+
 if (process.argv.length >= 3) {
-  // Interpret the argument as either a port number, or 'address:port'.
-  const address = process.argv[2];
-  const colonIndex = address.lastIndexOf(':');
-  if (colonIndex === -1) {
-    debugServerPort = +address;
-  } else {
-    debugServerHost = address.substring(0, colonIndex);
-    debugServerPort = +address.substring(colonIndex + 1);
+  debugServerPort = +process.argv[2];
+  if (process.argv.length >= 4) {
+    debugServerHost = process.argv[3];
   }
 }
 

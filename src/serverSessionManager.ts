@@ -26,15 +26,15 @@ export class ServerSessionManager<T extends IDebugSessionLike> {
   private readonly portLeaseTracker: IPortLeaseTracker;
   private disposables: IDisposable[] = [];
   private servers = new Map<string, net.Server>();
-  private host = '127.0.0.1';
 
-  constructor(globalContainer: Container, sessionLauncher: ISessionLauncher<T>, host?: string) {
+  constructor(
+    globalContainer: Container,
+    sessionLauncher: ISessionLauncher<T>,
+    private readonly host = '127.0.0.1',
+  ) {
     this.sessionManager = new SessionManager(globalContainer, sessionLauncher);
     this.portLeaseTracker = globalContainer.get(IPortLeaseTracker);
     this.disposables.push(this.sessionManager);
-    if (host) {
-      this.host = host;
-    }
   }
 
   /**
