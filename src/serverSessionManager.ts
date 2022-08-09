@@ -27,7 +27,11 @@ export class ServerSessionManager<T extends IDebugSessionLike> {
   private disposables: IDisposable[] = [];
   private servers = new Map<string, net.Server>();
 
-  constructor(globalContainer: Container, sessionLauncher: ISessionLauncher<T>) {
+  constructor(
+    globalContainer: Container,
+    sessionLauncher: ISessionLauncher<T>,
+    private readonly host = '127.0.0.1',
+  ) {
     this.sessionManager = new SessionManager(globalContainer, sessionLauncher);
     this.portLeaseTracker = globalContainer.get(IPortLeaseTracker);
     this.disposables.push(this.sessionManager);
@@ -106,6 +110,7 @@ export class ServerSessionManager<T extends IDebugSessionLike> {
         deferredConnection.resolve(session.connection);
       },
       port,
+      this.host,
     );
 
     this.servers.set(debugSession.id, debugServer);
