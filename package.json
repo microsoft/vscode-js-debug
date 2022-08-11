@@ -173,7 +173,8 @@
     "portsAttributes",
     "findTextInFiles",
     "workspaceTrust",
-    "resolvers"
+    "resolvers",
+    "tunnels"
   ],
   "activationEvents": [
     "onDebugDynamicConfigurations",
