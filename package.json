@@ -173,6 +173,7 @@
     "portsAttributes",
     "findTextInFiles",
     "workspaceTrust",
+    "resolvers",
     "tunnels"
   ],
   "activationEvents": [
