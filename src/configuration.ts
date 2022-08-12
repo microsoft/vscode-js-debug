@@ -1134,5 +1134,5 @@ export const breakpointLanguages: ReadonlyArray<string> = [
 export const packageName: string = pkg.name;
 export const packageVersion: string = pkg.version;
 export const packagePublisher: string = pkg.publisher;
-export const isNightly = !!pkg.isNightly;
+export const isNightly = packageName.includes('nightly');
 export const extensionId = `${packagePublisher}.${packageName}`;
