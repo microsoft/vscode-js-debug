@@ -1094,6 +1094,34 @@ export namespace Dap {
     setSourceMapSteppingRequest(
       params: SetSourceMapSteppingParams,
     ): Promise<SetSourceMapSteppingResult>;
+
+    /**
+     * Sets debugger properties.
+     */
+    on(
+      request: 'setDebuggerProperty',
+      handler: (params: SetDebuggerPropertyParams) => Promise<SetDebuggerPropertyResult | Error>,
+    ): () => void;
+    /**
+     * Sets debugger properties.
+     */
+    setDebuggerPropertyRequest(
+      params: SetDebuggerPropertyParams,
+    ): Promise<SetDebuggerPropertyResult>;
+
+    /**
+     * The event indicates that one or more capabilities have changed.
+     */
+    on(
+      request: 'capabilitiesExtended',
+      handler: (params: CapabilitiesExtendedParams) => Promise<CapabilitiesExtendedResult | Error>,
+    ): () => void;
+    /**
+     * The event indicates that one or more capabilities have changed.
+     */
+    capabilitiesExtendedRequest(
+      params: CapabilitiesExtendedParams,
+    ): Promise<CapabilitiesExtendedResult>;
   }
 
   export interface TestApi {
@@ -1831,6 +1859,16 @@ export namespace Dap {
      * Configures whether source map stepping is enabled.
      */
     setSourceMapStepping(params: SetSourceMapSteppingParams): Promise<SetSourceMapSteppingResult>;
+
+    /**
+     * Sets debugger properties.
+     */
+    setDebuggerProperty(params: SetDebuggerPropertyParams): Promise<SetDebuggerPropertyResult>;
+
+    /**
+     * The event indicates that one or more capabilities have changed.
+     */
+    capabilitiesExtended(params: CapabilitiesExtendedParams): Promise<CapabilitiesExtendedResult>;
   }
 
   export interface AttachParams {
@@ -1912,6 +1950,12 @@ export namespace Dap {
      */
     capabilities: Capabilities;
   }
+
+  export interface CapabilitiesExtendedParams {
+    params: CapabilitiesExtended;
+  }
+
+  export interface CapabilitiesExtendedResult {}
 
   export interface CompletionsParams {
     /**
@@ -3159,6 +3203,12 @@ export namespace Dap {
     breakpoints: Breakpoint[];
   }
 
+  export interface SetDebuggerPropertyParams {
+    params: SetDebuggerPropertyParams;
+  }
+
+  export interface SetDebuggerPropertyResult {}
+
   export interface SetExceptionBreakpointsParams {
     /**
      * Set of exception filters specified by their ID. The set of all possible exception filters is defined by the `exceptionBreakpointFilters` capability. The `filter` and `filterOptions` sets are additive.
@@ -4034,6 +4084,11 @@ export namespace Dap {
   }
 
   /**
+   * Arguments for "setDebuggerProperty" request. Properties are determined by debugger.
+   */
+  export interface SetDebuggerPropertyParams {}
+
+  /**
    * Properties of a data breakpoint passed to the setDataBreakpoints request.
    */
   export interface DataBreakpoint {
@@ -4596,6 +4651,10 @@ export namespace Dap {
    * Some predefined types for the CompletionItem. Please note that not all clients have specific icons for all of them.
    */
   export type CompletionItemType = string;
+
+  export interface CapabilitiesExtended extends Capabilities {
+    supportsDebuggerProperties?: boolean;
+  }
 
   /**
    * Information about the capabilities of a debug adapter.

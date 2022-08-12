@@ -563,6 +563,49 @@ const dapCustom: JSONSchema4 = {
       },
       required: ['enabled'],
     }),
+
+    ...makeRequest('setDebuggerProperty', 'Sets debugger properties.', {
+      properties: {
+        params: {
+          $ref: '#/definitions/SetDebuggerPropertyParams',
+        },
+      },
+      required: ['params'],
+    }),
+
+    SetDebuggerPropertyParams: {
+      type: 'object',
+      description:
+        'Arguments for "setDebuggerProperty" request. Properties are determined by debugger.',
+    },
+
+    ...makeRequest(
+      'capabilitiesExtended',
+      'The event indicates that one or more capabilities have changed.',
+      {
+        properties: {
+          params: {
+            $ref: '#/definitions/CapabilitiesExtended',
+          },
+        },
+        required: ['params'],
+      },
+    ),
+
+    CapabilitiesExtended: {
+      allOf: [
+        { $ref: '#/definitions/Capabilities' },
+        {
+          type: 'object',
+          description: 'Extension of Capabilities defined in public DAP',
+          properties: {
+            supportsDebuggerProperties: {
+              type: 'boolean',
+            },
+          },
+        },
+      ],
+    },
   },
 };
 
