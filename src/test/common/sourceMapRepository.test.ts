@@ -55,8 +55,8 @@ describe('ISourceMapRepository', () => {
       const gatherSm = (rootPath: string, firstIncludeSegment: string) => {
         return r
           .streamChildrenWithSourcemaps(gatherFileList(rootPath, firstIncludeSegment), async m => {
-            const { mtime, ...rest } = m;
-            expect(mtime).to.be.within(Date.now() - 60 * 1000, Date.now() + 1000);
+            const { cacheKey, ...rest } = m;
+            expect(cacheKey).to.be.within(Date.now() - 60 * 1000, Date.now() + 1000);
             rest.compiledPath = fixDriveLetter(rest.compiledPath);
             return rest;
           })

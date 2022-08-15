@@ -15,7 +15,7 @@ import { findOpenPort } from '../../common/findOpenPort';
 import { existsInjected, IFsUtils, LocalFsUtils } from '../../common/fsUtils';
 import { forceForwardSlashes, isSubpathOrEqualTo } from '../../common/pathUtils';
 import { some } from '../../common/promiseUtil';
-import { nearestDirectoryWhere } from '../../common/urlUtils';
+import { getNormalizedBinaryName, nearestDirectoryWhere } from '../../common/urlUtils';
 import {
   AnyNodeConfiguration,
   applyNodeDefaults,
@@ -126,6 +126,29 @@ export class NodeConfigurationResolver extends BaseConfigurationResolver<AnyNode
     if (config.request === 'launch') {
       // custom node install
       this.applyDefaultRuntimeExecutable(config);
+
+      // Deno does not support NODE_OPTIONS, so if we see it, try to set the
+      // necessary options automatically.
+      if (
+        config.runtimeExecutable &&
+        getNormalizedBinaryName(config.runtimeExecutable) === 'deno'
+      ) {
+        // If the user manually set up attachSimplePort, do nothing.
+        if (!config.attachSimplePort) {
+          const port = await findOpenPort();
+          config.attachSimplePort = port;
+          config.continueOnAttach ??= true;
+
+          const runtimeArgs = [`--inspect-brk=127.0.0.1:${port}`, '--allow-all'];
+          if (!config.runtimeArgs) {
+            config.runtimeArgs = ['run', ...runtimeArgs];
+          } else if (!config.runtimeArgs.includes('run')) {
+            config.runtimeArgs = ['run', ...runtimeArgs, ...config.runtimeArgs];
+          } else {
+            config.runtimeArgs = [...config.runtimeArgs, ...runtimeArgs];
+          }
+        }
+      }
 
       // nvm support
       const nvmVersion = config.runtimeVersion;

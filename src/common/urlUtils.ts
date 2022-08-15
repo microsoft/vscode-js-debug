@@ -57,6 +57,26 @@ export function caseNormalizedMap<V>(): Map<string, V> {
   return getCaseSensitivePaths() ? new Map() : new MapUsingProjection(lowerCaseInsensitivePath);
 }
 
+const win32PathExt =
+  process.platform === 'win32' ? process.env.PATHEXT?.toLowerCase().split(';') : undefined;
+
+/**
+ * Gets a case-normalized binary name suitable for comparison. On Windows,
+ * removes any executable extension.
+ */
+export const getNormalizedBinaryName = (binaryPath: string) => {
+  const filename = lowerCaseInsensitivePath(path.basename(binaryPath));
+  if (win32PathExt) {
+    for (const ext of win32PathExt) {
+      if (filename.endsWith(ext)) {
+        return filename.slice(0, -ext.length);
+      }
+    }
+  }
+
+  return filename;
+};
+
 /**
  * Returns the closest parent directory where the predicate returns true.
  */
@@ -215,7 +235,7 @@ export function stripTrailingSlash(aPath: string): string {
 }
 
 const vscodeWebviewResourceSchemeRe =
-  /^https:\/\/([a-z0-9\-]+)\+\.vscode-resource\.vscode-webview\.net\/(.+)/i;
+  /^https:\/\/([a-z0-9\-]+)\+\.vscode-resource\.vscode-(?:webview|cdn)\.net\/(.+)/i;
 
 /**
  * If urlOrPath is a file URL, removes the 'file:///', adjusting for platform differences
@@ -286,8 +306,8 @@ export function isAbsolute(_path: string): boolean {
 /**
  * Returns whether the uri looks like a data URI.
  */
-export function isDataUri(uri: string): boolean {
-  return /^data:[a-z]+\/[a-z]/.test(uri);
+export function isDataUri(uri: string | undefined | null): uri is string {
+  return !!uri && uri.startsWith('data:');
 }
 
 const urlToRegexChar = (char: string, arr: Set<string>, escapeRegex: boolean) => {
@@ -387,10 +407,12 @@ export function urlToRegex(
     // fancy regex above), replace `file:///c:/` or simple `c:/` patterns with
     // an insensitive drive letter.
     patterns.push(
-      `${rePrefix}${re}${reSuffix}`.replace(
-        /^(file:\\\/\\\/\\\/)?([a-z]):/i,
-        (_, file = '', letter) => `${file}[${letter.toUpperCase()}${letter.toLowerCase()}]:`,
-      ),
+      `${rePrefix}${re}${reSuffix}`
+        .replace(
+          /^(file:\\\/\\\/\\\/)?([a-z]):/i,
+          (_, file = '', letter) => `${file}[${letter.toUpperCase()}${letter.toLowerCase()}]:`,
+        )
+        .concat('($|\\?)'),
     );
   }
 

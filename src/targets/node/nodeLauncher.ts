@@ -7,6 +7,7 @@ import { extname, resolve } from 'path';
 import { IBreakpointsPredictor } from '../../adapter/breakpointPredictor';
 import { IPortLeaseTracker } from '../../adapter/portLeaseTracker';
 import Cdp from '../../cdp/api';
+import { asArray } from '../../common/arrayUtils';
 import { DebugType } from '../../common/contributionUtils';
 import { IFsUtils, LocalFsUtils } from '../../common/fsUtils';
 import { ILogger, LogTag } from '../../common/logging';
@@ -42,7 +43,7 @@ const tryGetProgramFromArgs = async (fsUtils: IFsUtils, config: INodeLaunchConfi
     return resolve(config.cwd, config.program);
   }
 
-  for (const arg of config.args) {
+  for (const arg of asArray(config.args)) {
     if (arg.startsWith('-')) {
       // looks like a flag
       continue;

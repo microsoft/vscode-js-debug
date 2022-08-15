@@ -230,17 +230,7 @@ export function parseSourceMappingUrl(content: string): string | undefined {
   let sourceMapUrl = content.substring(equalSignPos + 1);
   const newLine = sourceMapUrl.indexOf('\n');
   if (newLine !== -1) sourceMapUrl = sourceMapUrl.substring(0, newLine);
-  sourceMapUrl = sourceMapUrl.trim();
-  for (let i = 0; i < sourceMapUrl.length; ++i) {
-    if (
-      sourceMapUrl[i] === '"' ||
-      sourceMapUrl[i] === "'" ||
-      sourceMapUrl[i] === ' ' ||
-      sourceMapUrl[i] === '\t'
-    )
-      return;
-  }
-  return sourceMapUrl;
+  return sourceMapUrl.trim();
 }
 
 const hasher = new Hasher();

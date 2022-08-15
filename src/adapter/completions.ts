@@ -376,15 +376,18 @@ export class Completions {
         isInGlobalScope: true,
       });
 
-      if (!items.length) {
-        continue;
-      }
-
       if (options.stackFrame) {
         // When evaluating on a call frame, also autocomplete with scope variables.
+        const lowerPrefix = prefix.toLowerCase();
         const names = new Set(items.map(item => item.label));
         for (const completion of await options.stackFrame.completions()) {
-          if (names.has(completion.label)) continue;
+          if (
+            names.has(completion.label) ||
+            !completion.label.toLowerCase().includes(lowerPrefix)
+          ) {
+            continue;
+          }
+
           names.add(completion.label);
           items.push(completion as ICompletionWithSort);
         }

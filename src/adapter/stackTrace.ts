@@ -276,7 +276,8 @@ export class StackFrame implements IFrameElement {
     this._rawLocation = rawLocation;
     this.uiLocation = once(() => thread.rawLocationToUiLocation(rawLocation));
     this._thread = thread;
-    this.isReplEval = callFrame.url.endsWith(SourceConstants.ReplExtension);
+    const script = rawLocation.scriptId ? thread.getScriptById(rawLocation.scriptId) : undefined;
+    this.isReplEval = script ? script.url.endsWith(SourceConstants.ReplExtension) : false;
   }
 
   /**

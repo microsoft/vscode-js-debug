@@ -248,11 +248,11 @@ export class CachingSourceMapFactory extends SourceMapFactory {
       return this.loadNewSourceMap(metadata);
     }
 
-    const curTime = metadata.mtime;
-    const prevTime = existing.metadata.mtime;
+    const curKey = metadata.cacheKey;
+    const prevKey = existing.metadata.cacheKey;
     // If asked to reload, do so if either map is missing a mtime, or they aren't the same
     if (existing.reloadIfNoMtime) {
-      if (!(curTime && prevTime && curTime === prevTime)) {
+      if (!(curKey && prevKey && curKey === prevKey)) {
         this.overwrittenSourceMaps.push(existing.prom);
         return this.loadNewSourceMap(metadata);
       } else {
@@ -262,7 +262,7 @@ export class CachingSourceMapFactory extends SourceMapFactory {
     }
 
     // Otherwise, only reload if times are present and the map definitely changed.
-    if (prevTime && curTime && curTime !== prevTime) {
+    if (prevKey && curKey && curKey !== prevKey) {
       this.overwrittenSourceMaps.push(existing.prom);
       return this.loadNewSourceMap(metadata);
     }

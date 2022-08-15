@@ -217,6 +217,13 @@ export abstract class Breakpoint {
     cdpId: Cdp.Debugger.BreakpointId,
     resolvedLocations: readonly Cdp.Debugger.Location[],
   ) {
+    // Update with the resolved locations immediately and synchronously. This
+    // prevents a race conditions where a source is parsed immediately before
+    // a breakpoint it hit and not returning correctly in `BreakpointManager.isEntrypointBreak`.
+    // This _can_ be fairly prevelant, especially when resolving UI locations
+    // involves loading or waiting for source maps.
+    this.updateExistingCdpRef(cdpId, bp => ({ ...bp, locations: resolvedLocations }));
+
     const uiLocation = (
       await Promise.all(
         resolvedLocations.map(l => thread.rawLocationToUiLocation(thread.rawLocation(l))),
@@ -232,20 +239,15 @@ export abstract class Breakpoint {
       return;
     }
 
-    this.updateCdpRefs(list =>
-      list.map(bp => {
-        if (bp.state !== CdpReferenceState.Applied || bp.cdpId !== cdpId) {
-          return bp;
-        }
-        const locations = this._manager._sourceContainer.currentSiblingUiLocations(uiLocation);
-        const inPreferredSource = locations.filter(l => l.source === source);
-        return {
-          ...bp,
-          locations: resolvedLocations,
-          uiLocations: inPreferredSource.length ? inPreferredSource : locations,
-        };
-      }),
-    );
+    this.updateExistingCdpRef(cdpId, bp => {
+      const locations = this._manager._sourceContainer.currentSiblingUiLocations(uiLocation);
+      const inPreferredSource = locations.filter(l => l.source === source);
+      return {
+        ...bp,
+        locations: resolvedLocations,
+        uiLocations: inPreferredSource.length ? inPreferredSource : locations,
+      };
+    });
   }
 
   /**
@@ -375,6 +377,20 @@ export abstract class Breakpoint {
    */
   protected getBreakCondition(): string | undefined {
     return undefined;
+  }
+
+  /**
+   * Updates an existing applied CDP breakpoint, by its CDP ID.
+   */
+  protected updateExistingCdpRef(
+    cdpId: string,
+    mutator: (l: Readonly<BreakpointCdpReference>) => Readonly<BreakpointCdpReference>,
+  ) {
+    this.updateCdpRefs(list =>
+      list.map(bp =>
+        bp.state !== CdpReferenceState.Applied || bp.cdpId !== cdpId ? bp : mutator(bp),
+      ),
+    );
   }
 
   /**

@@ -6,6 +6,7 @@ import { IDisposable } from '../common/disposable';
 import { EventEmitter, ListenerMap } from '../common/events';
 import { HrTime } from '../common/hrnow';
 import { ILogger, LogTag } from '../common/logging';
+import { isDataUri } from '../common/urlUtils';
 import { ITelemetryReporter } from '../telemetry/telemetryReporter';
 import Cdp from './api';
 import { CdpProtocol } from './protocol';
@@ -87,8 +88,7 @@ export default class Connection {
     } else if (
       object.method === 'Debugger.scriptParsed' &&
       object.params &&
-      object.params.sourceMapURL &&
-      object.params.sourceMapURL.startsWith('data:')
+      isDataUri(object.params.sourceMapURL)
     ) {
       objectToLog = {
         ...object,

@@ -151,6 +151,10 @@ export const createTargetContainer = (
   container.bind(IBreakpointConditionFactory).to(BreakpointConditionFactory).inSingletonScope();
   container.bind(LogPointCompiler).toSelf().inSingletonScope();
 
+  if (target.sourcePathResolver) {
+    container.bind(ISourcePathResolver).toConstantValue(target.sourcePathResolver);
+  }
+
   container.bind(PerformanceProviderFactory).toSelf();
   container
     .bind(IPerformanceProvider)

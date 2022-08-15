@@ -3,6 +3,7 @@
  *--------------------------------------------------------*/
 
 import * as path from 'path';
+import { asArray } from '../../common/arrayUtils';
 import { INodeLaunchConfiguration } from '../../configuration';
 import { ILaunchContext } from '../targets';
 import { IProgram } from './program';
@@ -28,7 +29,7 @@ export interface IProgramLauncher {
   ): Promise<IProgram>;
 }
 
-export const getNodeLaunchArgs = (config: INodeLaunchConfiguration) => {
+export const getNodeLaunchArgs = (config: INodeLaunchConfiguration): string[] => {
   let program = config.program;
   if (program && path.isAbsolute(program)) {
     const maybeRel = path.relative(config.cwd, program);
@@ -36,6 +37,6 @@ export const getNodeLaunchArgs = (config: INodeLaunchConfiguration) => {
   }
 
   return program
-    ? [...config.runtimeArgs, program, ...config.args]
-    : [...config.runtimeArgs, ...config.args];
+    ? [...config.runtimeArgs, program, ...asArray(config.args)]
+    : [...config.runtimeArgs, ...asArray(config.args)];
 };

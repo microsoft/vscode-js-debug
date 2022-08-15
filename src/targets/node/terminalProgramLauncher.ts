@@ -36,6 +36,7 @@ export class TerminalProgramLauncher implements IProgramLauncher {
       cwd: config.cwd,
       args: [binary, ...getNodeLaunchArgs(config)],
       env: removeNulls(config.env),
+      argsCanBeInterpretedByShell: !Array.isArray(config.args),
     };
 
     let result: Dap.RunInTerminalResult;

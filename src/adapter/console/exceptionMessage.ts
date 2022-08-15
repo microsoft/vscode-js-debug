@@ -55,7 +55,7 @@ export class ExceptionMessage extends TextualMessage<Cdp.Runtime.ExceptionDetail
     const stackTrace = this.stackTrace(thread);
     const args = this.event.exception && !preview.stackTrace ? [this.event.exception] : [];
 
-    // If there is a stacktrace in the exception message, beautiful its paths.
+    // If there is a stacktrace in the exception message, beautify its paths.
     // If there isn't (and there isn't always) then add one.
     if (StackTraceParser.isStackLike(message)) {
       message = await thread.replacePathsInStackTrace(message);

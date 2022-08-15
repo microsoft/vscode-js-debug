@@ -8,6 +8,6 @@
     0: '--some'
     1: 'very fancy'
     2: '--arguments'
-    > __proto__: Array(0)
-    > __proto__: Object
     length: 3
+    > [[Prototype]]: Array(0)
+    > [[Prototype]]: Object

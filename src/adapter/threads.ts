@@ -792,7 +792,10 @@ export class Thread implements IVariableStoreLocationProvider {
     );
     // "Break on start" is not actually a by-spec reason in CDP, it's added on from Node.js, so cast `as string`:
     // https://github.com/nodejs/node/blob/9cbf6af5b5ace0cc53c1a1da3234aeca02522ec6/src/node_contextify.cc#L913
-    const isInspectBrk = (event.reason as string) === 'Break on start';
+    // And Deno uses `debugCommand:
+    // https://github.com/denoland/deno/blob/2703996dea73c496d79fcedf165886a1659622d1/core/inspector.rs#L571
+    const isInspectBrk =
+      (event.reason as string) === 'Break on start' || event.reason === 'debugCommand';
     const location = event.callFrames[0].location;
     const scriptId = event.data?.scriptId || location.scriptId;
     const isSourceMapPause =
@@ -995,17 +998,19 @@ export class Thread implements IVariableStoreLocationProvider {
    */
   async dispose() {
     this.disposed = true;
-    this._removeAllScripts(true /* silent */);
     for (const [debuggerId, thread] of Thread._allThreadsByDebuggerId) {
       if (thread === this) Thread._allThreadsByDebuggerId.delete(debuggerId);
     }
-
-    this._executionContextsCleared();
 
     if (this.console.length) {
       await new Promise(r => this.console.onDrained(r));
     }
     this.console.dispose();
+
+    // Wait for consoles to log before disposing scripts to ensure locations map
+    // https://github.com/microsoft/vscode/issues/142197
+    this._removeAllScripts(true /* silent */);
+    this._executionContextsCleared();
 
     // Send 'exited' after all other thread-releated events
     await this._dap.with(dap =>
@@ -1090,6 +1095,11 @@ export class Thread implements IVariableStoreLocationProvider {
       ...rawToUiOffset(rawLocation, source.runtimeScriptOffset),
       source,
     });
+  }
+
+  public getScriptById(scriptId: string) {
+    const script = this._sourceContainer.getScriptById(scriptId);
+    return script;
   }
 
   /**
@@ -1669,10 +1679,16 @@ export class Thread implements IVariableStoreLocationProvider {
     );
   }
 
+  /**
+   * Based on whether `pause` is true, sets or unsets an instrumentation
+   * breakpoint in the runtime that is hit before sources with scripts.
+   * Returns true if the breakpoint was able to be set, which is usually
+   * (always?) `false` in Node runtimes.
+   */
   public async setScriptSourceMapHandler(
     pause: boolean,
     handler?: ScriptWithSourceMapHandler,
-  ): Promise<void> {
+  ): Promise<boolean> {
     this._scriptWithSourceMapHandler = handler;
 
     const needsPause =
@@ -1687,6 +1703,8 @@ export class Thread implements IVariableStoreLocationProvider {
       this._pauseOnSourceMapBreakpointId = undefined;
       await this._cdp.Debugger.removeBreakpoint({ breakpointId });
     }
+
+    return !!this._pauseOnSourceMapBreakpointId;
   }
 
   /**
@@ -1712,11 +1730,7 @@ export class Thread implements IVariableStoreLocationProvider {
   }
 
   private _shouldEnablePerScriptSms(event: Cdp.Debugger.PausedEvent) {
-    if (
-      event.reason !== 'instrumentation' ||
-      !event.data ||
-      !event.data.sourceMapURL?.startsWith('data:')
-    ) {
+    if (event.reason !== 'instrumentation' || !urlUtils.isDataUri(event.data?.sourceMapURL)) {
       return false;
     }
 

@@ -204,7 +204,7 @@ describe('BrowserPathResolver', () => {
       const filePath = path.join(testFixturesDir, 'web', 'foo.js');
       expect(resolver({ baseUrl: undefined }).absolutePathToUrlRegexp(filePath)).to.equal(
         urlToRegex(absolutePathToFileUrl(filePath)) +
-          '|[hH][tT][tT][pP][sS]?:\\/\\/[^\\/]+\\/[fF][oO][oO]\\.[jJ][sS]',
+          '|[hH][tT][tT][pP][sS]?:\\/\\/[^\\/]+\\/[fF][oO][oO]\\.[jJ][sS]($|\\?)',
       );
     });
 
@@ -214,6 +214,17 @@ describe('BrowserPathResolver', () => {
           path.join(testFixturesDir, 'abs', 'x.js'),
         ),
       ).to.equal(urlToRegex('https://example.com/abs/x.js'));
+    });
+
+    it('allows overriding resolution of workspaceFolder (for #1308)', () => {
+      expect(
+        resolver({
+          pathMapping: {
+            '/': path.join(testFixturesDir, 'web'),
+            '/override': path.join(testFixturesDir, 'web'),
+          },
+        }).absolutePathToUrlRegexp(path.join(testFixturesDir, 'web', 'x.js')),
+      ).to.equal(urlToRegex('http://localhost:1234/override/x.js'));
     });
   });
 

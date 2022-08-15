@@ -1601,6 +1601,7 @@ export namespace Cdp {
       | 'DeprecationExample'
       | 'DocumentDomainSettingWithoutOriginAgentClusterHeader'
       | 'EventPath'
+      | 'ExpectCTHeader'
       | 'GeolocationInsecureOrigin'
       | 'GeolocationInsecureOriginDeprecatedNotRemoved'
       | 'GetUserMediaInsecureOrigin'
@@ -1611,6 +1612,8 @@ export namespace Cdp {
       | 'LocalCSSFileExtensionRejected'
       | 'MediaSourceAbortRemove'
       | 'MediaSourceDurationTruncatingBuffered'
+      | 'NavigateEventRestoreScroll'
+      | 'NavigateEventTransitionWhile'
       | 'NoSysexWebMIDIWithoutPermission'
       | 'NotificationInsecureOrigin'
       | 'NotificationPermissionRequestedIframe'
@@ -3669,6 +3672,11 @@ export namespace Cdp {
        * A list of CSS keyframed animations matching this node.
        */
       cssKeyframesRules?: CSSKeyframesRule[];
+
+      /**
+       * Id of the first parent element that does not have display: contents.
+       */
+      parentLayoutNodeId?: DOM.NodeId;
     }
 
     /**
@@ -4988,6 +4996,20 @@ export namespace Cdp {
       params: Debugger.GetScriptSourceParams,
     ): Promise<Debugger.GetScriptSourceResult | undefined>;
 
+    disassembleWasmModule(
+      params: Debugger.DisassembleWasmModuleParams,
+    ): Promise<Debugger.DisassembleWasmModuleResult | undefined>;
+
+    /**
+     * Disassemble the next chunk of lines for the module corresponding to the
+     * stream. If disassembly is complete, this API will invalidate the streamId
+     * and return an empty chunk. Any subsequent calls for the now invalid stream
+     * will return errors.
+     */
+    nextWasmDisassemblyChunk(
+      params: Debugger.NextWasmDisassemblyChunkParams,
+    ): Promise<Debugger.NextWasmDisassemblyChunkResult | undefined>;
+
     /**
      * This command is deprecated. Use getScriptSource instead.
      * @deprecated
@@ -5385,6 +5407,60 @@ export namespace Cdp {
        * Wasm bytecode. (Encoded as a base64 string when passed over JSON)
        */
       bytecode?: string;
+    }
+
+    /**
+     * Parameters of the 'Debugger.disassembleWasmModule' method.
+     */
+    export interface DisassembleWasmModuleParams {
+      /**
+       * Id of the script to disassemble
+       */
+      scriptId: Runtime.ScriptId;
+    }
+
+    /**
+     * Return value of the 'Debugger.disassembleWasmModule' method.
+     */
+    export interface DisassembleWasmModuleResult {
+      /**
+       * For large modules, return a stream from which additional chunks of
+       * disassembly can be read successively.
+       */
+      streamId?: string;
+
+      /**
+       * The total number of lines in the disassembly text.
+       */
+      totalNumberOfLines: integer;
+
+      /**
+       * The offsets of all function bodies plus one additional entry pointing
+       * one by past the end of the last function.
+       */
+      functionBodyOffsets: integer[];
+
+      /**
+       * The first chunk of disassembly.
+       */
+      chunk: WasmDisassemblyChunk;
+    }
+
+    /**
+     * Parameters of the 'Debugger.nextWasmDisassemblyChunk' method.
+     */
+    export interface NextWasmDisassemblyChunkParams {
+      streamId: string;
+    }
+
+    /**
+     * Return value of the 'Debugger.nextWasmDisassemblyChunk' method.
+     */
+    export interface NextWasmDisassemblyChunkResult {
+      /**
+       * The next chunk of disassembly.
+       */
+      chunk: WasmDisassemblyChunk;
     }
 
     /**
@@ -6373,6 +6449,18 @@ export namespace Cdp {
       columnNumber?: integer;
 
       type?: 'debuggerStatement' | 'call' | 'return';
+    }
+
+    export interface WasmDisassemblyChunk {
+      /**
+       * The next chunk of disassembled lines.
+       */
+      lines: string[];
+
+      /**
+       * The bytecode offsets describing the start of each line.
+       */
+      bytecodeOffsets: integer[];
     }
 
     /**
@@ -16344,6 +16432,7 @@ export namespace Cdp {
       | 'TextTrack'
       | 'XHR'
       | 'Fetch'
+      | 'Prefetch'
       | 'EventSource'
       | 'WebSocket'
       | 'Manifest'
@@ -16739,6 +16828,18 @@ export namespace Cdp {
        * Whether the request complied with Certificate Transparency policy
        */
       certificateTransparencyCompliance: CertificateTransparencyCompliance;
+
+      /**
+       * The signature algorithm used by the server in the TLS server signature,
+       * represented as a TLS SignatureScheme code point. Omitted if not
+       * applicable or not known.
+       */
+      serverSignatureAlgorithm?: integer;
+
+      /**
+       * Whether the connection used Encrypted ClientHello
+       */
+      encryptedClientHello: boolean;
     }
 
     /**
@@ -21640,6 +21741,7 @@ export namespace Cdp {
       | 'screen-wake-lock'
       | 'serial'
       | 'shared-autofill'
+      | 'shared-storage'
       | 'storage-access-api'
       | 'sync-xhr'
       | 'trust-token-redemption'

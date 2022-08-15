@@ -24,7 +24,7 @@ async function main() {
     await runTests({
       extensionDevelopmentPath,
       extensionTestsPath,
-      version: process.env.JSDBG_TEST_VERSION,
+      version: 'insiders',
       launchArgs: [
         basedir,
         `--extensions-dir=${path.resolve(basedir, 'node_modules/.code-extensions')}`,
@@ -34,7 +34,7 @@ async function main() {
       ],
     });
   } catch (err) {
-    console.error('Failed to run tests');
+    console.error('Failed to run tests', err);
     process.exit(1);
   }
 }

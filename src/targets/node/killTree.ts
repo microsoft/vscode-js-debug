@@ -27,6 +27,7 @@ export function killTree(
     try {
       execSync(
         `${TASK_KILL} ${behavior === KillBehavior.Forceful ? '/F' : ''} /T /PID ${processId}`,
+        { stdio: 'pipe' },
       );
       return true;
     } catch (err) {

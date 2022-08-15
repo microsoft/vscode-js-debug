@@ -297,7 +297,9 @@ class VariableContext {
         objectId: object.objectId,
         throwOnSideEffect: true,
         returnByValue: true,
-      }).catch(() => ({ value: {} as Record<string, string> })),
+      })
+        .then(r => r?.value || {})
+        .catch(() => ({} as Record<string, string>)),
     ]);
     if (!accessorsProperties || !ownProperties) return [];
 
@@ -336,7 +338,7 @@ class VariableContext {
           this.createPropertyVar(
             p,
             object,
-            stringyProps.value.hasOwnProperty(p.name) ? stringyProps.value[p.name] : undefined,
+            stringyProps?.hasOwnProperty(p.name) ? stringyProps[p.name] : undefined,
           ),
         );
       }

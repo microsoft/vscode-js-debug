@@ -4,7 +4,23 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
-Nothing (yet)
+- feat: make Deno easier to configure
+- fix: path display issues in breakpoint diagnostic tool ([#1343](https://github.com/microsoft/vscode-js-debug/issues/1343))
+- fix: improve breakpoint resolution in webpack HMR ([vscode#155331](https://github.com/microsoft/vscode/issues/155331))
+- fix: allow overriding resolution of workspaceFolder in pathMapping ([#1308](https://github.com/microsoft/vscode-js-debug/issues/1308))
+- fix: extraneous warnings when restarting debugging ([vscode#156432](https://github.com/microsoft/vscode/issues/156432))
+- fix: webview debugging ([#1344](https://github.com/microsoft/vscode-js-debug/issues/1344))
+- fix: stack traces logged immediately before exit not being sourcemapped ([vscode#142197](https://github.com/microsoft/vscode/issues/142197))
+
+## v1.70 (July 2022)
+
+### v1.70.0 - 2022-07-27
+
+- feat: support providing terminal args as a string to avoid escaping ([#1335](https://github.com/microsoft/vscode-js-debug/issues/1335))
+- fix: performance improvements for setting breakpoints in large projects ([vscode#153470](https://github.com/microsoft/vscode/issues/153470))
+- fix: completions not returning stack variables ([vscode#153651](https://github.com/microsoft/vscode/issues/153651))
+- fix: react native windows direct debugging not showing variables ([vscode#154976](https://github.com/microsoft/vscode/issues/154976))
+- fix: previews showing in some cases `[object Object]` ([#1338](https://github.com/microsoft/vscode-js-debug/issues/1338))
 
 ## v1.69 (June 2022)
 

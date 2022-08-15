@@ -6,11 +6,11 @@ jobs:
 - job: macOS
   timeoutInMinutes: 20
   pool:
-    vmImage: 'macOS-10.15'
+    vmImage: 'macos-latest'
   steps:
   - template: common-validation.yml
   variables:
-    node_version: 14.18.3
+    node_version: 16.14.2
 
 - job: Linux
   pool:
@@ -18,7 +18,7 @@ jobs:
   steps:
   - template: common-validation.yml
   variables:
-    node_version: 14.18.3
+    node_version: 16.14.2
 
 - job: LinuxMinspec
   pool:
@@ -26,7 +26,7 @@ jobs:
   steps:
   - template: common-validation.yml
   variables:
-    node_version: 14.18.3
+    node_version: 16.14.2
     only_minspec: true
 
 - job: Windows
@@ -35,4 +35,4 @@ jobs:
   steps:
   - template: common-validation.yml
   variables:
-    node_version: 14.18.3
+    node_version: 16.14.2
