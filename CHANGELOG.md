@@ -4,6 +4,12 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
+Nothing yet...
+
+## v1.71 (August 2022)
+
+### v1.71.0 - 2022-08-24
+
 - feat: make Deno easier to configure
 - fix: path display issues in breakpoint diagnostic tool ([#1343](https://github.com/microsoft/vscode-js-debug/issues/1343))
 - fix: improve breakpoint resolution in webpack HMR ([vscode#155331](https://github.com/microsoft/vscode/issues/155331))
