@@ -5,6 +5,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 ## Nightly (only)
 
 - fix: request loop on certain kinds of Node.js attach failures ([vscode#156810](https://github.com/microsoft/vscode/issues/156810))
+- fix: breakpoints not being removed during startup ([#1371](https://github.com/microsoft/vscode-js-debug/issues/1371))
 
 ## v1.71 (August 2022)
 

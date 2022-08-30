@@ -193,7 +193,8 @@ export abstract class Breakpoint {
 
     await Promise.all(promises);
 
-    if (source) {
+    // double check still enabled to avoid racing
+    if (source && this.isEnabled) {
       const uiLocations = this._manager._sourceContainer.currentSiblingUiLocations({
         lineNumber: this.originalPosition.lineNumber,
         columnNumber: this.originalPosition.columnNumber,
