@@ -106,7 +106,10 @@ export class StubProgram implements IProgram {
 export class WatchDogProgram extends StubProgram {
   constructor(private readonly wd: WatchDog) {
     super();
-    wd.onEnd(this.stopDefer);
+    wd.onEnd(data => {
+      this.stopDefer(data);
+      this.wd.dispose();
+    });
   }
 
   public stop() {

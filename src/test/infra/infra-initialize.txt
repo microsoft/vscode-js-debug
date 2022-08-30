@@ -33,6 +33,7 @@
     supportsCompletionsRequest : true
     supportsConditionalBreakpoints : true
     supportsConfigurationDoneRequest : true
+    supportsDebuggerProperties : true
     supportsDelayedStackTraceLoading : true
     supportsEvaluateForHovers : true
     supportsExceptionFilterOptions : true

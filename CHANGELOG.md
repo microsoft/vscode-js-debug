@@ -4,7 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
-Nothing yet...
+- fix: request loop on certain kinds of Node.js attach failures ([vscode#156810](https://github.com/microsoft/vscode/issues/156810))
 
 ## v1.71 (August 2022)
 
