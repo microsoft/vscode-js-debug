@@ -220,7 +220,10 @@ export class AutoAttachLauncher
       ...data,
       ipcAddress: this.run.serverAddress, // may be outdated from a previous set of vars
     });
-    wd.onEnd(() => this.telemetryItems.delete(pid));
+    wd.onEnd(() => {
+      this.telemetryItems.delete(pid);
+      wd.dispose();
+    });
   }
 
   public static clearVariables(context: vscode.ExtensionContext) {

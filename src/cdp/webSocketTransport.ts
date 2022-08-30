@@ -7,8 +7,11 @@ import WebSocket from 'ws';
 import { CancellationTokenSource, timeoutPromise } from '../common/cancellation';
 import { EventEmitter } from '../common/events';
 import { HrTime } from '../common/hrnow';
+import { delay } from '../common/promiseUtil';
 import { isLoopback } from '../common/urlUtils';
 import { ITransport } from './transport';
+
+const maxRetryInterval = 50;
 
 export class WebSocketTransport implements ITransport {
   private _ws: WebSocket | undefined;
@@ -29,6 +32,7 @@ export class WebSocketTransport implements ITransport {
     const targetAddressIsLoopback = await isLoopback(url);
 
     while (true) {
+      const dontRetryBefore = Date.now() + maxRetryInterval;
       try {
         const options = {
           headers: { host: 'localhost' },
@@ -63,6 +67,11 @@ export class WebSocketTransport implements ITransport {
       } catch (err) {
         if (cancellationToken.isCancellationRequested) {
           throw err;
+        }
+
+        const retryIn = dontRetryBefore - Date.now();
+        if (retryIn > 0) {
+          await delay(retryIn);
         }
       }
     }
