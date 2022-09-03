@@ -266,6 +266,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
       EnvironmentVars.merge(EnvironmentVars.processEnv(), this.getConfiguredEnvironment(params)),
       executable,
       params.nodeVersionHint,
+      params.cwd,
     );
   }
 
