@@ -192,6 +192,7 @@ export interface INodeBinaryProvider {
     env: EnvironmentVars,
     executable?: string,
     explicitVersion?: number,
+    cwd?: string,
   ): Promise<NodeBinary>;
 }
 
@@ -221,9 +222,10 @@ export class NodeBinaryProvider {
     env: EnvironmentVars,
     executable = 'node',
     explicitVersion?: number,
+    cwd?: string,
   ): Promise<NodeBinary> {
     try {
-      return await this.resolveAndValidateInner(env, executable, explicitVersion);
+      return await this.resolveAndValidateInner(env, executable, explicitVersion, cwd);
     } catch (e) {
       if (!(e instanceof NodeBinaryOutOfDateError)) {
         throw e;
@@ -249,6 +251,7 @@ export class NodeBinaryProvider {
     env: EnvironmentVars,
     executable: string,
     explicitVersion: number | undefined,
+    cwd: string | undefined,
   ): Promise<NodeBinary> {
     const location = await this.resolveBinaryLocation(executable, env);
     this.logger.info(LogTag.RuntimeLaunch, 'Using binary at', { location, executable });
@@ -278,7 +281,7 @@ export class NodeBinaryProvider {
       }
 
       try {
-        const realBinary = await this.resolveAndValidateInner(env, 'node', undefined);
+        const realBinary = await this.resolveAndValidateInner(env, 'node', undefined, cwd);
         return new NodeBinary(location, realBinary.version);
       } catch (e) {
         // if we verified it's outdated, still throw the error. If it's not
@@ -303,7 +306,7 @@ export class NodeBinaryProvider {
     }
 
     // match the "12" in "v12.34.56"
-    const versionText = await this.getVersionText(location);
+    const versionText = await this.getVersionText(location, cwd);
 
     // Handle other cases where Node.js is installed via snap, but not in `/span/`.
     // We just get empty output from it in that case.
@@ -345,10 +348,11 @@ export class NodeBinaryProvider {
       : await findInPath(this.fs, executable, env.value);
   }
 
-  public async getVersionText(binary: string) {
+  public async getVersionText(binary: string, cwd: string | undefined) {
     try {
       const { stdout } = await spawnAsync(binary, ['--version'], {
         env: EnvironmentVars.processEnv().defined(),
+        cwd,
       });
       return stdout.trim();
     } catch (e) {
