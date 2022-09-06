@@ -6,7 +6,13 @@ import { inject, injectable } from 'inversify';
 import { URL } from 'url';
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
-import { Commands, Configuration, DebugType, readConfig } from '../common/contributionUtils';
+import {
+  Commands,
+  Configuration,
+  DebugType,
+  getPreferredOrDebugType,
+  readConfig,
+} from '../common/contributionUtils';
 import { DefaultBrowser, IDefaultBrowserProvider } from '../common/defaultBrowserProvider';
 import { ExtensionContext, IExtensionContribution } from '../ioc-extras';
 
@@ -77,7 +83,7 @@ export class DebugLinkUi implements IExtensionContribution {
     const baseConfig = readConfig(vscode.workspace, Configuration.DebugByLinkOptions) ?? {};
     const config = {
       ...(typeof baseConfig === 'string' ? {} : baseConfig),
-      type: debugType,
+      type: getPreferredOrDebugType(debugType),
       name: link,
       request: 'launch',
       url: link,
