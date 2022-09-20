@@ -127,7 +127,7 @@ interface IDebugger<T extends AnyLaunchConfiguration> {
   } & Described)[];
   configurationAttributes: ConfigurationAttributes<T>;
   defaults: T;
-  uiMessages?: { unverifiedBreakpoints?: string };
+  strings?: { unverifiedBreakpoints?: string };
 }
 
 const commonLanguages = ['javascript', 'typescript', 'javascriptreact', 'typescriptreact'];
@@ -1046,7 +1046,7 @@ function buildDebuggers() {
       aiKey: appInsightsKey,
       configurationAttributes: {},
       configurationSnippets: [],
-      uiMessages: { unverifiedBreakpoints: refString('debug.unverifiedBreakpoints') },
+      strings: { unverifiedBreakpoints: refString('debug.unverifiedBreakpoints') },
     };
     output.push(entry);
     return entry;
