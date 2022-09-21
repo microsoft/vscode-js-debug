@@ -453,7 +453,7 @@ export class StackFrame implements IFrameElement {
 
     const extraProperties: IExtraProperty[] = [];
     if (scopeNumber === 0) {
-      extraProperties.push({ name: 'this', value: scope.thisObject });
+      if (scope.thisObject) extraProperties.push({ name: 'this', value: scope.thisObject });
       if (scope.returnValue)
         extraProperties.push({
           name: localize('scope.returnValue', 'Return value'),
