@@ -1,6 +1,6 @@
 # Options
 
-### pwa-node: attach
+### node: attach
 
 <details><h4>address</h4><p>TCP/IP address of process to be debugged. Default is &#39;localhost&#39;.</p>
 <h5>Default value:</h4><pre><code>"localhost"</pre></code><h4>attachExistingChildren</h4><p>Whether to attempt to attach to already-spawned child processes.</p>
@@ -51,7 +51,7 @@
 <h5>Default value:</h4><pre><code>false</pre></code><h4>websocketAddress</h4><p>Exact websocket address to attach to. If unspecified, it will be discovered from the address and port.</p>
 <h5>Default value:</h4><pre><code>undefined</pre></code></details>
 
-### pwa-node: launch
+### node: launch
 
 <details><h4>args</h4><p>Command line arguments passed to the program.<br><br>Can be an array of strings or a single string. When the program is launched in a terminal, setting this property to a single string will result in the arguments not being escaped for the shell.</p>
 <h5>Default value:</h4><pre><code>[]</pre></code><h4>attachSimplePort</h4><p>If set, attaches to the process via the given port. This is generally no longer necessary for Node.js programs and loses the ability to debug child processes, but can be useful in more esoteric scenarios such as with Deno and Docker launches. If set to 0, a random port will be chosen and --inspect-brk added to the launch arguments automatically.</p>
@@ -153,7 +153,7 @@
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
 <h5>Default value:</h4><pre><code>false</pre></code></details>
 
-### pwa-extensionHost: launch
+### extensionHost: launch
 
 <details><h4>args</h4><p>Command line arguments passed to the program.<br><br>Can be an array of strings or a single string. When the program is launched in a terminal, setting this property to a single string will result in the arguments not being escaped for the shell.</p>
 <h5>Default value:</h4><pre><code>[
@@ -203,7 +203,7 @@
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
 <h5>Default value:</h4><pre><code>false</pre></code></details>
 
-### pwa-chrome: launch
+### chrome: launch
 
 <details><h4>browserLaunchLocation</h4><p>Forces the browser to be launched in one location. In a remote workspace (through ssh or WSL, for example) this can be used to open the browser on the remote machine rather than locally.</p>
 <h5>Default value:</h4><pre><code>"workspace"</pre></code><h4>cascadeTerminateToConfigurations</h4><p>A list of debug sessions which, when this debug session is terminated, will also be stopped.</p>
@@ -256,7 +256,7 @@
 ]</pre></code><h4>webRoot</h4><p>This specifies the workspace absolute path to the webserver root. Used to resolve paths like <code>/app.js</code> to files on disk. Shorthand for a pathMapping for &quot;/&quot;</p>
 <h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code></details>
 
-### pwa-chrome: attach
+### chrome: attach
 
 <details><h4>address</h4><p>IP address or hostname the debugged browser is listening on.</p>
 <h5>Default value:</h4><pre><code>"localhost"</pre></code><h4>browserAttachLocation</h4><p>Forces the browser to attach in one location. In a remote workspace (through ssh or WSL, for example) this can be used to attach to a browser on the remote machine rather than locally.</p>
@@ -303,7 +303,7 @@
 ]</pre></code><h4>webRoot</h4><p>This specifies the workspace absolute path to the webserver root. Used to resolve paths like <code>/app.js</code> to files on disk. Shorthand for a pathMapping for &quot;/&quot;</p>
 <h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code></details>
 
-### pwa-msedge: launch
+### msedge: launch
 
 <details><h4>address</h4><p>When debugging webviews, the IP address or hostname the webview is listening on. Will be automatically discovered if not set.</p>
 <h5>Default value:</h4><pre><code>"localhost"</pre></code><h4>browserLaunchLocation</h4><p>Forces the browser to be launched in one location. In a remote workspace (through ssh or WSL, for example) this can be used to open the browser on the remote machine rather than locally.</p>
@@ -358,7 +358,7 @@
 ]</pre></code><h4>webRoot</h4><p>This specifies the workspace absolute path to the webserver root. Used to resolve paths like <code>/app.js</code> to files on disk. Shorthand for a pathMapping for &quot;/&quot;</p>
 <h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code></details>
 
-### pwa-msedge: attach
+### msedge: attach
 
 <details><h4>address</h4><p>IP address or hostname the debugged browser is listening on.</p>
 <h5>Default value:</h4><pre><code>"localhost"</pre></code><h4>browserAttachLocation</h4><p>Forces the browser to attach in one location. In a remote workspace (through ssh or WSL, for example) this can be used to attach to a browser on the remote machine rather than locally.</p>
