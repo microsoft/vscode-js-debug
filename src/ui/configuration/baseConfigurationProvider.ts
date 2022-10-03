@@ -44,7 +44,9 @@ export abstract class BaseConfigurationProvider<T extends AnyLaunchConfiguration
       const preferredType = preferredDebugTypes.get(this.type);
       if (preferredType) {
         for (const config of configs) {
-          config.type = preferredType as T['type'];
+          if (config.type === this.type) {
+            config.type = preferredType as T['type'];
+          }
         }
       }
 
