@@ -61,12 +61,17 @@ describe('breakpoints', () => {
       };
       await p.dap.setBreakpoints({ source, breakpoints: [{ line: 2, column: 0 }] });
       p.load();
+
+      let bpChanged: Dap.BreakpointEventParams | undefined;
       await waitForPause(p, async () => {
+        // should not update bp after it's removed, #1406
+        p.dap.once('breakpoint').then(bp => (bpChanged = bp));
         await p.dap.setBreakpoints({ source });
       });
       await waitForPause(p);
       p.cdp.Runtime.evaluate({ expression: 'foo();\ndebugger;\n//# sourceURL=test.js' });
       await waitForPause(p);
+      expect(bpChanged).to.be.undefined;
       p.assertLog();
     });
 
