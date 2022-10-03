@@ -120,7 +120,7 @@ export class UserDefinedBreakpoint extends Breakpoint {
     const previousLocation = this.getResolvedUiLocation();
     super.updateCdpRefs(mutator);
 
-    if (this.getResolvedUiLocation() !== previousLocation && this.isEnabled) {
+    if (this.getResolvedUiLocation() !== previousLocation) {
       this.notifyResolved();
     }
   }
