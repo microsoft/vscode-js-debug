@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "build": "webpack -c b/webpack.config.js && webpack -c a/webpack.config.js"
+  },
+  "dependencies": {
+    "webpack": "^5.74.0",
+    "webpack-cli": "^4.10.0"
+  }
+}
