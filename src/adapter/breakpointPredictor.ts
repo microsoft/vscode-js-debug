@@ -215,35 +215,58 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
       });
     }, longPredictionWarning);
 
+    // Maps of source names to the latest metadata we got for them. This is
+    // used to get around an issue with the CodeSearchStrategy, which discovers
+    // _all_ sourcemap declarations for a given file, even though we only want
+    // to follow the last one. (Webpack re-bundling compiled code can result in
+    // multiple sourcemap comments per file, for example.)
+    const latestForCompiled = new Map<string, { i: number; discovered: DiscoveredMetadata[] }>();
+    let counter = 0;
+
     try {
       await this.repo.streamChildrenWithSourcemaps(this.outFiles, async metadata => {
+        const i = counter++;
+        const discovered: DiscoveredMetadata[] = [];
+        const nowInvalid = latestForCompiled.get(metadata.compiledPath);
+        if (nowInvalid) {
+          for (const discovery of nowInvalid.discovered) {
+            sourcePathToCompiled.get(discovery.resolvedPath)?.delete(discovery);
+          }
+        }
+        latestForCompiled.set(metadata.compiledPath, { i, discovered });
+
         const cached = await this.cache?.lookup(metadata.compiledPath, metadata.cacheKey);
         if (cached) {
-          cached.forEach(c => addDiscovery({ ...c, ...metadata }));
-          return;
-        }
-
-        let map: SourceMap;
-        try {
-          map = await this.sourceMapFactory.load(metadata);
-        } catch {
-          return;
-        }
-
-        const discovered: DiscoveredMetadata[] = [];
-        for (const url of map.sources) {
-          const resolvedPath = this.sourcePathResolver
-            ? await this.sourcePathResolver.urlToAbsolutePath({ url, map })
-            : urlUtils.fileUrlToAbsolutePath(url);
-
-          if (!resolvedPath) {
-            continue;
+          discovered.push(...cached.map(c => ({ ...c, ...metadata })));
+        } else {
+          let map: SourceMap;
+          try {
+            map = await this.sourceMapFactory.load(metadata);
+          } catch {
+            return;
           }
 
-          const discovery = { ...metadata, resolvedPath, sourceUrl: url };
-          discovered.push(discovery);
-          addDiscovery(discovery);
+          for (const url of map.sources) {
+            const resolvedPath = this.sourcePathResolver
+              ? await this.sourcePathResolver.urlToAbsolutePath({ url, map })
+              : urlUtils.fileUrlToAbsolutePath(url);
+
+            if (!resolvedPath) {
+              continue;
+            }
+
+            discovered.push({ ...metadata, resolvedPath, sourceUrl: url });
+          }
         }
+
+        // Double check that this is still the latest sourcemap we got for this
+        // file before finalizing the discoveries.
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        if (latestForCompiled.get(metadata.compiledPath)!.i !== i) {
+          return;
+        }
+
+        discovered.forEach(addDiscovery);
 
         this.cache?.store(
           metadata.compiledPath,
@@ -283,19 +306,53 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
       this.sourcePathToCompiled = this.createInitialMapping();
     }
 
-    const set = (await this.sourcePathToCompiled).get(params.source.path);
-    if (!set) {
+    const sourcePathToCompiled = await this.sourcePathToCompiled;
+    const topLevel = sourcePathToCompiled.get(params.source.path);
+    if (!topLevel) {
       return;
     }
 
-    const sourceMaps = await Promise.all(
-      [...set].map(metadata =>
-        this.sourceMapFactory
-          .load(metadata)
-          .then(map => ({ map, metadata }))
-          .catch(() => undefined),
-      ),
-    );
+    const addSourceMapLocations = async (
+      line: number,
+      col: number,
+      metadata: DiscoveredMetadata,
+    ): Promise<IWorkspaceLocation[]> => {
+      const map = await this.sourceMapFactory.load(metadata);
+      const entry = this.sourceMapFactory.guardSourceMapFn(
+        map,
+        () =>
+          getOptimalCompiledPosition(
+            metadata.sourceUrl,
+            {
+              lineNumber: line,
+              columnNumber: col || 1,
+            },
+            map,
+          ),
+        () => null,
+      );
+
+      if (!entry || entry.line === null) {
+        return [];
+      }
+
+      const nested = sourcePathToCompiled.get(metadata.compiledPath);
+      if (nested) {
+        const n = await Promise.all(
+          // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+          [...nested].map(n => addSourceMapLocations(entry.line!, entry.column!, n)),
+        );
+        return n.flat();
+      }
+
+      return [
+        {
+          absolutePath: metadata.compiledPath,
+          lineNumber: entry.line || 1,
+          columnNumber: entry.column ? entry.column + 1 : 1,
+        },
+      ];
+    };
 
     for (const b of params.breakpoints ?? []) {
       const key = `${params.source.path}:${b.line}:${b.column || 1}`;
@@ -306,35 +363,8 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
       const locations: IWorkspaceLocation[] = [];
       this.predictedLocations.set(key, locations);
 
-      for (const sourceMapLoad of sourceMaps) {
-        if (!sourceMapLoad) {
-          continue;
-        }
-
-        const { map, metadata } = sourceMapLoad;
-        const entry = this.sourceMapFactory.guardSourceMapFn(
-          map,
-          () =>
-            getOptimalCompiledPosition(
-              metadata.sourceUrl,
-              {
-                lineNumber: b.line,
-                columnNumber: b.column || 1,
-              },
-              map,
-            ),
-          () => null,
-        );
-
-        if (!entry || entry.line === null) {
-          continue;
-        }
-
-        locations.push({
-          absolutePath: metadata.compiledPath,
-          lineNumber: entry.line || 1,
-          columnNumber: entry.column ? entry.column + 1 : 1,
-        });
+      for (const metadata of topLevel) {
+        locations.push(...(await addSourceMapLocations(b.line, b.column || 0, metadata)));
       }
     }
   }
@@ -347,7 +377,8 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
       this.sourcePathToCompiled = this.createInitialMapping();
     }
 
-    return (await this.sourcePathToCompiled).get(sourcePath);
+    const sourcePathToCompiled = await this.sourcePathToCompiled;
+    return sourcePathToCompiled.get(sourcePath);
   }
 
   /**

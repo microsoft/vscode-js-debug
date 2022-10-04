@@ -176,14 +176,21 @@ export class BreakpointManager {
       // New script arrived, pointing to |sources| through a source map.
       // We search for all breakpoints in |sources| and set them to this
       // particular script.
-      for (const source of sources) {
-        const path = source.absolutePath;
-        const byPath = path ? this._byPath.get(path) : undefined;
-        for (const breakpoint of byPath || [])
-          todo.push(breakpoint.updateForSourceMap(this._thread, script));
-        const byRef = this._byRef.get(source.sourceReference);
-        for (const breakpoint of byRef || [])
-          todo.push(breakpoint.updateForSourceMap(this._thread, script));
+      const queue: Iterable<Source>[] = [sources];
+      for (let i = 0; i < queue.length; i++) {
+        for (const source of queue[i]) {
+          const path = source.absolutePath;
+          const byPath = path ? this._byPath.get(path) : undefined;
+          for (const breakpoint of byPath || [])
+            todo.push(breakpoint.updateForSourceMap(this._thread, script));
+          const byRef = this._byRef.get(source.sourceReference);
+          for (const breakpoint of byRef || [])
+            todo.push(breakpoint.updateForSourceMap(this._thread, script));
+
+          if (source.sourceMap) {
+            queue.push(source.sourceMap.sourceByUrl.values());
+          }
+        }
       }
 
       return (await Promise.all(todo)).reduce((a, b) => [...a, ...b], []);
