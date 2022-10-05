@@ -5,6 +5,7 @@ import { expect } from 'chai';
 import { promises as dns } from 'dns';
 import { SinonStub, stub } from 'sinon';
 import {
+  absolutePathToFileUrl,
   createTargetFilter,
   fileUrlToAbsolutePath,
   getNormalizedBinaryName,
@@ -321,6 +322,16 @@ describe('urlUtils', () => {
     for (const [ip, expected] of Object.entries(ttable)) {
       it(ip, async () => expect(await isLoopback(ip)).to.equal(expected));
     }
+  });
+
+  describe('absolutePathToFileUrl', () => {
+    it('properly formats unc paths', () => {
+      overridePlatform('win32');
+      expect(absolutePathToFileUrl('\\\\my\\shared\\file.js')).to.equal(
+        'file:////my/shared/file.js',
+      );
+      resetPlatform();
+    });
   });
 
   it('getNormalizedBinaryName', () => {

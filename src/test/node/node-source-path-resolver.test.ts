@@ -29,6 +29,17 @@ describe('node source path resolver', () => {
       );
     });
 
+    it('resolves unc paths', async () => {
+      if (process.platform !== 'win32') {
+        return;
+      }
+
+      const r = new NodeSourcePathResolver(fsUtils, undefined, defaultOptions, await Logger.test());
+      expect(
+        await r.urlToAbsolutePath({ url: 'file:////mac/Home/Github/js-debug-demos/node/main.js' }),
+      ).to.equal(resolve('\\\\mac\\Home\\Github\\js-debug-demos\\node\\main.js'));
+    });
+
     it('normalizes roots (win -> posix) ', async () => {
       const r = new NodeSourcePathResolver(
         fsUtils,
