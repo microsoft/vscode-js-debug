@@ -2,15 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { AnyMap, EncodedSourceMap, SectionedSourceMap } from '@jridgewell/trace-mapping';
 import { inject, injectable } from 'inversify';
-import {
-  Position,
-  RawIndexMap,
-  RawSection,
-  RawSourceMap,
-  SourceMapConsumer,
-  StartOfSourceMap,
-} from 'source-map';
 import { IResourceProvider } from '../../adapter/resourceProvider';
 import Dap from '../../dap/api';
 import { IRootDapApi } from '../../dap/connection';
@@ -44,18 +37,22 @@ export interface ISourceMapFactory extends IDisposable {
 }
 
 interface RawExternalSection {
-  offset: Position;
+  offset: { line: number; column: number };
   url: string;
 }
 
 /**
- * The typings for source-map don't support this, but the spec does.
+ * Type of the source map before external maps.
  * @see https://sourcemaps.info/spec.html#h.535es3xeprgt
  */
-export interface RawIndexMapUnresolved extends StartOfSourceMap {
-  version: number;
-  sections: (RawExternalSection | RawSection)[];
-}
+export type UnresolvedSourceMap = Omit<SectionedSourceMap, 'sections'> & {
+  sections: (SectionedSourceMap['sections'][0] | RawExternalSection)[];
+};
+
+/**
+ * Raw source map, once external sections are resolved.
+ */
+export type AnySourceMap = EncodedSourceMap | SectionedSourceMap;
 
 /**
  * Base implementation of the ISourceMapFactory.
@@ -86,22 +83,26 @@ export class SourceMapFactory implements ISourceMapFactory {
     // to `/foo.ts` as if the source map refers to the root of the filesystem.
     // This would prevent us from being able to see that it's actually in
     // a parent directory, so we make the sourceRoot empty but show it here.
-    const actualRoot = basic.sourceRoot;
-    basic.sourceRoot = undefined;
+    let actualRoot: string | undefined;
+    if ('sourceRoot' in basic) {
+      actualRoot = basic.sourceRoot;
+      basic.sourceRoot = undefined;
+    }
 
     let hasNames = false;
 
     // The source map library (also) "helpfully" normalizes source URLs, so
     // preserve them in the same way. Then, rename the sources to prevent any
     // of their names colliding (e.g. "webpack://./index.js" and "webpack://../index.js")
-    let actualSources: string[] = [];
+    let actualSources: (string | null)[] = [];
     if ('sections' in basic) {
       actualSources = [];
       let i = 0;
       for (const section of basic.sections) {
-        actualSources.push(...section.map.sources);
-        section.map.sources = section.map.sources.map(() => `source${i++}.js`);
-        hasNames ||= !!section.map.names?.length;
+        const map = section.map as EncodedSourceMap;
+        actualSources.push(...map.sources);
+        map.sources = map.sources.map(() => `source${i++}.js`);
+        hasNames ||= !!map.names?.length;
       }
     } else if ('sources' in basic && Array.isArray(basic.sources)) {
       actualSources = basic.sources;
@@ -109,17 +110,11 @@ export class SourceMapFactory implements ISourceMapFactory {
       hasNames = !!basic.names?.length;
     }
 
-    return new SourceMap(
-      await new SourceMapConsumer(basic),
-      metadata,
-      actualRoot ?? '',
-      actualSources,
-      hasNames,
-    );
+    return new SourceMap(new AnyMap(basic), metadata, actualRoot ?? '', actualSources, hasNames);
   }
 
-  private async parseSourceMap(sourceMapUrl: string): Promise<RawSourceMap | RawIndexMap> {
-    let sm: RawSourceMap | RawIndexMapUnresolved | undefined;
+  private async parseSourceMap(sourceMapUrl: string): Promise<AnySourceMap> {
+    let sm: UnresolvedSourceMap | undefined;
     try {
       sm = await this.parseSourceMapDirect(sourceMapUrl);
     } catch (e) {
@@ -134,7 +129,7 @@ export class SourceMapFactory implements ISourceMapFactory {
         sm.sections.map((s, i) =>
           'url' in s
             ? this.parseSourceMap(s.url)
-                .then(map => ({ offset: s.offset, map: map as RawSourceMap }))
+                .then(map => ({ offset: s.offset, map }))
                 .catch(e => {
                   this.logger.warn(LogTag.SourceMapParsing, `Error parsing nested map ${i}: ${e}`);
                   return undefined;
@@ -146,7 +141,7 @@ export class SourceMapFactory implements ISourceMapFactory {
       sm.sections = resolved.filter(truthy);
     }
 
-    return sm as RawSourceMap | RawIndexMap;
+    return sm as AnySourceMap;
   }
 
   public async parsePathMappedSourceMap(url: string) {
@@ -195,9 +190,7 @@ export class SourceMapFactory implements ISourceMapFactory {
     // no-op
   }
 
-  private async parseSourceMapDirect(
-    sourceMapUrl: string,
-  ): Promise<RawSourceMap | RawIndexMapUnresolved> {
+  private async parseSourceMapDirect(sourceMapUrl: string): Promise<UnresolvedSourceMap> {
     let absolutePath = fileUrlToAbsolutePath(sourceMapUrl);
     if (absolutePath) {
       absolutePath = this.pathResolve.rebaseRemoteToLocal(absolutePath);
@@ -280,20 +273,6 @@ export class CachingSourceMapFactory extends SourceMapFactory {
    * @inheritdoc
    */
   public dispose() {
-    for (const map of this.knownMaps.values()) {
-      map.prom.then(
-        m => m.destroy(),
-        () => undefined,
-      );
-    }
-
-    for (const map of this.overwrittenSourceMaps) {
-      map.then(
-        m => m.destroy(),
-        () => undefined,
-      );
-    }
-
     this.knownMaps.clear();
   }
 

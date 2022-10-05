@@ -2,19 +2,19 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { EncodedSourceMap, SectionedSourceMap } from '@jridgewell/trace-mapping';
 import { expect } from 'chai';
 import dataUriToBuffer from 'data-uri-to-buffer';
 import { stub } from 'sinon';
-import { RawIndexMap, RawSourceMap } from 'source-map';
 import { stubbedDapApi, StubDapApi } from '../../dap/stubbedApi';
 import { Logger } from '../logging/logger';
-import { RawIndexMapUnresolved, SourceMapFactory } from './sourceMapFactory';
+import { SourceMapFactory, UnresolvedSourceMap } from './sourceMapFactory';
 
 const toDataUri = (obj: unknown) =>
   'data:application/json;base64,' + Buffer.from(JSON.stringify(obj)).toString('base64');
 
 const sampleSource = 'console.log(123)';
-const basicSourceMap: RawSourceMap = {
+const basicSourceMap: EncodedSourceMap = {
   version: 3,
   sources: ['one.js'],
   sourcesContent: [sampleSource],
@@ -22,7 +22,7 @@ const basicSourceMap: RawSourceMap = {
   file: '',
   mappings: '',
 };
-const indexedSourceMap: RawIndexMap = {
+const indexedSourceMap: SectionedSourceMap = {
   version: 3,
   sections: [
     {
@@ -31,7 +31,7 @@ const indexedSourceMap: RawIndexMap = {
     },
   ],
 };
-const unresolvedIndexedSourceMap: RawIndexMapUnresolved = {
+const unresolvedIndexedSourceMap: UnresolvedSourceMap = {
   version: 3,
   sections: [
     {

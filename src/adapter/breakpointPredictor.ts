@@ -247,6 +247,10 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
           }
 
           for (const url of map.sources) {
+            if (url === null) {
+              continue;
+            }
+
             const resolvedPath = this.sourcePathResolver
               ? await this.sourcePathResolver.urlToAbsolutePath({ url, map })
               : urlUtils.fileUrlToAbsolutePath(url);

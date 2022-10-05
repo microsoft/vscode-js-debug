@@ -2,10 +2,10 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { GREATEST_LOWER_BOUND, LEAST_UPPER_BOUND } from '@jridgewell/trace-mapping';
 import { inject, injectable } from 'inversify';
 import { xxHash32 } from 'js-xxhash';
 import { relative } from 'path';
-import { NullableMappedPosition, SourceMapConsumer } from 'source-map';
 import { URL } from 'url';
 import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
@@ -851,13 +851,13 @@ export class SourceContainer {
    * Gets the best original position for the location in the source map.
    */
   public getOptiminalOriginalPosition(sourceMap: SourceMap, uiLocation: LineColumn) {
-    return this.sourceMapFactory.guardSourceMapFn<NullableMappedPosition>(
+    return this.sourceMapFactory.guardSourceMapFn(
       sourceMap,
       () => {
         const glb = sourceMap.originalPositionFor({
           line: uiLocation.lineNumber,
           column: uiLocation.columnNumber - 1,
-          bias: SourceMapConsumer.GREATEST_LOWER_BOUND,
+          bias: GREATEST_LOWER_BOUND,
         });
 
         if (glb.line !== null) {
@@ -867,7 +867,7 @@ export class SourceContainer {
         return sourceMap.originalPositionFor({
           line: uiLocation.lineNumber,
           column: uiLocation.columnNumber - 1,
-          bias: SourceMapConsumer.LEAST_UPPER_BOUND,
+          bias: LEAST_UPPER_BOUND,
         });
       },
       getFallbackPosition,
@@ -1069,7 +1069,6 @@ export class SourceContainer {
 
     sourceMap.compiled.delete(source);
     if (!sourceMap.compiled.size) {
-      if (sourceMap.map) sourceMap.map.destroy();
       this._sourceMaps.delete(source.sourceMap.url);
     }
     // Source map could still be loading, or failed to load.
@@ -1081,6 +1080,9 @@ export class SourceContainer {
   async _addSourceMapSources(compiled: ISourceWithMap, map: SourceMap) {
     const todo: Promise<unknown>[] = [];
     for (const url of map.sources) {
+      if (url === null) {
+        continue;
+      }
       const absolutePath = await this.sourcePathResolver.urlToAbsolutePath({ url, map });
       const resolvedUrl = absolutePath
         ? utils.absolutePathToFileUrl(absolutePath)
@@ -1109,7 +1111,7 @@ export class SourceContainer {
       const fileUrl = absolutePath && utils.absolutePathToFileUrl(absolutePath);
       const smContent = this.sourceMapFactory.guardSourceMapFn(
         map,
-        () => map.sourceContentFor(url, true),
+        () => map.sourceContentFor(url),
         () => null,
       );
 
@@ -1154,6 +1156,10 @@ export class SourceContainer {
 
   private _removeSourceMapSources(compiled: ISourceWithMap, map: SourceMap, silent: boolean) {
     for (const url of map.sources) {
+      if (url === null) {
+        continue;
+      }
+
       const source = compiled.sourceMap.sourceByUrl.get(url);
       if (!source) {
         // Previously, we would have always expected the source to exist here.
