@@ -4,6 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
+- fix: copying a date object resulting in an empty object ([vscode#162747](https://github.com/microsoft/vscode/issues/162747))
 - feat: add automatic support for nested sourcemaps ([#1390](https://github.com/microsoft/vscode-js-debug/issues/1390))
 
 ## v1.72 (September 2022)

@@ -78,6 +78,10 @@ export const serializeForClipboardTmpl = templateFunction(function (
           return '[Circular]';
         }
 
+        if (value instanceof Date) {
+          return `"${value.toISOString()}"`;
+        }
+
         if (typeof Node !== 'undefined' && valueToStringify instanceof Node) {
           return valueToStringify.outerHTML;
         }

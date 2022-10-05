@@ -228,6 +228,7 @@ describe('evaluate', () => {
     'new Uint8Array([1, 2, 3]).buffer': 'new Uint8Array([1, 2, 3]).buffer',
     'new Float32Array([1.5, 2.5, 3.5])': 'new Float32Array([1.5, 2.5, 3.5])',
     '1n << 100n': '1267650600228229401496703205376n',
+    'new Date(1665007127286)': '"2022-10-05T21:58:47.286Z"',
     '(() => { const node = document.createElement("div"); node.innerText = "hi"; return node })()': `<div>hi</div>`,
   };
 
