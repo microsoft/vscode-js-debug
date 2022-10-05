@@ -5,6 +5,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 ## Nightly (only)
 
 - feat: add automatic support for nested sourcemaps ([#1390](https://github.com/microsoft/vscode-js-debug/issues/1390))
+- fix: breakpoints failing to set on paths with multibyte URL characters ([#1364](https://github.com/microsoft/vscode-js-debug/issues/1364))
 
 ## v1.72 (September 2022)
 
