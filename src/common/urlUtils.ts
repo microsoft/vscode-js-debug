@@ -353,8 +353,8 @@ const charRangeToUrlReGroup = (str: string, start: number, end: number, escapeRe
 
   // Loop through each character of the string. Convert the char to a regex,
   // creating a group, and then append that to the match.
-  for (let i = start; i < end; i++) {
-    const char = str[i];
+  // Note that using "for..of" is important here to loop over UTF code points.
+  for (const char of str.slice(start, end)) {
     if (isCaseSensitive) {
       urlToRegexChar(char, charToUrlReGroupSet, escapeRegex);
     } else {
