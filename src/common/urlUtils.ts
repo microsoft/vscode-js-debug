@@ -11,7 +11,7 @@ import { BrowserTargetType } from '../targets/browser/browserTargets';
 import { MapUsingProjection } from './datastructure/mapUsingProjection';
 import { IFsUtils } from './fsUtils';
 import { memoize } from './objUtils';
-import { fixDriveLetterAndSlashes, forceForwardSlashes } from './pathUtils';
+import { fixDriveLetterAndSlashes, forceForwardSlashes, isUncPath } from './pathUtils';
 import { escapeRegexSpecialChars, isRegexSpecialChar } from './stringUtils';
 
 let isCaseSensitive = process.platform !== 'win32';
@@ -265,6 +265,17 @@ export function fileUrlToAbsolutePath(urlOrPath: string): string | undefined {
 
   urlOrPath = urlOrPath.replace('file:///', '');
   urlOrPath = decodeURIComponent(urlOrPath);
+
+  // UNC paths are returned from Chrome in the form `file:////shared/folder`,
+  // rather than `file:///`. This is not _entirely_ prescriptive since some
+  // applications can use four slashes for posix paths as well (even though V8
+  // doesn't seem to), so only do this if the debugger is currently running on Windows.
+  if (urlOrPath.startsWith('/') && process.platform === 'win32') {
+    if (urlOrPath[1] !== '/') {
+      urlOrPath = '/' + urlOrPath; // restore extra slash
+    }
+  }
+
   if (urlOrPath[0] !== '/' && !urlOrPath.match(/^[A-Za-z]:/)) {
     // If it has a : before the first /, assume it's a windows path or url.
     // Ensure unix-style path starts with /, it can be removed when file:/// was stripped.
@@ -466,6 +477,9 @@ export function platformPathToUrlPath(p: string): string {
   p = platformPathToPreferredCase(p);
 
   if (platform === 'win32') {
+    if (isUncPath(p)) {
+      p = p.slice(1); // emit "file:////" and not "file://///" to match what V8 expects
+    }
     return p
       .split(/[\\//]/g)
       .map((p, i) => (i > 0 ? encodeURIComponent(p) : p))
