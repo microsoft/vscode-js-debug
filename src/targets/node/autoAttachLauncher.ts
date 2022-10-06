@@ -175,14 +175,7 @@ export class AutoAttachLauncher
     const storagePath =
       this.extensionContext.storagePath || this.extensionContext.globalStoragePath;
     if (storagePath.includes(' ')) {
-      if (!binary.isPreciselyKnown) {
-        throw new AutoAttachPreconditionFailed(
-          'We did not find `node` on your PATH, so we cannot enable auto-attach in your environment',
-          'https://github.com/microsoft/vscode-js-debug/issues/708',
-        );
-      }
-
-      if (!binary.has(Capability.UseSpacesInRequirePath)) {
+      if (binary.isPreciselyKnown && !binary.has(Capability.UseSpacesInRequirePath)) {
         throw new AutoAttachPreconditionFailed(
           `The \`node\` version on your PATH is too old (${binary.version?.major}), so we cannot enable auto-attach in your environment`,
           'https://github.com/microsoft/vscode-js-debug/issues/708',
