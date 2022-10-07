@@ -114,7 +114,7 @@ export class RenameProvider implements IRenameProvider {
       const start = toOffset.convert(startPos);
 
       const lastGeneratedColumn = (mapping as MappingItem & { lastGeneratedColumn: number })
-        .lastGeneratedColumn as number;
+        .lastGeneratedColumn;
 
       const endPos = new Base01Position(mapping.generatedLine, lastGeneratedColumn + 1);
       const end = toOffset.convert(endPos);
