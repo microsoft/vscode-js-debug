@@ -418,17 +418,18 @@ export function urlToRegex(
     // fancy regex above), replace `file:///c:/` or simple `c:/` patterns with
     // an insensitive drive letter.
     patterns.push(
-      `${rePrefix}${re}${reSuffix}`
-        .replace(
-          /^(file:\\\/\\\/\\\/)?([a-z]):/i,
-          (_, file = '', letter) => `${file}[${letter.toUpperCase()}${letter.toLowerCase()}]:`,
-        )
-        .concat('($|\\?)'),
+      makeDriveLetterReCaseInsensitive(`${rePrefix}${re}${reSuffix}`).concat('($|\\?)'),
     );
   }
 
   return patterns.join('|');
 }
+
+export const makeDriveLetterReCaseInsensitive = (re: string) =>
+  re.replace(
+    /^(file:\\\/\\\/\\\/)?([a-z]):/i,
+    (_, file = '', letter) => `${file}[${letter.toUpperCase()}${letter.toLowerCase()}]:`,
+  );
 
 /**
  * Opaque typed used to indicate strings that are file URLs.

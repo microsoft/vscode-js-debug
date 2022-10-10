@@ -14,7 +14,6 @@ import { invalidBreakPointCondition } from '../dap/errors';
 import { ProtocolError } from '../dap/protocolError';
 import { wrapBreakCondition } from './breakpoints/conditions/expression';
 import { IEvaluator, PreparedCallFrameExpr } from './evaluator';
-import { ScriptSkipper } from './scriptSkipper/implementation';
 import { IScriptSkipper } from './scriptSkipper/scriptSkipper';
 import { SourceContainer } from './sources';
 
@@ -75,7 +74,7 @@ export class ExceptionPauseService implements IExceptionPauseService {
 
   constructor(
     @inject(IEvaluator) private readonly evaluator: IEvaluator,
-    @inject(IScriptSkipper) private readonly scriptSkipper: ScriptSkipper,
+    @inject(IScriptSkipper) private readonly scriptSkipper: IScriptSkipper,
     @inject(IDapApi) private readonly dap: Dap.Api,
     @inject(AnyLaunchConfiguration) launchConfig: AnyLaunchConfiguration,
     @inject(SourceContainer) private readonly sourceContainer: SourceContainer,

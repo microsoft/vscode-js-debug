@@ -239,6 +239,25 @@ export function memoize<T, R>(fn: (arg: T) => R): ((arg: T) => R) & { clear(): v
 }
 
 /**
+ * Memoizes the last call to a single-parameter function.
+ */
+export function memoizeLast<T, R>(fn: (arg: T) => R): ((arg: T) => R) & { clear(): void } {
+  let cached: { arg: T; val: R } | undefined;
+  const wrapper = (arg: T): R => {
+    if (cached?.arg === arg) {
+      return cached.val;
+    }
+
+    cached = { arg, val: fn(arg) };
+    return cached.val;
+  };
+
+  wrapper.clear = () => (cached = undefined);
+
+  return wrapper;
+}
+
+/**
  * Memoizes the single-parameter function using weak references.
  */
 export function memoizeWeak<T extends object, R>(fn: (arg: T) => R): (arg: T) => R {
