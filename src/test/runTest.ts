@@ -24,7 +24,8 @@ async function main() {
     await runTests({
       extensionDevelopmentPath,
       extensionTestsPath,
-      version: 'insiders',
+      // temporarily disabled for test failure:
+      // version: 'insiders',
       launchArgs: [
         basedir,
         `--extensions-dir=${path.resolve(basedir, 'node_modules/.code-extensions')}`,

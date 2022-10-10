@@ -82,7 +82,7 @@ const strings = {
   'browser.runtimeExecutable.edge.description':
     "Either 'canary', 'stable', 'dev', 'custom' or path to the browser executable. Custom means a custom wrapper, custom build or EDGE_PATH environment variable.",
   'browser.skipFiles.description':
-    'An array of file or folder names, or path globs, to skip when debugging.',
+    'An array of file or folder names, or path globs, to skip when debugging. Star patterns and negations are allowed, for example, `["**/node_modules/**", "!**/node_modules/my-module/**"]`',
   'browser.smartStep.description':
     'Automatically step through unmapped lines in sourcemapped files. For example, code that TypeScript produces automatically when downcompiling async/await or other features.',
   'browser.sourceMapPathOverrides.description':
