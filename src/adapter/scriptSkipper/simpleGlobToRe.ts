@@ -43,14 +43,19 @@ function globToRe(glob: string) {
   for (let j = 0; j < parts.length; j++) {
     const p = parts[j];
     if (p === '**') {
-      regexParts.push('.*');
-    } else if (p.includes('*')) {
-      const wildcards = p.split('*');
-      regexParts.push(wildcards.map(s => escapeRegexSpecialChars(s)).join('[^\\/]*'));
+      regexParts.push('(.+(\\/|$))*');
     } else {
-      regexParts.push(escapeRegexSpecialChars(p));
+      if (p.includes('*')) {
+        const wildcards = p.split('*');
+        regexParts.push(wildcards.map(s => escapeRegexSpecialChars(s)).join('[^\\/]*'));
+      } else {
+        regexParts.push(escapeRegexSpecialChars(p));
+      }
+      if (j < parts.length - 1) {
+        regexParts.push('\\/');
+      }
     }
   }
 
-  return `^${regexParts.join('\\/')}$`;
+  return `^${regexParts.join('')}$`;
 }

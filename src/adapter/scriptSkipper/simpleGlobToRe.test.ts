@@ -21,6 +21,14 @@ describe('simpleGlobsToRe', () => {
       },
     },
     {
+      globs: ['**/foo.js'],
+      matches: {
+        'foo.js': true,
+        'file:///hello/foo.js': true,
+        'file:///hello/foo.js/bar': false,
+      },
+    },
+    {
       globs: ['**/foo/**', '!**/foo/bar/**'],
       matches: {
         'file:///hello/foo/bin/baz': true,
@@ -46,7 +54,7 @@ describe('simpleGlobsToRe', () => {
         const matching = res.find(re => re.test(url));
         if (expected !== !!matching) {
           if (expected) {
-            throw new Error(`Expected ${url} to match`);
+            throw new Error(`Expected ${url} to match ${res.join(', or')}`);
           } else {
             throw new Error(`Expected ${url} to not match, but ${matching} did`);
           }
