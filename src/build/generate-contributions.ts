@@ -814,6 +814,11 @@ const chromeLaunchConfig: IDebugger<IChromeLaunchConfiguration> = {
       description: refString('browser.includeDefaultArgs.description'),
       default: true,
     },
+    includeLaunchArgs: {
+      type: 'boolean',
+      description: refString('browser.includeLaunchArgs.description'),
+      default: true,
+    },
     runtimeExecutable: {
       type: ['string', 'null'],
       description: refString('browser.runtimeExecutable.description'),
