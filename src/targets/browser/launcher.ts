@@ -38,6 +38,7 @@ interface ILaunchOptions {
   connection?: 'pipe' | number; // pipe or port number
   userDataDir?: string;
   launchUnelevated?: boolean;
+  includeLaunchArgs?: boolean;
   url?: string | null;
   promisedPort?: Promise<number>;
   inspectUri?: string | null;
@@ -73,12 +74,16 @@ export async function launch(
 
   let browserArguments = new BrowserArgs(args);
   let actualConnection = browserArguments.getSuggestedConnection();
-  if (actualConnection === undefined) {
-    browserArguments = browserArguments.setConnection(defaultConnection);
-    actualConnection = defaultConnection;
-  }
 
-  browserArguments = defaultArgs(browserArguments, options);
+  if (options.includeLaunchArgs !== false) {
+    browserArguments = defaultArgs(browserArguments, options);
+    if (actualConnection === undefined) {
+      browserArguments = browserArguments.setConnection(defaultConnection);
+      actualConnection = defaultConnection;
+    }
+  } else if (actualConnection === undefined) {
+    actualConnection = 'pipe';
+  }
 
   let stdio: ('pipe' | 'ignore')[] = ['pipe', 'pipe', 'pipe'];
   if (actualConnection === 'pipe') {

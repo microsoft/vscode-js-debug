@@ -574,6 +574,13 @@ export interface IChromiumLaunchConfiguration extends IChromiumBaseConfiguration
   includeDefaultArgs: boolean;
 
   /**
+   * Whether any default launch/debugging arguments are set on the browser.
+   * The debugger will assume the browser will use pipe debugging such as that
+   * which is provided with `--remote-debugging-pipe`. For advanced use cases.
+   */
+  includeLaunchArgs: boolean;
+
+  /**
    * Additional browser command line arguments.
    */
   runtimeArgs: ReadonlyArray<string> | null;
@@ -910,6 +917,7 @@ export const chromeLaunchConfigDefaults: IChromeLaunchConfiguration = {
   env: {},
   urlFilter: '*',
   includeDefaultArgs: true,
+  includeLaunchArgs: true,
   runtimeArgs: null,
   runtimeExecutable: '*',
   userDataDir: true,

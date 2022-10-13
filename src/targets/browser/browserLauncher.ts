@@ -74,6 +74,7 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
       runtimeExecutable: executable,
       trace,
       includeDefaultArgs,
+      includeLaunchArgs,
       runtimeArgs,
       userDataDir,
       env,
@@ -129,6 +130,7 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
         connection: port || (inspectUri ? 0 : 'pipe'), // We don't default to pipe if we are using an inspectUri
         launchUnelevated: launchUnelevated,
         ignoreDefaultArgs: !includeDefaultArgs,
+        includeLaunchArgs,
         url,
         inspectUri,
         promisedPort,
