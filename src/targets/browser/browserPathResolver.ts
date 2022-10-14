@@ -22,7 +22,7 @@ import {
 } from '../../common/sourceMaps/sourceMapResolutionUtils';
 import { IUrlResolution } from '../../common/sourcePathResolver';
 import * as utils from '../../common/urlUtils';
-import { urlToRegex } from '../../common/urlUtils';
+import { isURL, urlToRegex } from '../../common/urlUtils';
 import { PathMapping } from '../../configuration';
 import { ISourcePathResolverOptions, SourcePathResolverBase } from '../sourcePathResolver';
 
@@ -87,7 +87,6 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
     if (queryCharacter !== -1 && url.slice(queryCharacter - 4, queryCharacter) !== '.vue') {
       url = url.slice(0, queryCharacter);
     }
-
     return map ? this.sourceMapSourceToAbsolute(url, map) : this.simpleUrlToAbsolute(url);
   }
 
@@ -170,7 +169,6 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
     }
 
     url = this.normalizeSourceMapUrl(url);
-
     const { pathMapping } = this.options;
     const fullSourceEntry = getFullSourceEntry(map.sourceRoot, url);
     let mappedFullSourceEntry = this.sourceMapOverrides.apply(fullSourceEntry);
@@ -200,18 +198,18 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
     }
 
     if (!path.isAbsolute(url)) {
-      return properResolve(
-        await getComputedSourceRoot(
-          map.sourceRoot,
-          map.metadata.compiledPath,
-          pathMapping,
-          defaultPathMappingResolver,
-          this.logger,
-        ),
-        url,
+      const computedSourceRoot = await getComputedSourceRoot(
+        map.sourceRoot,
+        map.metadata.compiledPath,
+        pathMapping,
+        defaultPathMappingResolver,
+        this.logger,
       );
+      if (isURL(computedSourceRoot)) {
+        return new URL(url, computedSourceRoot).href;
+      }
+      return properResolve(computedSourceRoot, url);
     }
-
     return fixDriveLetterAndSlashes(url);
   }
 
