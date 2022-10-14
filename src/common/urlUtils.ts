@@ -302,9 +302,9 @@ export function fileUrlToNetworkPath(urlOrPath: string): string {
 // TODO: this does not escape/unescape special characters, but it should.
 export function absolutePathToFileUrl(absolutePath: string): string {
   if (absolutePath.includes('://')) {
-    throw new Error(
-      `You are using the 'absolutePathToFileUrl()' on a string already containing a protocol: ${absolutePath}`,
-    );
+    // throw new Error(
+    //   `You are using the 'absolutePathToFileUrl()' on a string already containing a protocol: ${absolutePath}`,
+    // );
   }
   if (platform === 'win32') {
     return 'file:///' + platformPathToUrlPath(absolutePath);
