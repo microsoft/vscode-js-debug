@@ -303,7 +303,7 @@ export function fileUrlToNetworkPath(urlOrPath: string): string {
 export function absolutePathToFileUrl(absolutePath: string): string {
   if (absolutePath.includes('://')) {
     throw new Error(
-      `You call the absolutePathToFileUrl on a path starting containg a different protocol: ${absolutePath}`,
+      `You are using the 'absolutePathToFileUrl()' on a string already containing a protocol: ${absolutePath}`,
     );
   }
   if (platform === 'win32') {
