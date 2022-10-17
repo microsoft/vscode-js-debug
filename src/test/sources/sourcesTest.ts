@@ -106,7 +106,7 @@ describe('sources', () => {
     const p = await r.launchUrlAndLoad('index.html');
     p.addScriptTag('remote-test/code.js');
 
-    const source = await p.waitForSource('string.ts');
+    const source = await p.waitForSource('code.ts');
     await dumpSource(p, source, '');
 
     p.assertLog();

@@ -14,7 +14,7 @@ import { ILogger, LogTag } from '../../common/logging';
 import { fixDriveLetterAndSlashes } from '../../common/pathUtils';
 import { delay } from '../../common/promiseUtil';
 import { ISourceMapMetadata } from '../../common/sourceMaps/sourceMap';
-import { absolutePathToFileUrl, isAbsolute, urlToRegex } from '../../common/urlUtils';
+import { absolutePathToFileUrl, urlToRegex } from '../../common/urlUtils';
 import { AnyLaunchConfiguration, INodeLaunchConfiguration } from '../../configuration';
 import { fixInspectFlags } from '../../ui/configurationUtils';
 import { retryGetNodeEndpoint } from '../browser/spawn/endpoints';
@@ -260,7 +260,7 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
         }
 
         const breakpointId = '(?:entryBreakpoint){0}';
-        const breakpointPath = isAbsolute(program) ? absolutePathToFileUrl(program) : program;
+        const breakpointPath = absolutePathToFileUrl(program);
         const urlRegexp = urlToRegex(breakpointPath) + breakpointId;
         const breakpoint = await cdp.Debugger.setBreakpointByUrl({
           urlRegex: urlRegexp,

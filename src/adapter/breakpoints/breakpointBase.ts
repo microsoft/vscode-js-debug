@@ -4,7 +4,7 @@
 
 import Cdp from '../../cdp/api';
 import { LogTag } from '../../common/logging';
-import { absolutePathToFileUrl, isAbsolute, urlToRegex } from '../../common/urlUtils';
+import { absolutePathToFileUrl, urlToRegex } from '../../common/urlUtils';
 import Dap from '../../dap/api';
 import { BreakpointManager } from '../breakpoints';
 import { base1To0, IUiLocation, Source, SourceFromMap, uiToRawOffset } from '../sources';
@@ -492,11 +492,7 @@ export abstract class Breakpoint {
 
       await this._setByUrl(thread, url, lineColumn);
       if (this.source.path !== url && this.source.path !== undefined) {
-        await this._setByUrl(
-          thread,
-          isAbsolute(this.source.path) ? absolutePathToFileUrl(this.source.path) : this.source.path,
-          lineColumn,
-        );
+        await this._setByUrl(thread, absolutePathToFileUrl(this.source.path), lineColumn);
       }
     }
   }
