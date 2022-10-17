@@ -302,9 +302,10 @@ export function fileUrlToNetworkPath(urlOrPath: string): string {
 // TODO: this does not escape/unescape special characters, but it should.
 export function absolutePathToFileUrl(absolutePath: string): string {
   if (absolutePath.includes('://')) {
-    // throw new Error(
-    //   `You are using the 'absolutePathToFileUrl()' on a string already containing a protocol: ${absolutePath}`,
-    // );
+    throw new Error(
+      `You are using the 'absolutePathToFileUrl()' on a string already containing a protocol: ${absolutePath}`,
+    );
+    console.error('FE123' + absolutePath);
   }
   if (platform === 'win32') {
     return 'file:///' + platformPathToUrlPath(absolutePath);
@@ -317,18 +318,6 @@ export function absolutePathToFileUrl(absolutePath: string): string {
  */
 export function isAbsolute(_path: string): boolean {
   return path.posix.isAbsolute(_path) || path.win32.isAbsolute(_path);
-}
-
-/**
- * Returns whether the path is a Windows or posix path.
- */
-export function isURL(input: string): boolean {
-  try {
-    const url = new URL(input);
-    return url.protocol === 'http:' || url.protocol === 'https:';
-  } catch (_) {
-    return false;
-  }
 }
 
 /**

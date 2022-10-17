@@ -39,7 +39,7 @@ export async function getComputedSourceRoot(
     if (utils.isFileUrl(sourceRoot)) {
       // sourceRoot points to a local path like "file:///c:/project/src", make it an absolute path
       absSourceRoot = utils.fileUrlToAbsolutePath(sourceRoot);
-    } else if (utils.isURL(sourceRoot)) {
+    } else if (utils.isValidUrl(sourceRoot)) {
       absSourceRoot = sourceRoot;
     } else if (utils.isAbsolute(sourceRoot)) {
       // sourceRoot is like "/src", should be like http://localhost/src, resolve to a local path using pathMaping.
@@ -79,7 +79,7 @@ export async function getComputedSourceRoot(
     );
   }
 
-  if (!utils.isURL(absSourceRoot)) {
+  if (!utils.isValidUrl(absSourceRoot)) {
     absSourceRoot = utils.stripTrailingSlash(absSourceRoot);
     absSourceRoot = fixDriveLetterAndSlashes(absSourceRoot);
   } else {

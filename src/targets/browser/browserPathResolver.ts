@@ -22,7 +22,7 @@ import {
 } from '../../common/sourceMaps/sourceMapResolutionUtils';
 import { IUrlResolution } from '../../common/sourcePathResolver';
 import * as utils from '../../common/urlUtils';
-import { isURL, urlToRegex } from '../../common/urlUtils';
+import { isValidUrl, urlToRegex } from '../../common/urlUtils';
 import { PathMapping } from '../../configuration';
 import { ISourcePathResolverOptions, SourcePathResolverBase } from '../sourcePathResolver';
 
@@ -205,7 +205,7 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
         defaultPathMappingResolver,
         this.logger,
       );
-      if (isURL(computedSourceRoot)) {
+      if (isValidUrl(computedSourceRoot)) {
         return new URL(url, computedSourceRoot).href;
       }
       return properResolve(computedSourceRoot, url);
