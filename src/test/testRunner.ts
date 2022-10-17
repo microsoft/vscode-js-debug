@@ -80,16 +80,16 @@ export async function run(): Promise<void> {
   } else {
     runner.addFile(join(__dirname, 'testIntegrationUtils'));
     runner.addFile(join(__dirname, 'infra/infra'));
-    // runner.addFile(join(__dirname, 'breakpoints/breakpointsTest'));
-    // runner.addFile(join(__dirname, 'browser/framesTest'));
-    // runner.addFile(join(__dirname, 'browser/blazorSourcePathResolverTest'));
-    // runner.addFile(join(__dirname, 'evaluate/evaluate'));
-    // runner.addFile(join(__dirname, 'sources/sourcesTest'));
-    // runner.addFile(join(__dirname, 'stacks/stacksTest'));
-    // runner.addFile(join(__dirname, 'threads/threadsTest'));
-    // runner.addFile(join(__dirname, 'variables/variablesTest'));
+    runner.addFile(join(__dirname, 'breakpoints/breakpointsTest'));
+    runner.addFile(join(__dirname, 'browser/framesTest'));
+    runner.addFile(join(__dirname, 'browser/blazorSourcePathResolverTest'));
+    runner.addFile(join(__dirname, 'evaluate/evaluate'));
+    runner.addFile(join(__dirname, 'sources/sourcesTest'));
+    runner.addFile(join(__dirname, 'stacks/stacksTest'));
+    runner.addFile(join(__dirname, 'threads/threadsTest'));
+    runner.addFile(join(__dirname, 'variables/variablesTest'));
     runner.addFile(join(__dirname, 'console/consoleFormatTest'));
-    // runner.addFile(join(__dirname, 'console/consoleAPITest'));
+    runner.addFile(join(__dirname, 'console/consoleAPITest'));
 
     const options = { cwd: __dirname };
     const files = glob.sync('**/*.test.js', options);
