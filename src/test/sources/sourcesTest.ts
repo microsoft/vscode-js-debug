@@ -104,9 +104,9 @@ describe('sources', () => {
 
   itIntegrates('supports remote sources (#1424)', async ({ r }) => {
     const p = await r.launchUrlAndLoad('index.html');
-    p.addScriptTag('remote-test/code.js');
+    p.addScriptTag('remote-test/string.js');
 
-    const source = await p.waitForSource('code.ts');
+    const source = await p.waitForSource('string.ts');
     await dumpSource(p, source, '');
 
     p.assertLog();
