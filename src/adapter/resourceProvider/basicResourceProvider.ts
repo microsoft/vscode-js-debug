@@ -48,7 +48,7 @@ export class BasicResourceProvider implements IResourceProvider {
         return { ok: false, url, error, statusCode: 200 };
       }
     }
-
+    console.error('FE fetch url:' + url);
     return this.fetchHttp(url, cancellationToken, headers);
   }
   /**

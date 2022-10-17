@@ -205,7 +205,7 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
         defaultPathMappingResolver,
         this.logger,
       );
-      if (isValidUrl(computedSourceRoot)) {
+      if (isValidUrl(computedSourceRoot) && isValidUrl(url)) {
         return new URL(url, computedSourceRoot).href;
       }
       return properResolve(computedSourceRoot, url);
