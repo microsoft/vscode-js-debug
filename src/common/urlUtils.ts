@@ -302,11 +302,9 @@ export function fileUrlToNetworkPath(urlOrPath: string): string {
 // TODO: this does not escape/unescape special characters, but it should.
 export function absolutePathToFileUrl(absolutePath: string): string {
   if (!isAbsolute(absolutePath)) {
-    // throw new Error(
-    //   `You are using the 'absolutePathToFileUrl()' on a string which is not absolute: ${absolutePath}`,
-    // );
-    console.error('FE123' + absolutePath);
-    console.trace('FE456');
+    throw new Error(
+      `You are using the 'absolutePathToFileUrl()' on a string which is not absolute: ${absolutePath}`,
+    );
   }
   if (platform === 'win32') {
     return 'file:///' + platformPathToUrlPath(absolutePath);
