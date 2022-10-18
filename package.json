@@ -16,7 +16,7 @@
   "description": "An extension for debugging Node.js programs and Chrome.",
   "license": "MIT",
   "engines": {
-    "vscode": "^1.67.0-insider",
+    "vscode": "^1.73.0",
     "node": ">=10"
   },
   "icon": "resources/logo.png",
@@ -173,7 +173,6 @@
     "portsAttributes",
     "findTextInFiles",
     "workspaceTrust",
-    "resolvers",
     "tunnels"
   ],
   "activationEvents": [
