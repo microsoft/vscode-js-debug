@@ -26,7 +26,6 @@ extends:
     cgIgnoreDirectories: 'testdata,demos,.vscode-test'
     ghCreateRelease: true
     ghReleaseAddChangeLog: true
-    l10nShouldProcess: false
     buildSteps:
       - script: npm install
         displayName: Install dependencies

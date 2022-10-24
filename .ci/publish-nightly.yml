@@ -21,7 +21,6 @@ extends:
     usePreReleaseChannel: false
     vscePackageArgs: --no-dependencies
     cgIgnoreDirectories: 'testdata,demos,.vscode-test'
-    l10nShouldProcess: false
     buildSteps:
       - script: npm install
         displayName: Install dependencies
