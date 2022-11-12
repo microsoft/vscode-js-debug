@@ -113,6 +113,7 @@ import { IExperimentationService } from './telemetry/experimentationService';
 import { NullExperimentationService } from './telemetry/nullExperimentationService';
 import { NullTelemetryReporter } from './telemetry/nullTelemetryReporter';
 import { ITelemetryReporter } from './telemetry/telemetryReporter';
+import { IShutdownParticipants, ShutdownParticipants } from './ui/shutdownParticipants';
 
 /**
  * Contains IOC container factories for the extension. We use Inverisfy, which
@@ -184,7 +185,8 @@ export const createTargetContainer = (
   container.bind(IExceptionPauseService).to(ExceptionPauseService).inSingletonScope();
   container.bind(ICompletions).to(Completions).inSingletonScope();
   container.bind(IEvaluator).to(Evaluator).inSingletonScope();
-  container.bind(IConsole).to(Console).inSingletonScope(); // dispose is handled by the Thread
+  container.bind(IConsole).to(Console).inSingletonScope();
+  container.bind(IShutdownParticipants).to(ShutdownParticipants).inSingletonScope();
 
   container.bind(BasicCpuProfiler).toSelf();
   container.bind(BasicHeapProfiler).toSelf();
