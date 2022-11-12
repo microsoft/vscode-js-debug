@@ -7,7 +7,7 @@ import { homedir } from 'os';
 import { basename, join } from 'path';
 import * as vscode from 'vscode';
 import * as nls from 'vscode-nls';
-import { ProfilerFactory } from '../../adapter/profiling';
+import { getDefaultProfileName, ProfilerFactory } from '../../adapter/profiling';
 import { Commands, ContextKey, setContextKey } from '../../common/contributionUtils';
 import { DisposableList, IDisposable } from '../../common/disposable';
 import { moveFile } from '../../common/fsUtils';
@@ -234,20 +234,7 @@ export class UiProfileManager implements IDisposable {
       vscode.workspace.workspaceFolders?.[0].uri.fsPath ??
       homedir();
 
-    const now = new Date();
-    const filename =
-      [
-        'vscode-profile',
-        now.getFullYear(),
-        now.getMonth() + 1,
-        now.getDate(),
-        now.getHours(),
-        now.getMinutes(),
-        now.getSeconds(),
-      ]
-        .map(n => String(n).padStart(2, '0'))
-        .join('-') + uiSession.impl.extension;
-
+    const filename = getDefaultProfileName() + uiSession.impl.extension;
     // todo: open as untitled, see: https://github.com/microsoft/vscode/issues/93441
     const fileUri = vscode.Uri.file(join(directory, filename));
     await moveFile(this.fs, sourceFile, fileUri.fsPath);

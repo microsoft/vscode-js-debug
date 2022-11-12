@@ -34,7 +34,7 @@ export class SubprocessProgramLauncher implements IProgramLauncher {
     // the terminal, for cosmetic purposes.
     context.dap.output({
       category: 'console',
-      output: [executable, ...args].join(' '),
+      output: [executable, ...args].join(' ') + '\n',
     });
 
     const child = spawn(executable, args, {

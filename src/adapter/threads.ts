@@ -24,6 +24,7 @@ import * as errors from '../dap/errors';
 import { ProtocolError } from '../dap/protocolError';
 import { NodeWorkerTarget } from '../targets/node/nodeWorkerTarget';
 import { ITarget } from '../targets/targets';
+import { IShutdownParticipants } from '../ui/shutdownParticipants';
 import { BreakpointManager, EntryBreakpointMode, IPossibleBreakLocation } from './breakpoints';
 import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
 import { ICompletions } from './completions';
@@ -202,6 +203,7 @@ export class Thread implements IVariableStoreLocationProvider {
     private readonly console: IConsole,
     private readonly exceptionPause: IExceptionPauseService,
     private readonly _smartStepper: SmartStepper,
+    private readonly shutdown: IShutdownParticipants,
   ) {
     this._dap = new DeferredContainer(dap);
     this._sourceContainer = sourceContainer;
@@ -620,6 +622,10 @@ export class Thread implements IVariableStoreLocationProvider {
     this._cdp.Debugger.on('scriptFailedToParse', event => this._onScriptParsed(event));
     this._cdp.Runtime.enable({});
 
+    // The profilder domain is required to be always on in order to support
+    // console.profile/console.endProfile. Otherwise, these just no-op.
+    this._cdp.Profiler.enable({});
+
     if (!this.launchConfig.noDebug) {
       this._ensureDebuggerEnabledAndRefreshDebuggerId();
     } else {
@@ -992,17 +998,13 @@ export class Thread implements IVariableStoreLocationProvider {
    */
   async dispose() {
     this.disposed = true;
+
+    await this.shutdown.shutdown();
+
     for (const [debuggerId, thread] of Thread._allThreadsByDebuggerId) {
       if (thread === this) Thread._allThreadsByDebuggerId.delete(debuggerId);
     }
 
-    if (this.console.length) {
-      await new Promise(r => this.console.onDrained(r));
-    }
-    this.console.dispose();
-
-    // Wait for consoles to log before disposing scripts to ensure locations map
-    // https://github.com/microsoft/vscode/issues/142197
     this._removeAllScripts(true /* silent */);
     this._executionContextsCleared();
 
