@@ -13,6 +13,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: properly handle UNC paths ([#1148](https://github.com/microsoft/vscode-js-debug/issues/1148))
 - fix: discover npm scripts in nested workspace folders ([#1321](https://github.com/microsoft/vscode-js-debug/issues/1321))
 - chore: loosen restriction around enabling auto attach ([#1392](https://github.com/microsoft/vscode-js-debug/issues/1392))
+- fix: use platform preferred case in launcher ([#1448](https://github.com/microsoft/vscode-js-debug/1448)) Contributed on behalf of STMicroelectronics
 
 ## v1.72 (September 2022)
 
