@@ -1087,6 +1087,14 @@ export class SourceContainer {
         : map.computedSourceUrl(url);
 
       const existing = this._sourceMapSourcesByUrl.get(resolvedUrl);
+      // fix: some modules, like the current version of the 1DS SDK, managed to
+      // generate self-referential sourcemaps (sourcemaps with sourcesContent that
+      // have a sourceMappingUrl that refer to the same file). Avoid adding those
+      // in this check.
+      if (compiled === existing) {
+        continue;
+      }
+
       if (existing) {
         // In the case of a Webpack HMR, remove the old source entirely and
         // replace it with the new one.
