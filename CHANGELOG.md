@@ -4,6 +4,12 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
+Nothing, yet
+
+## v1.74 (November 2022)
+
+### v1.74.0 - 2022-11-28
+
 - feat: add automatic support for nested sourcemaps ([#1390](https://github.com/microsoft/vscode-js-debug/issues/1390))
 - feat: add an `ignoreLaunchArgs` option ([vscode#162957](https://github.com/microsoft/vscode/issues/162957))
 - feat: add support for `console.profile` ([#1443](https://github.com/microsoft/vscode-js-debug/issues/1443))
