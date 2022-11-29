@@ -16,6 +16,10 @@ parameters:
     displayName: 🚀 Publish Extension
     type: boolean
     default: false
+  - name: publishGhRelease
+    displayName: ☁️ Publish Github release
+    type: boolean
+    default: true
 
 extends:
   template: azure-pipelines/extension/stable.yml@templates
@@ -24,8 +28,9 @@ extends:
     publishExtension: ${{ parameters.publishExtension }}
     vscePackageArgs: --no-dependencies
     cgIgnoreDirectories: 'testdata,demos,.vscode-test'
-    ghCreateRelease: true
-    ghReleaseAddChangeLog: true
+    ${{ if eq(parameters.publishGhRelease, true) }}:
+      ghCreateRelease: true
+      ghReleaseAddChangeLog: true
     l10nShouldProcess: false
     buildSteps:
       - script: npm install
