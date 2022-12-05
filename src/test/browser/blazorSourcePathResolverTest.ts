@@ -20,6 +20,7 @@ function createBlazorSourcePathResolver(
     testVueMapper,
     new LocalFsUtils(fsPromises),
     {
+      workspaceFolder: testFixturesDir,
       pathMapping: { '/': path.join(testFixturesDir, 'web') },
       clientID: 'vscode',
       baseUrl: 'http://localhost:1234/',

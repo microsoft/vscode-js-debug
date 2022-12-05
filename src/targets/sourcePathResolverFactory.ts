@@ -83,6 +83,7 @@ export class SourcePathResolverFactory implements ISourcePathResolverFactory {
         this.vueMapper,
         this.fsUtils,
         {
+          workspaceFolder: c.__workspaceFolder,
           resolveSourceMapLocations: c.resolveSourceMapLocations,
           baseUrl: baseURL(c),
           localRoot: null,
