@@ -954,7 +954,9 @@ export function defaultSourceMapPathOverrides(webRoot: string): { [key: string]:
   };
 }
 
-export function applyNodeDefaults({ ...config }: ResolvingNodeConfiguration): AnyNodeConfiguration {
+const applyNodeishDefaults = (
+  config: ResolvingNodeConfiguration | ResolvingTerminalConfiguration,
+) => {
   if (!config.sourceMapPathOverrides && config.cwd) {
     config.sourceMapPathOverrides = defaultSourceMapPathOverrides(config.cwd);
   }
@@ -964,7 +966,10 @@ export function applyNodeDefaults({ ...config }: ResolvingNodeConfiguration): An
   if (config.resolveSourceMapLocations === undefined && !config.remoteRoot) {
     config.resolveSourceMapLocations = config.outFiles;
   }
+};
 
+export function applyNodeDefaults({ ...config }: ResolvingNodeConfiguration): AnyNodeConfiguration {
+  applyNodeishDefaults(config);
   if (config.request === 'attach') {
     return { ...nodeAttachConfigDefaults, ...config };
   } else {
@@ -1001,10 +1006,7 @@ export function applyExtensionHostDefaults(
 export function applyTerminalDefaults(
   config: ResolvingTerminalConfiguration,
 ): AnyTerminalConfiguration {
-  if (!config.sourceMapPathOverrides && config.cwd) {
-    config.sourceMapPathOverrides = defaultSourceMapPathOverrides(config.cwd);
-  }
-
+  applyNodeishDefaults(config);
   return config.request === 'launch'
     ? { ...terminalBaseDefaults, ...config }
     : { ...delegateDefaults, ...config };
