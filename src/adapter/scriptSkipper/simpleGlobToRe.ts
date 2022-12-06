@@ -43,7 +43,13 @@ function globToRe(glob: string) {
   for (let j = 0; j < parts.length; j++) {
     const p = parts[j];
     if (p === '**') {
-      regexParts.push('(.+(\\/|$))*');
+      if (j === 0) {
+        regexParts.push('(.+/)?'); // match start, or any slash preceeding what's next...
+      } else if (j === parts.length - 1) {
+        // nothing more needed!
+      } else {
+        regexParts.push('.*/');
+      }
     } else {
       if (p.includes('*')) {
         const wildcards = p.split('*');
@@ -51,11 +57,10 @@ function globToRe(glob: string) {
       } else {
         regexParts.push(escapeRegexSpecialChars(p));
       }
-      if (j < parts.length - 1) {
-        regexParts.push('\\/');
-      }
+
+      regexParts.push(j < parts.length - 1 ? '\\/' : '$');
     }
   }
 
-  return `^${regexParts.join('')}$`;
+  return `^${regexParts.join('')}`;
 }
