@@ -15,6 +15,7 @@ const fsUtils = new LocalFsUtils(fsPromises);
 describe('node source path resolver', () => {
   describe('url to path', () => {
     const defaultOptions = {
+      workspaceFolder: 'file:///',
       resolveSourceMapLocations: null,
       basePath: __dirname,
       remoteRoot: null,
