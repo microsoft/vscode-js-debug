@@ -10,6 +10,7 @@ import {
   fixDriveLetter,
   fixDriveLetterAndSlashes,
   forceForwardSlashes,
+  isWindowsPath,
   properJoin,
   properRelative,
   properResolve,
@@ -17,6 +18,7 @@ import {
 import { ISourceMapMetadata } from '../common/sourceMaps/sourceMap';
 import { ISourcePathResolver, IUrlResolution } from '../common/sourcePathResolver';
 import {
+  comparePathsWithoutCasing,
   fileUrlToAbsolutePath,
   getCaseSensitivePaths,
   isAbsolute,
@@ -26,6 +28,7 @@ import {
 import { SourceMapOverrides } from './sourceMapOverrides';
 
 export interface ISourcePathResolverOptions {
+  workspaceFolder: string;
   resolveSourceMapLocations: ReadonlyArray<string> | null;
   sourceMapOverrides: { [key: string]: string };
   localRoot: string | null;
@@ -47,15 +50,27 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
    * of the path, to make `${workspaceFolder}/../foo` and the like work, since
    * micromatch doesn't have native awareness of them.
    */
-  private readonly resolveLocations = this.options.resolveSourceMapLocations?.map(location => {
-    location = location.replace(/\.[a-z0-9]+$/, '.*');
+  private readonly resolvePatterns = this.options.resolveSourceMapLocations?.map(location => {
     const prefix = location.startsWith('!') ? '!' : '';
-    const remaining = location.slice(prefix.length);
-    if (isAbsolute(remaining)) {
-      return prefix + properResolve(remaining);
+
+    // replace extensions with anything, to allow both .js and .map
+    let suffix = location.slice(prefix.length).replace(/\.[a-z0-9]+$/, '.*');
+    if (!isAbsolute(suffix)) {
+      return forceForwardSlashes(location);
     }
 
-    return location;
+    suffix = forceForwardSlashes(properResolve(suffix));
+
+    // replace special minimatch characters that appear in the local root (vscode#166400)
+    // we compare against the original location since forceForwardSlashes will
+    // prevent matching on Windows
+    const wf = this.options.workspaceFolder;
+    if (comparePathsWithoutCasing(wf, location.slice(prefix.length, prefix.length + wf.length))) {
+      suffix =
+        suffix.slice(0, wf.length).replace(/[\[\]\(\)\{\}\!\*]/g, '\\$&') + suffix.slice(wf.length);
+    }
+
+    return prefix + suffix;
   });
 
   constructor(protected readonly options: T, protected readonly logger: ILogger) {}
@@ -83,7 +98,7 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
       return false;
     }
 
-    if (!this.resolveLocations || this.resolveLocations.length === 0) {
+    if (!this.resolvePatterns || this.resolvePatterns.length === 0) {
       return true;
     }
 
@@ -106,23 +121,14 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
 
     // Be case insensitive for things that might be remote uris--we have no way
     // to know whether the server is case sensitive or not.
-    const caseSensitive = /^[a-z]+:/i.test(sourceMapUrl) ? false : getCaseSensitivePaths();
-    const processMatchInput = (value: string) => {
-      value = forceForwardSlashes(value);
-      // built-in 'nocase' match option applies only to operand; we need to normalize both
-      return caseSensitive ? value : value.toLowerCase();
-    };
-
+    const caseSensitive = isWindowsPath(sourceMapUrl) ? false : getCaseSensitivePaths();
     const rebased = this.rebaseRemoteToLocal(sourcePath);
-    const testPatterns = rebased !== sourcePath ? [sourcePath, rebased] : [sourcePath];
+    const testLocations = rebased !== sourcePath ? [sourcePath, rebased] : [sourcePath];
 
-    const l = match(
-      testPatterns.map(processMatchInput),
-      this.resolveLocations.map(processMatchInput),
-      {
-        dot: true,
-      },
-    );
+    const l = match(testLocations.map(forceForwardSlashes), this.resolvePatterns, {
+      dot: true,
+      nocase: !caseSensitive,
+    });
 
     return l.length > 0;
   }

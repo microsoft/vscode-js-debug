@@ -1,11 +1,11 @@
 /*---------------------------------------------------------
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
-import { mkdirSync } from 'fs';
+import { mkdirSync, unlinkSync } from 'fs';
 import { dirname } from 'path';
-import { debounce } from '../objUtils';
 import { IDisposable } from '../disposable';
 import { readfile, writeFile } from '../fsUtils';
+import { debounce } from '../objUtils';
 
 export class CorrelatedCache<C, V> implements IDisposable {
   private cacheData?: Promise<{ [key: string]: { correlation: C; value: V } }>;
@@ -47,6 +47,18 @@ export class CorrelatedCache<C, V> implements IDisposable {
   public async flushImmediately() {
     this.flush.clear();
     return writeFile(this.storageFile, JSON.stringify(await this.getData()));
+  }
+
+  /**
+   * Flushes the cache to disk immediately.
+   */
+  public clear() {
+    this.cacheData = Promise.resolve({});
+    try {
+      unlinkSync(this.storageFile);
+    } catch {
+      // ignored
+    }
   }
 
   /**

@@ -1,0 +1,7 @@
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : entry
+    threadId : <number>
+}
+<anonymous> @ ${workspaceFolder}/glob(chars)/app.ts:1:1

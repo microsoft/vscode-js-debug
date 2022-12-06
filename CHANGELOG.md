@@ -4,7 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
-Nothing, yet
+- fix: breakpoints not setting in paths with special glob characters ([vscode#166400](https://github.com/microsoft/vscode/issues/166400))
 
 ## v1.74 (November 2022)
 
