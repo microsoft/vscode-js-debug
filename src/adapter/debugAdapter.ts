@@ -118,12 +118,20 @@ export class DebugAdapter implements IDisposable {
     this.dap.on('setSourceMapStepping', params => this._setSourceMapStepping(params));
     this.dap.on('stepInTargets', params => this._stepInTargets(params));
     this.dap.on('setDebuggerProperty', params => this._setDebuggerProperty(params));
+    this.dap.on('setSymbolOptions', params => this._setSymbolOptions(params));
   }
 
   private _setDebuggerProperty(
     params: Dap.SetDebuggerPropertyParams,
   ): Promise<Dap.SetDebuggerPropertyResult> {
     this._thread?.cdp().DotnetDebugger.setDebuggerProperty(params);
+    return Promise.resolve({});
+  }
+
+  private _setSymbolOptions(
+    params: Dap.SetSymbolOptionsParams,
+  ): Promise<Dap.SetSymbolOptionsResult> {
+    this._thread?.cdp().DotnetDebugger.setSymbolOptions(params);
     return Promise.resolve({});
   }
 
@@ -257,6 +265,7 @@ export class DebugAdapter implements IDisposable {
       supportsClipboardContext: true,
       supportsExceptionFilterOptions: true,
       supportsDebuggerProperties: true,
+      supportsSetSymbolOptions: true,
       //supportsDataBreakpoints: false,
       //supportsDisassembleRequest: false,
     };
