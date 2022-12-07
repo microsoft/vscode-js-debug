@@ -18,7 +18,7 @@ export const getStringyProps = remoteFunction(function (this: unknown, maxLength
     if (typeof value === 'object' && value && !String(value.toString).includes('[native code]')) {
       const str = String(value);
       if (!str.startsWith('[object ')) {
-        out[key] = str.slice(0, maxLength);
+        out[key] = str.length >= maxLength ? str.slice(0, maxLength) + '…' : str;
       }
     }
   }
@@ -30,7 +30,7 @@ export const getToStringIfCustom = remoteFunction(function (this: unknown, maxLe
   if (typeof this === 'object' && this && !String(this.toString).includes('[native code]')) {
     const str = String(this);
     if (!str.startsWith('[object ')) {
-      return str.slice(0, maxLength);
+      return str.length >= maxLength ? str.slice(0, maxLength) + '…' : str;
     }
   }
 });
