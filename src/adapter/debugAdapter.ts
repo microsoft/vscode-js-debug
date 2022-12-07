@@ -201,13 +201,13 @@ export class DebugAdapter implements IDisposable {
   async _onInitialize(params: Dap.InitializeParams): Promise<Dap.InitializeResult | Dap.Error> {
     console.assert(params.linesStartAt1);
     console.assert(params.columnsStartAt1);
-    const capabilities = DebugAdapter.capabilities();
+    const capabilities = DebugAdapter.capabilities(true);
     setTimeout(() => this.dap.initialized({}), 0);
     setTimeout(() => this._thread?.dapInitialized(), 0);
     return capabilities;
   }
 
-  static capabilities(): Dap.CapabilitiesExtended {
+  static capabilities(extended = false): Dap.CapabilitiesExtended {
     return {
       supportsConfigurationDoneRequest: true,
       supportsFunctionBreakpoints: false,
@@ -264,8 +264,8 @@ export class DebugAdapter implements IDisposable {
       supportsBreakpointLocationsRequest: true,
       supportsClipboardContext: true,
       supportsExceptionFilterOptions: true,
-      supportsDebuggerProperties: true,
-      supportsSetSymbolOptions: true,
+      supportsDebuggerProperties: extended ? true : false,
+      supportsSetSymbolOptions: extended ? true : false,
       //supportsDataBreakpoints: false,
       //supportsDisassembleRequest: false,
     };
