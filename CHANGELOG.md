@@ -9,6 +9,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: perScriptSourcemaps not reliably breaking ([vscode#166369](https://github.com/microsoft/vscode/issues/166369))
 - fix: custom object `toString()` previews being too short ([vscode#155142](https://github.com/microsoft/vscode/issues/155142))
 - fix: show warning if console output length is hit ([vscode#154479](https://github.com/microsoft/vscode/issues/154479))
+- fix: improve variable and repl performance in large projects ([#1433](https://github.com/microsoft/vscode-js-debug/issues/1433))
 
 ## v1.74 (November 2022)
 

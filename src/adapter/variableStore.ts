@@ -7,7 +7,7 @@ import { inject, injectable } from 'inversify';
 import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
 import { ICdpApi } from '../cdp/connection';
-import { flatten } from '../common/objUtils';
+import { flatten, isInstanceOf } from '../common/objUtils';
 import { parseSource, statementsToFunction } from '../common/sourceCodeManipulations';
 import { IRenameProvider } from '../common/sourceMaps/renameProvider';
 import { AnyLaunchConfiguration } from '../configuration';
@@ -86,7 +86,7 @@ type AnyPropertyDescriptor = Cdp.Runtime.PropertyDescriptor | Cdp.Runtime.Privat
 const isPublicDescriptor = (p: AnyPropertyDescriptor): p is Cdp.Runtime.PropertyDescriptor =>
   p.hasOwnProperty('configurable');
 
-const extractFunctionFromCustomDescriptionGenerator = (
+const extractFunctionFromCustomGenerator = (
   parameterNames: string[],
   generatorDefinition: string,
   catchAndReturnErrors: boolean,
@@ -150,6 +150,11 @@ interface IContextInit {
   sortOrder?: number;
 }
 
+interface IContextSettings {
+  customDescriptionGenerator?: string;
+  customPropertiesGenerator?: string;
+}
+
 class VariableContext {
   /** When in a Variable, the name that this variable is accessible as from its parent scope or object */
   public readonly name: string;
@@ -158,6 +163,10 @@ class VariableContext {
   /** Sort order set from the parent. */
   public readonly sortOrder: number;
 
+  public get customDescriptionGenerator() {
+    return this.settings.customDescriptionGenerator;
+  }
+
   constructor(
     public readonly cdp: Cdp.Api,
     public readonly parent: undefined | Variable | Scope,
@@ -165,10 +174,7 @@ class VariableContext {
     private readonly vars: VariablesMap,
     public readonly locationProvider: IVariableStoreLocationProvider,
     private readonly currentRef: undefined | (() => Variable | Scope),
-    private readonly settings: {
-      customDescriptionGenerator?: string;
-      customPropertiesGenerator?: string;
-    },
+    private readonly settings: IContextSettings,
   ) {
     this.name = ctx.name;
     this.presentationHint = ctx.presentationHint;
@@ -248,10 +254,8 @@ class VariableContext {
     if (this.settings.customPropertiesGenerator) {
       const { result, errorDescription } = await this.evaluateCodeForObject(
         object,
-        [],
         this.settings.customPropertiesGenerator,
         [],
-        /*catchAndReturnErrors*/ false,
       );
 
       if (result && result.type !== 'undefined') {
@@ -284,14 +288,16 @@ class VariableContext {
         ownProperties: true,
         generatePreview: true,
       }),
-      getStringyProps({
-        cdp: this.cdp,
-        args: [customStringReprMaxLength],
+      this.cdp.Runtime.callFunctionOn({
+        functionDeclaration: getStringyProps.decl(
+          `${customStringReprMaxLength}`,
+          this.settings.customDescriptionGenerator || 'null',
+        ),
         objectId: object.objectId,
         throwOnSideEffect: true,
         returnByValue: true,
       })
-        .then(r => r?.value || {})
+        .then(r => r?.result.value || {})
         .catch(() => ({} as Record<string, string>)),
     ]);
     if (!accessorsProperties || !ownProperties) return [];
@@ -377,41 +383,6 @@ class VariableContext {
     return flatten(await Promise.all(properties));
   }
 
-  /**
-   * Gets a description for the RemoteObject, using the customDescriptionGenerator
-   * if one is provided by the consumer.
-   */
-  public async getCustomObjectDescription(
-    name: string,
-    object: Cdp.Runtime.RemoteObject,
-    previewContext: PreviewContextType,
-  ): Promise<string> {
-    const defaultValueDescription =
-      (name === '__proto__' && object.description) ||
-      objectPreview.previewRemoteObject(object, previewContext);
-
-    if (!this.settings.customDescriptionGenerator) {
-      return defaultValueDescription;
-    }
-
-    const { result, errorDescription } = await this.evaluateCodeForObject(
-      object,
-      ['defaultValue'],
-      this.settings.customDescriptionGenerator,
-      [defaultValueDescription],
-      /*catchAndReturnErrors*/ true,
-    );
-
-    return result?.value !== undefined
-      ? String(result.value)
-      : localize(
-          'error.customValueDescriptionGeneratorFailed',
-          "{0} (couldn't describe: {1})",
-          defaultValueDescription,
-          errorDescription,
-        );
-  }
-
   private async createPropertyVar(
     p: AnyPropertyDescriptor,
     owner: Cdp.Runtime.RemoteObject,
@@ -461,19 +432,13 @@ class VariableContext {
 
   private async evaluateCodeForObject(
     object: Cdp.Runtime.RemoteObject,
-    parameterNames: string[],
-    codeToEvaluate: string,
+    functionDeclaration: string,
     argumentsToEvaluateWith: string[],
-    catchAndReturnErrors: boolean,
   ): Promise<{ result?: Cdp.Runtime.RemoteObject; errorDescription?: string }> {
     try {
       const customValueDescription = await this.cdp.Runtime.callFunctionOn({
         objectId: object.objectId,
-        functionDeclaration: extractFunctionFromCustomDescriptionGenerator(
-          parameterNames,
-          codeToEvaluate,
-          catchAndReturnErrors,
-        ),
+        functionDeclaration: functionDeclaration,
         arguments: argumentsToEvaluateWith.map(toCallArgument),
       });
 
@@ -742,14 +707,16 @@ class ObjectVariable extends Variable implements IMemoryReadable {
     // for the first level of evaluations, toString it on-demand
     if (!this.context.parent && this.customStringRepr !== NoCustomStringRepr) {
       try {
-        const result = await getToStringIfCustom({
-          cdp: this.context.cdp,
-          args: [customStringReprMaxLength],
+        const result = await this.context.cdp.Runtime.callFunctionOn({
+          functionDeclaration: getToStringIfCustom.decl(
+            `${customStringReprMaxLength}`,
+            this.context.customDescriptionGenerator || 'null',
+          ),
           objectId: this.remoteObject.objectId,
           returnByValue: true,
         });
-        if (result.value) {
-          return (this.customStringRepr = result.value);
+        if (result?.result.value) {
+          return (this.customStringRepr = result.result.value);
         }
       } catch (e) {
         this.customStringRepr = NoCustomStringRepr;
@@ -757,10 +724,9 @@ class ObjectVariable extends Variable implements IMemoryReadable {
       }
     }
 
-    return await this.context.getCustomObjectDescription(
-      this.context.name,
-      this.remoteObject,
-      previewContext,
+    return (
+      (this.context.name === '__proto__' && this.remoteObject.description) ||
+      objectPreview.previewRemoteObject(this.remoteObject, previewContext)
     );
   }
 
@@ -1027,6 +993,7 @@ class VariablesMap {
 @injectable()
 export class VariableStore {
   private vars = new VariablesMap();
+  private readonly contextSettings: IContextSettings;
 
   constructor(
     @inject(IRenameProvider) private readonly renameProvider: IRenameProvider,
@@ -1034,7 +1001,20 @@ export class VariableStore {
     @inject(IDapApi) private readonly dap: Dap.Api,
     @inject(AnyLaunchConfiguration) private readonly launchConfig: AnyLaunchConfiguration,
     private readonly locationProvider: IVariableStoreLocationProvider,
-  ) {}
+  ) {
+    this.contextSettings = {
+      customDescriptionGenerator:
+        launchConfig.customDescriptionGenerator &&
+        extractFunctionFromCustomGenerator(
+          ['defaultValue'],
+          launchConfig.customDescriptionGenerator,
+          false,
+        ),
+      customPropertiesGenerator:
+        launchConfig.customPropertiesGenerator &&
+        extractFunctionFromCustomGenerator([], launchConfig.customPropertiesGenerator, false),
+    };
+  }
 
   /** Creates a new VariableStore using the current DAP, CDP, and configurations. */
   public createDetached() {
@@ -1095,10 +1075,7 @@ export class VariableStore {
         this.vars,
         this.locationProvider,
         () => scope,
-        {
-          customDescriptionGenerator: this.launchConfig.customDescriptionGenerator,
-          customPropertiesGenerator: this.launchConfig.customPropertiesGenerator,
-        },
+        this.contextSettings,
       ),
       scopeRef,
       extraProperties,
@@ -1135,6 +1112,20 @@ export class VariableStore {
     }
 
     return written;
+  }
+
+  /**
+   * Gets variable names from a known {@link IVariableContainer}. An optimized
+   * version of `getVariables` that saves work generating previews.
+   */
+  public async getVariableNames(params: Dap.VariablesParams): Promise<string[]> {
+    const container = this.vars.get(params.variablesReference);
+    if (!container) {
+      return [];
+    }
+
+    const children = await container.getChildren(params);
+    return children.filter(isInstanceOf(Variable)).map(v => v.name);
   }
 
   /** Gets variables from a known {@link IVariableContainer} */
@@ -1196,10 +1187,7 @@ export class VariableStore {
       this.vars,
       this.locationProvider,
       undefined,
-      {
-        customDescriptionGenerator: this.launchConfig.customDescriptionGenerator,
-        customPropertiesGenerator: this.launchConfig.customPropertiesGenerator,
-      },
+      this.contextSettings,
     );
   }
 }
