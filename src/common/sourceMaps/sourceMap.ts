@@ -10,6 +10,7 @@ import {
   generatedPositionFor,
   InvalidGeneratedMapping,
   InvalidOriginalMapping,
+  LEAST_UPPER_BOUND,
   OriginalMapping,
   originalPositionFor,
   TraceMap,
@@ -135,6 +136,7 @@ export class SourceMap {
   allGeneratedPositionsFor(originalPosition: SourceNeedle): GeneratedMapping[] {
     return allGeneratedPositionsFor(this.original, {
       ...originalPosition,
+      bias: LEAST_UPPER_BOUND, // added for https://github.com/jridgewell/trace-mapping/issues/22
       source: this.sourceActualToOriginal.get(originalPosition.source) ?? originalPosition.source,
     });
   }

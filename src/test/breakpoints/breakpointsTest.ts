@@ -75,7 +75,7 @@ describe('breakpoints', () => {
       p.assertLog();
     });
 
-    itIntegrates.only('source map', async ({ r }) => {
+    itIntegrates('source map', async ({ r }) => {
       // Breakpoint in source mapped script set before launch.
       // Note: this only works in Chrome 76 or later and Node 12 or later, since it relies
       // on 'pause before executing script with source map' functionality in CDP.
