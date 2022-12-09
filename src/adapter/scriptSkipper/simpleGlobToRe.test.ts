@@ -2,10 +2,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { expect } from 'chai';
 import { simpleGlobsToRe } from './simpleGlobToRe';
 
 describe('simpleGlobsToRe', () => {
-  const tt = [
+  const truthTable = [
     {
       globs: ['**/foo/**'],
       matches: {
@@ -47,7 +48,7 @@ describe('simpleGlobsToRe', () => {
     },
   ];
 
-  for (const { globs, matches } of tt) {
+  for (const { globs, matches } of truthTable) {
     it(globs.join(', '), () => {
       const res = simpleGlobsToRe(globs);
       for (const [url, expected] of Object.entries(matches)) {
@@ -60,6 +61,21 @@ describe('simpleGlobsToRe', () => {
           }
         }
       }
+    });
+
+    it(`is not catastrophic: ${globs.join(', ')}`, () => {
+      const testStr =
+        'file:///users/connor/github/vscode-remotehub/common/node_modules/%40opentelemetry/api/build/esm/trace/internal/../../../../src/trace/internal/tracestate-validators.ts';
+      const res = simpleGlobsToRe(globs);
+
+      const start = performance.now();
+      for (let i = 0; i < 100; i++) {
+        for (const re of res) {
+          re.test(testStr);
+        }
+      }
+
+      expect(performance.now() - start).to.be.lessThan(500);
     });
   }
 });

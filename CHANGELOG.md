@@ -4,13 +4,26 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
+- fix: breakpoints not setting in paths with special glob characters ([vscode#166400](https://github.com/microsoft/vscode/issues/166400))
+- fix: skipFiles making catastrophic regexes ([#1469](https://github.com/microsoft/vscode-js-debug/issues/1469))
+- fix: perScriptSourcemaps not reliably breaking ([vscode#166369](https://github.com/microsoft/vscode/issues/166369))
+- fix: custom object `toString()` previews being too short ([vscode#155142](https://github.com/microsoft/vscode/issues/155142))
+- fix: show warning if console output length is hit ([vscode#154479](https://github.com/microsoft/vscode/issues/154479))
+
+## v1.74 (November 2022)
+
+### v1.74.0 - 2022-11-28
+
 - feat: add automatic support for nested sourcemaps ([#1390](https://github.com/microsoft/vscode-js-debug/issues/1390))
+- feat: add an `ignoreLaunchArgs` option ([vscode#162957](https://github.com/microsoft/vscode/issues/162957))
+- feat: add support for `console.profile` ([#1443](https://github.com/microsoft/vscode-js-debug/issues/1443))
 - fix: copying a date object resulting in an empty object ([vscode#162747](https://github.com/microsoft/vscode/issues/162747))
 - fix: improve performance when using skipFiles in large projects ([#1179](https://github.com/microsoft/vscode-js-debug/issues/1179))
 - fix: breakpoints failing to set on paths with multibyte URL characters ([#1364](https://github.com/microsoft/vscode-js-debug/issues/1364))
 - fix: properly handle UNC paths ([#1148](https://github.com/microsoft/vscode-js-debug/issues/1148))
 - fix: discover npm scripts in nested workspace folders ([#1321](https://github.com/microsoft/vscode-js-debug/issues/1321))
 - chore: loosen restriction around enabling auto attach ([#1392](https://github.com/microsoft/vscode-js-debug/issues/1392))
+- fix: use platform preferred case in launcher ([#1448](https://github.com/microsoft/vscode-js-debug/1448)) Contributed on behalf of STMicroelectronics
 
 ## v1.72 (September 2022)
 

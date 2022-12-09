@@ -8,6 +8,7 @@ import Cdp from '../../cdp/api';
 import { assertNever } from '../../common/objUtils';
 import Dap from '../../dap/api';
 import { IDapApi } from '../../dap/connection';
+import { IShutdownParticipants, ShutdownOrder } from '../../ui/shutdownParticipants';
 import { Thread } from '../threads';
 import { ClearMessage, EndGroupMessage, IConsoleMessage } from './consoleMessage';
 import { ReservationQueue } from './reservationQueue';
@@ -45,7 +46,17 @@ export class Console implements IConsole {
     return this.queue.length;
   }
 
-  constructor(@inject(IDapApi) private readonly dap: Dap.Api) {}
+  constructor(
+    @inject(IDapApi) private readonly dap: Dap.Api,
+    @inject(IShutdownParticipants) shutdown: IShutdownParticipants,
+  ) {
+    shutdown.register(ShutdownOrder.BeforeScripts, async () => {
+      if (this.length) {
+        await new Promise(r => this.onDrained(r));
+      }
+      this.dispose();
+    });
+  }
 
   /**
    * @inheritdoc

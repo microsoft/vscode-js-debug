@@ -263,3 +263,9 @@ stdout> > custom to string
 Evaluating: 'console.log([new class { toString() { return "custom to string" } }])'
 stdout> > (1) [{…}]
 
+Evaluating: 'console.log(new class { toString() { return "long custom to string".repeat(500) } })'
+stdout> > long custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to s…
+
+Evaluating: 'console.log([new class { toString() { return "long custom to string".repeat(500) } }])'
+stdout> > (1) [{…}]
+

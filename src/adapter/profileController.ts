@@ -2,19 +2,24 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { injectable, inject } from 'inversify';
+import { randomBytes } from 'crypto';
+import { inject, injectable } from 'inversify';
+import { tmpdir } from 'os';
+import { join } from 'path';
+import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
 import { ICdpApi } from '../cdp/connection';
 import Dap from '../dap/api';
-import { IProfilerFactory, IProfile } from './profiling';
 import { invalidConcurrentProfile } from '../dap/errors';
 import { ProtocolError } from '../dap/protocolError';
-import { Thread } from './threads';
-import { BreakpointManager, BreakpointEnableFilter } from './breakpoints';
+import { IShutdownParticipants, ShutdownOrder } from '../ui/shutdownParticipants';
+import { BreakpointEnableFilter, BreakpointManager } from './breakpoints';
 import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
-import { join } from 'path';
-import { tmpdir } from 'os';
-import { randomBytes } from 'crypto';
+import { getDefaultProfileName, IProfile, IProfilerFactory } from './profiling';
+import { BasicCpuProfiler } from './profiling/basicCpuProfiler';
+import { Thread } from './threads';
+
+const localize = nls.loadMessageBundle();
 
 /**
  * Provides profiling functionality for the debug adapter.
@@ -40,7 +45,9 @@ export class ProfileController implements IProfileController {
   constructor(
     @inject(ICdpApi) private readonly cdp: Cdp.Api,
     @inject(IProfilerFactory) private readonly factory: IProfilerFactory,
+    @inject(BasicCpuProfiler) private readonly basicCpuProfiler: BasicCpuProfiler,
     @inject(BreakpointManager) private readonly breakpoints: BreakpointManager,
+    @inject(IShutdownParticipants) private readonly shutdown: IShutdownParticipants,
   ) {}
 
   /**
@@ -53,6 +60,21 @@ export class ProfileController implements IProfileController {
     });
 
     dap.on('stopProfile', () => this.stopProfiling(dap));
+
+    this.cdp.Profiler.on('consoleProfileStarted', () => {
+      dap.output({
+        output: localize('profileController.console.started', 'Console profile started') + '\n',
+        category: 'console',
+      });
+    });
+
+    this.cdp.Profiler.on('consoleProfileFinished', async evt => {
+      const promise = this.saveConsoleProfile(dap, evt);
+      const shutdownBlocker = this.shutdown.register(ShutdownOrder.BeforeScripts, () => promise);
+      await promise;
+      shutdownBlocker.dispose();
+    });
+
     thread.onPaused(() => this.stopProfiling(dap));
   }
 
@@ -70,6 +92,22 @@ export class ProfileController implements IProfileController {
     });
 
     await this.profile;
+  }
+
+  private async saveConsoleProfile(dap: Dap.Api, evt: Cdp.Profiler.ConsoleProfileFinishedEvent) {
+    const basename = evt.title?.replace(/[\/\\]/g, '-') || getDefaultProfileName();
+    const withExt = basename + BasicCpuProfiler.extension;
+    await this.basicCpuProfiler.save(evt.profile, withExt);
+
+    dap.output({
+      output:
+        localize(
+          'profileController.console.ended',
+          'CPU profile saved as "{0}" in your workspace folder',
+          withExt,
+        ) + '\n',
+      category: 'console',
+    });
   }
 
   private async startProfileInner(dap: Dap.Api, thread: Thread, params: Dap.StartProfileParams) {

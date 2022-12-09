@@ -59,6 +59,7 @@ describe('BrowserPathResolver', () => {
       testVueMapper,
       fsUtils,
       {
+        workspaceFolder: testFixturesDir,
         pathMapping: { '/': path.join(testFixturesDir, 'web') },
         clientID: 'vscode',
         baseUrl: 'http://localhost:1234/',
@@ -162,6 +163,7 @@ describe('BrowserPathResolver', () => {
         testVueMapper,
         fsUtils,
         {
+          workspaceFolder: testFixturesDir,
           pathMapping: {
             '/': path.join(testFixturesDir, 'web'),
             '/sibling': path.join(testFixturesDir, 'sibling-dir'),
@@ -239,6 +241,7 @@ describe('BrowserPathResolver', () => {
         testVueMapper,
         new FakeLocalFsUtils() as IFsUtils,
         {
+          workspaceFolder: testFixturesDir,
           pathMapping: { '/': webRoot },
           clientID: client,
           baseUrl: 'http://localhost:60318/',

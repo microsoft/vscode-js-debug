@@ -130,6 +130,7 @@ describe('console format', () => {
       'new Set([1, 2, 3, 4])',
       'new Set([1, 2, 3, 4, 5, 6, 7, 8])',
       'new class { toString() { return "custom to string" } }',
+      'new class { toString() { return "long custom to string".repeat(500) } }',
     ];
     const expressions = variables.map(v => [`console.log(${v})`, `console.log([${v}])`]);
     await p.logger.evaluateAndLog(([] as string[]).concat(...expressions), { depth: 0 });

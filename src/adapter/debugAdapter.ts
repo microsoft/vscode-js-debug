@@ -20,6 +20,7 @@ import { ProtocolError } from '../dap/protocolError';
 import { disposeContainer, FS, FsPromises } from '../ioc-extras';
 import { ITarget } from '../targets/targets';
 import { ITelemetryReporter } from '../telemetry/telemetryReporter';
+import { IShutdownParticipants } from '../ui/shutdownParticipants';
 import { IAsyncStackPolicy } from './asyncStackPolicy';
 import { BreakpointManager } from './breakpoints';
 import { ICdpProxyProvider } from './cdpProxy';
@@ -437,6 +438,7 @@ export class DebugAdapter implements IDisposable {
       this._services.get(IConsole),
       this._services.get(IExceptionPauseService),
       this._services.get(SmartStepper),
+      this._services.get(IShutdownParticipants),
     );
 
     const profile = this._services.get<IProfileController>(IProfileController);

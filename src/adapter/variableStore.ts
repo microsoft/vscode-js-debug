@@ -76,6 +76,8 @@ const enum SortOrder {
   Internal = 2,
 }
 
+const customStringReprMaxLength = 1024;
+
 const identifierRe = /^[$a-z_][0-9a-z_$]*$/i;
 const privatePropertyRe = /^#[0-9a-z_$]+$/i;
 
@@ -284,7 +286,7 @@ class VariableContext {
       }),
       getStringyProps({
         cdp: this.cdp,
-        args: [64],
+        args: [customStringReprMaxLength],
         objectId: object.objectId,
         throwOnSideEffect: true,
         returnByValue: true,
@@ -742,7 +744,7 @@ class ObjectVariable extends Variable implements IMemoryReadable {
       try {
         const result = await getToStringIfCustom({
           cdp: this.context.cdp,
-          args: [64],
+          args: [customStringReprMaxLength],
           objectId: this.remoteObject.objectId,
           returnByValue: true,
         });
