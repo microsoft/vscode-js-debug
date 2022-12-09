@@ -28,7 +28,7 @@ export const getStringyProps = templateFunction(function (
           continue;
         }
       } catch (e) {
-        out[key] = `${e} (couldn't describe ${key})`;
+        out[key] = `<<indescribable>>${JSON.stringify([String(e), key])}`;
         continue;
       }
     }
@@ -58,7 +58,7 @@ export const getToStringIfCustom = templateFunction(function (
         return String(repr);
       }
     } catch (e) {
-      return `${e} (couldn't describe object)`;
+      return `<<indescribable>>${JSON.stringify([String(e), 'object'])}`;
     }
   }
 

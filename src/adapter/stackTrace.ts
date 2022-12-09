@@ -482,7 +482,7 @@ export class StackFrame implements IFrameElement {
           const variables = await variableStore.getVariableNames({
             variablesReference: scopeVariable.id,
           });
-          return variables.map(label => ({ label: label, type: 'property' }));
+          return variables.map(label => ({ label, type: 'property' }));
         }),
       );
     }

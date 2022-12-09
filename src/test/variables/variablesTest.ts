@@ -108,6 +108,18 @@ describe('variables', () => {
         p.assertLog();
       });
 
+      itIntegrates('shows errors', async ({ r }) => {
+        const p = await r.launchAndLoad('blank', {
+          customDescriptionGenerator:
+            'function (def) { if (this.customDescription) throw new Error("oh no!"); else return def }',
+        });
+        await p.logger.evaluateAndLog(`
+          class Foo { get getter() {} }
+          class Bar extends Foo { customDescription() { return 'Instance of bar'} }
+          new Bar();`);
+        p.assertLog();
+      });
+
       itIntegrates('using statement syntax', async ({ r }) => {
         const p = await r.launchAndLoad('blank', {
           customDescriptionGenerator:

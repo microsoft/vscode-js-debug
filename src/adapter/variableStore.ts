@@ -99,6 +99,29 @@ const extractFunctionFromCustomGenerator = (
   return generate(code);
 };
 
+const indescribablePrefix = '<<indescribable>>';
+
+const localizeIndescribable = (str: string) => {
+  if (!str.startsWith(indescribablePrefix)) {
+    return str;
+  }
+
+  let error;
+  let key;
+  try {
+    [error, key] = JSON.parse(str.slice(indescribablePrefix.length));
+  } catch {
+    return str;
+  }
+
+  return localize(
+    'error.customValueDescriptionGeneratorFailed',
+    "{0} (couldn't describe: {1})",
+    error,
+    key,
+  );
+};
+
 /**
  * A "variable container" is a type that can be referenced in the DAP
  * `variables` request and may be capable of holding nested variables.
@@ -337,7 +360,9 @@ class VariableContext {
           this.createPropertyVar(
             p,
             object,
-            stringyProps?.hasOwnProperty(p.name) ? stringyProps[p.name] : undefined,
+            stringyProps?.hasOwnProperty(p.name)
+              ? localizeIndescribable(stringyProps[p.name])
+              : undefined,
           ),
         );
       }
@@ -438,7 +463,7 @@ class VariableContext {
     try {
       const customValueDescription = await this.cdp.Runtime.callFunctionOn({
         objectId: object.objectId,
-        functionDeclaration: functionDeclaration,
+        functionDeclaration,
         arguments: argumentsToEvaluateWith.map(toCallArgument),
       });
 
@@ -707,7 +732,7 @@ class ObjectVariable extends Variable implements IMemoryReadable {
     // for the first level of evaluations, toString it on-demand
     if (!this.context.parent && this.customStringRepr !== NoCustomStringRepr) {
       try {
-        const result = await this.context.cdp.Runtime.callFunctionOn({
+        const ret = await this.context.cdp.Runtime.callFunctionOn({
           functionDeclaration: getToStringIfCustom.decl(
             `${customStringReprMaxLength}`,
             this.context.customDescriptionGenerator || 'null',
@@ -715,8 +740,8 @@ class ObjectVariable extends Variable implements IMemoryReadable {
           objectId: this.remoteObject.objectId,
           returnByValue: true,
         });
-        if (result?.result.value) {
-          return (this.customStringRepr = result.result.value);
+        if (ret?.result.value) {
+          return (this.customStringRepr = localizeIndescribable(ret.result.value));
         }
       } catch (e) {
         this.customStringRepr = NoCustomStringRepr;
