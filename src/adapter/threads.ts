@@ -471,7 +471,7 @@ export class Thread implements IVariableStoreLocationProvider {
     const params: Cdp.Runtime.EvaluateParams =
       args.context === 'clipboard'
         ? {
-            expression: serializeForClipboardTmpl(args.expression, '2'),
+            expression: serializeForClipboardTmpl.expr(args.expression, '2'),
             includeCommandLineAPI: true,
             returnByValue: true,
             objectGroup: 'console',
