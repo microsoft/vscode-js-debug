@@ -3,6 +3,7 @@
  *--------------------------------------------------------*/
 
 import dataUriToBuffer from 'data-uri-to-buffer';
+import { LookupAddress, promises as dns } from 'dns';
 import got, { Headers, OptionsOfTextResponseBody, RequestError } from 'got';
 import { inject, injectable, optional } from 'inversify';
 import { CancellationToken } from 'vscode';
@@ -91,10 +92,18 @@ export class BasicResourceProvider implements IResourceProvider {
 
     const response = await this.requestHttp(url, options, cancellationToken);
 
-    // Try 127.0.0.1 if localhost fails, see https://github.com/microsoft/vscode/issues/140536#issuecomment-1011281962
-    // The statusCode will be 503 on ECONNREFUSED
-    if (response.statusCode === 503 && parsed.hostname === 'localhost') {
-      parsed.hostname = '127.0.0.1';
+    // Try the other net family if localhost fails,
+    // see https://github.com/microsoft/vscode/issues/140536#issuecomment-1011281962
+    // and later https://github.com/microsoft/vscode/issues/167353
+    if (response.statusCode === 503 && parsed.hostname === 'localost') {
+      let resolved: LookupAddress;
+      try {
+        resolved = await dns.lookup(parsed.hostname);
+      } catch {
+        return response;
+      }
+
+      parsed.hostname = resolved.family === 6 ? '127.0.0.1' : '::1';
       return this.requestHttp(parsed.toString(), options, cancellationToken);
     }
 
