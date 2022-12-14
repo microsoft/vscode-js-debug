@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import { inject, injectable } from 'inversify';
-import type { MappingItem } from 'source-map';
+import { MappingItem } from 'source-map';
 import { ISourceWithMap, Source, SourceFromMap } from '../../adapter/sources';
 import { StackFrame } from '../../adapter/stackTrace';
 import { AnyLaunchConfiguration } from '../../configuration';
@@ -101,28 +101,36 @@ export class RenameProvider implements IRenameProvider {
     const toOffset = new PositionToOffset(content);
     const renames: IRename[] = [];
 
-    sourceMap.computeColumnSpans();
-
     // todo: may eventually want to be away
+    let pendingName: MappingItem | undefined;
     sourceMap.eachMapping(mapping => {
-      if (!mapping.name) {
-        return;
+      if (pendingName) {
+        const startPos = new Base01Position(pendingName.generatedLine, pendingName.generatedColumn);
+        const start = toOffset.convert(startPos);
+        const end = toOffset.convert(
+          new Base01Position(mapping.generatedLine, mapping.generatedColumn),
+        );
+        renames.push({
+          compiled: content.slice(start, end),
+          original: pendingName.name,
+          position: startPos,
+        });
+        pendingName = undefined;
       }
 
-      // convert to base 0 columns
-      const startPos = new Base01Position(mapping.generatedLine, mapping.generatedColumn);
-      const start = toOffset.convert(startPos);
-
-      const lastGeneratedColumn = (mapping as MappingItem & { lastGeneratedColumn: number })
-        .lastGeneratedColumn;
-
-      const endPos = new Base01Position(mapping.generatedLine, lastGeneratedColumn + 1);
-      const end = toOffset.convert(endPos);
-
-      const identifier = content.substring(start, end);
-
-      renames.push({ compiled: identifier, original: mapping.name, position: startPos });
+      if (mapping.name) {
+        pendingName = mapping;
+      }
     });
+
+    if (pendingName) {
+      const position = new Base01Position(pendingName.generatedLine, pendingName.generatedColumn);
+      renames.push({
+        compiled: content.slice(toOffset.convert(position)),
+        original: pendingName.name,
+        position,
+      });
+    }
 
     renames.sort((a, b) => a.position.compare(b.position));
 
