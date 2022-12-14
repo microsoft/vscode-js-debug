@@ -31,7 +31,7 @@
 ]</pre></code><h4>restart</h4><p>Try to reconnect to the program if we lose connection. If set to <code>true</code>, we&#39;ll try once a second, forever. You can customize the interval and maximum number of attempts by specifying the <code>delay</code> and <code>maxAttempts</code> in an object instead.</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>runtimeSourcemapPausePatterns</h4><p>A list of patterns at which to manually insert entrypoint breakpoints. This can be useful to give the debugger an opportunity to set breakpoints when using sourcemaps that don&#39;t exist or can&#39;t be detected before launch, such as <a href="https://github.com/microsoft/vscode-js-debug/issues/492">with the Serverless framework</a>.</p>
 <h5>Default value:</h4><pre><code>[]</pre></code><h4>showAsyncStacks</h4><p>Show the async calls that led to the current call stack.</p>
-<h5>Default value:</h4><pre><code>true</pre></code><h4>skipFiles</h4><p>An array of file or folder names, or path globs, to skip when debugging.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>skipFiles</h4><p>An array of file or folder names, or path globs, to skip when debugging. Star patterns and negations are allowed, for example, <code>[&quot;**/node_modules/**&quot;, &quot;!**/node_modules/my-module/**&quot;]</code></p>
 <h5>Default value:</h4><pre><code>[
   "<node_internals>/**"
 ]</pre></code><h4>smartStep</h4><p>Automatically step through generated code that cannot be mapped back to the original source.</p>
@@ -86,7 +86,7 @@
 <h5>Default value:</h4><pre><code>"node"</pre></code><h4>runtimeSourcemapPausePatterns</h4><p>A list of patterns at which to manually insert entrypoint breakpoints. This can be useful to give the debugger an opportunity to set breakpoints when using sourcemaps that don&#39;t exist or can&#39;t be detected before launch, such as <a href="https://github.com/microsoft/vscode-js-debug/issues/492">with the Serverless framework</a>.</p>
 <h5>Default value:</h4><pre><code>[]</pre></code><h4>runtimeVersion</h4><p>Version of <code>node</code> runtime to use. Requires <code>nvm</code>.</p>
 <h5>Default value:</h4><pre><code>"default"</pre></code><h4>showAsyncStacks</h4><p>Show the async calls that led to the current call stack.</p>
-<h5>Default value:</h4><pre><code>true</pre></code><h4>skipFiles</h4><p>An array of file or folder names, or path globs, to skip when debugging.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>skipFiles</h4><p>An array of file or folder names, or path globs, to skip when debugging. Star patterns and negations are allowed, for example, <code>[&quot;**/node_modules/**&quot;, &quot;!**/node_modules/my-module/**&quot;]</code></p>
 <h5>Default value:</h4><pre><code>[
   "<node_internals>/**"
 ]</pre></code><h4>smartStep</h4><p>Automatically step through generated code that cannot be mapped back to the original source.</p>
@@ -134,7 +134,7 @@
 <h5>Default value:</h4><pre><code>[]</pre></code><h4>showAsyncStacks</h4><p>Show the async calls that led to the current call stack.</p>
 <h5>Default value:</h4><pre><code>{
   "onceBreakpointResolved": 16
-}</pre></code><h4>skipFiles</h4><p>An array of file or folder names, or path globs, to skip when debugging.</p>
+}</pre></code><h4>skipFiles</h4><p>An array of file or folder names, or path globs, to skip when debugging. Star patterns and negations are allowed, for example, <code>[&quot;**/node_modules/**&quot;, &quot;!**/node_modules/my-module/**&quot;]</code></p>
 <h5>Default value:</h4><pre><code>[
   "<node_internals>/**"
 ]</pre></code><h4>smartStep</h4><p>Automatically step through generated code that cannot be mapped back to the original source.</p>
@@ -184,7 +184,7 @@
 ]</pre></code><h4>runtimeExecutable</h4><p>Absolute path to VS Code.</p>
 <h5>Default value:</h4><pre><code>"${execPath}"</pre></code><h4>runtimeSourcemapPausePatterns</h4><p>A list of patterns at which to manually insert entrypoint breakpoints. This can be useful to give the debugger an opportunity to set breakpoints when using sourcemaps that don&#39;t exist or can&#39;t be detected before launch, such as <a href="https://github.com/microsoft/vscode-js-debug/issues/492">with the Serverless framework</a>.</p>
 <h5>Default value:</h4><pre><code>[]</pre></code><h4>showAsyncStacks</h4><p>Show the async calls that led to the current call stack.</p>
-<h5>Default value:</h4><pre><code>true</pre></code><h4>skipFiles</h4><p>An array of file or folder names, or path globs, to skip when debugging.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>skipFiles</h4><p>An array of file or folder names, or path globs, to skip when debugging. Star patterns and negations are allowed, for example, <code>[&quot;**/node_modules/**&quot;, &quot;!**/node_modules/my-module/**&quot;]</code></p>
 <h5>Default value:</h4><pre><code>[
   "<node_internals>/**"
 ]</pre></code><h4>smartStep</h4><p>Automatically step through generated code that cannot be mapped back to the original source.</p>
@@ -216,6 +216,7 @@
 <h5>Default value:</h4><pre><code>true</pre></code><h4>env</h4><p>Optional dictionary of environment key/value pairs for the browser.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>file</h4><p>A local html file to open in the browser</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>includeDefaultArgs</h4><p>Whether default browser launch arguments (to disable features that may make debugging harder) will be included in the launch.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>includeLaunchArgs</h4><p>Advanced: whether any default launch/debugging arguments are set on the browser. The debugger will assume the browser will use pipe debugging such as that which is provided with <code>--remote-debugging-pipe</code>.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>inspectUri</h4><p>Format to use to rewrite the inspectUri: It&#39;s a template string that interpolates keys in <code>{curlyBraces}</code>. Available keys are:<br> - <code>url.*</code> is the parsed address of the running application. For instance, <code>{url.port}</code>, <code>{url.hostname}</code><br> - <code>port</code> is the debug port that Chrome is listening on.<br> - <code>browserInspectUri</code> is the inspector URI on the launched browser<br> - <code>browserInspectUriPath</code> is the path part of the inspector URI on the launched browser (e.g.: &quot;/devtools/browser/e9ec0098-306e-472a-8133-5e42488929c2&quot;).<br> - <code>wsProtocol</code> is the hinted websocket protocol. This is set to <code>wss</code> if the original URL is <code>https</code>, or <code>ws</code> otherwise.<br></p>
 <h5>Default value:</h4><pre><code>undefined</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
 <h5>Default value:</h4><pre><code>[
@@ -231,7 +232,7 @@
 <h5>Default value:</h4><pre><code>null</pre></code><h4>runtimeArgs</h4><p>Optional arguments passed to the runtime executable.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>runtimeExecutable</h4><p>Either &#39;canary&#39;, &#39;stable&#39;, &#39;custom&#39; or path to the browser executable. Custom means a custom wrapper, custom build or CHROME_PATH environment variable.</p>
 <h5>Default value:</h4><pre><code>"*"</pre></code><h4>showAsyncStacks</h4><p>Show the async calls that led to the current call stack.</p>
-<h5>Default value:</h4><pre><code>true</pre></code><h4>skipFiles</h4><p>An array of file or folder names, or path globs, to skip when debugging.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>skipFiles</h4><p>An array of file or folder names, or path globs, to skip when debugging. Star patterns and negations are allowed, for example, <code>[&quot;**/node_modules/**&quot;, &quot;!**/node_modules/my-module/**&quot;]</code></p>
 <h5>Default value:</h4><pre><code>[]</pre></code><h4>smartStep</h4><p>Automatically step through generated code that cannot be mapped back to the original source.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMapPathOverrides</h4><p>A set of mappings for rewriting the locations of source files from what the sourcemap says, to their locations on disk.</p>
 <h5>Default value:</h4><pre><code>{
@@ -278,7 +279,7 @@
 <h5>Default value:</h4><pre><code>0</pre></code><h4>resolveSourceMapLocations</h4><p>A list of minimatch patterns for locations (folders and URLs) in which source maps can be used to resolve local files. This can be used to avoid incorrectly breaking in external source mapped code. Patterns can be prefixed with &quot;!&quot; to exclude them. May be set to an empty array or null to avoid restriction.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>restart</h4><p>Whether to reconnect if the browser connection is closed</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>showAsyncStacks</h4><p>Show the async calls that led to the current call stack.</p>
-<h5>Default value:</h4><pre><code>true</pre></code><h4>skipFiles</h4><p>An array of file or folder names, or path globs, to skip when debugging.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>skipFiles</h4><p>An array of file or folder names, or path globs, to skip when debugging. Star patterns and negations are allowed, for example, <code>[&quot;**/node_modules/**&quot;, &quot;!**/node_modules/my-module/**&quot;]</code></p>
 <h5>Default value:</h4><pre><code>[]</pre></code><h4>smartStep</h4><p>Automatically step through generated code that cannot be mapped back to the original source.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMapPathOverrides</h4><p>A set of mappings for rewriting the locations of source files from what the sourcemap says, to their locations on disk.</p>
 <h5>Default value:</h4><pre><code>{
@@ -317,6 +318,7 @@
 <h5>Default value:</h4><pre><code>true</pre></code><h4>env</h4><p>Optional dictionary of environment key/value pairs for the browser.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>file</h4><p>A local html file to open in the browser</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>includeDefaultArgs</h4><p>Whether default browser launch arguments (to disable features that may make debugging harder) will be included in the launch.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>includeLaunchArgs</h4><p>Advanced: whether any default launch/debugging arguments are set on the browser. The debugger will assume the browser will use pipe debugging such as that which is provided with <code>--remote-debugging-pipe</code>.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>inspectUri</h4><p>Format to use to rewrite the inspectUri: It&#39;s a template string that interpolates keys in <code>{curlyBraces}</code>. Available keys are:<br> - <code>url.*</code> is the parsed address of the running application. For instance, <code>{url.port}</code>, <code>{url.hostname}</code><br> - <code>port</code> is the debug port that Chrome is listening on.<br> - <code>browserInspectUri</code> is the inspector URI on the launched browser<br> - <code>browserInspectUriPath</code> is the path part of the inspector URI on the launched browser (e.g.: &quot;/devtools/browser/e9ec0098-306e-472a-8133-5e42488929c2&quot;).<br> - <code>wsProtocol</code> is the hinted websocket protocol. This is set to <code>wss</code> if the original URL is <code>https</code>, or <code>ws</code> otherwise.<br></p>
 <h5>Default value:</h4><pre><code>undefined</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
 <h5>Default value:</h4><pre><code>[
@@ -332,7 +334,7 @@
 <h5>Default value:</h4><pre><code>null</pre></code><h4>runtimeArgs</h4><p>Optional arguments passed to the runtime executable.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>runtimeExecutable</h4><p>Either &#39;canary&#39;, &#39;stable&#39;, &#39;dev&#39;, &#39;custom&#39; or path to the browser executable. Custom means a custom wrapper, custom build or EDGE_PATH environment variable.</p>
 <h5>Default value:</h4><pre><code>"*"</pre></code><h4>showAsyncStacks</h4><p>Show the async calls that led to the current call stack.</p>
-<h5>Default value:</h4><pre><code>true</pre></code><h4>skipFiles</h4><p>An array of file or folder names, or path globs, to skip when debugging.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>skipFiles</h4><p>An array of file or folder names, or path globs, to skip when debugging. Star patterns and negations are allowed, for example, <code>[&quot;**/node_modules/**&quot;, &quot;!**/node_modules/my-module/**&quot;]</code></p>
 <h5>Default value:</h4><pre><code>[]</pre></code><h4>smartStep</h4><p>Automatically step through generated code that cannot be mapped back to the original source.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMapPathOverrides</h4><p>A set of mappings for rewriting the locations of source files from what the sourcemap says, to their locations on disk.</p>
 <h5>Default value:</h4><pre><code>{
@@ -380,7 +382,7 @@
 <h5>Default value:</h4><pre><code>0</pre></code><h4>resolveSourceMapLocations</h4><p>A list of minimatch patterns for locations (folders and URLs) in which source maps can be used to resolve local files. This can be used to avoid incorrectly breaking in external source mapped code. Patterns can be prefixed with &quot;!&quot; to exclude them. May be set to an empty array or null to avoid restriction.</p>
 <h5>Default value:</h4><pre><code>null</pre></code><h4>restart</h4><p>Whether to reconnect if the browser connection is closed</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>showAsyncStacks</h4><p>Show the async calls that led to the current call stack.</p>
-<h5>Default value:</h4><pre><code>true</pre></code><h4>skipFiles</h4><p>An array of file or folder names, or path globs, to skip when debugging.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>skipFiles</h4><p>An array of file or folder names, or path globs, to skip when debugging. Star patterns and negations are allowed, for example, <code>[&quot;**/node_modules/**&quot;, &quot;!**/node_modules/my-module/**&quot;]</code></p>
 <h5>Default value:</h4><pre><code>[]</pre></code><h4>smartStep</h4><p>Automatically step through generated code that cannot be mapped back to the original source.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMapPathOverrides</h4><p>A set of mappings for rewriting the locations of source files from what the sourcemap says, to their locations on disk.</p>
 <h5>Default value:</h4><pre><code>{

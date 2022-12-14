@@ -11,7 +11,8 @@ import { Commands, DebugType, runCommand } from '../../common/contributionUtils'
 import { DisposableList } from '../../common/disposable';
 import { EventEmitter } from '../../common/events';
 import { delay } from '../../common/promiseUtil';
-import { ITestHandle, testWorkspace } from '../test';
+import { createFileTree } from '../createFileTree';
+import { ITestHandle, testFixturesDir, testWorkspace } from '../test';
 import { eventuallyOk, itIntegrates } from '../testIntegrationUtils';
 
 describe('profiling', () => {
@@ -43,6 +44,23 @@ describe('profiling', () => {
 
   afterEach(() => {
     createQuickPick.restore();
+  });
+
+  describe('console', () => {
+    itIntegrates('works', async ({ r }) => {
+      createFileTree(testFixturesDir, {
+        'test.js': ['console.profile("some-profile");', 'console.profileEnd("some-profile");'],
+      });
+      const handle = await r.runScript('test.js', {
+        __workspaceFolder: testFixturesDir,
+      });
+
+      handle.load();
+      await handle.dap.once('terminated');
+      await eventuallyOk(() =>
+        assertValidOutputFile(join(testFixturesDir, 'some-profile.cpuprofile')),
+      );
+    });
   });
 
   describe('cpu-profiling', () => {

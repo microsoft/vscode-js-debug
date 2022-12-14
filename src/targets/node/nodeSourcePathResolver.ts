@@ -32,6 +32,7 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
 
   public static getOptions(c: AnyNodeConfiguration) {
     return {
+      workspaceFolder: c.__workspaceFolder,
       resolveSourceMapLocations: c.resolveSourceMapLocations,
       basePath: c.cwd,
       sourceMapOverrides: c.sourceMapPathOverrides,

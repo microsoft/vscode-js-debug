@@ -574,6 +574,13 @@ export interface IChromiumLaunchConfiguration extends IChromiumBaseConfiguration
   includeDefaultArgs: boolean;
 
   /**
+   * Whether any default launch/debugging arguments are set on the browser.
+   * The debugger will assume the browser will use pipe debugging such as that
+   * which is provided with `--remote-debugging-pipe`. For advanced use cases.
+   */
+  includeLaunchArgs: boolean;
+
+  /**
    * Additional browser command line arguments.
    */
   runtimeArgs: ReadonlyArray<string> | null;
@@ -910,6 +917,7 @@ export const chromeLaunchConfigDefaults: IChromeLaunchConfiguration = {
   env: {},
   urlFilter: '*',
   includeDefaultArgs: true,
+  includeLaunchArgs: true,
   runtimeArgs: null,
   runtimeExecutable: '*',
   userDataDir: true,
@@ -946,7 +954,9 @@ export function defaultSourceMapPathOverrides(webRoot: string): { [key: string]:
   };
 }
 
-export function applyNodeDefaults({ ...config }: ResolvingNodeConfiguration): AnyNodeConfiguration {
+const applyNodeishDefaults = (
+  config: ResolvingNodeConfiguration | ResolvingTerminalConfiguration,
+) => {
   if (!config.sourceMapPathOverrides && config.cwd) {
     config.sourceMapPathOverrides = defaultSourceMapPathOverrides(config.cwd);
   }
@@ -956,7 +966,10 @@ export function applyNodeDefaults({ ...config }: ResolvingNodeConfiguration): An
   if (config.resolveSourceMapLocations === undefined && !config.remoteRoot) {
     config.resolveSourceMapLocations = config.outFiles;
   }
+};
 
+export function applyNodeDefaults({ ...config }: ResolvingNodeConfiguration): AnyNodeConfiguration {
+  applyNodeishDefaults(config);
   if (config.request === 'attach') {
     return { ...nodeAttachConfigDefaults, ...config };
   } else {
@@ -993,10 +1006,7 @@ export function applyExtensionHostDefaults(
 export function applyTerminalDefaults(
   config: ResolvingTerminalConfiguration,
 ): AnyTerminalConfiguration {
-  if (!config.sourceMapPathOverrides && config.cwd) {
-    config.sourceMapPathOverrides = defaultSourceMapPathOverrides(config.cwd);
-  }
-
+  applyNodeishDefaults(config);
   return config.request === 'launch'
     ? { ...terminalBaseDefaults, ...config }
     : { ...delegateDefaults, ...config };

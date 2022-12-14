@@ -6,6 +6,7 @@ import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
 import { inject, injectable } from 'inversify';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { ILogger } from '../../common/logging';
+import * as urlUtils from '../../common/urlUtils';
 import { INodeLaunchConfiguration, OutputSource } from '../../configuration';
 import Dap from '../../dap/api';
 import { ILaunchContext } from '../targets';
@@ -28,18 +29,22 @@ export class SubprocessProgramLauncher implements IProgramLauncher {
     config: INodeLaunchConfiguration,
     context: ILaunchContext,
   ) {
-    const { executable, args, shell } = formatArguments(binary, getNodeLaunchArgs(config));
+    const { executable, args, shell, cwd } = formatArguments(
+      binary,
+      getNodeLaunchArgs(config),
+      config.cwd,
+    );
 
     // Send an appoximation of the command we're running to
     // the terminal, for cosmetic purposes.
     context.dap.output({
       category: 'console',
-      output: [executable, ...args].join(' '),
+      output: [executable, ...args].join(' ') + '\n',
     });
 
     const child = spawn(executable, args, {
       shell,
-      cwd: config.cwd,
+      cwd: cwd,
       env: EnvironmentVars.merge(EnvironmentVars.processEnv(), config.env).defined(),
     });
 
@@ -111,14 +116,19 @@ export class SubprocessProgramLauncher implements IProgramLauncher {
 // Fix for: https://github.com/microsoft/vscode/issues/45832,
 // which still seems to be a thing according to the issue tracker.
 // From: https://github.com/microsoft/vscode-node-debug/blob/47747454bc6e8c9e48d8091eddbb7ffb54a19bbe/src/node/nodeDebug.ts#L1120
-const formatArguments = (executable: string, args: ReadonlyArray<string>) => {
-  if (process.platform === 'win32' && executable.endsWith('.ps1')) {
-    args = ['-File', executable, ...args];
-    executable = 'powershell.exe';
+const formatArguments = (executable: string, args: ReadonlyArray<string>, cwd: string) => {
+  if (process.platform === 'win32') {
+    executable = urlUtils.platformPathToPreferredCase(executable);
+    cwd = urlUtils.platformPathToPreferredCase(cwd);
+
+    if (executable.endsWith('.ps1')) {
+      args = ['-File', executable, ...args];
+      executable = 'powershell.exe';
+    }
   }
 
   if (process.platform !== 'win32' || !executable.includes(' ')) {
-    return { executable, args, shell: false };
+    return { executable, args, shell: false, cwd };
   }
 
   let foundArgWithSpace = false;
@@ -135,8 +145,8 @@ const formatArguments = (executable: string, args: ReadonlyArray<string>) => {
   }
 
   if (foundArgWithSpace) {
-    return { executable: `"${executable}"`, args: output, shell: true };
+    return { executable: `"${executable}"`, args: output, shell: true, cwd: cwd };
   }
 
-  return { executable, args, shell: false };
+  return { executable, args, shell: false, cwd };
 };

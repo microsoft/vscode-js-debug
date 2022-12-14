@@ -3,6 +3,7 @@
  *--------------------------------------------------------*/
 
 import { basename, extname } from 'path';
+import { escapeRegexSpecialChars } from '../../common/stringUtils';
 import Dap from '../../dap/api';
 import { BreakpointManager, EntryBreakpointMode } from '../breakpoints';
 import { Thread } from '../threads';
@@ -35,7 +36,7 @@ export class EntryBreakpoint extends Breakpoint {
 
     const key = EntryBreakpoint.getModeKeyForSource(this.mode, this.source.path);
     return this.mode === EntryBreakpointMode.Greedy
-      ? super._setByUrl(thread, key, lineColumn)
+      ? super._setByUrlRegexp(thread, escapeRegexSpecialChars(key), lineColumn)
       : super._setByPath(thread, lineColumn);
   }
 }
