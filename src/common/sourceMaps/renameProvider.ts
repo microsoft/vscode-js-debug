@@ -3,6 +3,7 @@
  *--------------------------------------------------------*/
 
 import { inject, injectable } from 'inversify';
+import { MappingItem } from 'source-map';
 import { ISourceWithMap, Source, SourceFromMap } from '../../adapter/sources';
 import { StackFrame } from '../../adapter/stackTrace';
 import { AnyLaunchConfiguration } from '../../configuration';
@@ -16,9 +17,6 @@ interface IRename {
   compiled: string;
   position: Base01Position;
 }
-
-/** Very approximate regex for JS identifiers */
-const identifierRe = /[$a-z_][$0-9A-Z_$]*/iy;
 
 export interface IRenameProvider {
   /**
@@ -104,22 +102,35 @@ export class RenameProvider implements IRenameProvider {
     const renames: IRename[] = [];
 
     // todo: may eventually want to be away
+    let pendingName: MappingItem | undefined;
     sourceMap.eachMapping(mapping => {
-      if (!mapping.name) {
-        return;
+      if (pendingName) {
+        const startPos = new Base01Position(pendingName.generatedLine, pendingName.generatedColumn);
+        const start = toOffset.convert(startPos);
+        const end = toOffset.convert(
+          new Base01Position(mapping.generatedLine, mapping.generatedColumn),
+        );
+        renames.push({
+          compiled: content.slice(start, end),
+          original: pendingName.name,
+          position: startPos,
+        });
+        pendingName = undefined;
       }
 
-      // convert to base 0 columns
-      const position = new Base01Position(mapping.generatedLine, mapping.generatedColumn);
-      const start = toOffset.convert(position);
-      identifierRe.lastIndex = start;
-      const match = identifierRe.exec(content);
-      if (!match) {
-        return;
+      if (mapping.name) {
+        pendingName = mapping;
       }
-
-      renames.push({ compiled: match[0], original: mapping.name, position });
     });
+
+    if (pendingName) {
+      const position = new Base01Position(pendingName.generatedLine, pendingName.generatedColumn);
+      renames.push({
+        compiled: content.slice(toOffset.convert(position)),
+        original: pendingName.name,
+        position,
+      });
+    }
 
     renames.sort((a, b) => a.position.compare(b.position));
 
