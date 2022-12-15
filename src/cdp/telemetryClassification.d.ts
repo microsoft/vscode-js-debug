@@ -139,8 +139,6 @@ interface ICDPOperationClassification {
   '!fetch.authrequired.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
 
   // Domain: HeadlessExperimental
-  'headlessexperimental.needsbeginframeschanged': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!headlessexperimental.needsbeginframeschanged.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
 
   // Domain: HeapProfiler
   'heapprofiler.addheapsnapshotchunk': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
@@ -405,6 +403,8 @@ interface ICDPOperationClassification {
   '!storage.indexeddblistupdated.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   'storage.interestgroupaccessed': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!storage.interestgroupaccessed.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  'storage.sharedstorageaccessed': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!storage.sharedstorageaccessed.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
 
   // Domain: SystemInfo
 
@@ -465,4 +465,8 @@ interface ICDPOperationClassification {
   '!webaudio.nodeparamdisconnected.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
 
   // Domain: WebAuthn
+  'webauthn.credentialadded': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!webauthn.credentialadded.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  'webauthn.credentialasserted': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!webauthn.credentialasserted.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
 }

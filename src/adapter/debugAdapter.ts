@@ -78,7 +78,7 @@ export class DebugAdapter implements IDisposable {
     });
 
     this.dap = dap;
-    this.dap.on('initialize', params => this._onInitialize(params));
+    this.dap.on('initialize', params => this.onInitialize(params));
     this.dap.on('setBreakpoints', params => this._onSetBreakpoints(params));
     this.dap.on('setExceptionBreakpoints', params => this.setExceptionBreakpoints(params));
     this.dap.on('configurationDone', () => this.configurationDone());
@@ -190,7 +190,7 @@ export class DebugAdapter implements IDisposable {
     return {};
   }
 
-  async _onInitialize(params: Dap.InitializeParams): Promise<Dap.InitializeResult | Dap.Error> {
+  public async onInitialize(params: Dap.InitializeParams): Promise<Dap.InitializeResult | Dap.Error> {
     console.assert(params.linesStartAt1);
     console.assert(params.columnsStartAt1);
     const capabilities = DebugAdapter.capabilities();

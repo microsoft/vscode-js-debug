@@ -73,7 +73,7 @@ class VsDebugServer implements ISessionLauncher<VSDebugSession> {
     }
   }
 
-  launchRootFromExisting(
+  private launchRootFromExisting(
     deferredConnection: IDeferred<DapConnection>,
     session: VSDebugSession,
     inputStream: Readable,
@@ -87,13 +87,13 @@ class VsDebugServer implements ISessionLauncher<VSDebugSession> {
     deferredConnection.resolve(newSession.connection);
   }
 
-  async launchRoot(deferredConnection: IDeferred<DapConnection>, session: VSDebugSession) {
+  private async launchRoot(deferredConnection: IDeferred<DapConnection>, session: VSDebugSession) {
     const result = await this.sessionServer.createRootDebugServer(session, debugServerPort);
     result.connectionPromise.then(x => deferredConnection.resolve(x));
     console.log((result.server.address() as net.AddressInfo).port.toString());
   }
 
-  launch(
+  public launch(
     parentSession: Session<VSDebugSession>,
     target: ITarget,
     config: IPseudoAttachConfiguration,

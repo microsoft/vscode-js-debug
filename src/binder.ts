@@ -93,9 +93,7 @@ export class Binder implements IDisposable {
           filterErrorsReportedToTelemetry();
         }
 
-        setTimeout(() => {
-          dap.initialized({});
-        }, 0);
+        setTimeout(() => dap.initialized({}), 0);
         return capabilities;
       });
       dap.on('setExceptionBreakpoints', async () => ({}));
@@ -117,23 +115,13 @@ export class Binder implements IDisposable {
       dap.on('threads', async () => ({ threads: [] }));
       dap.on('loadedSources', async () => ({ sources: [] }));
       dap.on('breakpointLocations', () => Promise.resolve({ breakpoints: [] }));
-      dap.on('attach', params =>
-        this._boot(
-          applyDefaults(
-            params as AnyResolvingConfiguration,
-            this._rootServices.get(ExtensionLocation),
-          ),
-          dap,
-        ),
-      );
-      dap.on('launch', params => {
-        return this._boot(
-          applyDefaults(
-            params as AnyResolvingConfiguration,
-            this._rootServices.get(ExtensionLocation),
-          ),
-          dap,
-        );
+      dap.on('attach', async params => {
+        await this.boot(params as AnyResolvingConfiguration, dap);
+        return {};
+      });
+      dap.on('launch', async params => {
+        await this.boot(params as AnyResolvingConfiguration, dap);
+        return {};
       });
       dap.on('pause', async () => {
         return {};
@@ -211,6 +199,14 @@ export class Binder implements IDisposable {
     );
 
     await delay(0); // next task so that we're sure terminated() sent
+  }
+
+  /**
+   * Boots the binder with the given API. Used for the dapDebugServer where
+   * the launch/attach is intercepted before the binder is created.
+   */
+  public async boot(params: AnyResolvingConfiguration, dap: Dap.Api) {
+    return this._boot(applyDefaults(params, this._rootServices.get(ExtensionLocation)), dap);
   }
 
   private async _boot(params: AnyLaunchConfiguration, dap: Dap.Api) {

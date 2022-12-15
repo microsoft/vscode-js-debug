@@ -61,8 +61,9 @@ export class VSCodeSessionManager implements vscode.DebugAdapterDescriptorFactor
   public async createDebugAdapterDescriptor(
     debugSession: vscode.DebugSession,
   ): Promise<vscode.DebugAdapterDescriptor> {
-    const result = await this.sessionServerManager.createDebugServer(debugSession);
-    return new vscode.DebugAdapterServer((result.server.address() as net.AddressInfo).port);
+    return new vscode.DebugAdapterServer(8123)
+    // const result = await this.sessionServerManager.createDebugServer(debugSession);
+    // return new vscode.DebugAdapterServer((result.server.address() as net.AddressInfo).port);
   }
 
   /**

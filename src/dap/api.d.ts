@@ -17,7 +17,7 @@ export namespace Dap {
      * The `cancel` request is used by the client in two situations:
      * - to indicate that it is no longer interested in the result produced by a specific request issued earlier
      * - to cancel a progress sequence. Clients should only call this request if the corresponding capability `supportsCancelRequest` is true.
-     * This request has a hint characteristic: a debug adapter can only be expected to make a 'best effort' in honouring this request but there are no guarantees.
+     * This request has a hint characteristic: a debug adapter can only be expected to make a 'best effort' in honoring this request but there are no guarantees.
      * The `cancel` request may return an error if it could not cancel an operation but a client should refrain from presenting this error to end users.
      * The request that got cancelled still needs to send a response back. This can either be a normal result (`success` attribute true) or an error response (`success` attribute false and the `message` set to `cancelled`).
      * Returning partial results from a cancelled request is possible but please note that a client has no generic way for detecting that a response is partial or not.
@@ -32,7 +32,7 @@ export namespace Dap {
      * The `cancel` request is used by the client in two situations:
      * - to indicate that it is no longer interested in the result produced by a specific request issued earlier
      * - to cancel a progress sequence. Clients should only call this request if the corresponding capability `supportsCancelRequest` is true.
-     * This request has a hint characteristic: a debug adapter can only be expected to make a 'best effort' in honouring this request but there are no guarantees.
+     * This request has a hint characteristic: a debug adapter can only be expected to make a 'best effort' in honoring this request but there are no guarantees.
      * The `cancel` request may return an error if it could not cancel an operation but a client should refrain from presenting this error to end users.
      * The request that got cancelled still needs to send a response back. This can either be a normal result (`success` attribute true) or an error response (`success` attribute false and the `message` set to `cancelled`).
      * Returning partial results from a cancelled request is possible but please note that a client has no generic way for detecting that a response is partial or not.
@@ -42,7 +42,7 @@ export namespace Dap {
     cancelRequest(params: CancelParams): Promise<CancelResult>;
 
     /**
-     * This event indicates that the debug adapter is ready to accept configuration requests (e.g. SetBreakpointsRequest, SetExceptionBreakpointsRequest).
+     * This event indicates that the debug adapter is ready to accept configuration requests (e.g. `setBreakpoints`, `setExceptionBreakpoints`).
      * A debug adapter is expected to send this event when it is ready to accept configuration requests (but not before the `initialize` request has finished).
      * The sequence of events/requests is as follows:
      * - adapters sends `initialized` event (after the `initialize` request has returned)
@@ -56,7 +56,7 @@ export namespace Dap {
 
     /**
      * The event indicates that the execution of the debuggee has stopped due to some condition.
-     * This can be caused by a break point previously set, a stepping request has completed, by executing a debugger statement etc.
+     * This can be caused by a breakpoint previously set, a stepping request has completed, by executing a debugger statement etc.
      */
     stopped(params: StoppedEventParams): void;
 
@@ -110,7 +110,7 @@ export namespace Dap {
     /**
      * The event indicates that one or more capabilities have changed.
      * Since the capabilities are dependent on the client and its UI, it might not be possible to change that at random times (or too late).
-     * Consequently this event has a hint characteristic: a client can only be expected to make a 'best effort' in honouring individual capabilities but there are no guarantees.
+     * Consequently this event has a hint characteristic: a client can only be expected to make a 'best effort' in honoring individual capabilities but there are no guarantees.
      * Only changed capabilities need to be included, all other capabilities keep their values.
      */
     capabilities(params: CapabilitiesEventParams): void;
@@ -118,7 +118,7 @@ export namespace Dap {
     /**
      * The event signals that a long running operation is about to start and provides additional information for the client to set up a corresponding progress and cancellation UI.
      * The client is free to delay the showing of the UI in order to reduce flicker.
-     * This event should only be sent if the corresponding capability `supportsProgressReporting` is true
+     * This event should only be sent if the corresponding capability `supportsProgressReporting` is true.
      */
     progressStart(params: ProgressStartEventParams): void;
 
@@ -152,7 +152,7 @@ export namespace Dap {
     /**
      * This request is sent from the debug adapter to the client to run a command in a terminal.
      * This is typically used to launch the debuggee in a terminal provided by the client.
-     * This request should only be called if the corresponding capability `supportsRunInTerminalRequest` is true.
+     * This request should only be called if the corresponding client capability `supportsRunInTerminalRequest` is true.
      * Client implementations of `runInTerminal` are free to run the command however they choose including issuing the command to a command line interpreter (aka 'shell'). Argument strings passed to the `runInTerminal` request must arrive verbatim in the command to be run. As a consequence, clients which use a shell are responsible for escaping any special shell characters in the argument strings to prevent them from being interpreted (and modified) by the shell.
      * Some users may wish to take advantage of shell processing in the argument strings. For clients which implement `runInTerminal` using an intermediary shell, the `argsCanBeInterpretedByShell` property can be set to true. In this case the client is requested not to escape any special shell characters in the argument strings.
      */
@@ -163,11 +163,27 @@ export namespace Dap {
     /**
      * This request is sent from the debug adapter to the client to run a command in a terminal.
      * This is typically used to launch the debuggee in a terminal provided by the client.
-     * This request should only be called if the corresponding capability `supportsRunInTerminalRequest` is true.
+     * This request should only be called if the corresponding client capability `supportsRunInTerminalRequest` is true.
      * Client implementations of `runInTerminal` are free to run the command however they choose including issuing the command to a command line interpreter (aka 'shell'). Argument strings passed to the `runInTerminal` request must arrive verbatim in the command to be run. As a consequence, clients which use a shell are responsible for escaping any special shell characters in the argument strings to prevent them from being interpreted (and modified) by the shell.
      * Some users may wish to take advantage of shell processing in the argument strings. For clients which implement `runInTerminal` using an intermediary shell, the `argsCanBeInterpretedByShell` property can be set to true. In this case the client is requested not to escape any special shell characters in the argument strings.
      */
     runInTerminalRequest(params: RunInTerminalParams): Promise<RunInTerminalResult>;
+
+    /**
+     * This request is sent from the debug adapter to the client to start a new debug session of the same type as the caller.
+     * This request should only be sent if the corresponding client capability `supportsStartDebuggingRequest` is true.
+     * A client implementation of `startDebugging` should start a new debug session (of the same type as the caller) in the same way that the caller's session was started. If the client supports hierarchical debug sessions, the newly created session can be treated as a child of the caller session.
+     */
+    on(
+      request: 'startDebugging',
+      handler: (params: StartDebuggingParams) => Promise<StartDebuggingResult | Error>,
+    ): () => void;
+    /**
+     * This request is sent from the debug adapter to the client to start a new debug session of the same type as the caller.
+     * This request should only be sent if the corresponding client capability `supportsStartDebuggingRequest` is true.
+     * A client implementation of `startDebugging` should start a new debug session (of the same type as the caller) in the same way that the caller's session was started. If the client supports hierarchical debug sessions, the newly created session can be treated as a child of the caller session.
+     */
+    startDebuggingRequest(params: StartDebuggingParams): Promise<StartDebuggingResult>;
 
     /**
      * The `initialize` request is sent as the first request from the client to the debug adapter in order to configure it with client capabilities and to retrieve capabilities from the debug adapter.
@@ -218,7 +234,7 @@ export namespace Dap {
     launchRequest(params: LaunchParams): Promise<LaunchResult>;
 
     /**
-     * The attach request is sent from the client to the debug adapter to attach to a debuggee that is already running.
+     * The `attach` request is sent from the client to the debug adapter to attach to a debuggee that is already running.
      * Since attaching is debugger/runtime specific, the arguments for this request are not part of this specification.
      */
     on(
@@ -226,7 +242,7 @@ export namespace Dap {
       handler: (params: AttachParams) => Promise<AttachResult | Error>,
     ): () => void;
     /**
-     * The attach request is sent from the client to the debug adapter to attach to a debuggee that is already running.
+     * The `attach` request is sent from the client to the debug adapter to attach to a debuggee that is already running.
      * Since attaching is debugger/runtime specific, the arguments for this request are not part of this specification.
      */
     attachRequest(params: AttachParams): Promise<AttachResult>;
@@ -505,7 +521,7 @@ export namespace Dap {
     reverseContinueRequest(params: ReverseContinueParams): Promise<ReverseContinueResult>;
 
     /**
-     * The request restarts execution of the specified stackframe.
+     * The request restarts execution of the specified stack frame.
      * The debug adapter first sends the response and then a `stopped` event (with reason `restart`) after the restart has completed.
      * Clients should only call this request if the corresponding capability `supportsRestartFrame` is true.
      */
@@ -514,7 +530,7 @@ export namespace Dap {
       handler: (params: RestartFrameParams) => Promise<RestartFrameResult | Error>,
     ): () => void;
     /**
-     * The request restarts execution of the specified stackframe.
+     * The request restarts execution of the specified stack frame.
      * The debug adapter first sends the response and then a `stopped` event (with reason `restart`) after the restart has completed.
      * Clients should only call this request if the corresponding capability `supportsRestartFrame` is true.
      */
@@ -553,7 +569,7 @@ export namespace Dap {
 
     /**
      * The request returns a stacktrace from the current execution state of a given thread.
-     * A client can request all stack frames by omitting the startFrame and levels arguments. For performance-conscious clients and if the corresponding capability `supportsDelayedStackTraceLoading` is true, stack frames can be retrieved in a piecemeal way with the startFrame and levels arguments. The response of the stackTrace request may contain a totalFrames property that hints at the total number of frames in the stack. If a client needs this total number upfront, it can issue a request for a single (first) frame and depending on the value of totalFrames decide how to proceed. In any case a client should be prepared to receive fewer frames than requested, which is an indication that the end of the stack has been reached.
+     * A client can request all stack frames by omitting the startFrame and levels arguments. For performance-conscious clients and if the corresponding capability `supportsDelayedStackTraceLoading` is true, stack frames can be retrieved in a piecemeal way with the `startFrame` and `levels` arguments. The response of the `stackTrace` request may contain a `totalFrames` property that hints at the total number of frames in the stack. If a client needs this total number upfront, it can issue a request for a single (first) frame and depending on the value of `totalFrames` decide how to proceed. In any case a client should be prepared to receive fewer frames than requested, which is an indication that the end of the stack has been reached.
      */
     on(
       request: 'stackTrace',
@@ -561,19 +577,19 @@ export namespace Dap {
     ): () => void;
     /**
      * The request returns a stacktrace from the current execution state of a given thread.
-     * A client can request all stack frames by omitting the startFrame and levels arguments. For performance-conscious clients and if the corresponding capability `supportsDelayedStackTraceLoading` is true, stack frames can be retrieved in a piecemeal way with the startFrame and levels arguments. The response of the stackTrace request may contain a totalFrames property that hints at the total number of frames in the stack. If a client needs this total number upfront, it can issue a request for a single (first) frame and depending on the value of totalFrames decide how to proceed. In any case a client should be prepared to receive fewer frames than requested, which is an indication that the end of the stack has been reached.
+     * A client can request all stack frames by omitting the startFrame and levels arguments. For performance-conscious clients and if the corresponding capability `supportsDelayedStackTraceLoading` is true, stack frames can be retrieved in a piecemeal way with the `startFrame` and `levels` arguments. The response of the `stackTrace` request may contain a `totalFrames` property that hints at the total number of frames in the stack. If a client needs this total number upfront, it can issue a request for a single (first) frame and depending on the value of `totalFrames` decide how to proceed. In any case a client should be prepared to receive fewer frames than requested, which is an indication that the end of the stack has been reached.
      */
     stackTraceRequest(params: StackTraceParams): Promise<StackTraceResult>;
 
     /**
-     * The request returns the variable scopes for a given stackframe ID.
+     * The request returns the variable scopes for a given stack frame ID.
      */
     on(
       request: 'scopes',
       handler: (params: ScopesParams) => Promise<ScopesResult | Error>,
     ): () => void;
     /**
-     * The request returns the variable scopes for a given stackframe ID.
+     * The request returns the variable scopes for a given stack frame ID.
      */
     scopesRequest(params: ScopesParams): Promise<ScopesResult>;
 
@@ -689,7 +705,7 @@ export namespace Dap {
      * Evaluates the given `value` expression and assigns it to the `expression` which must be a modifiable l-value.
      * The expressions have access to any variables and arguments that are in scope of the specified frame.
      * Clients should only call this request if the corresponding capability `supportsSetExpression` is true.
-     * If a debug adapter implements both setExpression and setVariable, a client uses `setExpression` if the variable has an `evaluateName` property.
+     * If a debug adapter implements both `setExpression` and `setVariable`, a client uses `setExpression` if the variable has an `evaluateName` property.
      */
     on(
       request: 'setExpression',
@@ -699,12 +715,12 @@ export namespace Dap {
      * Evaluates the given `value` expression and assigns it to the `expression` which must be a modifiable l-value.
      * The expressions have access to any variables and arguments that are in scope of the specified frame.
      * Clients should only call this request if the corresponding capability `supportsSetExpression` is true.
-     * If a debug adapter implements both setExpression and setVariable, a client uses `setExpression` if the variable has an `evaluateName` property.
+     * If a debug adapter implements both `setExpression` and `setVariable`, a client uses `setExpression` if the variable has an `evaluateName` property.
      */
     setExpressionRequest(params: SetExpressionParams): Promise<SetExpressionResult>;
 
     /**
-     * This request retrieves the possible stepIn targets for the specified stack frame.
+     * This request retrieves the possible step-in targets for the specified stack frame.
      * These targets can be used in the `stepIn` request.
      * Clients should only call this request if the corresponding capability `supportsStepInTargetsRequest` is true.
      */
@@ -713,7 +729,7 @@ export namespace Dap {
       handler: (params: StepInTargetsParams) => Promise<StepInTargetsResult | Error>,
     ): () => void;
     /**
-     * This request retrieves the possible stepIn targets for the specified stack frame.
+     * This request retrieves the possible step-in targets for the specified stack frame.
      * These targets can be used in the `stepIn` request.
      * Clients should only call this request if the corresponding capability `supportsStepInTargetsRequest` is true.
      */
@@ -1129,7 +1145,7 @@ export namespace Dap {
      * The `cancel` request is used by the client in two situations:
      * - to indicate that it is no longer interested in the result produced by a specific request issued earlier
      * - to cancel a progress sequence. Clients should only call this request if the corresponding capability `supportsCancelRequest` is true.
-     * This request has a hint characteristic: a debug adapter can only be expected to make a 'best effort' in honouring this request but there are no guarantees.
+     * This request has a hint characteristic: a debug adapter can only be expected to make a 'best effort' in honoring this request but there are no guarantees.
      * The `cancel` request may return an error if it could not cancel an operation but a client should refrain from presenting this error to end users.
      * The request that got cancelled still needs to send a response back. This can either be a normal result (`success` attribute true) or an error response (`success` attribute false and the `message` set to `cancelled`).
      * Returning partial results from a cancelled request is possible but please note that a client has no generic way for detecting that a response is partial or not.
@@ -1139,7 +1155,7 @@ export namespace Dap {
     cancel(params: CancelParams): Promise<CancelResult>;
 
     /**
-     * This event indicates that the debug adapter is ready to accept configuration requests (e.g. SetBreakpointsRequest, SetExceptionBreakpointsRequest).
+     * This event indicates that the debug adapter is ready to accept configuration requests (e.g. `setBreakpoints`, `setExceptionBreakpoints`).
      * A debug adapter is expected to send this event when it is ready to accept configuration requests (but not before the `initialize` request has finished).
      * The sequence of events/requests is as follows:
      * - adapters sends `initialized` event (after the `initialize` request has returned)
@@ -1158,7 +1174,7 @@ export namespace Dap {
 
     /**
      * The event indicates that the execution of the debuggee has stopped due to some condition.
-     * This can be caused by a break point previously set, a stepping request has completed, by executing a debugger statement etc.
+     * This can be caused by a breakpoint previously set, a stepping request has completed, by executing a debugger statement etc.
      */
     on(request: 'stopped', handler: (params: StoppedEventParams) => void): void;
     off(request: 'stopped', handler: (params: StoppedEventParams) => void): void;
@@ -1262,7 +1278,7 @@ export namespace Dap {
     /**
      * The event indicates that one or more capabilities have changed.
      * Since the capabilities are dependent on the client and its UI, it might not be possible to change that at random times (or too late).
-     * Consequently this event has a hint characteristic: a client can only be expected to make a 'best effort' in honouring individual capabilities but there are no guarantees.
+     * Consequently this event has a hint characteristic: a client can only be expected to make a 'best effort' in honoring individual capabilities but there are no guarantees.
      * Only changed capabilities need to be included, all other capabilities keep their values.
      */
     on(request: 'capabilities', handler: (params: CapabilitiesEventParams) => void): void;
@@ -1275,7 +1291,7 @@ export namespace Dap {
     /**
      * The event signals that a long running operation is about to start and provides additional information for the client to set up a corresponding progress and cancellation UI.
      * The client is free to delay the showing of the UI in order to reduce flicker.
-     * This event should only be sent if the corresponding capability `supportsProgressReporting` is true
+     * This event should only be sent if the corresponding capability `supportsProgressReporting` is true.
      */
     on(request: 'progressStart', handler: (params: ProgressStartEventParams) => void): void;
     off(request: 'progressStart', handler: (params: ProgressStartEventParams) => void): void;
@@ -1334,11 +1350,18 @@ export namespace Dap {
     /**
      * This request is sent from the debug adapter to the client to run a command in a terminal.
      * This is typically used to launch the debuggee in a terminal provided by the client.
-     * This request should only be called if the corresponding capability `supportsRunInTerminalRequest` is true.
+     * This request should only be called if the corresponding client capability `supportsRunInTerminalRequest` is true.
      * Client implementations of `runInTerminal` are free to run the command however they choose including issuing the command to a command line interpreter (aka 'shell'). Argument strings passed to the `runInTerminal` request must arrive verbatim in the command to be run. As a consequence, clients which use a shell are responsible for escaping any special shell characters in the argument strings to prevent them from being interpreted (and modified) by the shell.
      * Some users may wish to take advantage of shell processing in the argument strings. For clients which implement `runInTerminal` using an intermediary shell, the `argsCanBeInterpretedByShell` property can be set to true. In this case the client is requested not to escape any special shell characters in the argument strings.
      */
     runInTerminal(params: RunInTerminalParams): Promise<RunInTerminalResult>;
+
+    /**
+     * This request is sent from the debug adapter to the client to start a new debug session of the same type as the caller.
+     * This request should only be sent if the corresponding client capability `supportsStartDebuggingRequest` is true.
+     * A client implementation of `startDebugging` should start a new debug session (of the same type as the caller) in the same way that the caller's session was started. If the client supports hierarchical debug sessions, the newly created session can be treated as a child of the caller session.
+     */
+    startDebugging(params: StartDebuggingParams): Promise<StartDebuggingResult>;
 
     /**
      * The `initialize` request is sent as the first request from the client to the debug adapter in order to configure it with client capabilities and to retrieve capabilities from the debug adapter.
@@ -1362,7 +1385,7 @@ export namespace Dap {
     launch(params: LaunchParams): Promise<LaunchResult>;
 
     /**
-     * The attach request is sent from the client to the debug adapter to attach to a debuggee that is already running.
+     * The `attach` request is sent from the client to the debug adapter to attach to a debuggee that is already running.
      * Since attaching is debugger/runtime specific, the arguments for this request are not part of this specification.
      */
     attach(params: AttachParams): Promise<AttachResult>;
@@ -1489,7 +1512,7 @@ export namespace Dap {
     reverseContinue(params: ReverseContinueParams): Promise<ReverseContinueResult>;
 
     /**
-     * The request restarts execution of the specified stackframe.
+     * The request restarts execution of the specified stack frame.
      * The debug adapter first sends the response and then a `stopped` event (with reason `restart`) after the restart has completed.
      * Clients should only call this request if the corresponding capability `supportsRestartFrame` is true.
      */
@@ -1512,12 +1535,12 @@ export namespace Dap {
 
     /**
      * The request returns a stacktrace from the current execution state of a given thread.
-     * A client can request all stack frames by omitting the startFrame and levels arguments. For performance-conscious clients and if the corresponding capability `supportsDelayedStackTraceLoading` is true, stack frames can be retrieved in a piecemeal way with the startFrame and levels arguments. The response of the stackTrace request may contain a totalFrames property that hints at the total number of frames in the stack. If a client needs this total number upfront, it can issue a request for a single (first) frame and depending on the value of totalFrames decide how to proceed. In any case a client should be prepared to receive fewer frames than requested, which is an indication that the end of the stack has been reached.
+     * A client can request all stack frames by omitting the startFrame and levels arguments. For performance-conscious clients and if the corresponding capability `supportsDelayedStackTraceLoading` is true, stack frames can be retrieved in a piecemeal way with the `startFrame` and `levels` arguments. The response of the `stackTrace` request may contain a `totalFrames` property that hints at the total number of frames in the stack. If a client needs this total number upfront, it can issue a request for a single (first) frame and depending on the value of `totalFrames` decide how to proceed. In any case a client should be prepared to receive fewer frames than requested, which is an indication that the end of the stack has been reached.
      */
     stackTrace(params: StackTraceParams): Promise<StackTraceResult>;
 
     /**
-     * The request returns the variable scopes for a given stackframe ID.
+     * The request returns the variable scopes for a given stack frame ID.
      */
     scopes(params: ScopesParams): Promise<ScopesResult>;
 
@@ -1571,12 +1594,12 @@ export namespace Dap {
      * Evaluates the given `value` expression and assigns it to the `expression` which must be a modifiable l-value.
      * The expressions have access to any variables and arguments that are in scope of the specified frame.
      * Clients should only call this request if the corresponding capability `supportsSetExpression` is true.
-     * If a debug adapter implements both setExpression and setVariable, a client uses `setExpression` if the variable has an `evaluateName` property.
+     * If a debug adapter implements both `setExpression` and `setVariable`, a client uses `setExpression` if the variable has an `evaluateName` property.
      */
     setExpression(params: SetExpressionParams): Promise<SetExpressionResult>;
 
     /**
-     * This request retrieves the possible stepIn targets for the specified stack frame.
+     * This request retrieves the possible step-in targets for the specified stack frame.
      * These targets can be used in the `stepIn` request.
      * Clients should only call this request if the corresponding capability `supportsStepInTargetsRequest` is true.
      */
@@ -1906,7 +1929,7 @@ export namespace Dap {
     line: integer;
 
     /**
-     * Start column of range to search possible breakpoint locations in. If no start column is given, the first column in the start line is assumed.
+     * Start position within `line` to search possible breakpoint locations in. It is measured in UTF-16 code units and the client capability `columnsStartAt1` determines whether it is 0- or 1-based. If no column is given, the first position in the start line is assumed.
      */
     column?: integer;
 
@@ -1916,7 +1939,7 @@ export namespace Dap {
     endLine?: integer;
 
     /**
-     * End column of range to search possible breakpoint locations in. If no end column is given, then it is assumed to be in the last column of the end line.
+     * End position within `endLine` to search possible breakpoint locations in. It is measured in UTF-16 code units and the client capability `columnsStartAt1` determines whether it is 0- or 1-based. If no end column is given, the last position in the end line is assumed.
      */
     endColumn?: integer;
   }
@@ -1964,12 +1987,12 @@ export namespace Dap {
     frameId?: integer;
 
     /**
-     * One or more source lines. Typically this is the text a user has typed into the debug console before he asked for completion.
+     * One or more source lines. Typically this is the text users have typed into the debug console before they asked for completion.
      */
     text: string;
 
     /**
-     * The character position for which to determine the completion proposals.
+     * The position within `text` for which to determine the completion proposals. It is measured in UTF-16 code units and the client capability `columnsStartAt1` determines whether it is 0- or 1-based.
      */
     column: integer;
 
@@ -2044,20 +2067,25 @@ export namespace Dap {
 
   export interface DataBreakpointInfoParams {
     /**
-     * Reference to the Variable container if the data breakpoint is requested for a child of the container.
+     * Reference to the variable container if the data breakpoint is requested for a child of the container. The `variablesReference` must have been obtained in the current suspended state. See 'Lifetime of Object References' in the Overview section for details.
      */
     variablesReference?: integer;
 
     /**
      * The name of the variable's child to obtain data breakpoint information for.
-     * If variablesReference isn't provided, this can be an expression.
+     * If `variablesReference` isn't specified, this can be an expression.
      */
     name: string;
+
+    /**
+     * When `name` is an expression, evaluate it in the scope of this stack frame. If not specified, the expression is evaluated in the global scope. When `variablesReference` is specified, this property has no effect.
+     */
+    frameId?: integer;
   }
 
   export interface DataBreakpointInfoResult {
     /**
-     * An identifier for the data on which a data breakpoint can be registered with the setDataBreakpoints request or null if no data breakpoint is available.
+     * An identifier for the data on which a data breakpoint can be registered with the `setDataBreakpoints` request or null if no data breakpoint is available.
      */
     dataId: string | null;
 
@@ -2176,7 +2204,7 @@ export namespace Dap {
     /**
      * The context in which the evaluate request is used.
      */
-    context?: 'variables' | 'watch' | 'repl' | 'hover' | 'clipboard';
+    context?: 'watch' | 'repl' | 'hover' | 'clipboard' | 'variables';
 
     /**
      * Specifies details on how to format the result.
@@ -2193,7 +2221,7 @@ export namespace Dap {
 
     /**
      * The type of the evaluate result.
-     * This attribute should only be returned by a debug adapter if the ccorresponding capability  `supportsVariableType` is true.
+     * This attribute should only be returned by a debug adapter if the corresponding capability `supportsVariableType` is true.
      */
     type?: string;
 
@@ -2203,8 +2231,7 @@ export namespace Dap {
     presentationHint?: VariablePresentationHint;
 
     /**
-     * If variablesReference is > 0, the evaluate result is structured and its children can be retrieved by passing variablesReference to the VariablesRequest.
-     * The value should be less than or equal to 2147483647 (2^31-1).
+     * If `variablesReference` is > 0, the evaluate result is structured and its children can be retrieved by passing `variablesReference` to the `variables` request as long as execution remains suspended. See 'Lifetime of Object References' in the Overview section for details.
      */
     variablesReference: integer;
 
@@ -2225,7 +2252,7 @@ export namespace Dap {
     /**
      * A memory reference to a location appropriate for this result.
      * For pointer type eval results, this is generally a reference to the memory address contained in the pointer.
-     * This attribute should be returned by a debug adapter if corresponding capability  `supportsMemoryReferences` is true.
+     * This attribute should be returned by a debug adapter if corresponding capability `supportsMemoryReferences` is true.
      */
     memoryReference?: string;
   }
@@ -2306,7 +2333,7 @@ export namespace Dap {
     line: integer;
 
     /**
-     * A column location for which the goto targets are determined.
+     * The position within `line` for which the goto targets are determined. It is measured in UTF-16 code units and the client capability `columnsStartAt1` determines whether it is 0- or 1-based.
      */
     column?: integer;
   }
@@ -2365,7 +2392,7 @@ export namespace Dap {
     supportsVariablePaging?: boolean;
 
     /**
-     * Client supports the runInTerminal request.
+     * Client supports the `runInTerminal` request.
      */
     supportsRunInTerminalRequest?: boolean;
 
@@ -2380,12 +2407,12 @@ export namespace Dap {
     supportsProgressReporting?: boolean;
 
     /**
-     * Client supports the invalidated event.
+     * Client supports the `invalidated` event.
      */
     supportsInvalidatedEvent?: boolean;
 
     /**
-     * Client supports the memory event.
+     * Client supports the `memory` event.
      */
     supportsMemoryEvent?: boolean;
 
@@ -2393,6 +2420,11 @@ export namespace Dap {
      * Client supports the `argsCanBeInterpretedByShell` attribute on the `runInTerminal` request.
      */
     supportsArgsCanBeInterpretedByShell?: boolean;
+
+    /**
+     * Client supports the `startDebugging` request.
+     */
+    supportsStartDebuggingRequest?: boolean;
   }
 
   export interface InitializeResult {
@@ -2417,7 +2449,7 @@ export namespace Dap {
     supportsHitConditionalBreakpoints?: boolean;
 
     /**
-     * The debug adapter supports a (side effect free) evaluate request for data hovers.
+     * The debug adapter supports a (side effect free) `evaluate` request for data hovers.
      */
     supportsEvaluateForHovers?: boolean;
 
@@ -2477,17 +2509,17 @@ export namespace Dap {
     supportedChecksumAlgorithms?: ChecksumAlgorithm[];
 
     /**
-     * The debug adapter supports the `restart` request. In this case a client should not implement `restart` by terminating and relaunching the adapter but by calling the RestartRequest.
+     * The debug adapter supports the `restart` request. In this case a client should not implement `restart` by terminating and relaunching the adapter but by calling the `restart` request.
      */
     supportsRestartRequest?: boolean;
 
     /**
-     * The debug adapter supports `exceptionOptions` on the setExceptionBreakpoints request.
+     * The debug adapter supports `exceptionOptions` on the `setExceptionBreakpoints` request.
      */
     supportsExceptionOptions?: boolean;
 
     /**
-     * The debug adapter supports a `format` attribute on the stackTraceRequest, variablesRequest, and evaluateRequest.
+     * The debug adapter supports a `format` attribute on the `stackTrace`, `variables`, and `evaluate` requests.
      */
     supportsValueFormattingOptions?: boolean;
 
@@ -2507,7 +2539,7 @@ export namespace Dap {
     supportSuspendDebuggee?: boolean;
 
     /**
-     * The debug adapter supports the delayed loading of parts of the stack, which requires that both the `startFrame` and `levels` arguments and the `totalFrames` result of the `StackTrace` request are supported.
+     * The debug adapter supports the delayed loading of parts of the stack, which requires that both the `startFrame` and `levels` arguments and the `totalFrames` result of the `stackTrace` request are supported.
      */
     supportsDelayedStackTraceLoading?: boolean;
 
@@ -2517,7 +2549,7 @@ export namespace Dap {
     supportsLoadedSourcesRequest?: boolean;
 
     /**
-     * The debug adapter supports logpoints by interpreting the `logMessage` attribute of the `SourceBreakpoint`.
+     * The debug adapter supports log points by interpreting the `logMessage` attribute of the `SourceBreakpoint`.
      */
     supportsLogPoints?: boolean;
 
@@ -2596,7 +2628,7 @@ export namespace Dap {
 
   export interface InvalidatedEventParams {
     /**
-     * Set of logical areas that got invalidated. This property has a hint characteristic: a client can only be expected to make a 'best effort' in honouring the areas but there are no guarantees. If this property is missing, empty, or if values are not understood, the client should assume a single value `all`.
+     * Set of logical areas that got invalidated. This property has a hint characteristic: a client can only be expected to make a 'best effort' in honoring the areas but there are no guarantees. If this property is missing, empty, or if values are not understood, the client should assume a single value `all`.
      */
     areas?: InvalidatedAreas[];
 
@@ -2651,7 +2683,7 @@ export namespace Dap {
 
   export interface LaunchParams {
     /**
-     * If noDebug is true, the launch request should launch the program without enabling debugging.
+     * If true, the launch request should launch the program without enabling debugging.
      */
     noDebug?: boolean;
 
@@ -2744,7 +2776,7 @@ export namespace Dap {
     startModule?: integer;
 
     /**
-     * The number of modules to return. If moduleCount is not specified or 0, all modules are returned.
+     * The number of modules to return. If `moduleCount` is not specified or 0, all modules are returned.
      */
     moduleCount?: integer;
   }
@@ -2804,7 +2836,7 @@ export namespace Dap {
     group?: string;
 
     /**
-     * If an attribute `variablesReference` exists and its value is > 0, the output contains objects which can be retrieved by passing `variablesReference` to the `variables` request. The value should be less than or equal to 2147483647 (2^31-1).
+     * If an attribute `variablesReference` exists and its value is > 0, the output contains objects which can be retrieved by passing `variablesReference` to the `variables` request as long as execution remains suspended. See 'Lifetime of Object References' in the Overview section for details.
      */
     variablesReference?: integer;
 
@@ -2819,7 +2851,7 @@ export namespace Dap {
     line?: integer;
 
     /**
-     * The source location's column where the output was produced.
+     * The position in `line` where the output was produced. It is measured in UTF-16 code units and the client capability `columnsStartAt1` determines whether it is 0- or 1-based.
      */
     column?: integer;
 
@@ -3004,7 +3036,7 @@ export namespace Dap {
     unreadableBytes?: integer;
 
     /**
-     * The bytes read from memory, encoded using base64.
+     * The bytes read from memory, encoded using base64. If the decoded length of `data` is less than the requested `count` in the original `readMemory` request, and `unreadableBytes` is zero or omitted, then the client should assume it's reached the end of readable memory.
      */
     data?: string;
   }
@@ -3041,7 +3073,7 @@ export namespace Dap {
 
   export interface RestartFrameParams {
     /**
-     * Restart this stackframe.
+     * Restart the stack frame identified by `frameId`. The `frameId` must have been obtained in the current suspended state. See 'Lifetime of Object References' in the Overview section for details.
      */
     frameId: integer;
   }
@@ -3094,7 +3126,7 @@ export namespace Dap {
 
   export interface RunInTerminalParams {
     /**
-     * What kind of terminal to launch.
+     * What kind of terminal to launch. Defaults to `integrated` if not specified.
      */
     kind?: string;
 
@@ -3147,14 +3179,14 @@ export namespace Dap {
 
   export interface ScopesParams {
     /**
-     * Retrieve the scopes for this stackframe.
+     * Retrieve the scopes for the stack frame identified by `frameId`. The `frameId` must have been obtained in the current suspended state. See 'Lifetime of Object References' in the Overview section for details.
      */
     frameId: integer;
   }
 
   export interface ScopesResult {
     /**
-     * The scopes of the stackframe. If the array has length zero, there are no scopes available.
+     * The scopes of the stack frame. If the array has length zero, there are no scopes available.
      */
     scopes: Scope[];
   }
@@ -3281,8 +3313,7 @@ export namespace Dap {
     presentationHint?: VariablePresentationHint;
 
     /**
-     * If variablesReference is > 0, the value is structured and its children can be retrieved by passing variablesReference to the VariablesRequest.
-     * The value should be less than or equal to 2147483647 (2^31-1).
+     * If `variablesReference` is > 0, the evaluate result is structured and its children can be retrieved by passing `variablesReference` to the `variables` request as long as execution remains suspended. See 'Lifetime of Object References' in the Overview section for details.
      */
     variablesReference?: integer;
 
@@ -3337,7 +3368,7 @@ export namespace Dap {
 
   export interface SetVariableParams {
     /**
-     * The reference of the variable container.
+     * The reference of the variable container. The `variablesReference` must have been obtained in the current suspended state. See 'Lifetime of Object References' in the Overview section for details.
      */
     variablesReference: integer;
 
@@ -3369,8 +3400,7 @@ export namespace Dap {
     type?: string;
 
     /**
-     * If variablesReference is > 0, the new value is structured and its children can be retrieved by passing variablesReference to the VariablesRequest.
-     * The value should be less than or equal to 2147483647 (2^31-1).
+     * If `variablesReference` is > 0, the new value is structured and its children can be retrieved by passing `variablesReference` to the `variables` request as long as execution remains suspended. See 'Lifetime of Object References' in the Overview section for details.
      */
     variablesReference?: integer;
 
@@ -3391,12 +3421,12 @@ export namespace Dap {
 
   export interface SourceParams {
     /**
-     * Specifies the source content to load. Either source.path or source.sourceReference must be specified.
+     * Specifies the source content to load. Either `source.path` or `source.sourceReference` must be specified.
      */
     source?: Source;
 
     /**
-     * The reference to the source. This is the same as source.sourceReference.
+     * The reference to the source. This is the same as `source.sourceReference`.
      * This is provided for backward compatibility since old clients do not understand the `source` attribute.
      */
     sourceReference: integer;
@@ -3439,16 +3469,30 @@ export namespace Dap {
 
   export interface StackTraceResult {
     /**
-     * The frames of the stackframe. If the array has length zero, there are no stackframes available.
+     * The frames of the stack frame. If the array has length zero, there are no stack frames available.
      * This means that there is no location information available.
      */
     stackFrames: StackFrame[];
 
     /**
-     * The total number of frames available in the stack. If omitted or if totalFrames is larger than the available frames, a client is expected to request frames until a request returns less frames than requested (which indicates the end of the stack). Returning monotonically increasing totalFrames values for subsequent requests can be used to enforce paging in the client.
+     * The total number of frames available in the stack. If omitted or if `totalFrames` is larger than the available frames, a client is expected to request frames until a request returns less frames than requested (which indicates the end of the stack). Returning monotonically increasing `totalFrames` values for subsequent requests can be used to enforce paging in the client.
      */
     totalFrames?: integer;
   }
+
+  export interface StartDebuggingParams {
+    /**
+     * Arguments passed to the new debug session. The arguments must only contain properties understood by the `launch` or `attach` requests of the debug adapter and they must not contain any client-specific properties (e.g. `type`) or client-specific features (e.g. substitutable 'variables').
+     */
+    configuration: object;
+
+    /**
+     * Indicates whether the new debug session should be started with a `launch` or `attach` request.
+     */
+    request: string;
+  }
+
+  export interface StartDebuggingResult {}
 
   export interface StartProfileParams {
     /**
@@ -3523,14 +3567,14 @@ export namespace Dap {
 
   export interface StepInTargetsParams {
     /**
-     * The stack frame for which to retrieve the possible stepIn targets.
+     * The stack frame for which to retrieve the possible step-in targets.
      */
     frameId: integer;
   }
 
   export interface StepInTargetsResult {
     /**
-     * The possible stepIn targets of the specified source location.
+     * The possible step-in targets of the specified source location.
      */
     targets: StepInTarget[];
   }
@@ -3601,7 +3645,7 @@ export namespace Dap {
     /**
      * If `allThreadsStopped` is true, a debug adapter can announce that all threads have stopped.
      * - The client should use this information to enable that all threads can be expanded to access their stacktraces.
-     * - If the attribute is missing or false, only the thread with the given threadId can be expanded.
+     * - If the attribute is missing or false, only the thread with the given `threadId` can be expanded.
      */
     allThreadsStopped?: boolean;
 
@@ -3643,7 +3687,7 @@ export namespace Dap {
 
   export interface TerminatedEventParams {
     /**
-     * A debug adapter may set `restart` to true (or to an arbitrary object) to request that the front end restarts the session.
+     * A debug adapter may set `restart` to true (or to an arbitrary object) to request that the client restarts the session.
      * The value is not interpreted by the client and passed unmodified as an attribute `__restart` to the `launch` and `attach` requests.
      */
     restart?: any[] | boolean | integer | null | number | object | string;
@@ -3686,7 +3730,7 @@ export namespace Dap {
 
   export interface VariablesParams {
     /**
-     * The Variable reference.
+     * The variable for which to retrieve its children. The `variablesReference` must have been obtained in the current suspended state. See 'Lifetime of Object References' in the Overview section for details.
      */
     variablesReference: integer;
 
@@ -3758,7 +3802,7 @@ export namespace Dap {
    * A Variable is a name/value pair.
    * The `type` attribute is shown if space permits or when hovering over the variable's name.
    * The `kind` attribute is used to render additional properties of the variable, e.g. different icons can be used to indicate that a variable is public or private.
-   * If the value is structured (has children), a handle is provided to retrieve the children with the VariablesRequest.
+   * If the value is structured (has children), a handle is provided to retrieve the children with the `variables` request.
    * If the number of named or indexed children is large, the numbers should be returned via the `namedVariables` and `indexedVariables` attributes.
    * The client can use this information to present the children in a paged UI and fetch them in chunks.
    */
@@ -3793,7 +3837,7 @@ export namespace Dap {
     evaluateName?: string;
 
     /**
-     * If variablesReference is > 0, the variable is structured and its children can be retrieved by passing variablesReference to the VariablesRequest.
+     * If `variablesReference` is > 0, the variable is structured and its children can be retrieved by passing `variablesReference` to the `variables` request as long as execution remains suspended. See 'Lifetime of Object References' in the Overview section for details.
      */
     variablesReference: integer;
 
@@ -3832,36 +3876,36 @@ export namespace Dap {
   }
 
   /**
-   * A StepInTarget can be used in the `stepIn` request and determines into which single target the stepIn request should step.
+   * A `StepInTarget` can be used in the `stepIn` request and determines into which single target the `stepIn` request should step.
    */
   export interface StepInTarget {
     /**
-     * Unique identifier for a stepIn target.
+     * Unique identifier for a step-in target.
      */
     id: integer;
 
     /**
-     * The name of the stepIn target (shown in the UI).
+     * The name of the step-in target (shown in the UI).
      */
     label: string;
 
     /**
-     * The line of the step in target.
+     * The line of the step-in target.
      */
     line?: integer;
 
     /**
-     * The column of the step in target.
+     * Start position of the range covered by the step in target. It is measured in UTF-16 code units and the client capability `columnsStartAt1` determines whether it is 0- or 1-based.
      */
     column?: integer;
 
     /**
-     * The end line of the range covered by the step in target.
+     * The end line of the range covered by the step-in target.
      */
     endLine?: integer;
 
     /**
-     * The end column of the range covered by the step in target.
+     * End position of the range covered by the step in target. It is measured in UTF-16 code units and the client capability `columnsStartAt1` determines whether it is 0- or 1-based.
      */
     endColumn?: integer;
   }
@@ -3872,7 +3916,7 @@ export namespace Dap {
   export interface StackFrame {
     /**
      * An identifier for the stack frame. It must be unique across all threads.
-     * This id can be used to retrieve the scopes of the frame with the `scopes` request or to restart the execution of a stackframe.
+     * This id can be used to retrieve the scopes of the frame with the `scopes` request or to restart the execution of a stack frame.
      */
     id: integer;
 
@@ -3887,12 +3931,12 @@ export namespace Dap {
     source?: Source;
 
     /**
-     * The line within the source of the frame. If the source attribute is missing or doesn't exist, line is 0 and should be ignored by the client.
+     * The line within the source of the frame. If the source attribute is missing or doesn't exist, `line` is 0 and should be ignored by the client.
      */
     line: integer;
 
     /**
-     * The column within the line. If source attribute is missing or doesn't exist, column is 0 and should be ignored by the client.
+     * Start position of the range covered by the stack frame. It is measured in UTF-16 code units and the client capability `columnsStartAt1` determines whether it is 0- or 1-based. If attribute `source` is missing or doesn't exist, `column` is 0 and should be ignored by the client.
      */
     column: integer;
 
@@ -3902,7 +3946,7 @@ export namespace Dap {
     endLine?: integer;
 
     /**
-     * The end column of the range covered by the stack frame.
+     * End position of the range covered by the stack frame. It is measured in UTF-16 code units and the client capability `columnsStartAt1` determines whether it is 0- or 1-based.
      */
     endColumn?: integer;
 
@@ -3966,12 +4010,12 @@ export namespace Dap {
   }
 
   /**
-   * Properties of a breakpoint passed to the setInstructionBreakpoints request
+   * Properties of a breakpoint passed to the `setInstructionBreakpoints` request
    */
   export interface InstructionBreakpoint {
     /**
      * The instruction reference of the breakpoint.
-     * This should be a memory or instruction pointer reference from an EvaluateResponse, Variable, StackFrame, GotoTarget, or Breakpoint.
+     * This should be a memory or instruction pointer reference from an `EvaluateResponse`, `Variable`, `StackFrame`, `GotoTarget`, or `Breakpoint`.
      */
     instructionReference: string;
 
@@ -3996,7 +4040,7 @@ export namespace Dap {
   }
 
   /**
-   * Properties of a breakpoint passed to the setFunctionBreakpoints request.
+   * Properties of a breakpoint passed to the `setFunctionBreakpoints` request.
    */
   export interface FunctionBreakpoint {
     /**
@@ -4036,7 +4080,7 @@ export namespace Dap {
   }
 
   /**
-   * An ExceptionOptions assigns configuration options to a set of exceptions.
+   * An `ExceptionOptions` assigns configuration options to a set of exceptions.
    */
   export interface ExceptionOptions {
     /**
@@ -4052,7 +4096,7 @@ export namespace Dap {
   }
 
   /**
-   * An ExceptionPathSegment represents a segment in a path that is used to match leafs or nodes in a tree of exceptions.
+   * An `ExceptionPathSegment` represents a segment in a path that is used to match leafs or nodes in a tree of exceptions.
    * If a segment consists of more than one name, it matches the names provided if `negate` is false or missing, or it matches anything except the names provided if `negate` is true.
    */
   export interface ExceptionPathSegment {
@@ -4068,7 +4112,7 @@ export namespace Dap {
   }
 
   /**
-   * An ExceptionFilterOptions is used to specify an exception filter together with a condition for the `setExceptionBreakpoints` request.
+   * An `ExceptionFilterOptions` is used to specify an exception filter together with a condition for the `setExceptionBreakpoints` request.
    */
   export interface ExceptionFilterOptions {
     /**
@@ -4089,11 +4133,11 @@ export namespace Dap {
   export interface SetDebuggerPropertyParams {}
 
   /**
-   * Properties of a data breakpoint passed to the setDataBreakpoints request.
+   * Properties of a data breakpoint passed to the `setDataBreakpoints` request.
    */
   export interface DataBreakpoint {
     /**
-     * An id representing the data. This id is returned from the dataBreakpointInfo request.
+     * An id representing the data. This id is returned from the `dataBreakpointInfo` request.
      */
     dataId: string;
 
@@ -4115,7 +4159,7 @@ export namespace Dap {
   }
 
   /**
-   * Properties of a breakpoint or logpoint passed to the setBreakpoints request.
+   * Properties of a breakpoint or logpoint passed to the `setBreakpoints` request.
    */
   export interface SourceBreakpoint {
     /**
@@ -4124,7 +4168,7 @@ export namespace Dap {
     line: integer;
 
     /**
-     * The source column of the breakpoint.
+     * Start position within source line of the breakpoint or logpoint. It is measured in UTF-16 code units and the client capability `columnsStartAt1` determines whether it is 0- or 1-based.
      */
     column?: integer;
 
@@ -4150,7 +4194,7 @@ export namespace Dap {
   }
 
   /**
-   * A Scope is a named container for variables. Optionally a scope can map to a source or a range within a source.
+   * A `Scope` is a named container for variables. Optionally a scope can map to a source or a range within a source.
    */
   export interface Scope {
     /**
@@ -4164,7 +4208,7 @@ export namespace Dap {
     presentationHint?: 'arguments' | 'locals' | 'registers';
 
     /**
-     * The variables of this scope can be retrieved by passing the value of variablesReference to the VariablesRequest.
+     * The variables of this scope can be retrieved by passing the value of `variablesReference` to the `variables` request as long as execution remains suspended. See 'Lifetime of Object References' in the Overview section for details.
      */
     variablesReference: integer;
 
@@ -4196,7 +4240,7 @@ export namespace Dap {
     line?: integer;
 
     /**
-     * The start column of the range covered by this scope.
+     * Start position of the range covered by the scope. It is measured in UTF-16 code units and the client capability `columnsStartAt1` determines whether it is 0- or 1-based.
      */
     column?: integer;
 
@@ -4206,7 +4250,7 @@ export namespace Dap {
     endLine?: integer;
 
     /**
-     * The end column of the range covered by this scope.
+     * End position of the range covered by the scope. It is measured in UTF-16 code units and the client capability `columnsStartAt1` determines whether it is 0- or 1-based.
      */
     endColumn?: integer;
   }
@@ -4228,7 +4272,7 @@ export namespace Dap {
    */
   export interface LaunchRequestArguments {
     /**
-     * If noDebug is true, the launch request should launch the program without enabling debugging.
+     * If true, the launch request should launch the program without enabling debugging.
      */
     noDebug?: boolean;
 
@@ -4286,7 +4330,7 @@ export namespace Dap {
     version?: string;
 
     /**
-     * User-understandable description of if symbols were found for the module (ex: 'Symbols Loaded', 'Symbols not found', etc.
+     * User-understandable description of if symbols were found for the module (ex: 'Symbols Loaded', 'Symbols not found', etc.)
      */
     symbolStatus?: string;
 
@@ -4326,7 +4370,7 @@ export namespace Dap {
   export type ChecksumAlgorithm = string;
 
   /**
-   * A ColumnDescriptor specifies what module attribute to show in a column of the ModulesView, how to format it,
+   * A `ColumnDescriptor` specifies what module attribute to show in a column of the modules view, how to format it,
    * and what the column's label should be.
    * It is only used if the underlying UI actually supports this level of customization.
    */
@@ -4358,7 +4402,7 @@ export namespace Dap {
   }
 
   /**
-   * An ExceptionBreakpointsFilter is shown in the UI as an filter option for configuring how exceptions are dealt with.
+   * An `ExceptionBreakpointsFilter` is shown in the UI as an filter option for configuring how exceptions are dealt with.
    */
   export interface ExceptionBreakpointsFilter {
     /**
@@ -4377,7 +4421,7 @@ export namespace Dap {
     description?: string;
 
     /**
-     * Initial value of the filter option. If not specified a value `false` is assumed.
+     * Initial value of the filter option. If not specified a value false is assumed.
      */
     default?: boolean;
 
@@ -4393,12 +4437,12 @@ export namespace Dap {
   }
 
   /**
-   * A GotoTarget describes a code location that can be used as a target in the `goto` request.
+   * A `GotoTarget` describes a code location that can be used as a target in the `goto` request.
    * The possible goto targets can be determined via the `gotoTargets` request.
    */
   export interface GotoTarget {
     /**
-     * Unique identifier for a goto target. This is used in the goto request.
+     * Unique identifier for a goto target. This is used in the `goto` request.
      */
     id: integer;
 
@@ -4592,7 +4636,7 @@ export namespace Dap {
   export type DataBreakpointAccessType = string;
 
   /**
-   * CompletionItems are the suggestions returned from the CompletionsRequest.
+   * `CompletionItems` are the suggestions returned from the `completions` request.
    */
   export interface CompletionItem {
     /**
@@ -4621,28 +4665,22 @@ export namespace Dap {
     type?: CompletionItemType;
 
     /**
-     * This value determines the location (in the `completions` request's `text` attribute) where the completion text is added.
-     * If missing the text is added at the location specified by the `completions` request's `column` attribute.
+     * Start position (within the `text` attribute of the `completions` request) where the completion text is added. The position is measured in UTF-16 code units and the client capability `columnsStartAt1` determines whether it is 0- or 1-based. If the start position is omitted the text is added at the location specified by the `column` attribute of the `completions` request.
      */
     start?: integer;
 
     /**
-     * This value determines how many characters are overwritten by the completion text.
-     * If missing the value 0 is assumed which results in the completion text being inserted.
+     * Length determines how many characters are overwritten by the completion text and it is measured in UTF-16 code units. If missing the value 0 is assumed which results in the completion text being inserted.
      */
     length?: integer;
 
     /**
-     * Determines the start of the new selection after the text has been inserted (or replaced).
-     * The start position must be in the range 0 and length of the completion text.
-     * If omitted the selection starts at the end of the completion text.
+     * Determines the start of the new selection after the text has been inserted (or replaced). `selectionStart` is measured in UTF-16 code units and must be in the range 0 and length of the completion text. If omitted the selection starts at the end of the completion text.
      */
     selectionStart?: integer;
 
     /**
-     * Determines the length of the new selection after the text has been inserted (or replaced).
-     * The selection can not extend beyond the bounds of the completion text.
-     * If omitted the length is assumed to be 0.
+     * Determines the length of the new selection after the text has been inserted (or replaced) and it is measured in UTF-16 code units. The selection can not extend beyond the bounds of the completion text. If omitted the length is assumed to be 0.
      */
     selectionLength?: integer;
   }
@@ -4681,7 +4719,7 @@ export namespace Dap {
     supportsHitConditionalBreakpoints?: boolean;
 
     /**
-     * The debug adapter supports a (side effect free) evaluate request for data hovers.
+     * The debug adapter supports a (side effect free) `evaluate` request for data hovers.
      */
     supportsEvaluateForHovers?: boolean;
 
@@ -4741,17 +4779,17 @@ export namespace Dap {
     supportedChecksumAlgorithms?: ChecksumAlgorithm[];
 
     /**
-     * The debug adapter supports the `restart` request. In this case a client should not implement `restart` by terminating and relaunching the adapter but by calling the RestartRequest.
+     * The debug adapter supports the `restart` request. In this case a client should not implement `restart` by terminating and relaunching the adapter but by calling the `restart` request.
      */
     supportsRestartRequest?: boolean;
 
     /**
-     * The debug adapter supports `exceptionOptions` on the setExceptionBreakpoints request.
+     * The debug adapter supports `exceptionOptions` on the `setExceptionBreakpoints` request.
      */
     supportsExceptionOptions?: boolean;
 
     /**
-     * The debug adapter supports a `format` attribute on the stackTraceRequest, variablesRequest, and evaluateRequest.
+     * The debug adapter supports a `format` attribute on the `stackTrace`, `variables`, and `evaluate` requests.
      */
     supportsValueFormattingOptions?: boolean;
 
@@ -4771,7 +4809,7 @@ export namespace Dap {
     supportSuspendDebuggee?: boolean;
 
     /**
-     * The debug adapter supports the delayed loading of parts of the stack, which requires that both the `startFrame` and `levels` arguments and the `totalFrames` result of the `StackTrace` request are supported.
+     * The debug adapter supports the delayed loading of parts of the stack, which requires that both the `startFrame` and `levels` arguments and the `totalFrames` result of the `stackTrace` request are supported.
      */
     supportsDelayedStackTraceLoading?: boolean;
 
@@ -4781,7 +4819,7 @@ export namespace Dap {
     supportsLoadedSourcesRequest?: boolean;
 
     /**
-     * The debug adapter supports logpoints by interpreting the `logMessage` attribute of the `SourceBreakpoint`.
+     * The debug adapter supports log points by interpreting the `logMessage` attribute of the `SourceBreakpoint`.
      */
     supportsLogPoints?: boolean;
 
@@ -4866,7 +4904,7 @@ export namespace Dap {
     line: integer;
 
     /**
-     * The start column of breakpoint location.
+     * The start position of a breakpoint location. Position is measured in UTF-16 code units and the client capability `columnsStartAt1` determines whether it is 0- or 1-based.
      */
     column?: integer;
 
@@ -4876,14 +4914,14 @@ export namespace Dap {
     endLine?: integer;
 
     /**
-     * The end column of breakpoint location if the location covers a range.
+     * The end position of a breakpoint location (if the location covers a range). Position is measured in UTF-16 code units and the client capability `columnsStartAt1` determines whether it is 0- or 1-based.
      */
     endColumn?: integer;
   }
 
   /**
-   * A Source is a descriptor for source code.
-   * It is returned from the debug adapter as part of a StackFrame and it is used by clients when specifying breakpoints.
+   * A `Source` is a descriptor for source code.
+   * It is returned from the debug adapter as part of a `StackFrame` and it is used by clients when specifying breakpoints.
    */
   export interface Source {
     /**
@@ -4894,13 +4932,13 @@ export namespace Dap {
 
     /**
      * The path of the source to be shown in the UI.
-     * It is only used to locate and load the content of the source if no sourceReference is specified (or its value is 0).
+     * It is only used to locate and load the content of the source if no `sourceReference` is specified (or its value is 0).
      */
     path?: string;
 
     /**
      * If the value > 0 the contents of the source must be retrieved through the `source` request (even if a path is specified).
-     * A `sourceReference` is only valid for a session, so it can not be used to persist a source.
+     * Since a `sourceReference` is only valid for a session, it can not be used to persist a source.
      * The value should be less than or equal to 2147483647 (2^31-1).
      */
     sourceReference?: integer;
@@ -4949,7 +4987,7 @@ export namespace Dap {
   }
 
   /**
-   * Information about a Breakpoint created in setBreakpoints, setFunctionBreakpoints, setInstructionBreakpoints, or setDataBreakpoints.
+   * Information about a breakpoint created in `setBreakpoints`, `setFunctionBreakpoints`, `setInstructionBreakpoints`, or `setDataBreakpoints` requests.
    */
   export interface Breakpoint {
     /**
@@ -4979,7 +5017,7 @@ export namespace Dap {
     line?: integer;
 
     /**
-     * The start column of the actual range covered by the breakpoint.
+     * Start position of the source range covered by the breakpoint. It is measured in UTF-16 code units and the client capability `columnsStartAt1` determines whether it is 0- or 1-based.
      */
     column?: integer;
 
@@ -4989,7 +5027,7 @@ export namespace Dap {
     endLine?: integer;
 
     /**
-     * The end column of the actual range covered by the breakpoint.
+     * End position of the source range covered by the breakpoint. It is measured in UTF-16 code units and the client capability `columnsStartAt1` determines whether it is 0- or 1-based.
      * If no end line is given, then the end column is assumed to be in the start line.
      */
     endColumn?: integer;

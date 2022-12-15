@@ -10,6 +10,8 @@ interface IDAPOperationClassification {
   '!cancel.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   runinterminal: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!runinterminal.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  startdebugging: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!startdebugging.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   initialize: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!initialize.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   configurationdone: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };

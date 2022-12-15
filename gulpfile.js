@@ -278,6 +278,12 @@ gulp.task('package:bootloader-as-cdp', done => {
   fs.appendFile(bootloaderFilePath, '\n//# sourceURL=bootloader.bundle.cdp', done);
 });
 
+/** Run webpack to bundle into the standard DAP debug server */
+gulp.task('dapDebugServer:webpack-bundle', async () => {
+  const packages = [{ entry: `${buildSrcDir}/dapDebugServer.js`, library: true }];
+  return runWebpack({ packages, devtool: 'source-map' });
+});
+
 /** Run webpack to bundle into the VS debug server */
 gulp.task('vsDebugServerBundle:webpack-bundle', async () => {
   const packages = [{ entry: `${buildSrcDir}/vsDebugServer.js`, library: true }];
@@ -393,31 +399,18 @@ gulp.task(
 
 gulp.task('package', gulp.series('package:prepare', 'package:createVSIX'));
 
-gulp.task(
-  'flatSessionBundle',
-  gulp.series(
-    'clean',
-    'compile',
-    'flatSessionBundle:webpack-bundle',
-    'package:bootloader-as-cdp',
-    'package:copy-extension-files',
-    gulp.parallel('nls:bundle-download', 'nls:bundle-create'),
-  ),
-);
+const standaloneBundleTask = name => gulp.task(name, gulp.series(
+  'clean',
+  'compile',
+  `${name}:webpack-bundle`,
+  'package:bootloader-as-cdp',
+  'package:copy-extension-files',
+  gulp.parallel('nls:bundle-download', 'nls:bundle-create'),
+))
 
-// for now, this task will build both flat session and debug server until we no longer need flat session
-gulp.task(
-  'vsDebugServerBundle',
-  gulp.series(
-    'clean',
-    'compile',
-    'vsDebugServerBundle:webpack-bundle',
-    'flatSessionBundle:webpack-bundle',
-    'package:bootloader-as-cdp',
-    'package:copy-extension-files',
-    gulp.parallel('nls:bundle-download', 'nls:bundle-create'),
-  ),
-);
+standaloneBundleTask('flatSessionBundle');
+standaloneBundleTask('vsDebugServerBundle');
+standaloneBundleTask('dapDebugServer');
 
 /** Publishes the build extension to the marketplace */
 gulp.task('publish:vsce', () =>
