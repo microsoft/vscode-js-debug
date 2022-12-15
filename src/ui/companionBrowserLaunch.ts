@@ -55,6 +55,7 @@ const launchCompanionBrowser = async (
   args: Dap.LaunchBrowserInCompanionEventParams,
 ) => {
   if (vscode.env.uiKind === vscode.UIKind.Web) {
+    vscode.debug.stopDebugging(session);
     return vscode.window.showErrorMessage(
       localize(
         'cannotDebugInBrowser',

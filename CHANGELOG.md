@@ -11,6 +11,8 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: show warning if console output length is hit ([vscode#154479](https://github.com/microsoft/vscode/issues/154479))
 - fix: improve variable and repl performance in large projects ([#1433](https://github.com/microsoft/vscode-js-debug/issues/1433))
 - fix: add ipv4->6 fallback ([vscode#167353](https://github.com/microsoft/vscode/issues/167353))
+- fix: js-debug in the browser showing extraneous error ([#1440](https://github.com/microsoft/vscode-js-debug/issues/1440))
+- fix: sourcemap renames not resolving property accessors ([#1383](https://github.com/microsoft/vscode-js-debug/issues/1383))
 
 ## v1.74 (November 2022)
 
