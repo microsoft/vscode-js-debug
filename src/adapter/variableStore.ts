@@ -349,9 +349,6 @@ class VariableContext {
       if (property.symbol) propertySymbols.push(property);
       else propertiesMap.set(property.name, property);
     }
-    for (const property of ownProperties.privateProperties ?? []) {
-      propertiesMap.set(property.name, property);
-    }
 
     // Push own properties & accessors and symbols
     for (const propertiesCollection of [propertiesMap.values(), propertySymbols.values()]) {
@@ -366,6 +363,15 @@ class VariableContext {
           ),
         );
       }
+    }
+
+    for (const property of ownProperties.privateProperties ?? []) {
+      properties.push(
+        this.createPropertyVar(property, object, undefined, {
+          presentationHint: { visibility: 'private' },
+          sortOrder: SortOrder.Private,
+        }),
+      );
     }
 
     // Push internal properties
@@ -412,30 +418,34 @@ class VariableContext {
     p: AnyPropertyDescriptor,
     owner: Cdp.Runtime.RemoteObject,
     customStringRepr: string | undefined,
+    contextInit?: Partial<IContextInit>,
   ): Promise<Variable[]> {
     const result: Variable[] = [];
+    const hasGetter = p.get && p.get.type !== 'undefined';
+    const hasSetter = p.set && p.set.type !== 'undefined';
+
     const ctx: Required<IContextInit> = {
       name: p.name,
       presentationHint: {},
       sortOrder: SortOrder.Default,
+      ...contextInit,
     };
 
-    const hasGetter = p.get && p.get.type !== 'undefined';
-    const hasSetter = p.set && p.set.type !== 'undefined';
-
-    if (isPublicDescriptor(p)) {
-      // sort non-enumerable properties as private, except for getters, which
-      // are automatically non-enumerable but not (automatically) considered private (#1215)
-      if (p.enumerable === false && !hasGetter) {
-        ctx.presentationHint.visibility = 'internal';
+    if (!contextInit) {
+      if (isPublicDescriptor(p)) {
+        // sort non-enumerable properties as private, except for getters, which
+        // are automatically non-enumerable but not (automatically) considered private (#1215)
+        if (p.enumerable === false && !hasGetter) {
+          ctx.presentationHint.visibility = 'internal';
+          ctx.sortOrder = SortOrder.Private;
+        }
+        if (p.writable === false || (hasGetter && !hasSetter)) {
+          ctx.presentationHint.attributes = ['readOnly'];
+        }
+      } else {
+        ctx.presentationHint.visibility = 'private';
         ctx.sortOrder = SortOrder.Private;
       }
-      if (p.writable === false || (hasGetter && !hasSetter)) {
-        ctx.presentationHint.attributes = ['readOnly'];
-      }
-    } else {
-      ctx.presentationHint.visibility = 'private';
-      ctx.sortOrder = SortOrder.Private;
     }
 
     // If the value is simply present, add that
