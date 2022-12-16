@@ -5,6 +5,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 ## Nightly (only)
 
 - fix: breakpoints not setting in paths with special glob characters ([vscode#166400](https://github.com/microsoft/vscode/issues/166400))
+- fix: better handling of multiple glob patterns and negations ([#1479](https://github.com/microsoft/vscode-js-debug/issues/1479))
 - fix: skipFiles making catastrophic regexes ([#1469](https://github.com/microsoft/vscode-js-debug/issues/1469))
 - fix: private properties in Blazor apps not grouping correctly ([#1331](https://github.com/microsoft/vscode-js-debug/issues/1331))
 - fix: perScriptSourcemaps not reliably breaking ([vscode#166369](https://github.com/microsoft/vscode/issues/166369))

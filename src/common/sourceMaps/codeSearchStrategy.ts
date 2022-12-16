@@ -4,9 +4,9 @@
 
 import { injectable } from 'inversify';
 import type * as vscodeType from 'vscode';
-import { FileGlobList } from '../fileGlobList';
+import { FileGlobList, IExplodedGlob } from '../fileGlobList';
 import { ILogger, LogTag } from '../logging';
-import { forceForwardSlashes } from '../pathUtils';
+import { truthy } from '../objUtils';
 import { NodeSearchStrategy } from './nodeSearchStrategy';
 import { ISourceMapMetadata } from './sourceMap';
 import { createMetadataForFile, ISearchStrategy } from './sourceMapRepository';
@@ -53,16 +53,23 @@ export class CodeSearchStrategy implements ISearchStrategy {
     outFiles: FileGlobList,
     onChild: (child: Required<ISourceMapMetadata>) => T | Promise<T>,
   ): Promise<T[]> {
-    // Fallback for unhandled case: https://github.com/microsoft/vscode/issues/104889#issuecomment-993722692
-    if (outFiles.patterns.some(p => p.startsWith('..'))) {
-      return this.nodeStrategy.streamChildrenWithSourcemaps(outFiles, onChild);
-    }
+    const todo: Promise<T | undefined>[] = [];
+    await Promise.all(
+      [...outFiles.explode()].map(glob => this._streamChildrenWithSourcemaps(onChild, glob, todo)),
+    );
+    const done = await Promise.all(todo);
+    return done.filter(truthy);
+  }
 
-    const todo: Promise<T | void>[] = [];
+  private async _streamChildrenWithSourcemaps<T>(
+    onChild: (child: Required<ISourceMapMetadata>) => T | Promise<T>,
+    glob: IExplodedGlob,
+    todo: Promise<T | undefined>[],
+  ) {
     await this.vscode.workspace.findTextInFiles(
       { pattern: 'sourceMappingURL', isCaseSensitive: true },
       {
-        ...this.getTextSearchOptions(outFiles),
+        ...this.getTextSearchOptions(glob),
         previewOptions: { charsPerLine: Number.MAX_SAFE_INTEGER, matchLines: 1 },
       },
       result => {
@@ -70,12 +77,13 @@ export class CodeSearchStrategy implements ISearchStrategy {
         todo.push(
           createMetadataForFile(result.uri.fsPath, text)
             .then(parsed => parsed && onChild(parsed))
-            .catch(error =>
+            .catch(error => {
               this.logger.warn(LogTag.SourceMapParsing, 'Error parsing source map', {
                 error,
                 file: result.uri.fsPath,
-              }),
-            ),
+              });
+              return undefined;
+            }),
         );
       },
     );
@@ -87,16 +95,10 @@ export class CodeSearchStrategy implements ISearchStrategy {
     return results.filter((t): t is T => t !== undefined);
   }
 
-  private getTextSearchOptions(files: FileGlobList): vscodeType.FindTextInFilesOptions {
+  private getTextSearchOptions(glob: IExplodedGlob): vscodeType.FindTextInFilesOptions {
     return {
-      include: new this.vscode.RelativePattern(
-        files.rootPath,
-        forceForwardSlashes(files.patterns.filter(p => !p.startsWith('!')).join(', ')),
-      ),
-      exclude: files.patterns
-        .filter(p => p.startsWith('!'))
-        .map(p => forceForwardSlashes(p.slice(1)))
-        .join(','),
+      include: new this.vscode.RelativePattern(this.vscode.Uri.file(glob.cwd), glob.pattern),
+      exclude: glob.negations.join(','),
       useDefaultExcludes: false,
       useIgnoreFiles: false,
       useGlobalIgnoreFiles: false,
