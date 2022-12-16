@@ -906,7 +906,7 @@ export class SourceContainer {
         : undefined,
       inlineSourceRange,
       runtimeScriptOffset,
-      this.launchConfig.enableContentValidation ? contentHash : undefined,
+      contentHash,
     );
 
     this._addSource(source);

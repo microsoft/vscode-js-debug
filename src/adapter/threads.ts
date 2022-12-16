@@ -103,7 +103,6 @@ export class ExecutionContext {
 export type Script = {
   url: string;
   scriptId: string;
-  hash: string;
   source: Promise<Source>;
   resolvedSource?: Source;
 };
@@ -1451,7 +1450,11 @@ export class Thread implements IVariableStoreLocationProvider {
         resolvedSourceMapUrl,
         inlineSourceOffset,
         runtimeScriptOffset,
-        event.hash,
+        // only include the script hash if content validation is enabled, and if
+        // the source does not have a redirected URL. In the latter case the
+        // original file won't have a `# sourceURL=...` comment, so the hash
+        // never matches: https://github.com/microsoft/vscode-js-debug/issues/1476
+        !event.hasSourceURL && this.launchConfig.enableContentValidation ? event.hash : undefined,
       );
 
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -1472,7 +1475,6 @@ export class Thread implements IVariableStoreLocationProvider {
       url: event.url,
       scriptId: event.scriptId,
       source: createSource(),
-      hash: event.hash,
     };
     script.source.then(s => (script.resolvedSource = s));
 
