@@ -55,7 +55,7 @@ export class BlazorSourcePathResolver extends BrowserSourcePathResolver {
       // Blazor files have a file:/// url. Override the default absolutePathToUrlRegexp which returns an http based regexp
       const fileUrl = utils.absolutePathToFileUrl(absolutePath);
       const fileRegexp = utils.urlToRegex(fileUrl);
-      return fileRegexp;
+      return `${fileRegexp}|${super.absolutePathToUrlRegexp(absolutePath)}`;
     }
 
     return super.absolutePathToUrlRegexp(absolutePath);
