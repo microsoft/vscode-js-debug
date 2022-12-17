@@ -21,14 +21,18 @@ export const ISearchStrategy = Symbol('ISearchStrategy');
 
 export interface ISearchStrategy {
   /**
-   * Recursively finds all children matching the outFiles, calling `onChild`
-   * when children are found and returning a promise that resolves once all
-   * children have been discovered.
+   * Recursively finds all children matching the outFiles. Calls `processMap`
+   * when it encounters new files, then `onProcessedMap` with the result of
+   * doing so. `onProcessedMap` may be called with previously-cached data.
+   *
+   * Takes and can return a `state` value to make subsequent searches faster.
    */
-  streamChildrenWithSourcemaps<T>(
+  streamChildrenWithSourcemaps<T, R>(
     files: FileGlobList,
-    onChild: (child: Required<ISourceMapMetadata>) => T | Promise<T>,
-  ): Promise<T[]>;
+    processMap: (child: Required<ISourceMapMetadata>) => T | Promise<T>,
+    onProcessedMap: (data: T) => R | Promise<R>,
+    lastState?: unknown,
+  ): Promise<{ values: R[]; state: unknown }>;
 
   /**
    * Recursively finds all children, calling `onChild` when children are found

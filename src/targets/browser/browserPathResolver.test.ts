@@ -111,7 +111,7 @@ describe('BrowserPathResolver', () => {
         new FileGlobList({ rootPath: testFixturesDir, patterns: ['**/*.vue'] }),
         {
           streamChildrenWithSourcemaps() {
-            return Promise.resolve([]);
+            return Promise.resolve({ values: [], state: undefined });
           },
           streamAllChildren(_files, onChild) {
             return Promise.all([

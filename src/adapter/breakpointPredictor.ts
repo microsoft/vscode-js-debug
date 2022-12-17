@@ -2,6 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { promises as fs } from 'fs';
 import { inject, injectable } from 'inversify';
 import * as path from 'path';
 import { Event } from 'vscode';
@@ -9,8 +10,7 @@ import { IDisposable } from '../common/disposable';
 import { EventEmitter } from '../common/events';
 import { OutFiles } from '../common/fileGlobList';
 import { ILogger, LogTag } from '../common/logging';
-import { CorrelatedCache } from '../common/sourceMaps/mtimeCorrelatedCache';
-import { ISourceMapMetadata, SourceMap } from '../common/sourceMaps/sourceMap';
+import { ISourceMapMetadata } from '../common/sourceMaps/sourceMap';
 import { CachingSourceMapFactory, ISourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
 import { ISearchStrategy } from '../common/sourceMaps/sourceMapRepository';
 import { ISourcePathResolver } from '../common/sourcePathResolver';
@@ -161,7 +161,7 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
   private readonly predictedLocations = new Map<string, IWorkspaceLocation[]>();
   private readonly longParseEmitter = new EventEmitter<void>();
   private sourcePathToCompiled?: Promise<MetadataMap>;
-  private cache?: CorrelatedCache<number, { sourceUrl: string; resolvedPath: string }[]>;
+  private readonly cachePath?: string;
 
   /**
    * Event that fires if it takes a long time to predict sourcemaps.
@@ -178,9 +178,7 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
     private readonly sourcePathResolver: ISourcePathResolver | undefined,
   ) {
     if (launchConfig.__workspaceCachePath) {
-      this.cache = new CorrelatedCache(
-        path.join(launchConfig.__workspaceCachePath, 'bp-predict.json'),
-      );
+      this.cachePath = path.join(launchConfig.__workspaceCachePath, 'bp-predict.json');
     }
   }
 
@@ -220,32 +218,23 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
     // _all_ sourcemap declarations for a given file, even though we only want
     // to follow the last one. (Webpack re-bundling compiled code can result in
     // multiple sourcemap comments per file, for example.)
-    const latestForCompiled = new Map<string, { i: number; discovered: DiscoveredMetadata[] }>();
-    let counter = 0;
+    const latestForCompiled = new Map<string, { discovered: DiscoveredMetadata[] }>();
+
+    let cachedState: unknown | undefined;
+    if (this.cachePath) {
+      try {
+        cachedState = JSON.parse(await fs.readFile(this.cachePath, 'utf-8'));
+      } catch {
+        // ignored
+      }
+    }
 
     try {
-      await this.repo.streamChildrenWithSourcemaps(this.outFiles, async metadata => {
-        const i = counter++;
-        const discovered: DiscoveredMetadata[] = [];
-        const nowInvalid = latestForCompiled.get(metadata.compiledPath);
-        if (nowInvalid) {
-          for (const discovery of nowInvalid.discovered) {
-            sourcePathToCompiled.get(discovery.resolvedPath)?.delete(discovery);
-          }
-        }
-        latestForCompiled.set(metadata.compiledPath, { i, discovered });
-
-        const cached = await this.cache?.lookup(metadata.compiledPath, metadata.cacheKey);
-        if (cached) {
-          discovered.push(...cached.map(c => ({ ...c, ...metadata })));
-        } else {
-          let map: SourceMap;
-          try {
-            map = await this.sourceMapFactory.load(metadata);
-          } catch {
-            return;
-          }
-
+      await this.repo.streamChildrenWithSourcemaps(
+        this.outFiles,
+        async metadata => {
+          const discovered: DiscoveredMetadata[] = [];
+          const map = await this.sourceMapFactory.load(metadata);
           for (const url of map.sources) {
             const resolvedPath = this.sourcePathResolver
               ? await this.sourcePathResolver.urlToAbsolutePath({ url, map })
@@ -257,23 +246,30 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
 
             discovered.push({ ...metadata, resolvedPath, sourceUrl: url });
           }
+
+          return { discovered, compiledPath: metadata.compiledPath };
+        },
+        async ({ discovered, compiledPath }) => {
+          const nowInvalid = latestForCompiled.get(compiledPath);
+          if (nowInvalid) {
+            for (const discovery of nowInvalid.discovered) {
+              sourcePathToCompiled.get(discovery.resolvedPath)?.delete(discovery);
+            }
+          }
+          latestForCompiled.set(compiledPath, { discovered });
+          discovered.forEach(addDiscovery);
+        },
+        cachedState,
+      );
+
+      if (this.cachePath) {
+        try {
+          await fs.mkdir(path.dirname(this.cachePath), { recursive: true });
+          await fs.writeFile(this.cachePath, JSON.stringify(cachedState));
+        } catch (error) {
+          this.logger.warn(LogTag.RuntimeException, 'Error saving cache state', { error });
         }
-
-        // Double check that this is still the latest sourcemap we got for this
-        // file before finalizing the discoveries.
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        if (latestForCompiled.get(metadata.compiledPath)!.i !== i) {
-          return;
-        }
-
-        discovered.forEach(addDiscovery);
-
-        this.cache?.store(
-          metadata.compiledPath,
-          metadata.cacheKey,
-          discovered.map(d => ({ resolvedPath: d.resolvedPath, sourceUrl: d.sourceUrl })),
-        );
-      });
+      }
     } catch (error) {
       this.logger.warn(LogTag.RuntimeException, 'Error reading sourcemaps from disk', { error });
     }

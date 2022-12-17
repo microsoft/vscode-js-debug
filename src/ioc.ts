@@ -56,10 +56,10 @@ import { IFsUtils, LocalAndRemoteFsUtils, LocalFsUtils } from './common/fsUtils'
 import { ILogger } from './common/logging';
 import { Logger } from './common/logging/logger';
 import { createMutableLaunchConfig, MutableLaunchConfig } from './common/mutableLaunchConfig';
-import { CodeSearchStrategy } from './common/sourceMaps/codeSearchStrategy';
 import { IRenameProvider, RenameProvider } from './common/sourceMaps/renameProvider';
 import { CachingSourceMapFactory, ISourceMapFactory } from './common/sourceMaps/sourceMapFactory';
 import { ISearchStrategy } from './common/sourceMaps/sourceMapRepository';
+import { TurboSearchStrategy } from './common/sourceMaps/turboSearchStrategy';
 import { ISourcePathResolver } from './common/sourcePathResolver';
 import { AnyLaunchConfiguration } from './configuration';
 import Dap from './dap/api';
@@ -229,10 +229,7 @@ export const createTopLevelSessionContainer = (parent: Container) => {
   container.bind(OutFiles).to(OutFiles).inSingletonScope();
   container.bind(VueComponentPaths).to(VueComponentPaths).inSingletonScope();
   container.bind(IVueFileMapper).to(VueFileMapper).inSingletonScope();
-  container
-    .bind(ISearchStrategy)
-    .toDynamicValue(ctx => CodeSearchStrategy.createOrFallback(ctx.container.get<ILogger>(ILogger)))
-    .inSingletonScope();
+  container.bind(ISearchStrategy).to(TurboSearchStrategy).inSingletonScope();
 
   container.bind(INodeBinaryProvider).to(InteractiveNodeBinaryProvider);
   container.bind(RemoteBrowserHelper).toSelf().inSingletonScope().onActivation(trackDispose);

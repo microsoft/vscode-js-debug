@@ -11,6 +11,7 @@ import { fixDriveLetter } from '../../common/pathUtils';
 import { CodeSearchStrategy } from '../../common/sourceMaps/codeSearchStrategy';
 import { NodeSearchStrategy } from '../../common/sourceMaps/nodeSearchStrategy';
 import { ISearchStrategy } from '../../common/sourceMaps/sourceMapRepository';
+import { TurboSearchStrategy } from '../../common/sourceMaps/turboSearchStrategy';
 import { absolutePathToFileUrl } from '../../common/urlUtils';
 import { createFileTree } from '../createFileTree';
 import { testFixturesDir, testFixturesDirName, workspaceFolder } from '../test';
@@ -18,6 +19,7 @@ import { testFixturesDir, testFixturesDirName, workspaceFolder } from '../test';
 describe('ISourceMapRepository', () => {
   [
     { name: 'NodeSourceMapRepository', create: () => new NodeSearchStrategy(Logger.null) },
+    { name: 'TurboSearchStrategy', create: () => new TurboSearchStrategy(Logger.null) },
     {
       name: 'CodeSearchSourceMapRepository',
       create: () => new CodeSearchStrategy(vscode, Logger.null),
@@ -53,13 +55,17 @@ describe('ISourceMapRepository', () => {
         });
 
       const gatherSm = async (list: FileGlobList) => {
-        const result = await r.streamChildrenWithSourcemaps(list, async m => {
-          const { cacheKey, ...rest } = m;
-          expect(cacheKey).to.be.within(Date.now() - 60 * 1000, Date.now() + 1000);
-          rest.compiledPath = fixDriveLetter(rest.compiledPath);
-          return rest;
-        });
-        return result.sort((a, b) => a.compiledPath.length - b.compiledPath.length);
+        const result = await r.streamChildrenWithSourcemaps(
+          list,
+          async m => {
+            const { cacheKey, ...rest } = m;
+            expect(cacheKey).to.be.within(Date.now() - 60 * 1000, Date.now() + 1000);
+            rest.compiledPath = fixDriveLetter(rest.compiledPath);
+            return rest;
+          },
+          r => r,
+        );
+        return result.values.sort((a, b) => a.compiledPath.length - b.compiledPath.length);
       };
       const gatherSmNames = async (list: FileGlobList) => {
         const result = await gatherSm(list);
