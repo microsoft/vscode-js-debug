@@ -13,9 +13,12 @@ import { Container, interfaces } from 'inversify';
 import 'reflect-metadata';
 import * as vscode from 'vscode';
 import {
-  BreakpointPredictorDelegate,
+  BreakpointPredictorCachedState,
+  BreakpointSearch,
   BreakpointsPredictor,
+  GlobalBreakpointSearch,
   IBreakpointsPredictor,
+  TargetedBreakpointSearch,
 } from './adapter/breakpointPredictor';
 import { BreakpointManager } from './adapter/breakpoints';
 import {
@@ -56,9 +59,10 @@ import { IFsUtils, LocalAndRemoteFsUtils, LocalFsUtils } from './common/fsUtils'
 import { ILogger } from './common/logging';
 import { Logger } from './common/logging/logger';
 import { createMutableLaunchConfig, MutableLaunchConfig } from './common/mutableLaunchConfig';
+import { CodeSearchStrategy } from './common/sourceMaps/codeSearchStrategy';
 import { IRenameProvider, RenameProvider } from './common/sourceMaps/renameProvider';
 import { CachingSourceMapFactory, ISourceMapFactory } from './common/sourceMaps/sourceMapFactory';
-import { ISearchStrategy } from './common/sourceMaps/sourceMapRepository';
+import { ISearchStrategy, ISearchStrategyFallback } from './common/sourceMaps/sourceMapRepository';
 import { TurboSearchStrategy } from './common/sourceMaps/turboSearchStrategy';
 import { ISourcePathResolver } from './common/sourcePathResolver';
 import { AnyLaunchConfiguration } from './configuration';
@@ -162,13 +166,11 @@ export const createTargetContainer = (
     .toDynamicValue(ctx => ctx.container.get(PerformanceProviderFactory).create())
     .inSingletonScope();
 
-  container.bind(BreakpointPredictorDelegate).toSelf().inSingletonScope();
-
-  container
-    .bind(IBreakpointsPredictor)
-    .toDynamicValue(() => parent.get<BreakpointPredictorDelegate>(IBreakpointsPredictor).getChild())
-    .inSingletonScope()
-    .onActivation(trackDispose);
+  // nested children only run targeted search
+  if (target.parent()) {
+    container.bind(IBreakpointsPredictor).to(BreakpointsPredictor).inSingletonScope();
+    container.bind(BreakpointSearch).to(TargetedBreakpointSearch).inSingletonScope();
+  }
 
   container
     .bind(ITelemetryReporter)
@@ -229,6 +231,10 @@ export const createTopLevelSessionContainer = (parent: Container) => {
   container.bind(OutFiles).to(OutFiles).inSingletonScope();
   container.bind(VueComponentPaths).to(VueComponentPaths).inSingletonScope();
   container.bind(IVueFileMapper).to(VueFileMapper).inSingletonScope();
+  container
+    .bind(ISearchStrategyFallback)
+    .toDynamicValue(ctx => CodeSearchStrategy.createOrFallback(ctx.container.get<ILogger>(ILogger)))
+    .inSingletonScope();
   container.bind(ISearchStrategy).to(TurboSearchStrategy).inSingletonScope();
 
   container.bind(INodeBinaryProvider).to(InteractiveNodeBinaryProvider);
@@ -375,14 +381,8 @@ export const provideLaunchParams = (
   container.bind(IRenameProvider).to(RenameProvider).inSingletonScope();
   container.bind(DiagnosticToolSuggester).toSelf().inSingletonScope().onActivation(trackDispose);
 
-  container.bind(BreakpointsPredictor).toSelf();
-  container
-    .bind(IBreakpointsPredictor)
-    .toDynamicValue(
-      ctx =>
-        new BreakpointPredictorDelegate(ctx.container.get(ISourceMapFactory), () =>
-          ctx.container.get(BreakpointsPredictor),
-        ),
-    )
-    .inSingletonScope();
+  // BP predictor:
+  container.bind(BreakpointPredictorCachedState).toSelf().inSingletonScope();
+  container.bind(IBreakpointsPredictor).to(BreakpointsPredictor).inSingletonScope();
+  container.bind(BreakpointSearch).to(GlobalBreakpointSearch).inSingletonScope();
 };

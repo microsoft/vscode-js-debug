@@ -8,8 +8,11 @@ import { LogTag } from '../logging';
 import { truthy } from '../objUtils';
 import { CacheTree } from './cacheTree';
 import { NodeSearchStrategy } from './nodeSearchStrategy';
-import { ISourceMapMetadata } from './sourceMap';
-import { createMetadataForFile, ISearchStrategy } from './sourceMapRepository';
+import {
+  createMetadataForFile,
+  ISearchStrategy,
+  ISourcemapStreamOptions,
+} from './sourceMapRepository';
 import { IGlobCached, TurboGlobStream } from './turboGlobStream';
 
 type CachedType<T> = CacheTree<IGlobCached<T>>;
@@ -32,29 +35,21 @@ export class TurboSearchStrategy extends NodeSearchStrategy implements ISearchSt
   /**
    * @inheritdoc
    */
-  public async streamChildrenWithSourcemaps<T, R>(
-    outFiles: FileGlobList,
-    processChild: (child: Required<ISourceMapMetadata>) => T | Promise<T>,
-    onProcessedMap: (data: T) => R,
-    untypedState?: unknown,
-  ) {
+  public async streamChildrenWithSourcemaps<T, R>(opts: ISourcemapStreamOptions<T, R>) {
     const todo: (Promise<R | undefined> | R)[] = [];
 
-    const prevState = (untypedState as Record<string, CachedType<T>>) || {};
+    const prevState = (opts.lastState as Record<string, CachedType<T>>) || {};
     const nextState: Record<string, CachedType<T>> = {};
     await Promise.all(
-      [...outFiles.explode()].map(async glob => {
-        const key = JSON.stringify(prevState);
+      [...opts.files.explode()].map(async glob => {
+        const key = JSON.stringify(glob);
         const searchState = prevState[key] || CacheTree.root();
-        await this._streamChildrenWithSourcemaps(
-          searchState,
-          processChild,
-          onProcessedMap,
-          todo,
-          glob,
-        );
-        CacheTree.prune(searchState);
-        nextState[key] = searchState;
+        await this._streamChildrenWithSourcemaps(searchState, opts, todo, glob);
+
+        const pruned = CacheTree.prune(searchState);
+        if (pruned) {
+          nextState[key] = pruned;
+        }
       }),
     );
 
@@ -66,8 +61,7 @@ export class TurboSearchStrategy extends NodeSearchStrategy implements ISearchSt
 
   private async _streamChildrenWithSourcemaps<T, R>(
     cache: CachedType<T>,
-    processChild: (child: Required<ISourceMapMetadata>) => T | Promise<T>,
-    onProcessedMap: (data: T) => R,
+    opts: ISourcemapStreamOptions<T, R>,
     results: (Promise<R> | R)[],
     glob: IExplodedGlob,
   ) {
@@ -76,7 +70,8 @@ export class TurboSearchStrategy extends NodeSearchStrategy implements ISearchSt
       ignore: glob.negations,
       cwd: glob.cwd,
       cache,
-      fileProcessor: file => createMetadataForFile(file).then(m => m && processChild(m)),
+      filter: opts.filter,
+      fileProcessor: file => createMetadataForFile(file).then(m => m && opts.processMap(m)),
     });
 
     tgs.onError(({ path, error }) => {
@@ -86,7 +81,7 @@ export class TurboSearchStrategy extends NodeSearchStrategy implements ISearchSt
       });
     });
 
-    tgs.onFile(t => t && results.push(onProcessedMap(t)));
+    tgs.onFile(t => t && results.push(opts.onProcessedMap(t)));
 
     await tgs.done;
   }

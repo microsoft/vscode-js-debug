@@ -235,6 +235,8 @@ const strings = {
     'Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.',
   'node.versionHint.description':
     "Allows you to explicitly specify the Node version that's running, which can be used to disable or enable certain behaviors in cases where the automatic version detection does not work.",
+  'node.enableTurboSourcemaps.description':
+    'Configures whether to use a new, faster mechanism for sourcemap discovery',
   'timeouts.generalDescription': 'Timeouts for several debugger operations.',
   'timeouts.generalDescription.markdown': 'Timeouts for several debugger operations.',
   'timeouts.hoverEvaluation.description':

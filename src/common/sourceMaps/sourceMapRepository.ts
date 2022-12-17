@@ -19,6 +19,25 @@ export interface IRelativePattern {
 
 export const ISearchStrategy = Symbol('ISearchStrategy');
 
+// todo@connor4312: fallback search strategy during turbo mode's beta
+export const ISearchStrategyFallback = Symbol('ISearchStrategyFallback');
+
+export interface ISourcemapStreamOptions<T, R> {
+  /** List of files to find. */
+  files: FileGlobList;
+  /** First search for processing source map data from disk. T must be JSON-serializable. */
+  processMap: (child: Required<ISourceMapMetadata>) => T | Promise<T>;
+  /** Second step to handle a processed map. `data` may have been read from cache. */
+  onProcessedMap: (data: T) => R | Promise<R>;
+  /**
+   * Optionally filter for processed files. Only files matching this pattern
+   * will have the mtime checked, and _may_ result in onProcessedMap calls.
+   */
+  filter?: (path: string, child?: T) => boolean;
+  /** Last cache state, passing it may speed things up. */
+  lastState?: unknown;
+}
+
 export interface ISearchStrategy {
   /**
    * Recursively finds all children matching the outFiles. Calls `processMap`
@@ -28,10 +47,7 @@ export interface ISearchStrategy {
    * Takes and can return a `state` value to make subsequent searches faster.
    */
   streamChildrenWithSourcemaps<T, R>(
-    files: FileGlobList,
-    processMap: (child: Required<ISourceMapMetadata>) => T | Promise<T>,
-    onProcessedMap: (data: T) => R | Promise<R>,
-    lastState?: unknown,
+    opts: ISourcemapStreamOptions<T, R>,
   ): Promise<{ values: R[]; state: unknown }>;
 
   /**

@@ -8,8 +8,11 @@ import { FileGlobList, IExplodedGlob } from '../fileGlobList';
 import { ILogger, LogTag } from '../logging';
 import { truthy } from '../objUtils';
 import { NodeSearchStrategy } from './nodeSearchStrategy';
-import { ISourceMapMetadata } from './sourceMap';
-import { createMetadataForFile, ISearchStrategy } from './sourceMapRepository';
+import {
+  createMetadataForFile,
+  ISearchStrategy,
+  ISourcemapStreamOptions,
+} from './sourceMapRepository';
 
 /**
  * A source map repository that uses VS Code's proposed search API to
@@ -49,24 +52,17 @@ export class CodeSearchStrategy implements ISearchStrategy {
   /**
    * @inheritdoc
    */
-  public async streamChildrenWithSourcemaps<T, R>(
-    outFiles: FileGlobList,
-    onChild: (child: Required<ISourceMapMetadata>) => T | Promise<T>,
-    onProcessedMap: (data: T) => R | Promise<R>,
-  ) {
+  public async streamChildrenWithSourcemaps<T, R>(opts: ISourcemapStreamOptions<T, R>) {
     const todo: Promise<R | undefined>[] = [];
     await Promise.all(
-      [...outFiles.explode()].map(glob =>
-        this._streamChildrenWithSourcemaps(onChild, onProcessedMap, glob, todo),
-      ),
+      [...opts.files.explode()].map(glob => this._streamChildrenWithSourcemaps(opts, glob, todo)),
     );
     const done = await Promise.all(todo);
     return { values: done.filter(truthy), state: undefined };
   }
 
   private async _streamChildrenWithSourcemaps<T, R>(
-    onChild: (child: Required<ISourceMapMetadata>) => T | Promise<T>,
-    onProcessedMap: (data: T) => R | Promise<R>,
+    opts: ISourcemapStreamOptions<T, R>,
     glob: IExplodedGlob,
     todo: Promise<R | undefined>[],
   ) {
@@ -80,8 +76,8 @@ export class CodeSearchStrategy implements ISearchStrategy {
         const text = 'text' in result ? result.text : result.preview.text;
         todo.push(
           createMetadataForFile(result.uri.fsPath, text)
-            .then(parsed => parsed && onChild(parsed))
-            .then(processed => processed && onProcessedMap(processed))
+            .then(parsed => parsed && opts.processMap(parsed))
+            .then(processed => processed && opts.onProcessedMap(processed))
             .catch(error => {
               this.logger.warn(LogTag.SourceMapParsing, 'Error parsing source map', {
                 error,

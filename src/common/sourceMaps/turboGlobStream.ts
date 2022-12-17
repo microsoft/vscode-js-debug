@@ -2,9 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { promises as fs, Stats } from 'fs';
+import { Dirent, promises as fs, Stats } from 'fs';
 import micromatch from 'micromatch';
+import { isAbsolute, relative } from 'path';
+import toAbsGlob from 'to-absolute-glob';
 import { EventEmitter } from '../events';
+import { memoize } from '../objUtils';
+import { forceForwardSlashes } from '../pathUtils';
 import { CacheTree } from './cacheTree';
 
 interface IParsedMinimatch {
@@ -20,6 +24,26 @@ type MinimatchToken =
 
 type PatternElem = string | RegExp;
 
+interface ITokensContext {
+  elements: PatternElem[];
+  seen: Set<string>;
+}
+
+export interface ITurboGlobStreamOptions<E> {
+  /** Glob patterns */
+  pattern: string;
+  /** Glob ignores */
+  ignore: readonly string[];
+  /** Glob cwd */
+  cwd: string;
+  /** Filters for child paths who should be processed and emitted. */
+  filter?: (path: string, previousData?: E) => boolean;
+  /** Cache state, will be updated. */
+  cache: CacheTree<IGlobCached<E>>;
+  /** File to transform a path into extracted data emitted on onFile */
+  fileProcessor: (path: string) => Promise<E>;
+}
+
 /**
  * A smart, cachable glob-stream-like implementation. Caches tree info in its
  * `CacheTree` and takes an extractor to pull and cache data from files.
@@ -28,10 +52,11 @@ export class TurboGlobStream<E> {
   /** Promise that resolves once globbing is done */
   public readonly done: Promise<void>;
 
+  private readonly stat = memoize((path: string) => fs.lstat(path));
+  private readonly readdir = memoize((path: string) => fs.readdir(path, { withFileTypes: true }));
   private readonly alreadyProcessedFiles = new Set<CacheTree<IGlobCached<E>>>();
-  private readonly alreadyReadDirs = new Map<string, Promise<string[]>>();
-  private readonly alreadyStatedPaths = new Map<string, Promise<Stat>>();
 
+  private readonly filter?: (path: string, previousData?: E) => boolean;
   private readonly ignore: ((path: string) => boolean)[];
   private readonly processor: (path: string) => Promise<E>;
   private readonly fileEmitter = new EventEmitter<E>();
@@ -39,31 +64,28 @@ export class TurboGlobStream<E> {
   private readonly errorEmitter = new EventEmitter<{ path: string; error: Error }>();
   public readonly onError = this.errorEmitter.event;
 
-  constructor(opts: {
-    pattern: string;
-    ignore: readonly string[];
-    cwd: string;
-    cache: CacheTree<IGlobCached<E>>;
-    fileProcessor: (path: string) => Promise<E>;
-  }) {
-    const scanned = micromatch.scan(opts.pattern);
-    // narrow the cwd to `${cwd}/foo/bar` if the pattern is like `foo/bar/**`
-    const cwd = scanned.base ? opts.cwd + '/' + scanned.base : opts.cwd;
-    const globToParse = opts.pattern.slice(cwd.length + 1) || '**/*';
+  constructor(opts: ITurboGlobStreamOptions<E>) {
     this.processor = opts.fileProcessor;
-    this.ignore = opts.ignore.map(i => micromatch.matcher(i, { cwd: opts.cwd, matchBase: true }));
+    this.filter = opts.filter;
 
-    const match = micromatch.parse(globToParse, {
+    // ignore will get matched against the full file path, so ensure it's absolute
+    this.ignore = opts.ignore.map(i =>
+      micromatch.matcher(toAbsGlob(forceForwardSlashes(i), { cwd: opts.cwd })),
+    );
+
+    // pattern is parsed and then built on the cwd, so ensure it's relative
+    const pattern = isAbsolute(opts.pattern) ? relative(opts.cwd, opts.pattern) : opts.pattern;
+
+    const match = micromatch.parse(forceForwardSlashes(pattern), {
       ignore: opts.ignore,
-      cwd,
-      matchBase: true,
+      cwd: opts.cwd,
       // Expand braces into multiple regexes, since dealing with them is tricky
       // This isn't on DT, so the cast is necesssary
       expand: true,
     } as micromatch.Options) as IParsedMinimatch[];
 
     this.done = Promise.all(
-      match.map(async m => {
+      match.map(m => {
         const tokens: PatternElem[] = [];
         // start at 1, since 0 is 'bos'
         for (let i = 1; i < m.tokens.length; ) {
@@ -82,7 +104,7 @@ export class TurboGlobStream<E> {
               new RegExp(
                 '^' +
                   m.tokens
-                    .slice(0, nextSlash)
+                    .slice(i, nextSlash)
                     .map(t => t.output || t.value)
                     .join('') +
                   '$',
@@ -93,7 +115,11 @@ export class TurboGlobStream<E> {
           i = nextSlash + 1;
         }
 
-        return this.readSomething(tokens, 0, cwd, CacheTree.getPath(opts.cache, cwd));
+        // base case of starting with a **, normally handled by `getDirectoryReadDescends`
+        const depths = tokens[0] === '**' ? [0, 1] : [0];
+        const cacheEntry = CacheTree.getPath(opts.cache, opts.cwd);
+        const ctx = { elements: tokens, seen: new Set<string>() };
+        return Promise.all(depths.map(d => this.readSomething(ctx, d, opts.cwd, cacheEntry)));
       }),
     ).then(() => undefined);
   }
@@ -103,28 +129,27 @@ export class TurboGlobStream<E> {
    * either pulls cached info or handles the file/directory.
    */
   private async readSomething(
-    tokens: readonly PatternElem[],
+    ctx: ITokensContext,
     ti: number,
     path: string,
     cache: CacheTree<IGlobCached<E>>,
   ) {
     // Skip already processed files, since we might see them twice during glob stars.
-    // Note we *don't* skip directories, since their tokens/ti state will be different
-    // and could result in later recursion.
     if (this.alreadyProcessedFiles.has(cache)) {
       return;
     }
 
+    // Skip generic paths (we don't know if it's a file or not at this point)
+    // if we already visited that with the same token index state.
+    const seenKey = `${ti}:${path}`;
+    if (ctx.seen.has(seenKey)) {
+      return;
+    }
+    ctx.seen.add(seenKey);
+
     let stat: Stats;
     try {
-      const existing = this.alreadyStatedPaths.get(path);
-      if (existing) {
-        stat = await existing;
-      } else {
-        const promise = fs.stat(path);
-        this.alreadyStatedPaths.set(path, promise);
-        stat = await promise;
-      }
+      stat = await this.stat(path);
     } catch (error) {
       this.errorEmitter.fire({ path, error });
       return;
@@ -136,57 +161,140 @@ export class TurboGlobStream<E> {
     }
 
     const cd = cache.data;
-    if (cd && stat.mtimeMs === cd?.mtime) {
+    if (cd && stat.mtimeMs === cd.mtime) {
       // if the mtime of a directory is the same, there are have been no direct
       // children added or removed.
       if (cd.type === CachedType.Directory) {
-        const todo: Promise<void>[] = [];
+        const todo: unknown[] = [];
         for (const [name, child] of Object.entries(cache.children)) {
-          const cpath = path + '/' + name;
-          todo.push(this.readSomething(tokens, ti, cpath, child));
+          // for cached objects with a type, recurse normally. For ones without,
+          // try to stat them first (may have been interrupted before they were finished)
+          todo.push(
+            child.data !== undefined
+              ? this.handleDirectoryEntry(ctx, ti, path, { name, type: child.data.type }, cache)
+              : this.stat(path).then(
+                  stat =>
+                    this.handleDirectoryEntry(
+                      ctx,
+                      ti,
+                      path,
+                      { name, type: stat.isFile() ? CachedType.File : CachedType.Directory },
+                      cache,
+                    ),
+                  () => undefined,
+                ),
+          );
         }
         await Promise.all(todo);
       } else if (cd.type === CachedType.File) {
+        this.alreadyProcessedFiles.add(cache);
         this.fileEmitter.fire(cd.extracted);
       }
       return;
     }
 
-    // readdir/readfile will update cache.data once they have enough info
+    // handleDir/handleFile will update cache.data once they have enough info
     if (stat.isDirectory()) {
-      await this.readDir(tokens, ti, stat.mtimeMs, path, cache);
+      await this.handleDir(ctx, ti, stat.mtimeMs, path, cache);
     } else {
       this.alreadyProcessedFiles.add(cache);
       await this.handleFile(stat.mtimeMs, path, cache);
     }
   }
 
+  private applyFilterToFile(name: string, path: string, parentCache: CacheTree<IGlobCached<E>>) {
+    const child = parentCache.children[name];
+    if (this.alreadyProcessedFiles.has(child)) {
+      return false;
+    }
+
+    if (!this.filter) {
+      return true;
+    }
+
+    if (!this.filter(path)) {
+      return true;
+    }
+
+    const data = child.data?.type === CachedType.File ? child.data.extracted : undefined;
+    this.alreadyProcessedFiles.add(child);
+    CacheTree.touch(child);
+
+    return this.filter(path, data);
+  }
+
+  /**
+   * Called to recurse on a directory entry.
+   * @param path Path of the directory containing `dirent`
+   * @param cache Cache tree node of the directory containing `dirent`
+   */
   private handleDirectoryEntry(
-    tokens: readonly PatternElem[],
+    ctx: ITokensContext,
     ti: number,
     path: string,
-    name: string,
+    dirent: { name: string; type: CachedType },
     cache: CacheTree<IGlobCached<E>>,
-  ) {
-    const nextPath = path + '/' + name;
+  ): unknown {
+    const nextPath = path + '/' + dirent.name;
+    const descends = this.getDirectoryReadDescends(ctx, ti, path, dirent);
+    if (descends === undefined) {
+      return;
+    }
+
+    // note: intentionally making the child before the filder check, so it
+    // exists in the tree even if this current glob filters it out
+    const nextChild = CacheTree.getOrMakeChild(cache, dirent.name);
+    if (dirent.type === CachedType.File && !this.applyFilterToFile(dirent.name, nextPath, cache)) {
+      return;
+    }
+
+    if (typeof descends === 'number') {
+      return this.readSomething(ctx, ti + descends, nextPath, nextChild);
+    } else {
+      return Promise.all(descends.map(d => this.readSomething(ctx, ti + d, nextPath, nextChild)));
+    }
+  }
+
+  /**
+   * Called for a directory entry. If the item should be processed, returns
+   * how far to advance `ti` in the subsequent `readSomething`. If it should
+   * not be processed, returns undefined.
+   * @param path Path of the directory containing `dirent`
+   */
+  private getDirectoryReadDescends(
+    ctx: ITokensContext,
+    ti: number,
+    path: string,
+    dirent: { name: string; type: CachedType },
+  ): undefined | number | number[] {
+    const nextPath = path + '/' + dirent.name;
     if (this.ignore.some(i => i(nextPath))) {
       return;
     }
 
-    const nextChild = CacheTree.getOrMakeChild(cache, name);
+    const isTerminal = ti === ctx.elements.length - 1;
+    const token = ctx.elements[ti];
 
-    const token = tokens[ti];
     if (token === '**') {
+      // files never match ** if there's more to read
+      if (dirent.type === CachedType.File) {
+        return isTerminal ? 0 : this.getDirectoryReadDescends(ctx, ti + 1, path, dirent);
+      }
+
+      if (isTerminal) {
+        return 0;
+      }
+
       // A ** is a classic regex branch. Fortunately due to caching we don't
       // do any extra filesystem operations, but we do need to recurse twice...
-      return Promise.all([
-        this.readSomething(tokens, ti + 1, nextPath, nextChild),
-        this.readSomething(tokens, ti, nextPath, nextChild),
-      ]);
+      return [0, 1];
     }
 
-    if ((token instanceof RegExp && token.test(name)) || token === name) {
-      return this.readSomething(tokens, ti + 1, nextPath, nextChild);
+    if ((token instanceof RegExp && token.test(dirent.name)) || token === dirent.name) {
+      // directories cannot be the terminal match, and files must be
+      if (dirent.type === CachedType.Directory ? !isTerminal : isTerminal) {
+        return 1;
+      }
     }
   }
 
@@ -203,39 +311,41 @@ export class TurboGlobStream<E> {
     this.fileEmitter.fire(extracted);
   }
 
-  private async readDir(
-    tokens: readonly PatternElem[],
+  private async handleDir(
+    ctx: ITokensContext,
     ti: number,
     mtime: number,
     path: string,
     cache: CacheTree<IGlobCached<E>>,
   ) {
-    let files: string[];
+    let files: Dirent[];
     try {
-      const existing = this.alreadyReadDirs.get(path);
-      if (existing) {
-        files = await existing;
-      } else {
-        const promise = fs.readdir(path);
-        this.alreadyReadDirs.set(path, promise);
-        files = await promise;
-      }
+      files = await this.readdir(path);
     } catch (error) {
       this.errorEmitter.fire({ path, error });
       return;
     }
 
-    const todo: (Promise<unknown> | undefined)[] = [];
+    const todo: unknown[] = [];
     for (const file of files) {
-      if (file.startsWith('.')) {
+      if (file.name.startsWith('.')) {
         continue;
       }
 
-      todo.push(this.handleDirectoryEntry(tokens, ti, path, file, cache));
+      let type: CachedType;
+      if (file.isDirectory()) {
+        type = CachedType.Directory;
+      } else if (file.isFile()) {
+        type = CachedType.File;
+      } else {
+        continue;
+      }
+
+      todo.push(this.handleDirectoryEntry(ctx, ti, path, { name: file.name, type }, cache));
     }
 
-    cache.data = { type: CachedType.Directory, mtime };
     await Promise.all(todo);
+    cache.data = { type: CachedType.Directory, mtime };
   }
 }
 

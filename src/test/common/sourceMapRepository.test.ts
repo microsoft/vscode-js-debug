@@ -7,7 +7,7 @@ import { join } from 'path';
 import * as vscode from 'vscode';
 import { FileGlobList } from '../../common/fileGlobList';
 import { Logger } from '../../common/logging/logger';
-import { fixDriveLetter } from '../../common/pathUtils';
+import { fixDriveLetter, fixDriveLetterAndSlashes } from '../../common/pathUtils';
 import { CodeSearchStrategy } from '../../common/sourceMaps/codeSearchStrategy';
 import { NodeSearchStrategy } from '../../common/sourceMaps/nodeSearchStrategy';
 import { ISearchStrategy } from '../../common/sourceMaps/sourceMapRepository';
@@ -55,21 +55,25 @@ describe('ISourceMapRepository', () => {
         });
 
       const gatherSm = async (list: FileGlobList) => {
-        const result = await r.streamChildrenWithSourcemaps(
-          list,
-          async m => {
+        type TReturn = {
+          sourceMapUrl: string;
+          compiledPath: string;
+        };
+        const result = await r.streamChildrenWithSourcemaps<TReturn, TReturn>({
+          files: list,
+          processMap: async m => {
             const { cacheKey, ...rest } = m;
             expect(cacheKey).to.be.within(Date.now() - 60 * 1000, Date.now() + 1000);
-            rest.compiledPath = fixDriveLetter(rest.compiledPath);
+            rest.compiledPath = fixDriveLetterAndSlashes(rest.compiledPath);
             return rest;
           },
-          r => r,
-        );
+          onProcessedMap: r => r,
+        });
         return result.values.sort((a, b) => a.compiledPath.length - b.compiledPath.length);
       };
       const gatherSmNames = async (list: FileGlobList) => {
         const result = await gatherSm(list);
-        return result.map(r => r.compiledPath);
+        return result.map(r => fixDriveLetterAndSlashes(r.compiledPath));
       };
 
       const gatherAll = (list: FileGlobList) => {

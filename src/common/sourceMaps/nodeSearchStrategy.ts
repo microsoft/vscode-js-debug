@@ -8,8 +8,11 @@ import { FileGlobList } from '../fileGlobList';
 import { ILogger, LogTag } from '../logging';
 import { truthy } from '../objUtils';
 import { fixDriveLetterAndSlashes } from '../pathUtils';
-import { ISourceMapMetadata } from './sourceMap';
-import { createMetadataForFile, ISearchStrategy } from './sourceMapRepository';
+import {
+  createMetadataForFile,
+  ISearchStrategy,
+  ISourcemapStreamOptions,
+} from './sourceMapRepository';
 
 /**
  * A source map repository that uses globbing to find candidate files.
@@ -40,17 +43,15 @@ export class NodeSearchStrategy implements ISearchStrategy {
    * @inheritdoc
    */
   public async streamChildrenWithSourcemaps<T, R>(
-    files: FileGlobList,
-    onChild: (child: Required<ISourceMapMetadata>) => T | Promise<T>,
-    onProcessedMap: (data: T) => R | Promise<R>,
+    opts: ISourcemapStreamOptions<T, R>,
   ): Promise<{ values: R[]; state: unknown }> {
     const todo: (R | Promise<R | void>)[] = [];
 
-    await this.globForFiles(files, value =>
+    await this.globForFiles(opts.files, value =>
       todo.push(
         createMetadataForFile(fixDriveLetterAndSlashes(value.path))
-          .then(parsed => parsed && onChild(parsed))
-          .then(processed => processed && onProcessedMap(processed))
+          .then(parsed => parsed && opts.processMap(parsed))
+          .then(processed => processed && opts.onProcessedMap(processed))
           .catch(error =>
             this.logger.warn(LogTag.SourceMapParsing, 'Error parsing source map', {
               error,

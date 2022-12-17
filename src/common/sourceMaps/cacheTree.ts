@@ -7,12 +7,12 @@ const touched = Symbol('touched');
 /**
  * Readily serializable tree of cache entries.
  */
-export type CacheTree<T> = { data?: T; children: Record<string, CacheTree<T>>; [touched]?: true };
+export type CacheTree<T> = { data?: T; children: Record<string, CacheTree<T>>; [touched]?: number };
 
 export namespace CacheTree {
   /** Creates a root for a new cache tree. */
   export function root<T>(): CacheTree<T> {
-    return { children: {}, [touched]: true };
+    return { children: {}, [touched]: 1 };
   }
   /**
    * Gets the cache entry at the given directory path. Assumes this is the
@@ -24,25 +24,49 @@ export namespace CacheTree {
   }
 
   /**
+   * Marks the node as having been touched, so prune() doesn't remove it.
+   */
+  export function touch<T>(node: CacheTree<T>) {
+    node[touched] = 1;
+  }
+
+  /**
+   * Marks the subtree as having been touched, so prune() doesn't remove it.
+   */
+  export function touchAll<T>(node: CacheTree<T>) {
+    node[touched] = 2;
+  }
+
+  /**
    * Gets a child directory of the given name, creating it if it doesn't exist.
    */
   export function getOrMakeChild<T>(node: CacheTree<T>, name: string): CacheTree<T> {
     const child = (node.children[name] ??= { children: {} });
-    child[touched] = true;
+    child[touched] = 1;
     return child;
   }
 
   /**
    * Removes items in the tree that were not touched since being created.
    */
-  export function prune<T>(node: CacheTree<T>) {
+  export function prune<T>(node: CacheTree<T>): CacheTree<T> | undefined {
+    if (!node[touched]) {
+      return undefined;
+    }
+
     for (const [name, child] of Object.entries(node.children)) {
-      if (!child[touched]) {
-        delete node.children[name];
-      } else {
-        prune(child);
+      switch (child[touched]) {
+        case 1:
+          prune(child);
+          break;
+        case 2:
+          break;
+        default:
+          delete node.children[name];
       }
     }
+
+    return node;
   }
 
   function splitDir(dir: string) {
@@ -60,6 +84,6 @@ export namespace CacheTree {
       return child;
     }
 
-    return _getDir(node, parts, i + 1);
+    return _getDir(child, parts, i + 1);
   }
 }
