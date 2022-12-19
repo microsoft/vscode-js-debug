@@ -324,7 +324,7 @@ export class Completions {
         ...params,
         returnByValue: true,
         throwOnSideEffect: false,
-        expression: enumeratePropertiesTemplate(
+        expression: enumeratePropertiesTemplate.expr(
           `(${expression})`,
           JSON.stringify(prefix),
           JSON.stringify(isInGlobalScope),

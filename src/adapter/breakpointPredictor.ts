@@ -211,7 +211,7 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
       this.logger.warn(LogTag.RuntimeSourceMap, 'Long breakpoint predictor runtime', {
         type: this.repo.constructor.name,
         longPredictionWarning,
-        patterns: this.outFiles.patterns,
+        patterns: [...this.outFiles.explode()].join(', '),
       });
     }, longPredictionWarning);
 

@@ -1,8 +1,8 @@
-> result: I'm an array
+> result: (4) [Bar, Foo, 5, 'test']
     > 0: Instance of bar
     > 1: Foo
     2: 5
     3: 'test'
     length: 4
-    > [[Prototype]]: I'm an array
+    > [[Prototype]]: Array(0)
     > [[Prototype]]: Object
