@@ -1586,7 +1586,9 @@ export namespace Cdp {
       location?: SourceCodeLocation;
     }
 
-    export type GenericIssueErrorType = 'CrossOriginPortalPostMessageError';
+    export type GenericIssueErrorType =
+      | 'CrossOriginPortalPostMessageError'
+      | 'FormLabelForNameError';
 
     /**
      * Depending on the concrete errorType, different properties are set.
@@ -1598,6 +1600,8 @@ export namespace Cdp {
       errorType: GenericIssueErrorType;
 
       frameId?: Page.FrameId;
+
+      violatingNodeId?: DOM.BackendNodeId;
     }
 
     export type DeprecationIssueType =
@@ -1684,14 +1688,14 @@ export namespace Cdp {
     export type FederatedAuthRequestIssueReason =
       | 'ShouldEmbargo'
       | 'TooManyRequests'
-      | 'ManifestListHttpNotFound'
-      | 'ManifestListNoResponse'
-      | 'ManifestListInvalidResponse'
-      | 'ManifestNotInManifestList'
-      | 'ManifestListTooBig'
-      | 'ManifestHttpNotFound'
-      | 'ManifestNoResponse'
-      | 'ManifestInvalidResponse'
+      | 'WellKnownHttpNotFound'
+      | 'WellKnownNoResponse'
+      | 'WellKnownInvalidResponse'
+      | 'ConfigNotInWellKnown'
+      | 'WellKnownTooBig'
+      | 'ConfigHttpNotFound'
+      | 'ConfigNoResponse'
+      | 'ConfigInvalidResponse'
       | 'ClientMetadataHttpNotFound'
       | 'ClientMetadataNoResponse'
       | 'ClientMetadataInvalidResponse'
@@ -10854,7 +10858,7 @@ export namespace Cdp {
     /**
      * Enum of image types that can be disabled.
      */
-    export type DisabledImageType = 'avif' | 'jxl' | 'webp';
+    export type DisabledImageType = 'avif' | 'webp';
   }
 
   /**
@@ -16415,6 +16419,7 @@ export namespace Cdp {
         | 'ResourceExhausted'
         | 'AlreadyExists'
         | 'Unavailable'
+        | 'Unauthorized'
         | 'BadResponse'
         | 'InternalError'
         | 'UnknownError'
@@ -21916,6 +21921,7 @@ export namespace Cdp {
       | 'serial'
       | 'shared-autofill'
       | 'shared-storage'
+      | 'smart-card'
       | 'storage-access'
       | 'sync-xhr'
       | 'trust-token-redemption'
@@ -22641,6 +22647,7 @@ export namespace Cdp {
       | 'InjectedJavascript'
       | 'InjectedStyleSheet'
       | 'KeepaliveRequest'
+      | 'IndexedDBEvent'
       | 'Dummy'
       | 'AuthorizationHeader'
       | 'ContentSecurityHandler'
@@ -22760,7 +22767,9 @@ export namespace Cdp {
       | 'SameSiteCrossOriginNavigation'
       | 'SameSiteCrossOriginRedirectNotOptIn'
       | 'SameSiteCrossOriginNavigationNotOptIn'
-      | 'ActivationNavigationParameterMismatch';
+      | 'ActivationNavigationParameterMismatch'
+      | 'ActivatedInBackground'
+      | 'EmbedderHostDisallowed';
   }
 
   /**
@@ -26882,6 +26891,13 @@ export namespace Cdp {
     getInfo(params: SystemInfo.GetInfoParams): Promise<SystemInfo.GetInfoResult | undefined>;
 
     /**
+     * Returns information about the feature state.
+     */
+    getFeatureState(
+      params: SystemInfo.GetFeatureStateParams,
+    ): Promise<SystemInfo.GetFeatureStateResult | undefined>;
+
+    /**
      * Returns information about all running processes.
      */
     getProcessInfo(
@@ -26924,6 +26940,20 @@ export namespace Cdp {
        * supported.
        */
       commandLine: string;
+    }
+
+    /**
+     * Parameters of the 'SystemInfo.getFeatureState' method.
+     */
+    export interface GetFeatureStateParams {
+      featureState: string;
+    }
+
+    /**
+     * Return value of the 'SystemInfo.getFeatureState' method.
+     */
+    export interface GetFeatureStateResult {
+      featureEnabled: boolean;
     }
 
     /**
@@ -27519,6 +27549,11 @@ export namespace Cdp {
        * false by default).
        */
       background?: boolean;
+
+      /**
+       * Whether to create the target of type "tab".
+       */
+      forTab?: boolean;
     }
 
     /**
