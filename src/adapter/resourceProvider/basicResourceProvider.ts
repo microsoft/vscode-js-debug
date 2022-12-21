@@ -103,7 +103,7 @@ export class BasicResourceProvider implements IResourceProvider {
         return response;
       }
 
-      parsed.hostname = resolved.family === 6 ? '127.0.0.1' : '::1';
+      parsed.hostname = resolved.family === 6 ? '::1' : '127.0.0.1';
       return this.requestHttp(parsed.toString(), options, cancellationToken);
     }
 
