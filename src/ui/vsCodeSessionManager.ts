@@ -3,7 +3,6 @@
  *--------------------------------------------------------*/
 
 import { Container } from 'inversify';
-import * as net from 'net';
 import * as vscode from 'vscode';
 import { IDisposable } from '../common/events';
 import { IPseudoAttachConfiguration } from '../configuration';
@@ -62,7 +61,7 @@ export class VSCodeSessionManager implements vscode.DebugAdapterDescriptorFactor
     debugSession: vscode.DebugSession,
   ): Promise<vscode.DebugAdapterDescriptor> {
     const result = await this.sessionServerManager.createDebugServer(debugSession);
-    return new vscode.DebugAdapterServer((result.server.address() as net.AddressInfo).port);
+    return new vscode.DebugAdapterNamedPipeServer(result.server.address() as string);
   }
 
   /**

@@ -84,12 +84,12 @@ const launchCompanionBrowser = async (
   }
 };
 
-const killCompanionBrowser = (
+const killCompanionBrowser = async (
   session: vscode.DebugSession,
   tunnels: DebugSessionTunnels,
   { launchId }: Dap.KillCompanionBrowserEventParams,
 ) => {
-  vscode.commands.executeCommand('js-debug-companion.kill', { launchId });
+  await vscode.commands.executeCommand('js-debug-companion.kill', { launchId });
   tunnels.destroySession(session.id);
 };
 
