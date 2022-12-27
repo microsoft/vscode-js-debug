@@ -33,7 +33,7 @@
     supportsCompletionsRequest : true
     supportsConditionalBreakpoints : true
     supportsConfigurationDoneRequest : true
-    supportsDebuggerProperties : true
+    supportsDebuggerProperties : false
     supportsDelayedStackTraceLoading : true
     supportsEvaluateForHovers : true
     supportsExceptionFilterOptions : true
@@ -49,6 +49,7 @@
     supportsRestartFrame : true
     supportsRestartRequest : true
     supportsSetExpression : true
+    supportsSetSymbolOptions : false
     supportsSetVariable : true
     supportsStepBack : false
     supportsStepInTargetsRequest : true

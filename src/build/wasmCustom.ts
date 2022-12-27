@@ -18,6 +18,12 @@ export default {
           description:
             'Arguments for "setDebuggerProperty" request. Properties are determined by debugger.',
         },
+        {
+          id: 'SetSymbolOptionsParams',
+          type: 'object',
+          description:
+            'Arguments for "setSymbolOptions" request. Properties are determined by debugger.',
+        },
       ],
       commands: [
         {
@@ -29,6 +35,10 @@ export default {
               $ref: 'SetDebuggerPropertyParams',
             },
           ],
+        },
+        {
+          name: 'setSymbolOptions',
+          description: 'Sets options for locating symbols.',
         },
       ],
     },
