@@ -2,11 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { promises as fs } from 'fs';
 import { Container } from 'inversify';
 import * as net from 'net';
 import { Readable, Writable } from 'stream';
 import { acquireTrackedServer, IPortLeaseTracker } from './adapter/portLeaseTracker';
 import { IDisposable } from './common/disposable';
+import { getRandomPipe } from './common/pathUtils';
 import { getDeferred, IDeferred } from './common/promiseUtil';
 import { IPseudoAttachConfiguration } from './configuration';
 import DapConnection from './dap/connection';
@@ -102,19 +104,26 @@ export class ServerSessionManager<T extends IDebugSessionLike> {
     port?: number,
   ): Promise<IDebugServerCreateResult> {
     const deferredConnection: IDeferred<DapConnection> = getDeferred();
-    const debugServer = await acquireTrackedServer(
-      this.portLeaseTracker,
-      socket => {
-        const transport = new StreamDapTransport(socket, socket);
-        const session = sessionCreationFunc(transport);
-        deferredConnection.resolve(session.connection);
-      },
-      port,
-      this.host,
-    );
+    const onSocket = (socket: net.Socket) => {
+      const transport = new StreamDapTransport(socket, socket);
+      const session = sessionCreationFunc(transport);
+      deferredConnection.resolve(session.connection);
+    };
 
-    this.servers.set(debugSession.id, debugServer);
-    return { server: debugServer, connectionPromise: deferredConnection.promise };
+    const server =
+      port === undefined
+        ? await new Promise<net.Server>((resolve, reject) => {
+            const pipe = getRandomPipe();
+            const s = net
+              .createServer(onSocket)
+              .on('error', reject)
+              .on('close', () => fs.unlink(pipe).catch(() => undefined))
+              .listen(pipe, () => resolve(s));
+          })
+        : await acquireTrackedServer(this.portLeaseTracker, onSocket, port, this.host);
+
+    this.servers.set(debugSession.id, server);
+    return { server, connectionPromise: deferredConnection.promise };
   }
 
   /**
