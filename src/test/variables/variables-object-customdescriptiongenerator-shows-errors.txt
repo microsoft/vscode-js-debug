@@ -1,0 +1,3 @@
+> result: Error: oh no! (couldn't describe: object)
+    > getter: (...)
+    > [[Prototype]]: Foo

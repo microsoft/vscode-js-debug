@@ -23,6 +23,12 @@ export default {
           type: 'object',
           description: 'Options that will be used to evaluate or to get variables.',
         },
+        {
+          id: 'SetSymbolOptionsParams',
+          type: 'object',
+          description:
+            'Arguments for "setSymbolOptions" request. Properties are determined by debugger.',
+        },
       ],
       commands: [
         {
@@ -48,6 +54,10 @@ export default {
               type: 'string',
             },
           ],
+        },
+        {
+          name: 'setSymbolOptions',
+          description: 'Sets options for locating symbols.',
         },
       ],
     },

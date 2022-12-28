@@ -17,8 +17,8 @@ interface IRename {
   position: Base01Position;
 }
 
-/** Very approximate regex for JS identifiers */
-const identifierRe = /[$a-z_][$0-9A-Z_$]*/iy;
+/** Very approximate regex for JS identifiers, allowing member expressions as well */
+const identifierRe = /[$a-z_][$0-9A-Z_$.]*/iy;
 
 export interface IRenameProvider {
   /**

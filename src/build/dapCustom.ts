@@ -605,6 +605,10 @@ const dapCustom: JSONSchema4 = {
             supportsEvaluationOptions: {
               type: 'boolean',
             },
+            supportsSetSymbolOptions: {
+              type: 'boolean',
+              description: 'The debug adapter supports the set symbol options request',
+            },
           },
         },
       ],
@@ -722,6 +726,14 @@ const dapCustom: JSONSchema4 = {
           },
         },
       ],
+    },
+
+    ...makeRequest('setSymbolOptions', 'Sets options for locating symbols.'),
+
+    SetSymbolOptionsArguments: {
+      type: 'object',
+      description:
+        'Arguments for "setSymbolOptions" request. Properties are determined by debugger.',
     },
   },
 };

@@ -24,7 +24,7 @@ export const readMemory = remoteFunction(function (
   return encodeHex(new Uint8Array(buffer, readStart, readCount));
 
   function encodeHex(buffer: Uint8Array) {
-    const dictionary = '0123456789abcedf';
+    const dictionary = '0123456789abcdef';
     let output = '';
     for (let i = 0; i < buffer.length; i++) {
       const b = buffer[i];

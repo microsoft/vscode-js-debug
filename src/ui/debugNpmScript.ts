@@ -18,13 +18,13 @@ interface IScript {
   command: string;
 }
 
-type ScriptPickItem = vscode.QuickPickItem & { script: IScript };
+type ScriptPickItem = vscode.QuickPickItem & { script?: IScript };
 
 /**
  * Opens a quickpick and them subsequently debugs a configured npm script.
  * @param inFolder - Optionally scopes lookups to the given workspace folder
  */
-export async function debugNpmScript(inFolder?: string) {
+export async function debugNpmScript(inFolder?: vscode.WorkspaceFolder | string) {
   const scripts = await findScripts(inFolder ? [inFolder] : undefined);
   if (!scripts) {
     return; // cancelled
@@ -50,14 +50,28 @@ export async function debugNpmScript(inFolder?: string) {
   const multiDir = scripts.some(s => s.directory !== scripts[0].directory);
   const quickPick = vscode.window.createQuickPick<ScriptPickItem>();
 
-  quickPick.items = scripts.map(script => ({
-    script,
-    label: multiDir ? `${path.basename(script.directory)}: ${script.name}` : script.name,
-    description: script.command,
-  }));
+  let lastDir: string | undefined;
+  const items: ScriptPickItem[] = [];
+  for (const script of scripts) {
+    if (script.directory !== lastDir && multiDir) {
+      items.push({
+        label: path.basename(script.directory),
+        kind: vscode.QuickPickItemKind.Separator,
+      });
+      lastDir = script.directory;
+    }
+
+    items.push({
+      script,
+      label: script.name,
+      description: script.command,
+    });
+  }
+  quickPick.items = items;
 
   quickPick.onDidAccept(async () => {
-    runScript(quickPick.selectedItems[0].script);
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    runScript(quickPick.selectedItems[0].script!);
     quickPick.dispose();
   });
 
@@ -76,10 +90,10 @@ const updateEditCandidate = (existing: IEditCandidate, updated: IEditCandidate) 
  * Finds configured npm scripts in the workspace.
  */
 export async function findScripts(
-  inFolders: string[] | undefined,
+  inFolders: (vscode.WorkspaceFolder | string)[] | undefined,
   silent = false,
 ): Promise<IScript[] | undefined> {
-  const folders = inFolders ?? vscode.workspace.workspaceFolders?.map(f => f.uri.fsPath) ?? [];
+  const folders = inFolders ?? vscode.workspace.workspaceFolders ?? [];
 
   // 1. If there are no open folders, show an error and abort.
   if (!folders || folders.length === 0) {
@@ -95,32 +109,39 @@ export async function findScripts(
   }
 
   // Otherwise, go through all package.json's in the folder and pull all the npm scripts we find.
-  const candidates = folders.map(directory => path.join(directory, 'package.json'));
+  const candidates = (
+    await Promise.all(
+      folders.map(f =>
+        vscode.workspace.findFiles(
+          new vscode.RelativePattern(f, '**/package.json'),
+          // matches https://github.com/microsoft/vscode/blob/18f743d534ef3f528c5e81e82e695b87c60d2ebf/extensions/npm/src/tasks.ts#L189
+          '**/{node_modules,.vscode-test}/**',
+        ),
+      ),
+    )
+  ).flat();
+
   const scripts: IScript[] = [];
 
   // editCandidate is the file we'll edit if we don't find any npm scripts.
   // We 'narrow' this as we parse to files that look more like a package.json we want
-  let editCandidate: IEditCandidate = { path: candidates[0], score: 0 };
-  for (const packageJson of candidates) {
-    if (!fs.existsSync(packageJson)) {
-      continue;
-    }
-
+  let editCandidate: IEditCandidate = { path: candidates[0].fsPath, score: 0 };
+  for (const { fsPath } of new Set(candidates)) {
     // update this now, because we know it exists
     editCandidate = updateEditCandidate(editCandidate, {
-      path: packageJson,
+      path: fsPath,
       score: 1,
     });
 
     let parsed: { scripts?: { [key: string]: string } };
     try {
-      parsed = JSON.parse(await readfile(packageJson));
+      parsed = JSON.parse(await readfile(fsPath));
     } catch (e) {
       if (!silent) {
         promptToOpen(
           'showWarningMessage',
-          localize('debug.npm.parseError', 'Could not read {0}: {1}', packageJson, e.message),
-          packageJson,
+          localize('debug.npm.parseError', 'Could not read {0}: {1}', fsPath, e.message),
+          fsPath,
         );
       }
       // set the candidate to 'undefined', since we already displayed an error
@@ -138,7 +159,7 @@ export async function findScripts(
 
     for (const key of Object.keys(parsed.scripts)) {
       scripts.push({
-        directory: path.dirname(packageJson),
+        directory: path.dirname(fsPath),
         name: key,
         command: parsed.scripts[key],
       });

@@ -600,6 +600,11 @@ export namespace Cdp {
       role?: AXValue;
 
       /**
+       * This `Node`'s Chrome raw role.
+       */
+      chromeRole?: AXValue;
+
+      /**
        * The accessible name for this `Node`.
        */
       name?: AXValue;
@@ -1242,7 +1247,9 @@ export namespace Cdp {
       | 'ExcludeSameSiteLax'
       | 'ExcludeSameSiteStrict'
       | 'ExcludeInvalidSameParty'
-      | 'ExcludeSamePartyCrossPartyContext';
+      | 'ExcludeSamePartyCrossPartyContext'
+      | 'ExcludeDomainNonASCII'
+      | 'ExcludeThirdPartyCookieBlockedInFirstPartySet';
 
     export type CookieWarningReason =
       | 'WarnSameSiteUnspecifiedCrossSiteContext'
@@ -1253,7 +1260,8 @@ export namespace Cdp {
       | 'WarnSameSiteStrictCrossDowngradeLax'
       | 'WarnSameSiteLaxCrossDowngradeStrict'
       | 'WarnSameSiteLaxCrossDowngradeLax'
-      | 'WarnAttributeValueExceedsMaxSize';
+      | 'WarnAttributeValueExceedsMaxSize'
+      | 'WarnDomainNonASCII';
 
     export type CookieOperation = 'SetCookie' | 'ReadCookie';
 
@@ -1527,9 +1535,16 @@ export namespace Cdp {
 
     export type AttributionReportingIssueType =
       | 'PermissionPolicyDisabled'
-      | 'AttributionSourceUntrustworthyOrigin'
-      | 'AttributionUntrustworthyOrigin'
-      | 'InvalidHeader';
+      | 'PermissionPolicyNotDelegated'
+      | 'UntrustworthyReportingOrigin'
+      | 'InsecureContext'
+      | 'InvalidHeader'
+      | 'InvalidRegisterTriggerHeader'
+      | 'InvalidEligibleHeader'
+      | 'TooManyConcurrentRequests'
+      | 'SourceAndTriggerHeaders'
+      | 'SourceIgnored'
+      | 'TriggerIgnored';
 
     /**
      * Details for issues around "Attribution Reporting API" usage.
@@ -1537,8 +1552,6 @@ export namespace Cdp {
      */
     export interface AttributionReportingIssueDetails {
       violationType: AttributionReportingIssueType;
-
-      frame?: AffectedFrame;
 
       request?: AffectedRequest;
 
@@ -1573,7 +1586,9 @@ export namespace Cdp {
       location?: SourceCodeLocation;
     }
 
-    export type GenericIssueErrorType = 'CrossOriginPortalPostMessageError';
+    export type GenericIssueErrorType =
+      | 'CrossOriginPortalPostMessageError'
+      | 'FormLabelForNameError';
 
     /**
      * Depending on the concrete errorType, different properties are set.
@@ -1585,6 +1600,8 @@ export namespace Cdp {
       errorType: GenericIssueErrorType;
 
       frameId?: Page.FrameId;
+
+      violatingNodeId?: DOM.BackendNodeId;
     }
 
     export type DeprecationIssueType =
@@ -1608,17 +1625,18 @@ export namespace Cdp {
       | 'HostCandidateAttributeGetter'
       | 'IdentityInCanMakePaymentEvent'
       | 'InsecurePrivateNetworkSubresourceRequest'
-      | 'LegacyConstraintGoogIPv6'
       | 'LocalCSSFileExtensionRejected'
       | 'MediaSourceAbortRemove'
       | 'MediaSourceDurationTruncatingBuffered'
-      | 'NavigateEventRestoreScroll'
-      | 'NavigateEventTransitionWhile'
       | 'NoSysexWebMIDIWithoutPermission'
       | 'NotificationInsecureOrigin'
       | 'NotificationPermissionRequestedIframe'
       | 'ObsoleteWebRtcCipherSuite'
       | 'OpenWebDatabaseInsecureContext'
+      | 'OverflowVisibleOnReplacedElement'
+      | 'PaymentInstruments'
+      | 'PaymentRequestCSPViolation'
+      | 'PersistentQuotaType'
       | 'PictureSourceSrc'
       | 'PrefixedCancelAnimationFrame'
       | 'PrefixedRequestAnimationFrame'
@@ -1668,20 +1686,19 @@ export namespace Cdp {
      * all cases except for success.
      */
     export type FederatedAuthRequestIssueReason =
-      | 'ApprovalDeclined'
+      | 'ShouldEmbargo'
       | 'TooManyRequests'
-      | 'ManifestListHttpNotFound'
-      | 'ManifestListNoResponse'
-      | 'ManifestListInvalidResponse'
-      | 'ManifestNotInManifestList'
-      | 'ManifestListTooBig'
-      | 'ManifestHttpNotFound'
-      | 'ManifestNoResponse'
-      | 'ManifestInvalidResponse'
+      | 'WellKnownHttpNotFound'
+      | 'WellKnownNoResponse'
+      | 'WellKnownInvalidResponse'
+      | 'ConfigNotInWellKnown'
+      | 'WellKnownTooBig'
+      | 'ConfigHttpNotFound'
+      | 'ConfigNoResponse'
+      | 'ConfigInvalidResponse'
       | 'ClientMetadataHttpNotFound'
       | 'ClientMetadataNoResponse'
       | 'ClientMetadataInvalidResponse'
-      | 'ClientMetadataMissingPrivacyPolicyUrl'
       | 'DisabledInSettings'
       | 'ErrorFetchingSignin'
       | 'InvalidSigninResponse'
@@ -1693,7 +1710,8 @@ export namespace Cdp {
       | 'IdTokenInvalidResponse'
       | 'IdTokenInvalidRequest'
       | 'ErrorIdToken'
-      | 'Canceled';
+      | 'Canceled'
+      | 'RpPageNotVisible';
 
     /**
      * This issue tracks client hints related issues. It's used to deprecate old
@@ -1966,6 +1984,11 @@ export namespace Cdp {
        * A list of event-specific information.
        */
       eventMetadata: EventMetadata[];
+
+      /**
+       * Storage key this event belongs to.
+       */
+      storageKey: string;
     }
   }
 
@@ -2555,6 +2578,8 @@ export namespace Cdp {
       | 'durableStorage'
       | 'flash'
       | 'geolocation'
+      | 'idleDetection'
+      | 'localFonts'
       | 'midi'
       | 'midiSysex'
       | 'nfc'
@@ -2563,11 +2588,12 @@ export namespace Cdp {
       | 'periodicBackgroundSync'
       | 'protectedMediaIdentifier'
       | 'sensors'
+      | 'storageAccess'
       | 'videoCapture'
       | 'videoCapturePanTiltZoom'
-      | 'idleDetection'
       | 'wakeLockScreen'
-      | 'wakeLockSystem';
+      | 'wakeLockSystem'
+      | 'windowManagement';
 
     export type PermissionSetting = 'granted' | 'denied' | 'prompt';
 
@@ -2739,9 +2765,15 @@ export namespace Cdp {
      */
     export interface RequestCacheNamesParams {
       /**
+       * At least and at most one of securityOrigin, storageKey must be specified.
        * Security origin.
        */
-      securityOrigin: string;
+      securityOrigin?: string;
+
+      /**
+       * Storage key.
+       */
+      storageKey?: string;
     }
 
     /**
@@ -2899,6 +2931,11 @@ export namespace Cdp {
        * Security origin of the cache.
        */
       securityOrigin: string;
+
+      /**
+       * Storage key of the cache.
+       */
+      storageKey: string;
 
       /**
        * The name of the cache.
@@ -4449,6 +4486,12 @@ export namespace Cdp {
        * The entire property range in the enclosing style declaration (if available).
        */
       range?: SourceRange;
+
+      /**
+       * Parsed longhand components of this property if it is a shorthand.
+       * This field will be empty if the given property is not a shorthand.
+       */
+      longhandProperties?: CSSProperty[];
     }
 
     /**
@@ -4559,6 +4602,16 @@ export namespace Cdp {
        * Optional name for the container.
        */
       name?: string;
+
+      /**
+       * Optional physical axes queried for the container.
+       */
+      physicalAxes?: DOM.PhysicalAxes;
+
+      /**
+       * Optional logical axes queried for the container.
+       */
+      logicalAxes?: DOM.LogicalAxes;
     }
 
     /**
@@ -5143,8 +5196,8 @@ export namespace Cdp {
     ): Promise<Debugger.SetBreakpointsActiveResult | undefined>;
 
     /**
-     * Defines pause on exceptions state. Can be set to stop on all exceptions, uncaught exceptions or
-     * no exceptions. Initial pause on exceptions state is `none`.
+     * Defines pause on exceptions state. Can be set to stop on all exceptions, uncaught exceptions,
+     * or caught exceptions, no exceptions. Initial pause on exceptions state is `none`.
      */
     setPauseOnExceptions(
       params: Debugger.SetPauseOnExceptionsParams,
@@ -5435,8 +5488,8 @@ export namespace Cdp {
       totalNumberOfLines: integer;
 
       /**
-       * The offsets of all function bodies plus one additional entry pointing
-       * one by past the end of the last function.
+       * The offsets of all function bodies, in the format [start1, end1,
+       * start2, end2, ...] where all ends are exclusive.
        */
       functionBodyOffsets: integer[];
 
@@ -5826,7 +5879,7 @@ export namespace Cdp {
       /**
        * Pause on exceptions mode.
        */
-      state: 'none' | 'uncaught' | 'all';
+      state: 'none' | 'caught' | 'uncaught' | 'all';
     }
 
     /**
@@ -6848,9 +6901,10 @@ export namespace Cdp {
     getFrameOwner(params: DOM.GetFrameOwnerParams): Promise<DOM.GetFrameOwnerResult | undefined>;
 
     /**
-     * Returns the container of the given node based on container query conditions.
-     * If containerName is given, it will find the nearest container with a matching name;
-     * otherwise it will find the nearest container regardless of its container name.
+     * Returns the query container of the given node based on container query
+     * conditions: containerName, physical, and logical axes. If no axes are
+     * provided, the style container is returned, which is the direct parent or the
+     * closest element with a matching container-name.
      */
     getContainerForNode(
       params: DOM.GetContainerForNodeParams,
@@ -8049,6 +8103,10 @@ export namespace Cdp {
       nodeId: NodeId;
 
       containerName?: string;
+
+      physicalAxes?: PhysicalAxes;
+
+      logicalAxes?: LogicalAxes;
     }
 
     /**
@@ -8156,7 +8214,7 @@ export namespace Cdp {
       parentNodeId: NodeId;
 
       /**
-       * If of the previous siblint.
+       * Id of the previous sibling.
        */
       previousNodeId: NodeId;
 
@@ -8343,11 +8401,11 @@ export namespace Cdp {
       | 'scrollbar-corner'
       | 'resizer'
       | 'input-list-button'
-      | 'page-transition'
-      | 'page-transition-container'
-      | 'page-transition-image-wrapper'
-      | 'page-transition-outgoing-image'
-      | 'page-transition-incoming-image';
+      | 'view-transition'
+      | 'view-transition-group'
+      | 'view-transition-image-pair'
+      | 'view-transition-old'
+      | 'view-transition-new';
 
     /**
      * Shadow root type.
@@ -8358,6 +8416,16 @@ export namespace Cdp {
      * Document compatibility mode.
      */
     export type CompatibilityMode = 'QuirksMode' | 'LimitedQuirksMode' | 'NoQuirksMode';
+
+    /**
+     * ContainerSelector physical axes
+     */
+    export type PhysicalAxes = 'Horizontal' | 'Vertical' | 'Both';
+
+    /**
+     * ContainerSelector logical axes
+     */
+    export type LogicalAxes = 'Inline' | 'Block' | 'Both';
 
     /**
      * DOM interaction is implemented in terms of mirror objects that represent the actual DOM nodes.
@@ -9882,6 +9950,13 @@ export namespace Cdp {
     setEvaluationOptions(
       params: DotnetDebugger.SetEvaluationOptionsParams,
     ): Promise<DotnetDebugger.SetEvaluationOptionsResult | undefined>;
+
+    /**
+     * Sets options for locating symbols.
+     */
+    setSymbolOptions(
+      params: DotnetDebugger.SetSymbolOptionsParams,
+    ): Promise<DotnetDebugger.SetSymbolOptionsResult | undefined>;
   }
 
   /**
@@ -9915,6 +9990,16 @@ export namespace Cdp {
     export interface SetEvaluationOptionsResult {}
 
     /**
+     * Parameters of the 'DotnetDebugger.setSymbolOptions' method.
+     */
+    export interface SetSymbolOptionsParams {}
+
+    /**
+     * Return value of the 'DotnetDebugger.setSymbolOptions' method.
+     */
+    export interface SetSymbolOptionsResult {}
+
+    /**
      * Arguments for "setDebuggerProperty" request. Properties are determined by debugger.
      */
     export interface SetDebuggerPropertyParams {
@@ -9925,6 +10010,13 @@ export namespace Cdp {
      * Options that will be used to evaluate or to get variables.
      */
     export interface EvaluationOptions {
+      [key: string]: any;
+    }
+
+    /**
+     * Arguments for "setSymbolOptions" request. Properties are determined by debugger.
+     */
+    export interface SetSymbolOptionsParams {
       [key: string]: any;
     }
   }
@@ -10794,7 +10886,7 @@ export namespace Cdp {
     /**
      * Enum of image types that can be disabled.
      */
-    export type DisabledImageType = 'avif' | 'jxl' | 'webp';
+    export type DisabledImageType = 'avif' | 'webp';
   }
 
   /**
@@ -11074,7 +11166,9 @@ export namespace Cdp {
       postData?: string;
 
       /**
-       * If set, overrides the request headers.
+       * If set, overrides the request headers. Note that the overrides do not
+       * extend to subsequent redirect hops, if a redirect happens. Another override
+       * may be applied to a different request produced by a redirect.
        */
       headers?: HeaderEntry[];
 
@@ -11235,7 +11329,13 @@ export namespace Cdp {
        * If the intercepted request had a corresponding Network.requestWillBeSent event fired for it,
        * then this networkId will be the same as the requestId present in the requestWillBeSent event.
        */
-      networkId?: RequestId;
+      networkId?: Network.RequestId;
+
+      /**
+       * If the request is due to a redirect response from the server, the id of the request that
+       * has caused the redirect.
+       */
+      redirectedRequestId?: RequestId;
     }
 
     /**
@@ -11375,6 +11475,7 @@ export namespace Cdp {
 
     /**
      * Disables headless events for the target.
+     * @deprecated
      */
     disable(
       params: HeadlessExperimental.DisableParams,
@@ -11382,21 +11483,11 @@ export namespace Cdp {
 
     /**
      * Enables headless events for the target.
+     * @deprecated
      */
     enable(
       params: HeadlessExperimental.EnableParams,
     ): Promise<HeadlessExperimental.EnableResult | undefined>;
-
-    /**
-     * Issued when the target starts or stops needing BeginFrames.
-     * Deprecated. Issue beginFrame unconditionally instead and use result from
-     * beginFrame to detect whether the frames were suppressed.
-     * @deprecated
-     */
-    on(
-      event: 'needsBeginFramesChanged',
-      listener: (event: HeadlessExperimental.NeedsBeginFramesChangedEvent) => void,
-    ): IDisposable;
   }
 
   /**
@@ -11471,28 +11562,23 @@ export namespace Cdp {
     export interface EnableResult {}
 
     /**
-     * Parameters of the 'HeadlessExperimental.needsBeginFramesChanged' event.
-     */
-    export interface NeedsBeginFramesChangedEvent {
-      /**
-       * True if BeginFrames are needed, false otherwise.
-       */
-      needsBeginFrames: boolean;
-    }
-
-    /**
      * Encoding options for a screenshot.
      */
     export interface ScreenshotParams {
       /**
        * Image compression format (defaults to png).
        */
-      format?: 'jpeg' | 'png';
+      format?: 'jpeg' | 'png' | 'webp';
 
       /**
        * Compression quality from range [0..100] (jpeg only).
        */
       quality?: integer;
+
+      /**
+       * Optimize image encoding for speed, not for resulting size (defaults to false)
+       */
+      optimizeForSpeed?: boolean;
     }
   }
 
@@ -11697,6 +11783,28 @@ export namespace Cdp {
        * default value is 32768 bytes.
        */
       samplingInterval?: number;
+
+      /**
+       * By default, the sampling heap profiler reports only objects which are
+       * still alive when the profile is returned via getSamplingProfile or
+       * stopSampling, which is useful for determining what functions contribute
+       * the most to steady-state memory usage. This flag instructs the sampling
+       * heap profiler to also include information about objects discarded by
+       * major GC, which will show which functions cause large temporary memory
+       * usage or long GC pauses.
+       */
+      includeObjectsCollectedByMajorGC?: boolean;
+
+      /**
+       * By default, the sampling heap profiler reports only objects which are
+       * still alive when the profile is returned via getSamplingProfile or
+       * stopSampling, which is useful for determining what functions contribute
+       * the most to steady-state memory usage. This flag instructs the sampling
+       * heap profiler to also include information about objects discarded by
+       * minor GC, which is useful when tuning a latency-sensitive application
+       * for minimal GC activity.
+       */
+      includeObjectsCollectedByMinorGC?: boolean;
     }
 
     /**
@@ -11973,9 +12081,15 @@ export namespace Cdp {
      */
     export interface ClearObjectStoreParams {
       /**
+       * At least and at most one of securityOrigin, storageKey must be specified.
        * Security origin.
        */
-      securityOrigin: string;
+      securityOrigin?: string;
+
+      /**
+       * Storage key.
+       */
+      storageKey?: string;
 
       /**
        * Database name.
@@ -11998,9 +12112,15 @@ export namespace Cdp {
      */
     export interface DeleteDatabaseParams {
       /**
+       * At least and at most one of securityOrigin, storageKey must be specified.
        * Security origin.
        */
-      securityOrigin: string;
+      securityOrigin?: string;
+
+      /**
+       * Storage key.
+       */
+      storageKey?: string;
 
       /**
        * Database name.
@@ -12017,7 +12137,16 @@ export namespace Cdp {
      * Parameters of the 'IndexedDB.deleteObjectStoreEntries' method.
      */
     export interface DeleteObjectStoreEntriesParams {
-      securityOrigin: string;
+      /**
+       * At least and at most one of securityOrigin, storageKey must be specified.
+       * Security origin.
+       */
+      securityOrigin?: string;
+
+      /**
+       * Storage key.
+       */
+      storageKey?: string;
 
       databaseName: string;
 
@@ -12059,9 +12188,15 @@ export namespace Cdp {
      */
     export interface RequestDataParams {
       /**
+       * At least and at most one of securityOrigin, storageKey must be specified.
        * Security origin.
        */
-      securityOrigin: string;
+      securityOrigin?: string;
+
+      /**
+       * Storage key.
+       */
+      storageKey?: string;
 
       /**
        * Database name.
@@ -12114,9 +12249,15 @@ export namespace Cdp {
      */
     export interface GetMetadataParams {
       /**
+       * At least and at most one of securityOrigin, storageKey must be specified.
        * Security origin.
        */
-      securityOrigin: string;
+      securityOrigin?: string;
+
+      /**
+       * Storage key.
+       */
+      storageKey?: string;
 
       /**
        * Database name.
@@ -12151,9 +12292,15 @@ export namespace Cdp {
      */
     export interface RequestDatabaseParams {
       /**
+       * At least and at most one of securityOrigin, storageKey must be specified.
        * Security origin.
        */
-      securityOrigin: string;
+      securityOrigin?: string;
+
+      /**
+       * Storage key.
+       */
+      storageKey?: string;
 
       /**
        * Database name.
@@ -12176,9 +12323,15 @@ export namespace Cdp {
      */
     export interface RequestDatabaseNamesParams {
       /**
+       * At least and at most one of securityOrigin, storageKey must be specified.
        * Security origin.
        */
-      securityOrigin: string;
+      securityOrigin?: string;
+
+      /**
+       * Storage key.
+       */
+      storageKey?: string;
     }
 
     /**
@@ -16229,6 +16382,11 @@ export namespace Cdp {
        * The client security state set for the request.
        */
       clientSecurityState?: ClientSecurityState;
+
+      /**
+       * Whether the site has partitioned cookies stored in a partition different than the current one.
+       */
+      siteHasCookieInOtherPartition?: boolean;
     }
 
     /**
@@ -16289,6 +16447,7 @@ export namespace Cdp {
         | 'ResourceExhausted'
         | 'AlreadyExists'
         | 'Unavailable'
+        | 'Unauthorized'
         | 'BadResponse'
         | 'InternalError'
         | 'UnknownError'
@@ -16938,6 +17097,19 @@ export namespace Cdp {
     export type TrustTokenOperationType = 'Issuance' | 'Redemption' | 'Signing';
 
     /**
+     * The reason why Chrome uses a specific transport protocol for HTTP semantics.
+     */
+    export type AlternateProtocolUsage =
+      | 'alternativeJobWonWithoutRace'
+      | 'alternativeJobWonRace'
+      | 'mainJobWonRace'
+      | 'mappingMissing'
+      | 'broken'
+      | 'dnsAlpnH3JobWonWithoutRace'
+      | 'dnsAlpnH3JobWonRace'
+      | 'unspecifiedReason';
+
+    /**
      * HTTP response data.
      */
     export interface Response {
@@ -17047,6 +17219,11 @@ export namespace Cdp {
        * Protocol used to fetch this request.
        */
       protocol?: string;
+
+      /**
+       * The reason why Chrome uses a specific transport protocol for HTTP semantics.
+       */
+      alternateProtocolUsage?: AlternateProtocolUsage;
 
       /**
        * Security state of the request resource.
@@ -17286,6 +17463,7 @@ export namespace Cdp {
       | 'SameSiteUnspecifiedTreatedAsLax'
       | 'SameSiteNoneInsecure'
       | 'UserPreferences'
+      | 'ThirdPartyBlockedInFirstPartySet'
       | 'SyntaxError'
       | 'SchemeNotSupported'
       | 'OverwriteSecure'
@@ -17311,6 +17489,7 @@ export namespace Cdp {
       | 'SameSiteUnspecifiedTreatedAsLax'
       | 'SameSiteNoneInsecure'
       | 'UserPreferences'
+      | 'ThirdPartyBlockedInFirstPartySet'
       | 'UnknownError'
       | 'SchemefulSameSiteStrict'
       | 'SchemefulSameSiteLax'
@@ -19483,9 +19662,12 @@ export namespace Cdp {
      */
     getAppId(params: Page.GetAppIdParams): Promise<Page.GetAppIdResult | undefined>;
 
+    getAdScriptId(params: Page.GetAdScriptIdParams): Promise<Page.GetAdScriptIdResult | undefined>;
+
     /**
-     * Returns all browser cookies. Depending on the backend support, will return detailed cookie
-     * information in the `cookies` field.
+     * Returns all browser cookies for the page and all of its subframes. Depending
+     * on the backend support, will return detailed cookie information in the
+     * `cookies` field.
      * @deprecated
      */
     getCookies(params: Page.GetCookiesParams): Promise<Page.GetCookiesResult | undefined>;
@@ -20063,6 +20245,11 @@ export namespace Cdp {
        * Capture the screenshot beyond the viewport. Defaults to false.
        */
       captureBeyondViewport?: boolean;
+
+      /**
+       * Optimize image encoding for speed, not for resulting size (defaults to false)
+       */
+      optimizeForSpeed?: boolean;
     }
 
     /**
@@ -20265,6 +20452,24 @@ export namespace Cdp {
        * Recommendation for manifest's id attribute to match current id computed from start_url
        */
       recommendedId?: string;
+    }
+
+    /**
+     * Parameters of the 'Page.getAdScriptId' method.
+     */
+    export interface GetAdScriptIdParams {
+      frameId: FrameId;
+    }
+
+    /**
+     * Return value of the 'Page.getAdScriptId' method.
+     */
+    export interface GetAdScriptIdResult {
+      /**
+       * Identifies the bottom-most script which caused the frame to be labelled
+       * as an ad. Only sent if frame is labelled as an ad and id is available.
+       */
+      adScriptId?: AdScriptId;
     }
 
     /**
@@ -21136,7 +21341,7 @@ export namespace Cdp {
      * Parameters of the 'Page.setSPCTransactionMode' method.
      */
     export interface SetSPCTransactionModeParams {
-      mode: 'none' | 'autoaccept' | 'autoreject';
+      mode: 'none' | 'autoAccept' | 'autoReject' | 'autoOptOut';
     }
 
     /**
@@ -21231,12 +21436,6 @@ export namespace Cdp {
        * JavaScript stack trace of when frame was attached, only set if frame initiated from script.
        */
       stack?: Runtime.StackTrace;
-
-      /**
-       * Identifies the bottom-most script which caused the frame to be labelled
-       * as an ad. Only sent if frame is labelled as an ad and id is available.
-       */
-      adScriptId?: AdScriptId;
     }
 
     /**
@@ -21522,6 +21721,12 @@ export namespace Cdp {
       prerenderingUrl: string;
 
       finalStatus: PrerenderFinalStatus;
+
+      /**
+       * This is used to give users more information about the name of the API call
+       * that is incompatible with prerender and has caused the cancellation of the attempt
+       */
+      disallowedApiMethod?: string;
     }
 
     /**
@@ -21691,6 +21896,7 @@ export namespace Cdp {
       | 'ch-downlink'
       | 'ch-ect'
       | 'ch-prefers-color-scheme'
+      | 'ch-prefers-reduced-motion'
       | 'ch-rtt'
       | 'ch-save-data'
       | 'ch-ua'
@@ -21710,6 +21916,7 @@ export namespace Cdp {
       | 'ch-width'
       | 'clipboard-read'
       | 'clipboard-write'
+      | 'compute-pressure'
       | 'cross-origin-isolated'
       | 'direct-sockets'
       | 'display-capture'
@@ -21717,7 +21924,6 @@ export namespace Cdp {
       | 'encrypted-media'
       | 'execution-while-out-of-viewport'
       | 'execution-while-not-rendered'
-      | 'federated-credentials'
       | 'focus-without-user-activation'
       | 'fullscreen'
       | 'frobulate'
@@ -21725,6 +21931,7 @@ export namespace Cdp {
       | 'geolocation'
       | 'gyroscope'
       | 'hid'
+      | 'identity-credentials-get'
       | 'idle-detection'
       | 'interest-cohort'
       | 'join-ad-interest-group'
@@ -21742,9 +21949,11 @@ export namespace Cdp {
       | 'serial'
       | 'shared-autofill'
       | 'shared-storage'
-      | 'storage-access-api'
+      | 'smart-card'
+      | 'storage-access'
       | 'sync-xhr'
       | 'trust-token-redemption'
+      | 'unload'
       | 'usb'
       | 'vertical-scroll'
       | 'web-share'
@@ -22435,7 +22644,6 @@ export namespace Cdp {
       | 'DedicatedWorkerOrWorklet'
       | 'OutstandingNetworkRequestOthers'
       | 'OutstandingIndexedDBTransaction'
-      | 'RequestedNotificationsPermission'
       | 'RequestedMIDIPermission'
       | 'RequestedAudioCapturePermission'
       | 'RequestedVideoCapturePermission'
@@ -22466,7 +22674,10 @@ export namespace Cdp {
       | 'OutstandingNetworkRequestDirectSocket'
       | 'InjectedJavascript'
       | 'InjectedStyleSheet'
+      | 'KeepaliveRequest'
+      | 'IndexedDBEvent'
       | 'Dummy'
+      | 'AuthorizationHeader'
       | 'ContentSecurityHandler'
       | 'ContentWebAuthenticationAPI'
       | 'ContentFileChooser'
@@ -22544,8 +22755,6 @@ export namespace Cdp {
       | 'Activated'
       | 'Destroyed'
       | 'LowEndDevice'
-      | 'CrossOriginRedirect'
-      | 'CrossOriginNavigation'
       | 'InvalidSchemeRedirect'
       | 'InvalidSchemeNavigation'
       | 'InProgressNavigation'
@@ -22571,9 +22780,25 @@ export namespace Cdp {
       | 'AudioOutputDeviceRequested'
       | 'MixedContent'
       | 'TriggerBackgrounded'
-      | 'EmbedderTriggeredAndSameOriginRedirected'
       | 'EmbedderTriggeredAndCrossOriginRedirected'
-      | 'EmbedderTriggeredAndDestroyed';
+      | 'MemoryLimitExceeded'
+      | 'FailToGetMemoryUsage'
+      | 'DataSaverEnabled'
+      | 'HasEffectiveUrl'
+      | 'ActivatedBeforeStarted'
+      | 'InactivePageRestriction'
+      | 'StartFailed'
+      | 'TimeoutBackgrounded'
+      | 'CrossSiteRedirect'
+      | 'CrossSiteNavigation'
+      | 'SameSiteCrossOriginRedirect'
+      | 'SameSiteCrossOriginNavigation'
+      | 'SameSiteCrossOriginRedirectNotOptIn'
+      | 'SameSiteCrossOriginNavigationNotOptIn'
+      | 'ActivationNavigationParameterMismatch'
+      | 'ActivatedInBackground'
+      | 'EmbedderHostDisallowed'
+      | 'ActivationNavigationDestroyedBeforeSuccess';
   }
 
   /**
@@ -22871,13 +23096,6 @@ export namespace Cdp {
       params: Profiler.StartPreciseCoverageParams,
     ): Promise<Profiler.StartPreciseCoverageResult | undefined>;
 
-    /**
-     * Enable type profile.
-     */
-    startTypeProfile(
-      params: Profiler.StartTypeProfileParams,
-    ): Promise<Profiler.StartTypeProfileResult | undefined>;
-
     stop(params: Profiler.StopParams): Promise<Profiler.StopResult | undefined>;
 
     /**
@@ -22889,26 +23107,12 @@ export namespace Cdp {
     ): Promise<Profiler.StopPreciseCoverageResult | undefined>;
 
     /**
-     * Disable type profile. Disabling releases type profile data collected so far.
-     */
-    stopTypeProfile(
-      params: Profiler.StopTypeProfileParams,
-    ): Promise<Profiler.StopTypeProfileResult | undefined>;
-
-    /**
      * Collect coverage data for the current isolate, and resets execution counters. Precise code
      * coverage needs to have started.
      */
     takePreciseCoverage(
       params: Profiler.TakePreciseCoverageParams,
     ): Promise<Profiler.TakePreciseCoverageResult | undefined>;
-
-    /**
-     * Collect type profile.
-     */
-    takeTypeProfile(
-      params: Profiler.TakeTypeProfileParams,
-    ): Promise<Profiler.TakeTypeProfileResult | undefined>;
 
     on(
       event: 'consoleProfileFinished',
@@ -23030,16 +23234,6 @@ export namespace Cdp {
     }
 
     /**
-     * Parameters of the 'Profiler.startTypeProfile' method.
-     */
-    export interface StartTypeProfileParams {}
-
-    /**
-     * Return value of the 'Profiler.startTypeProfile' method.
-     */
-    export interface StartTypeProfileResult {}
-
-    /**
      * Parameters of the 'Profiler.stop' method.
      */
     export interface StopParams {}
@@ -23065,16 +23259,6 @@ export namespace Cdp {
     export interface StopPreciseCoverageResult {}
 
     /**
-     * Parameters of the 'Profiler.stopTypeProfile' method.
-     */
-    export interface StopTypeProfileParams {}
-
-    /**
-     * Return value of the 'Profiler.stopTypeProfile' method.
-     */
-    export interface StopTypeProfileResult {}
-
-    /**
      * Parameters of the 'Profiler.takePreciseCoverage' method.
      */
     export interface TakePreciseCoverageParams {}
@@ -23092,21 +23276,6 @@ export namespace Cdp {
        * Monotonically increasing time (in seconds) when the coverage update was taken in the backend.
        */
       timestamp: number;
-    }
-
-    /**
-     * Parameters of the 'Profiler.takeTypeProfile' method.
-     */
-    export interface TakeTypeProfileParams {}
-
-    /**
-     * Return value of the 'Profiler.takeTypeProfile' method.
-     */
-    export interface TakeTypeProfileResult {
-      /**
-       * Type profile for all scripts since startTypeProfile() was turned on.
-       */
-      result: ScriptTypeProfile[];
     }
 
     /**
@@ -23305,51 +23474,6 @@ export namespace Cdp {
        * Functions contained in the script that has coverage data.
        */
       functions: FunctionCoverage[];
-    }
-
-    /**
-     * Describes a type collected during runtime.
-     */
-    export interface TypeObject {
-      /**
-       * Name of a type collected with type profiling.
-       */
-      name: string;
-    }
-
-    /**
-     * Source offset and types for a parameter or return value.
-     */
-    export interface TypeProfileEntry {
-      /**
-       * Source offset of the parameter or end of function for return values.
-       */
-      offset: integer;
-
-      /**
-       * The types for this parameter or return value.
-       */
-      types: TypeObject[];
-    }
-
-    /**
-     * Type profile data collected during runtime for a JavaScript script.
-     */
-    export interface ScriptTypeProfile {
-      /**
-       * JavaScript script id.
-       */
-      scriptId: Runtime.ScriptId;
-
-      /**
-       * JavaScript script name or url.
-       */
-      url: string;
-
-      /**
-       * Type profile entries for parameters and return values of the functions in the script.
-       */
-      entries: TypeProfileEntry[];
     }
   }
 
@@ -25799,6 +25923,13 @@ export namespace Cdp {
     ): Promise<Storage.ClearDataForOriginResult | undefined>;
 
     /**
+     * Clears storage for storage key.
+     */
+    clearDataForStorageKey(
+      params: Storage.ClearDataForStorageKeyParams,
+    ): Promise<Storage.ClearDataForStorageKeyResult | undefined>;
+
+    /**
      * Returns all browser cookies.
      */
     getCookies(params: Storage.GetCookiesParams): Promise<Storage.GetCookiesResult | undefined>;
@@ -25837,11 +25968,25 @@ export namespace Cdp {
     ): Promise<Storage.TrackCacheStorageForOriginResult | undefined>;
 
     /**
+     * Registers storage key to be notified when an update occurs to its cache storage list.
+     */
+    trackCacheStorageForStorageKey(
+      params: Storage.TrackCacheStorageForStorageKeyParams,
+    ): Promise<Storage.TrackCacheStorageForStorageKeyResult | undefined>;
+
+    /**
      * Registers origin to be notified when an update occurs to its IndexedDB.
      */
     trackIndexedDBForOrigin(
       params: Storage.TrackIndexedDBForOriginParams,
     ): Promise<Storage.TrackIndexedDBForOriginResult | undefined>;
+
+    /**
+     * Registers storage key to be notified when an update occurs to its IndexedDB.
+     */
+    trackIndexedDBForStorageKey(
+      params: Storage.TrackIndexedDBForStorageKeyParams,
+    ): Promise<Storage.TrackIndexedDBForStorageKeyResult | undefined>;
 
     /**
      * Unregisters origin from receiving notifications for cache storage.
@@ -25851,11 +25996,25 @@ export namespace Cdp {
     ): Promise<Storage.UntrackCacheStorageForOriginResult | undefined>;
 
     /**
+     * Unregisters storage key from receiving notifications for cache storage.
+     */
+    untrackCacheStorageForStorageKey(
+      params: Storage.UntrackCacheStorageForStorageKeyParams,
+    ): Promise<Storage.UntrackCacheStorageForStorageKeyResult | undefined>;
+
+    /**
      * Unregisters origin from receiving notifications for IndexedDB.
      */
     untrackIndexedDBForOrigin(
       params: Storage.UntrackIndexedDBForOriginParams,
     ): Promise<Storage.UntrackIndexedDBForOriginResult | undefined>;
+
+    /**
+     * Unregisters storage key from receiving notifications for IndexedDB.
+     */
+    untrackIndexedDBForStorageKey(
+      params: Storage.UntrackIndexedDBForStorageKeyParams,
+    ): Promise<Storage.UntrackIndexedDBForStorageKeyResult | undefined>;
 
     /**
      * Returns the number of stored Trust Tokens per issuer for the
@@ -25886,6 +26045,55 @@ export namespace Cdp {
     setInterestGroupTracking(
       params: Storage.SetInterestGroupTrackingParams,
     ): Promise<Storage.SetInterestGroupTrackingResult | undefined>;
+
+    /**
+     * Gets metadata for an origin's shared storage.
+     */
+    getSharedStorageMetadata(
+      params: Storage.GetSharedStorageMetadataParams,
+    ): Promise<Storage.GetSharedStorageMetadataResult | undefined>;
+
+    /**
+     * Gets the entries in an given origin's shared storage.
+     */
+    getSharedStorageEntries(
+      params: Storage.GetSharedStorageEntriesParams,
+    ): Promise<Storage.GetSharedStorageEntriesResult | undefined>;
+
+    /**
+     * Sets entry with `key` and `value` for a given origin's shared storage.
+     */
+    setSharedStorageEntry(
+      params: Storage.SetSharedStorageEntryParams,
+    ): Promise<Storage.SetSharedStorageEntryResult | undefined>;
+
+    /**
+     * Deletes entry for `key` (if it exists) for a given origin's shared storage.
+     */
+    deleteSharedStorageEntry(
+      params: Storage.DeleteSharedStorageEntryParams,
+    ): Promise<Storage.DeleteSharedStorageEntryResult | undefined>;
+
+    /**
+     * Clears all entries for a given origin's shared storage.
+     */
+    clearSharedStorageEntries(
+      params: Storage.ClearSharedStorageEntriesParams,
+    ): Promise<Storage.ClearSharedStorageEntriesResult | undefined>;
+
+    /**
+     * Resets the budget for `ownerOrigin` by clearing all budget withdrawals.
+     */
+    resetSharedStorageBudget(
+      params: Storage.ResetSharedStorageBudgetParams,
+    ): Promise<Storage.ResetSharedStorageBudgetResult | undefined>;
+
+    /**
+     * Enables/disables issuing of sharedStorageAccessed events.
+     */
+    setSharedStorageTracking(
+      params: Storage.SetSharedStorageTrackingParams,
+    ): Promise<Storage.SetSharedStorageTrackingResult | undefined>;
 
     /**
      * A cache's contents have been modified.
@@ -25926,6 +26134,15 @@ export namespace Cdp {
       event: 'interestGroupAccessed',
       listener: (event: Storage.InterestGroupAccessedEvent) => void,
     ): IDisposable;
+
+    /**
+     * Shared storage was accessed by the associated page.
+     * The following parameters are included in all events.
+     */
+    on(
+      event: 'sharedStorageAccessed',
+      listener: (event: Storage.SharedStorageAccessedEvent) => void,
+    ): IDisposable;
   }
 
   /**
@@ -25965,6 +26182,26 @@ export namespace Cdp {
      * Return value of the 'Storage.clearDataForOrigin' method.
      */
     export interface ClearDataForOriginResult {}
+
+    /**
+     * Parameters of the 'Storage.clearDataForStorageKey' method.
+     */
+    export interface ClearDataForStorageKeyParams {
+      /**
+       * Storage key.
+       */
+      storageKey: string;
+
+      /**
+       * Comma separated list of StorageType to clear.
+       */
+      storageTypes: string;
+    }
+
+    /**
+     * Return value of the 'Storage.clearDataForStorageKey' method.
+     */
+    export interface ClearDataForStorageKeyResult {}
 
     /**
      * Parameters of the 'Storage.getCookies' method.
@@ -26098,6 +26335,21 @@ export namespace Cdp {
     export interface TrackCacheStorageForOriginResult {}
 
     /**
+     * Parameters of the 'Storage.trackCacheStorageForStorageKey' method.
+     */
+    export interface TrackCacheStorageForStorageKeyParams {
+      /**
+       * Storage key.
+       */
+      storageKey: string;
+    }
+
+    /**
+     * Return value of the 'Storage.trackCacheStorageForStorageKey' method.
+     */
+    export interface TrackCacheStorageForStorageKeyResult {}
+
+    /**
      * Parameters of the 'Storage.trackIndexedDBForOrigin' method.
      */
     export interface TrackIndexedDBForOriginParams {
@@ -26111,6 +26363,21 @@ export namespace Cdp {
      * Return value of the 'Storage.trackIndexedDBForOrigin' method.
      */
     export interface TrackIndexedDBForOriginResult {}
+
+    /**
+     * Parameters of the 'Storage.trackIndexedDBForStorageKey' method.
+     */
+    export interface TrackIndexedDBForStorageKeyParams {
+      /**
+       * Storage key.
+       */
+      storageKey: string;
+    }
+
+    /**
+     * Return value of the 'Storage.trackIndexedDBForStorageKey' method.
+     */
+    export interface TrackIndexedDBForStorageKeyResult {}
 
     /**
      * Parameters of the 'Storage.untrackCacheStorageForOrigin' method.
@@ -26128,6 +26395,21 @@ export namespace Cdp {
     export interface UntrackCacheStorageForOriginResult {}
 
     /**
+     * Parameters of the 'Storage.untrackCacheStorageForStorageKey' method.
+     */
+    export interface UntrackCacheStorageForStorageKeyParams {
+      /**
+       * Storage key.
+       */
+      storageKey: string;
+    }
+
+    /**
+     * Return value of the 'Storage.untrackCacheStorageForStorageKey' method.
+     */
+    export interface UntrackCacheStorageForStorageKeyResult {}
+
+    /**
      * Parameters of the 'Storage.untrackIndexedDBForOrigin' method.
      */
     export interface UntrackIndexedDBForOriginParams {
@@ -26141,6 +26423,21 @@ export namespace Cdp {
      * Return value of the 'Storage.untrackIndexedDBForOrigin' method.
      */
     export interface UntrackIndexedDBForOriginResult {}
+
+    /**
+     * Parameters of the 'Storage.untrackIndexedDBForStorageKey' method.
+     */
+    export interface UntrackIndexedDBForStorageKeyParams {
+      /**
+       * Storage key.
+       */
+      storageKey: string;
+    }
+
+    /**
+     * Return value of the 'Storage.untrackIndexedDBForStorageKey' method.
+     */
+    export interface UntrackIndexedDBForStorageKeyResult {}
 
     /**
      * Parameters of the 'Storage.getTrustTokens' method.
@@ -26200,6 +26497,106 @@ export namespace Cdp {
     export interface SetInterestGroupTrackingResult {}
 
     /**
+     * Parameters of the 'Storage.getSharedStorageMetadata' method.
+     */
+    export interface GetSharedStorageMetadataParams {
+      ownerOrigin: string;
+    }
+
+    /**
+     * Return value of the 'Storage.getSharedStorageMetadata' method.
+     */
+    export interface GetSharedStorageMetadataResult {
+      metadata: SharedStorageMetadata;
+    }
+
+    /**
+     * Parameters of the 'Storage.getSharedStorageEntries' method.
+     */
+    export interface GetSharedStorageEntriesParams {
+      ownerOrigin: string;
+    }
+
+    /**
+     * Return value of the 'Storage.getSharedStorageEntries' method.
+     */
+    export interface GetSharedStorageEntriesResult {
+      entries: SharedStorageEntry[];
+    }
+
+    /**
+     * Parameters of the 'Storage.setSharedStorageEntry' method.
+     */
+    export interface SetSharedStorageEntryParams {
+      ownerOrigin: string;
+
+      key: string;
+
+      value: string;
+
+      /**
+       * If `ignoreIfPresent` is included and true, then only sets the entry if
+       * `key` doesn't already exist.
+       */
+      ignoreIfPresent?: boolean;
+    }
+
+    /**
+     * Return value of the 'Storage.setSharedStorageEntry' method.
+     */
+    export interface SetSharedStorageEntryResult {}
+
+    /**
+     * Parameters of the 'Storage.deleteSharedStorageEntry' method.
+     */
+    export interface DeleteSharedStorageEntryParams {
+      ownerOrigin: string;
+
+      key: string;
+    }
+
+    /**
+     * Return value of the 'Storage.deleteSharedStorageEntry' method.
+     */
+    export interface DeleteSharedStorageEntryResult {}
+
+    /**
+     * Parameters of the 'Storage.clearSharedStorageEntries' method.
+     */
+    export interface ClearSharedStorageEntriesParams {
+      ownerOrigin: string;
+    }
+
+    /**
+     * Return value of the 'Storage.clearSharedStorageEntries' method.
+     */
+    export interface ClearSharedStorageEntriesResult {}
+
+    /**
+     * Parameters of the 'Storage.resetSharedStorageBudget' method.
+     */
+    export interface ResetSharedStorageBudgetParams {
+      ownerOrigin: string;
+    }
+
+    /**
+     * Return value of the 'Storage.resetSharedStorageBudget' method.
+     */
+    export interface ResetSharedStorageBudgetResult {}
+
+    /**
+     * Parameters of the 'Storage.setSharedStorageTracking' method.
+     */
+    export interface SetSharedStorageTrackingParams {
+      enable: boolean;
+    }
+
+    /**
+     * Return value of the 'Storage.setSharedStorageTracking' method.
+     */
+    export interface SetSharedStorageTrackingResult {}
+
+    /**
      * Parameters of the 'Storage.cacheStorageContentUpdated' event.
      */
     export interface CacheStorageContentUpdatedEvent {
@@ -26207,6 +26604,11 @@ export namespace Cdp {
        * Origin to update.
        */
       origin: string;
+
+      /**
+       * Storage key to update.
+       */
+      storageKey: string;
 
       /**
        * Name of cache in origin.
@@ -26222,6 +26624,11 @@ export namespace Cdp {
        * Origin to update.
        */
       origin: string;
+
+      /**
+       * Storage key to update.
+       */
+      storageKey: string;
     }
 
     /**
@@ -26232,6 +26639,11 @@ export namespace Cdp {
        * Origin to update.
        */
       origin: string;
+
+      /**
+       * Storage key to update.
+       */
+      storageKey: string;
 
       /**
        * Database to update.
@@ -26252,6 +26664,11 @@ export namespace Cdp {
        * Origin to update.
        */
       origin: string;
+
+      /**
+       * Storage key to update.
+       */
+      storageKey: string;
     }
 
     /**
@@ -26265,6 +26682,37 @@ export namespace Cdp {
       ownerOrigin: string;
 
       name: string;
+    }
+
+    /**
+     * Parameters of the 'Storage.sharedStorageAccessed' event.
+     */
+    export interface SharedStorageAccessedEvent {
+      /**
+       * Time of the access.
+       */
+      accessTime: Network.TimeSinceEpoch;
+
+      /**
+       * Enum value indicating the Shared Storage API method invoked.
+       */
+      type: SharedStorageAccessType;
+
+      /**
+       * DevTools Frame Token for the primary frame tree's root.
+       */
+      mainFrameId: Page.FrameId;
+
+      /**
+       * Serialized origin for the context that invoked the Shared Storage API.
+       */
+      ownerOrigin: string;
+
+      /**
+       * The sub-parameters warapped by `params` are all optional and their
+       * presence/absence depends on `type`.
+       */
+      params: SharedStorageAccessParams;
     }
 
     export type SerializedStorageKey = string;
@@ -26283,6 +26731,7 @@ export namespace Cdp {
       | 'service_workers'
       | 'cache_storage'
       | 'interest_groups'
+      | 'shared_storage'
       | 'all'
       | 'other';
 
@@ -26314,7 +26763,7 @@ export namespace Cdp {
     /**
      * Enum of interest group access types.
      */
-    export type InterestGroupAccessType = 'join' | 'leave' | 'update' | 'bid' | 'win';
+    export type InterestGroupAccessType = 'join' | 'leave' | 'update' | 'loaded' | 'bid' | 'win';
 
     /**
      * Ad advertising element inside an interest group.
@@ -26353,6 +26802,131 @@ export namespace Cdp {
 
       adComponents: InterestGroupAd[];
     }
+
+    /**
+     * Enum of shared storage access types.
+     */
+    export type SharedStorageAccessType =
+      | 'documentAddModule'
+      | 'documentSelectURL'
+      | 'documentRun'
+      | 'documentSet'
+      | 'documentAppend'
+      | 'documentDelete'
+      | 'documentClear'
+      | 'workletSet'
+      | 'workletAppend'
+      | 'workletDelete'
+      | 'workletClear'
+      | 'workletGet'
+      | 'workletKeys'
+      | 'workletEntries'
+      | 'workletLength'
+      | 'workletRemainingBudget';
+
+    /**
+     * Struct for a single key-value pair in an origin's shared storage.
+     */
+    export interface SharedStorageEntry {
+      key: string;
+
+      value: string;
+    }
+
+    /**
+     * Details for an origin's shared storage.
+     */
+    export interface SharedStorageMetadata {
+      creationTime: Network.TimeSinceEpoch;
+
+      length: integer;
+
+      remainingBudget: number;
+    }
+
+    /**
+     * Pair of reporting metadata details for a candidate URL for `selectURL()`.
+     */
+    export interface SharedStorageReportingMetadata {
+      eventType: string;
+
+      reportingUrl: string;
+    }
+
+    /**
+     * Bundles a candidate URL with its reporting metadata.
+     */
+    export interface SharedStorageUrlWithMetadata {
+      /**
+       * Spec of candidate URL.
+       */
+      url: string;
+
+      /**
+       * Any associated reporting metadata.
+       */
+      reportingMetadata: SharedStorageReportingMetadata[];
+    }
+
+    /**
+     * Bundles the parameters for shared storage access events whose
+     * presence/absence can vary according to SharedStorageAccessType.
+     */
+    export interface SharedStorageAccessParams {
+      /**
+       * Spec of the module script URL.
+       * Present only for SharedStorageAccessType.documentAddModule.
+       */
+      scriptSourceUrl?: string;
+
+      /**
+       * Name of the registered operation to be run.
+       * Present only for SharedStorageAccessType.documentRun and
+       * SharedStorageAccessType.documentSelectURL.
+       */
+      operationName?: string;
+
+      /**
+       * The operation's serialized data in bytes (converted to a string).
+       * Present only for SharedStorageAccessType.documentRun and
+       * SharedStorageAccessType.documentSelectURL.
+       */
+      serializedData?: string;
+
+      /**
+       * Array of candidate URLs' specs, along with any associated metadata.
+       * Present only for SharedStorageAccessType.documentSelectURL.
+       */
+      urlsWithMetadata?: SharedStorageUrlWithMetadata[];
+
+      /**
+       * Key for a specific entry in an origin's shared storage.
+       * Present only for SharedStorageAccessType.documentSet,
+       * SharedStorageAccessType.documentAppend,
+       * SharedStorageAccessType.documentDelete,
+       * SharedStorageAccessType.workletSet,
+       * SharedStorageAccessType.workletAppend,
+       * SharedStorageAccessType.workletDelete, and
+       * SharedStorageAccessType.workletGet.
+       */
+      key?: string;
+
+      /**
+       * Value for a specific entry in an origin's shared storage.
+       * Present only for SharedStorageAccessType.documentSet,
+       * SharedStorageAccessType.documentAppend,
+       * SharedStorageAccessType.workletSet, and
+       * SharedStorageAccessType.workletAppend.
+       */
+      value?: string;
+
+      /**
+       * Whether or not to set an entry for a key if that key is already present.
+       * Present only for SharedStorageAccessType.documentSet and
+       * SharedStorageAccessType.workletSet.
+       */
+      ignoreIfPresent?: boolean;
+    }
   }
 
   /**
@@ -26363,6 +26937,13 @@ export namespace Cdp {
      * Returns information about the system.
      */
     getInfo(params: SystemInfo.GetInfoParams): Promise<SystemInfo.GetInfoResult | undefined>;
+
+    /**
+     * Returns information about the feature state.
+     */
+    getFeatureState(
+      params: SystemInfo.GetFeatureStateParams,
+    ): Promise<SystemInfo.GetFeatureStateResult | undefined>;
 
     /**
      * Returns information about all running processes.
@@ -26407,6 +26988,20 @@ export namespace Cdp {
        * supported.
        */
       commandLine: string;
+    }
+
+    /**
+     * Parameters of the 'SystemInfo.getFeatureState' method.
+     */
+    export interface GetFeatureStateParams {
+      featureState: string;
+    }
+
+    /**
+     * Return value of the 'SystemInfo.getFeatureState' method.
+     */
+    export interface GetFeatureStateResult {
+      featureEnabled: boolean;
     }
 
     /**
@@ -27002,6 +27597,11 @@ export namespace Cdp {
        * false by default).
        */
       background?: boolean;
+
+      /**
+       * Whether to create the target of type "tab".
+       */
+      forTab?: boolean;
     }
 
     /**
@@ -27064,7 +27664,14 @@ export namespace Cdp {
     /**
      * Parameters of the 'Target.getTargets' method.
      */
-    export interface GetTargetsParams {}
+    export interface GetTargetsParams {
+      /**
+       * Only targets matching filter will be reported. If filter is not specified
+       * and target discovery is currently enabled, a filter used for target discovery
+       * is used for consistency.
+       */
+      filter?: TargetFilter;
+    }
 
     /**
      * Return value of the 'Target.getTargets' method.
@@ -27120,6 +27727,11 @@ export namespace Cdp {
        * and eventually retire it. See crbug.com/991325.
        */
       flatten?: boolean;
+
+      /**
+       * Only targets matching filter will be attached.
+       */
+      filter?: TargetFilter;
     }
 
     /**
@@ -27138,6 +27750,11 @@ export namespace Cdp {
        * to run paused targets.
        */
       waitForDebuggerOnStart: boolean;
+
+      /**
+       * Only targets matching filter will be attached.
+       */
+      filter?: TargetFilter;
     }
 
     /**
@@ -27153,6 +27770,12 @@ export namespace Cdp {
        * Whether to discover available targets.
        */
       discover: boolean;
+
+      /**
+       * Only targets matching filter will be attached. If `discover` is false,
+       * `filter` must be omitted or empty.
+       */
+      filter?: TargetFilter;
     }
 
     /**
@@ -27298,7 +27921,38 @@ export namespace Cdp {
       openerFrameId?: Page.FrameId;
 
       browserContextId?: Browser.BrowserContextID;
+
+      /**
+       * Provides additional details for specific target types. For example, for
+       * the type of "page", this may be set to "portal" or "prerender".
+       */
+      subtype?: string;
     }
+
+    /**
+     * A filter used by target query/discovery/auto-attach operations.
+     */
+    export interface FilterEntry {
+      /**
+       * If set, causes exclusion of mathcing targets from the list.
+       */
+      exclude?: boolean;
+
+      /**
+       * If not present, matches any type.
+       */
+      type?: string;
+    }
+
+    /**
+     * The entries in TargetFilter are matched sequentially against targets and
+     * the first entry that matches determines if the target is included or not,
+     * depending on the value of `exclude` field in the entry.
+     * If filter is not specified, the one assumed is
+     * [{type: "browser", exclude: true}, {type: "tab", exclude: true}, {}]
+     * (i.e. include everything but `browser` and `tab`).
+     */
+    export type TargetFilter = FilterEntry[];
 
     export interface RemoteLocation {
       host: string;
@@ -27415,8 +28069,8 @@ export namespace Cdp {
     on(event: 'bufferUsage', listener: (event: Tracing.BufferUsageEvent) => void): IDisposable;
 
     /**
-     * Contains an bucket of collected trace events. When tracing is stopped collected events will be
-     * send as a sequence of dataCollected events followed by tracingComplete event.
+     * Contains a bucket of collected trace events. When tracing is stopped collected events will be
+     * sent as a sequence of dataCollected events followed by tracingComplete event.
      */
     on(event: 'dataCollected', listener: (event: Tracing.DataCollectedEvent) => void): IDisposable;
 
@@ -28166,6 +28820,13 @@ export namespace Cdp {
     ): Promise<WebAuthn.AddVirtualAuthenticatorResult | undefined>;
 
     /**
+     * Resets parameters isBogusSignature, isBadUV, isBadUP to false if they are not present.
+     */
+    setResponseOverrideBits(
+      params: WebAuthn.SetResponseOverrideBitsParams,
+    ): Promise<WebAuthn.SetResponseOverrideBitsResult | undefined>;
+
+    /**
      * Removes the given authenticator.
      */
     removeVirtualAuthenticator(
@@ -28223,6 +28884,22 @@ export namespace Cdp {
     setAutomaticPresenceSimulation(
       params: WebAuthn.SetAutomaticPresenceSimulationParams,
     ): Promise<WebAuthn.SetAutomaticPresenceSimulationResult | undefined>;
+
+    /**
+     * Triggered when a credential is added to an authenticator.
+     */
+    on(
+      event: 'credentialAdded',
+      listener: (event: WebAuthn.CredentialAddedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Triggered when a credential is used in a webauthn assertion.
+     */
+    on(
+      event: 'credentialAsserted',
+      listener: (event: WebAuthn.CredentialAssertedEvent) => void,
+    ): IDisposable;
   }
 
   /**
@@ -28271,6 +28948,36 @@ export namespace Cdp {
     export interface AddVirtualAuthenticatorResult {
       authenticatorId: AuthenticatorId;
     }
+
+    /**
+     * Parameters of the 'WebAuthn.setResponseOverrideBits' method.
+     */
+    export interface SetResponseOverrideBitsParams {
+      authenticatorId: AuthenticatorId;
+
+      /**
+       * If isBogusSignature is set, overrides the signature in the authenticator response to be zero.
+       * Defaults to false.
+       */
+      isBogusSignature?: boolean;
+
+      /**
+       * If isBadUV is set, overrides the UV bit in the flags in the authenticator response to
+       * be zero. Defaults to false.
+       */
+      isBadUV?: boolean;
+
+      /**
+       * If isBadUP is set, overrides the UP bit in the flags in the authenticator response to
+       * be zero. Defaults to false.
+       */
+      isBadUP?: boolean;
+    }
+
+    /**
+     * Return value of the 'WebAuthn.setResponseOverrideBits' method.
+     */
+    export interface SetResponseOverrideBitsResult {}
 
     /**
      * Parameters of the 'WebAuthn.removeVirtualAuthenticator' method.
@@ -28381,6 +29088,24 @@ export namespace Cdp {
      * Return value of the 'WebAuthn.setAutomaticPresenceSimulation' method.
      */
     export interface SetAutomaticPresenceSimulationResult {}
+
+    /**
+     * Parameters of the 'WebAuthn.credentialAdded' event.
+     */
+    export interface CredentialAddedEvent {
+      authenticatorId: AuthenticatorId;
+
+      credential: Credential;
+    }
+
+    /**
+     * Parameters of the 'WebAuthn.credentialAsserted' event.
+     */
+    export interface CredentialAssertedEvent {
+      authenticatorId: AuthenticatorId;
+
+      credential: Credential;
+    }
 
     export type AuthenticatorId = string;
 

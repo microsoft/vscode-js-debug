@@ -78,6 +78,10 @@ export const serializeForClipboardTmpl = templateFunction(function (
           return '[Circular]';
         }
 
+        if (value instanceof Date) {
+          return `"${value.toISOString()}"`;
+        }
+
         if (typeof Node !== 'undefined' && valueToStringify instanceof Node) {
           return valueToStringify.outerHTML;
         }
@@ -137,7 +141,7 @@ export const serializeForClipboardTmpl = templateFunction(function (
 
 export const serializeForClipboard = remoteFunction<[number], string>(`
   function(spaces2) {
-    const result = ${serializeForClipboardTmpl('this', 'spaces2')};
+    const result = ${serializeForClipboardTmpl.expr('this', 'spaces2')};
     return result;
   }
 `);

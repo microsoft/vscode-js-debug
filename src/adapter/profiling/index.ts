@@ -92,6 +92,24 @@ export interface IProfilerFactory {
 }
 
 /**
+ * Gets a default profile file name (without an extension)
+ */
+export const getDefaultProfileName = () => {
+  const now = new Date();
+  return [
+    'vscode-profile',
+    now.getFullYear(),
+    now.getMonth() + 1,
+    now.getDate(),
+    now.getHours(),
+    now.getMinutes(),
+    now.getSeconds(),
+  ]
+    .map(n => String(n).padStart(2, '0'))
+    .join('-');
+};
+
+/**
  * Simple class that gets profilers
  */
 @injectable()

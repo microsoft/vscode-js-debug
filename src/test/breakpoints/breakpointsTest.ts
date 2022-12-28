@@ -61,12 +61,17 @@ describe('breakpoints', () => {
       };
       await p.dap.setBreakpoints({ source, breakpoints: [{ line: 2, column: 0 }] });
       p.load();
+
+      let bpChanged: Dap.BreakpointEventParams | undefined;
       await waitForPause(p, async () => {
+        // should not update bp after it's removed, #1406
+        p.dap.once('breakpoint').then(bp => (bpChanged = bp));
         await p.dap.setBreakpoints({ source });
       });
       await waitForPause(p);
       p.cdp.Runtime.evaluate({ expression: 'foo();\ndebugger;\n//# sourceURL=test.js' });
       await waitForPause(p);
+      expect(bpChanged).to.be.undefined;
       p.assertLog();
     });
 
@@ -1014,6 +1019,29 @@ describe('breakpoints', () => {
     await waitForPause(handle);
     handle.assertLog({ substring: true });
   });
+
+  itIntegrates(
+    'resolves sourcemaps in paths containing glob patterns (vscode#166400)',
+    async ({ r }) => {
+      await r.initialize;
+
+      const cwd = join(testWorkspace, 'glob(chars)');
+      const handle = await r.runScript(join(cwd, 'app.ts'), {
+        stopOnEntry: true,
+        smartStep: false,
+        outFiles: [`${cwd}/**/*.js`],
+        resolveSourceMapLocations: [`${cwd}/**/*.js`],
+      });
+      await handle.dap.setBreakpoints({
+        source: { path: join(cwd, 'app.ts') },
+        breakpoints: [{ line: 2, column: 1 }],
+      });
+
+      handle.load();
+      await waitForPause(handle);
+      handle.assertLog({ substring: true });
+    },
+  );
 
   itIntegrates('reevaluates breakpoints when new sources come in (#600)', async ({ r }) => {
     const p = await r.launchUrl('unique-refresh?v=1');

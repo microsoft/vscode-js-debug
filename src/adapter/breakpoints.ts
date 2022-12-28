@@ -5,7 +5,7 @@
 import { inject, injectable } from 'inversify';
 import Cdp from '../cdp/api';
 import { ILogger, LogTag } from '../common/logging';
-import { bisectArray, flatten } from '../common/objUtils';
+import { bisectArray } from '../common/objUtils';
 import { IPosition } from '../common/positions';
 import { delay } from '../common/promiseUtil';
 import { SourceMap } from '../common/sourceMaps/sourceMap';
@@ -93,16 +93,14 @@ export class BreakpointManager {
   private entryBreakpointMode: EntryBreakpointMode = EntryBreakpointMode.Exact;
 
   /**
-   * Gets a flat list of all registered breakpoints.
-   */
-  private get allUserBreakpoints() {
-    return flatten([...this._byPath.values(), ...this._byRef.values()]);
-  }
-
-  /**
    * A filter function that enables/disables breakpoints.
    */
   private _enabledFilter: BreakpointEnableFilter = () => true;
+
+  /**
+   * User-defined breakpoints by their DAP ID.
+   */
+  private readonly _byDapId = new Map<number, UserDefinedBreakpoint>();
 
   /**
    * User-defined breakpoints by path on disk.
@@ -157,7 +155,7 @@ export class BreakpointManager {
 
     sourceContainer.onSourceMappedSteppingChange(() => {
       if (this._thread) {
-        for (const bp of this.allUserBreakpoints) {
+        for (const bp of this._byDapId.values()) {
           bp.refreshUiLocations(this._thread);
         }
       }
@@ -178,14 +176,21 @@ export class BreakpointManager {
       // New script arrived, pointing to |sources| through a source map.
       // We search for all breakpoints in |sources| and set them to this
       // particular script.
-      for (const source of sources) {
-        const path = source.absolutePath;
-        const byPath = path ? this._byPath.get(path) : undefined;
-        for (const breakpoint of byPath || [])
-          todo.push(breakpoint.updateForSourceMap(this._thread, script));
-        const byRef = this._byRef.get(source.sourceReference);
-        for (const breakpoint of byRef || [])
-          todo.push(breakpoint.updateForSourceMap(this._thread, script));
+      const queue: Iterable<Source>[] = [sources];
+      for (let i = 0; i < queue.length; i++) {
+        for (const source of queue[i]) {
+          const path = source.absolutePath;
+          const byPath = path ? this._byPath.get(path) : undefined;
+          for (const breakpoint of byPath || [])
+            todo.push(breakpoint.updateForSourceMap(this._thread, script));
+          const byRef = this._byRef.get(source.sourceReference);
+          for (const breakpoint of byRef || [])
+            todo.push(breakpoint.updateForSourceMap(this._thread, script));
+
+          if (source.sourceMap) {
+            queue.push(source.sourceMap.sourceByUrl.values());
+          }
+        }
       }
 
       return (await Promise.all(todo)).reduce((a, b) => [...a, ...b], []);
@@ -287,7 +292,7 @@ export class BreakpointManager {
     }
 
     await Promise.all(
-      this.allUserBreakpoints.map(bp =>
+      [...this._byDapId.values()].map(bp =>
         this._enabledFilter(bp) ? bp.enable(thread) : bp.disable(),
       ),
     );
@@ -430,7 +435,7 @@ export class BreakpointManager {
       ); // will update the launchblocker
     }
 
-    if (this._byPath.size > 0 || this._byRef.size > 0) {
+    if (this._byDapId.size > 0) {
       this._installSourceMapHandler(this._thread);
     }
   }
@@ -577,6 +582,7 @@ export class BreakpointManager {
         } else {
           result.new.push(created);
           result.list.push(created);
+          this._byDapId.set(created.dapId, created);
         }
       }
 
@@ -601,7 +607,12 @@ export class BreakpointManager {
 
     // Cleanup existing breakpoints before setting new ones.
     this._totalBreakpointsCount -= result.unbound.length;
-    await Promise.all(result.unbound.map(b => b.disable()));
+    await Promise.all(
+      result.unbound.map(b => {
+        this._byDapId.delete(b.dapId);
+        b.disable();
+      }),
+    );
 
     this._totalBreakpointsCount += result.new.length;
 
@@ -644,6 +655,11 @@ export class BreakpointManager {
     breakpoint: UserDefinedBreakpoint,
     emitChange: boolean,
   ): Promise<void> {
+    // check if it was removed (#1406)
+    if (!this._byDapId.has(breakpoint.dapId)) {
+      return;
+    }
+
     const dap = await breakpoint.toDap();
     if (dap.verified) {
       this._breakpointsStatisticsCalculator.registerResolvedBreakpoint(breakpoint.dapId);
@@ -791,7 +807,7 @@ export class BreakpointManager {
    * on a script ID will no longer be bound correctly.
    */
   public executionContextWasCleared() {
-    for (const bp of this.allUserBreakpoints) {
+    for (const bp of this._byDapId.values()) {
       bp.executionContextWasCleared();
     }
   }
@@ -800,7 +816,7 @@ export class BreakpointManager {
    * Reapplies any currently-set user defined breakpoints.
    */
   public async reapply() {
-    const all = [...this.allUserBreakpoints];
+    const all = [...this._byDapId.values()];
     await Promise.all(all.map(a => a.disable()));
     if (this._thread) {
       const thread = this._thread;

@@ -15,6 +15,7 @@ const fsUtils = new LocalFsUtils(fsPromises);
 describe('node source path resolver', () => {
   describe('url to path', () => {
     const defaultOptions = {
+      workspaceFolder: 'file:///',
       resolveSourceMapLocations: null,
       basePath: __dirname,
       remoteRoot: null,
@@ -27,6 +28,17 @@ describe('node source path resolver', () => {
       expect(await r.urlToAbsolutePath({ url: 'file:///src/index.js' })).to.equal(
         resolve('/src/index.js'),
       );
+    });
+
+    it('resolves unc paths', async () => {
+      if (process.platform !== 'win32') {
+        return;
+      }
+
+      const r = new NodeSourcePathResolver(fsUtils, undefined, defaultOptions, await Logger.test());
+      expect(
+        await r.urlToAbsolutePath({ url: 'file:////mac/Home/Github/js-debug-demos/node/main.js' }),
+      ).to.equal(resolve('\\\\mac\\Home\\Github\\js-debug-demos\\node\\main.js'));
     });
 
     it('normalizes roots (win -> posix) ', async () => {

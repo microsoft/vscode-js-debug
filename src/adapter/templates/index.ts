@@ -14,6 +14,11 @@ import { SourceConstants } from '../sources';
 export const getSourceSuffix = () =>
   `\n//# sourceURL=eval-${randomBytes(4).toString('hex')}${SourceConstants.InternalExtension}\n`;
 
+export type TemplateFunction<A extends unknown[]> = {
+  expr: (...args: A) => string;
+  decl: (...args: A) => string;
+};
+
 /**
  * Creates a template for the given function that replaces its arguments
  * and generates a string to be executed where it takes expressions to be
@@ -43,21 +48,21 @@ export const getSourceSuffix = () =>
  * })();
  * ```
  */
-export function templateFunction<A>(fn: (a: A) => void): (a: string) => string;
-export function templateFunction<A, B>(fn: (a: A, b: B) => void): (a: string, b: string) => string;
+export function templateFunction<A>(fn: (a: A) => void): TemplateFunction<[string]>;
+export function templateFunction<A, B>(
+  fn: (a: A, b: B) => void,
+): TemplateFunction<[string, string]>;
 export function templateFunction<A, B, C>(
   fn: (a: A, b: B, c: C) => void,
-): (a: string, b: string, c: string) => string;
-export function templateFunction<Args extends unknown[]>(fn: string): (...args: Args) => string;
+): TemplateFunction<[string, string, string]>;
+export function templateFunction<Args extends unknown[]>(fn: string): TemplateFunction<Args>;
 export function templateFunction<Args extends unknown[]>(
   fn: string | ((...args: Args) => void),
-): (...args: string[]) => string {
+): TemplateFunction<string[]> {
   return templateFunctionStr('' + fn);
 }
 
-export function templateFunctionStr<Args extends string[]>(
-  stringified: string,
-): (...args: Args) => string {
+function templateFunctionStr<Args extends string[]>(stringified: string): TemplateFunction<Args> {
   const decl = parseExpressionAt(stringified, 0, {
     ecmaVersion: 'latest',
     locations: true,
@@ -76,10 +81,14 @@ export function templateFunctionStr<Args extends string[]>(
   });
 
   const { start, end } = decl.body as unknown as Node;
-  return (...args) => `(() => {
+  const inner = (args: string[]) => `
     ${args.map((a, i) => `let ${params[i]} = ${a}`).join('; ')};
     ${stringified.slice(start + 1, end - 1)}
-  })();${getSourceSuffix()}`;
+  `;
+  return {
+    expr: (...args: Args) => `(()=>{${inner(args)}})();\n${getSourceSuffix()}`,
+    decl: (...args: Args) => `function(){${inner(args)};\n${getSourceSuffix()}}`,
+  };
 }
 
 /**

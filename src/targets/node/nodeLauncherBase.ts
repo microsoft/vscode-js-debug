@@ -22,7 +22,7 @@ import { EnvironmentVars } from '../../common/environmentVars';
 import { EventEmitter } from '../../common/events';
 import { ILogger, LogTag } from '../../common/logging';
 import { once } from '../../common/objUtils';
-import { findInPath, forceForwardSlashes } from '../../common/pathUtils';
+import { findInPath, forceForwardSlashes, getRandomPipe } from '../../common/pathUtils';
 import { delay } from '../../common/promiseUtil';
 import { AnyLaunchConfiguration, AnyNodeConfiguration } from '../../configuration';
 import { cannotLoadEnvironmentVars } from '../../dap/errors';
@@ -81,8 +81,6 @@ export interface IRunData<T> {
   logger: ILogger;
   params: T;
 }
-
-let counter = 0;
 
 @injectable()
 export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implements ILauncher {
@@ -266,6 +264,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
       EnvironmentVars.merge(EnvironmentVars.processEnv(), this.getConfiguredEnvironment(params)),
       executable,
       params.nodeVersionHint,
+      params.cwd,
     );
   }
 
@@ -353,8 +352,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
   }
 
   protected async _startServer(telemetryReporter: ITelemetryReporter) {
-    const pipePrefix = process.platform === 'win32' ? '\\\\.\\pipe\\' : os.tmpdir();
-    const pipe = path.join(pipePrefix, `node-cdp.${process.pid}-${++counter}.sock`);
+    const pipe = getRandomPipe();
     const server = await new Promise<net.Server>((resolve, reject) => {
       const s = net
         .createServer(socket => this._startSession(socket, telemetryReporter))

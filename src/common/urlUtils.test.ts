@@ -5,6 +5,7 @@ import { expect } from 'chai';
 import { promises as dns } from 'dns';
 import { SinonStub, stub } from 'sinon';
 import {
+  absolutePathToFileUrl,
   createTargetFilter,
   fileUrlToAbsolutePath,
   getNormalizedBinaryName,
@@ -155,6 +156,13 @@ describe('urlUtils', () => {
       testUrlToRegex(
         'file:///c:/foo/%E2%91%A0%E2%85%AB%E3%84%A8%E3%84%A9%20%E5%95%8A%E9%98%BF%E9%BC%BE%E9%BD%84%E4%B8%82%E4%B8%84%E7%8B%9A%E7%8B%9B%E7%8B%9C%E7%8B%9D%EF%A8%A8%EF%A8%A9%CB%8A%CB%8B%CB%99%E2%80%93%E2%BF%BB%E3%80%87%E3%90%80%E3%90%81%E4%B6%B4%E4%B6%B5U1[%EE%80%A5%EE%80%A6%EE%80%A7%EE%80%B8%EE%80%B9]U2[%EE%89%9A%EE%89%9B%EE%89%AC%EE%89%AD]U3[%EE%93%BE%EE%93%BF%EE%94%80%EE%94%8B%EE%94%8C].js',
         '[fF][iI][lL][eE]:\\/\\/\\/[cC]:\\/[fF][oO][oO]\\/(?:①|%E2%91%A0)(?:ⅻ|%E2%85%BB|Ⅻ|%E2%85%AB)(?:ㄨ|%E3%84%A8)(?:ㄩ|%E3%84%A9)(?: |%20)(?:啊|%E5%95%8A)(?:阿|%E9%98%BF)(?:鼾|%E9%BC%BE)(?:齄|%E9%BD%84)(?:丂|%E4%B8%82)(?:丄|%E4%B8%84)(?:狚|%E7%8B%9A)(?:狛|%E7%8B%9B)(?:狜|%E7%8B%9C)(?:狝|%E7%8B%9D)(?:﨨|%EF%A8%A8)(?:﨩|%EF%A8%A9)(?:ˊ|%CB%8A)(?:ˋ|%CB%8B)(?:˙|%CB%99)(?:–|%E2%80%93)(?:⿻|%E2%BF%BB)(?:〇|%E3%80%87)(?:㐀|%E3%90%80)(?:㐁|%E3%90%81)(?:䶴|%E4%B6%B4)(?:䶵|%E4%B6%B5)[uU]1(?:\\[|%5B)(?:|%EE%80%A5)(?:|%EE%80%A6)(?:|%EE%80%A7)(?:|%EE%80%B8)(?:|%EE%80%B9)(?:\\]|%5D)[uU]2(?:\\[|%5B)(?:|%EE%89%9A)(?:|%EE%89%9B)(?:|%EE%89%AC)(?:|%EE%89%AD)(?:\\]|%5D)[uU]3(?:\\[|%5B)(?:|%EE%93%BE)(?:|%EE%93%BF)(?:|%EE%94%80)(?:|%EE%94%8B)(?:|%EE%94%8C)(?:\\]|%5D)\\.[jJ][sS]($|\\?)|[cC]:\\\\[fF][oO][oO]\\\\(?:①|%E2%91%A0)(?:ⅻ|%E2%85%BB|Ⅻ|%E2%85%AB)(?:ㄨ|%E3%84%A8)(?:ㄩ|%E3%84%A9)(?: |%20)(?:啊|%E5%95%8A)(?:阿|%E9%98%BF)(?:鼾|%E9%BC%BE)(?:齄|%E9%BD%84)(?:丂|%E4%B8%82)(?:丄|%E4%B8%84)(?:狚|%E7%8B%9A)(?:狛|%E7%8B%9B)(?:狜|%E7%8B%9C)(?:狝|%E7%8B%9D)(?:﨨|%EF%A8%A8)(?:﨩|%EF%A8%A9)(?:ˊ|%CB%8A)(?:ˋ|%CB%8B)(?:˙|%CB%99)(?:–|%E2%80%93)(?:⿻|%E2%BF%BB)(?:〇|%E3%80%87)(?:㐀|%E3%90%80)(?:㐁|%E3%90%81)(?:䶴|%E4%B6%B4)(?:䶵|%E4%B6%B5)[uU]1(?:\\[|%5B)(?:|%EE%80%A5)(?:|%EE%80%A6)(?:|%EE%80%A7)(?:|%EE%80%B8)(?:|%EE%80%B9)(?:\\]|%5D)[uU]2(?:\\[|%5B)(?:|%EE%89%9A)(?:|%EE%89%9B)(?:|%EE%89%AC)(?:|%EE%89%AD)(?:\\]|%5D)[uU]3(?:\\[|%5B)(?:|%EE%93%BE)(?:|%EE%93%BF)(?:|%EE%94%80)(?:|%EE%94%8B)(?:|%EE%94%8C)(?:\\]|%5D)\\.[jJ][sS]($|\\?)',
+      );
+    });
+
+    it('preserves multibyte characters (#1364)', () => {
+      testUrlToRegex(
+        'https://contoso.com/😊/test.js',
+        '[hH][tT][tT][pP][sS]:\\/\\/[cC][oO][nN][tT][oO][sS][oO]\\.[cC][oO][mM]\\/(?:😊|%F0%9F%98%8A)\\/[tT][eE][sS][tT]\\.[jJ][sS]($|\\?)',
       );
     });
   });
@@ -314,6 +322,16 @@ describe('urlUtils', () => {
     for (const [ip, expected] of Object.entries(ttable)) {
       it(ip, async () => expect(await isLoopback(ip)).to.equal(expected));
     }
+  });
+
+  describe('absolutePathToFileUrl', () => {
+    it('properly formats unc paths', () => {
+      overridePlatform('win32');
+      expect(absolutePathToFileUrl('\\\\my\\shared\\file.js')).to.equal(
+        'file:////my/shared/file.js',
+      );
+      resetPlatform();
+    });
   });
 
   it('getNormalizedBinaryName', () => {

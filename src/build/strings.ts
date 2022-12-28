@@ -74,6 +74,8 @@ const strings = {
   'browser.env.description': 'Optional dictionary of environment key/value pairs for the browser.',
   'browser.includeDefaultArgs.description':
     'Whether default browser launch arguments (to disable features that may make debugging harder) will be included in the launch.',
+  'browser.includeLaunchArgs.description':
+    'Advanced: whether any default launch/debugging arguments are set on the browser. The debugger will assume the browser will use pipe debugging such as that which is provided with `--remote-debugging-pipe`.',
   'browser.file.description': 'A local html file to open in the browser',
   'browser.pathMapping.description':
     'A mapping of URLs/paths to local folders, to resolve scripts in the Browser to scripts on disk',
@@ -82,7 +84,7 @@ const strings = {
   'browser.runtimeExecutable.edge.description':
     "Either 'canary', 'stable', 'dev', 'custom' or path to the browser executable. Custom means a custom wrapper, custom build or EDGE_PATH environment variable.",
   'browser.skipFiles.description':
-    'An array of file or folder names, or path globs, to skip when debugging.',
+    'An array of file or folder names, or path globs, to skip when debugging. Star patterns and negations are allowed, for example, `["**/node_modules/**", "!**/node_modules/my-module/**"]`',
   'browser.smartStep.description':
     'Automatically step through unmapped lines in sourcemapped files. For example, code that TypeScript produces automatically when downcompiling async/await or other features.',
   'browser.sourceMapPathOverrides.description':

@@ -6,13 +6,14 @@ import { promises as fs } from 'fs';
 import { marked } from 'marked';
 import { format } from 'prettier';
 import { prettier as prettierOpts } from '../../package.json';
+import { getPreferredOrDebugType } from '../common/contributionUtils';
 import { debuggers, DescribedAttribute } from './generate-contributions.js';
 import strings from './strings';
 
 (async () => {
   let out = `# Options\n\n`;
   for (const dbg of debuggers) {
-    out += `### ${dbg.type}: ${dbg.request}\n\n`;
+    out += `### ${getPreferredOrDebugType(dbg.type)}: ${dbg.request}\n\n`;
     out += `<details>`;
 
     const entries = Object.entries(dbg.configurationAttributes).sort(([a], [b]) =>

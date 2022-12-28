@@ -906,7 +906,7 @@ export class SourceContainer {
         : undefined,
       inlineSourceRange,
       runtimeScriptOffset,
-      this.launchConfig.enableContentValidation ? contentHash : undefined,
+      contentHash,
     );
 
     this._addSource(source);
@@ -1079,7 +1079,7 @@ export class SourceContainer {
   }
 
   async _addSourceMapSources(compiled: ISourceWithMap, map: SourceMap) {
-    const todo: Promise<void>[] = [];
+    const todo: Promise<unknown>[] = [];
     for (const url of map.sources) {
       const absolutePath = await this.sourcePathResolver.urlToAbsolutePath({ url, map });
       const resolvedUrl = absolutePath
@@ -1087,6 +1087,14 @@ export class SourceContainer {
         : map.computedSourceUrl(url);
 
       const existing = this._sourceMapSourcesByUrl.get(resolvedUrl);
+      // fix: some modules, like the current version of the 1DS SDK, managed to
+      // generate self-referential sourcemaps (sourcemaps with sourcesContent that
+      // have a sourceMappingUrl that refer to the same file). Avoid adding those
+      // in this check.
+      if (compiled === existing) {
+        continue;
+      }
+
       if (existing) {
         // In the case of a Webpack HMR, remove the old source entirely and
         // replace it with the new one.
@@ -1106,24 +1114,41 @@ export class SourceContainer {
         resolvedUrl,
       });
 
-      // Note: we can support recursive source maps here if we parse sourceMapUrl comment.
       const fileUrl = absolutePath && utils.absolutePathToFileUrl(absolutePath);
-      const content = this.sourceMapFactory.guardSourceMapFn(
+      const smContent = this.sourceMapFactory.guardSourceMapFn(
         map,
         () => map.sourceContentFor(url, true),
         () => null,
       );
 
+      let sourceMapUrl: string | undefined;
+      if (smContent) {
+        const rawSmUri = sourceUtils.parseSourceMappingUrl(smContent);
+        if (rawSmUri) {
+          const smIsDataUri = utils.isDataUri(rawSmUri);
+          if (!smIsDataUri && absolutePath) {
+            sourceMapUrl = utils.completeUrl(
+              absolutePath ? utils.absolutePathToFileUrl(absolutePath) : url,
+              rawSmUri,
+            );
+          } else {
+            sourceMapUrl = rawSmUri;
+          }
+        }
+      }
+
       const source = new SourceFromMap(
         this,
         resolvedUrl,
         absolutePath,
-        content !== null
-          ? () => Promise.resolve(content)
+        smContent !== null
+          ? () => Promise.resolve(smContent)
           : fileUrl
           ? () => this.resourceProvider.fetch(fileUrl).then(r => r.body)
           : () => compiled.content(),
-        undefined,
+        // Support recursive source maps if the source includes the source content.
+        // This obviates the need for the `source-map-loader` in webpack for most cases.
+        sourceMapUrl,
         undefined,
         compiled.runtimeScriptOffset,
       );

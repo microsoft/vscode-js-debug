@@ -1,3 +1,3 @@
 > result: using statement: Instance of bar
     > getter: (...)
-    > [[Prototype]]: using statement: Instance of bar
+    > [[Prototype]]: Foo

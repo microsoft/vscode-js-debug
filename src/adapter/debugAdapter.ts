@@ -20,6 +20,7 @@ import { ProtocolError } from '../dap/protocolError';
 import { disposeContainer, FS, FsPromises } from '../ioc-extras';
 import { ITarget } from '../targets/targets';
 import { ITelemetryReporter } from '../telemetry/telemetryReporter';
+import { IShutdownParticipants } from '../ui/shutdownParticipants';
 import { IAsyncStackPolicy } from './asyncStackPolicy';
 import { BreakpointManager } from './breakpoints';
 import { ICdpProxyProvider } from './cdpProxy';
@@ -117,12 +118,20 @@ export class DebugAdapter implements IDisposable {
     this.dap.on('setSourceMapStepping', params => this._setSourceMapStepping(params));
     this.dap.on('stepInTargets', params => this._stepInTargets(params));
     this.dap.on('setDebuggerProperty', params => this._setDebuggerProperty(params));
+    this.dap.on('setSymbolOptions', params => this._setSymbolOptions(params));
   }
 
   private _setDebuggerProperty(
     params: Dap.SetDebuggerPropertyParams,
   ): Promise<Dap.SetDebuggerPropertyResult> {
     this._thread?.cdp().DotnetDebugger.setDebuggerProperty(params);
+    return Promise.resolve({});
+  }
+
+  private _setSymbolOptions(
+    params: Dap.SetSymbolOptionsParams,
+  ): Promise<Dap.SetSymbolOptionsResult> {
+    this._thread?.cdp().DotnetDebugger.setSymbolOptions(params);
     return Promise.resolve({});
   }
 
@@ -192,13 +201,13 @@ export class DebugAdapter implements IDisposable {
   async _onInitialize(params: Dap.InitializeParams): Promise<Dap.InitializeResult | Dap.Error> {
     console.assert(params.linesStartAt1);
     console.assert(params.columnsStartAt1);
-    const capabilities = DebugAdapter.capabilities();
+    const capabilities = DebugAdapter.capabilities(true);
     setTimeout(() => this.dap.initialized({}), 0);
     setTimeout(() => this._thread?.dapInitialized(), 0);
     return capabilities;
   }
 
-  static capabilities(): Dap.CapabilitiesExtended {
+  static capabilities(extended = false): Dap.CapabilitiesExtended {
     return {
       supportsConfigurationDoneRequest: true,
       supportsFunctionBreakpoints: false,
@@ -255,8 +264,9 @@ export class DebugAdapter implements IDisposable {
       supportsBreakpointLocationsRequest: true,
       supportsClipboardContext: true,
       supportsExceptionFilterOptions: true,
-      supportsDebuggerProperties: true,
-      supportsEvaluationOptions: true,
+      supportsEvaluationOptions: extended ? true : false,
+      supportsDebuggerProperties: extended ? true : false,
+      supportsSetSymbolOptions: extended ? true : false,
       //supportsDataBreakpoints: false,
       //supportsDisassembleRequest: false,
     };
@@ -438,6 +448,7 @@ export class DebugAdapter implements IDisposable {
       this._services.get(IConsole),
       this._services.get(IExceptionPauseService),
       this._services.get(SmartStepper),
+      this._services.get(IShutdownParticipants),
     );
 
     const profile = this._services.get<IProfileController>(IProfileController);

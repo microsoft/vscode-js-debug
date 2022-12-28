@@ -24,6 +24,7 @@ import * as errors from '../dap/errors';
 import { ProtocolError } from '../dap/protocolError';
 import { NodeWorkerTarget } from '../targets/node/nodeWorkerTarget';
 import { ITarget } from '../targets/targets';
+import { IShutdownParticipants } from '../ui/shutdownParticipants';
 import { BreakpointManager, EntryBreakpointMode, IPossibleBreakLocation } from './breakpoints';
 import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
 import { ICompletions } from './completions';
@@ -32,7 +33,7 @@ import { CustomBreakpointId, customBreakpoints } from './customBreakpoints';
 import { IEvaluator } from './evaluator';
 import { IExceptionPauseService } from './exceptionPauseService';
 import * as objectPreview from './objectPreview';
-import { PreviewContextType } from './objectPreview/contexts';
+import { getContextForType, PreviewContextType } from './objectPreview/contexts';
 import { SmartStepper } from './smartStepping';
 import {
   base1To0,
@@ -102,7 +103,6 @@ export class ExecutionContext {
 export type Script = {
   url: string;
   scriptId: string;
-  hash: string;
   source: Promise<Source>;
   resolvedSource?: Source;
 };
@@ -202,6 +202,7 @@ export class Thread implements IVariableStoreLocationProvider {
     private readonly console: IConsole,
     private readonly exceptionPause: IExceptionPauseService,
     private readonly _smartStepper: SmartStepper,
+    private readonly shutdown: IShutdownParticipants,
   ) {
     this._dap = new DeferredContainer(dap);
     this._sourceContainer = sourceContainer;
@@ -469,7 +470,7 @@ export class Thread implements IVariableStoreLocationProvider {
     const params: Cdp.Runtime.EvaluateParams =
       args.context === 'clipboard'
         ? {
-            expression: serializeForClipboardTmpl(args.expression, '2'),
+            expression: serializeForClipboardTmpl.expr(args.expression, '2'),
             includeCommandLineAPI: true,
             returnByValue: true,
             objectGroup: 'console',
@@ -512,7 +513,7 @@ export class Thread implements IVariableStoreLocationProvider {
 
     // Report result for repl immediately so that the user could see the expression they entered.
     if (args.context === 'repl') {
-      return await this._evaluateRepl(responsePromise, args.format);
+      return await this._evaluateRepl(args, responsePromise, args.format);
     }
 
     const response = await responsePromise;
@@ -560,6 +561,7 @@ export class Thread implements IVariableStoreLocationProvider {
   }
 
   async _evaluateRepl(
+    originalCall: Dap.EvaluateParams,
     responsePromise:
       | Promise<Cdp.Runtime.EvaluateResult | undefined>
       | Promise<Cdp.Debugger.EvaluateOnCallFrameResult | undefined>,
@@ -571,16 +573,36 @@ export class Thread implements IVariableStoreLocationProvider {
     if (response.exceptionDetails) {
       const formattedException = await new ExceptionMessage(response.exceptionDetails).toDap(this);
       throw new ProtocolError(errors.replError(formattedException.output));
-    } else {
-      const contextName =
-        this._selectedContext && this.defaultExecutionContext() !== this._selectedContext
-          ? `\x1b[33m[${this.target.executionContextName(this._selectedContext.description)}] `
-          : '';
-      const resultVar = await this.replVariables
-        .createFloatingVariable(response.result)
-        .toDap(PreviewContextType.Repl, format);
-      return { ...resultVar, result: `${contextName}${resultVar.value}` };
     }
+
+    const contextName =
+      this._selectedContext && this.defaultExecutionContext() !== this._selectedContext
+        ? `\x1b[33m[${this.target.executionContextName(this._selectedContext.description)}] `
+        : '';
+    const resultVar = await this.replVariables
+      .createFloatingVariable(response.result)
+      .toDap(PreviewContextType.Repl, format);
+
+    const budget = getContextForType(PreviewContextType.Repl).budget;
+    // If it looks like output was truncated by the budget, show a message
+    // after the output is returned hinting they can copy the whole thing.
+    if (resultVar.variablesReference === 0 && resultVar.value.length === budget) {
+      setImmediate(() =>
+        this.console.enqueue(this, {
+          toDap: () => ({
+            output: localize(
+              'repl.truncated',
+              'Output has been truncated to the first {0} characters. Run `{1}` to copy the full output.',
+              budget,
+              `copy(${originalCall.expression.trim()}))`,
+            ),
+            category: 'stdout',
+          }),
+        }),
+      );
+    }
+
+    return { ...resultVar, result: `${contextName}${resultVar.value}` };
   }
 
   private _initialize() {
@@ -625,6 +647,10 @@ export class Thread implements IVariableStoreLocationProvider {
     this._cdp.Debugger.on('scriptParsed', event => this._onScriptParsed(event));
     this._cdp.Debugger.on('scriptFailedToParse', event => this._onScriptParsed(event));
     this._cdp.Runtime.enable({});
+
+    // The profilder domain is required to be always on in order to support
+    // console.profile/console.endProfile. Otherwise, these just no-op.
+    this._cdp.Profiler.enable({});
 
     if (!this.launchConfig.noDebug) {
       this._ensureDebuggerEnabledAndRefreshDebuggerId();
@@ -998,17 +1024,13 @@ export class Thread implements IVariableStoreLocationProvider {
    */
   async dispose() {
     this.disposed = true;
+
+    await this.shutdown.shutdown();
+
     for (const [debuggerId, thread] of Thread._allThreadsByDebuggerId) {
       if (thread === this) Thread._allThreadsByDebuggerId.delete(debuggerId);
     }
 
-    if (this.console.length) {
-      await new Promise(r => this.console.onDrained(r));
-    }
-    this.console.dispose();
-
-    // Wait for consoles to log before disposing scripts to ensure locations map
-    // https://github.com/microsoft/vscode/issues/142197
     this._removeAllScripts(true /* silent */);
     this._executionContextsCleared();
 
@@ -1434,7 +1456,11 @@ export class Thread implements IVariableStoreLocationProvider {
         resolvedSourceMapUrl,
         inlineSourceOffset,
         runtimeScriptOffset,
-        event.hash,
+        // only include the script hash if content validation is enabled, and if
+        // the source does not have a redirected URL. In the latter case the
+        // original file won't have a `# sourceURL=...` comment, so the hash
+        // never matches: https://github.com/microsoft/vscode-js-debug/issues/1476
+        !event.hasSourceURL && this.launchConfig.enableContentValidation ? event.hash : undefined,
       );
 
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -1455,7 +1481,6 @@ export class Thread implements IVariableStoreLocationProvider {
       url: event.url,
       scriptId: event.scriptId,
       source: createSource(),
-      hash: event.hash,
     };
     script.source.then(s => (script.resolvedSource = s));
 

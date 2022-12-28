@@ -7,7 +7,7 @@ import Cdp from '../../cdp/api';
 import { RawPipeTransport } from '../../cdp/rawPipeTransport';
 import { ITransport } from '../../cdp/transport';
 import { WebSocketTransport } from '../../cdp/webSocketTransport';
-import { NeverCancelled } from '../../common/cancellation';
+import { CancellationTokenSource } from '../../common/cancellation';
 import { IDisposable } from '../../common/disposable';
 import { EventEmitter } from '../../common/events';
 import { Logger } from '../../common/logging/logger';
@@ -70,6 +70,7 @@ const enum Method {
 
 export class WatchDog implements IDisposable {
   private readonly onEndEmitter = new EventEmitter<IStopMetadata>();
+  private readonly cts = new CancellationTokenSource();
   private target?: WebSocketTransport;
   private gracefulExit = false;
   private targetAlive = false;
@@ -150,6 +151,7 @@ export class WatchDog implements IDisposable {
    */
   public dispose() {
     this.gracefulExit = true;
+    this.cts.dispose(true);
     this.disposeTarget();
     this.server.dispose(); // will cause the end emitter to fire after teardown finishes
   }
@@ -188,7 +190,7 @@ export class WatchDog implements IDisposable {
 
   private async createTarget() {
     this.gracefulExit = false; // reset
-    const target = await WebSocketTransport.create(this.info.inspectorURL, NeverCancelled);
+    const target = await WebSocketTransport.create(this.info.inspectorURL, this.cts.token);
     target.onMessage(([data]) => this.server.send(data));
     target.onEnd(() => {
       if (target) {

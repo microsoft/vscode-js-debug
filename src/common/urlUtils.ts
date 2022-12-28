@@ -11,7 +11,7 @@ import { BrowserTargetType } from '../targets/browser/browserTargets';
 import { MapUsingProjection } from './datastructure/mapUsingProjection';
 import { IFsUtils } from './fsUtils';
 import { memoize } from './objUtils';
-import { fixDriveLetterAndSlashes, forceForwardSlashes } from './pathUtils';
+import { fixDriveLetterAndSlashes, forceForwardSlashes, isUncPath } from './pathUtils';
 import { escapeRegexSpecialChars, isRegexSpecialChar } from './stringUtils';
 
 let isCaseSensitive = process.platform !== 'win32';
@@ -265,6 +265,17 @@ export function fileUrlToAbsolutePath(urlOrPath: string): string | undefined {
 
   urlOrPath = urlOrPath.replace('file:///', '');
   urlOrPath = decodeURIComponent(urlOrPath);
+
+  // UNC paths are returned from Chrome in the form `file:////shared/folder`,
+  // rather than `file:///`. This is not _entirely_ prescriptive since some
+  // applications can use four slashes for posix paths as well (even though V8
+  // doesn't seem to), so only do this if the debugger is currently running on Windows.
+  if (urlOrPath.startsWith('/') && process.platform === 'win32') {
+    if (urlOrPath[1] !== '/') {
+      urlOrPath = '/' + urlOrPath; // restore extra slash
+    }
+  }
+
   if (urlOrPath[0] !== '/' && !urlOrPath.match(/^[A-Za-z]:/)) {
     // If it has a : before the first /, assume it's a windows path or url.
     // Ensure unix-style path starts with /, it can be removed when file:/// was stripped.
@@ -353,8 +364,8 @@ const charRangeToUrlReGroup = (str: string, start: number, end: number, escapeRe
 
   // Loop through each character of the string. Convert the char to a regex,
   // creating a group, and then append that to the match.
-  for (let i = start; i < end; i++) {
-    const char = str[i];
+  // Note that using "for..of" is important here to loop over UTF code points.
+  for (const char of str.slice(start, end)) {
     if (isCaseSensitive) {
       urlToRegexChar(char, charToUrlReGroupSet, escapeRegex);
     } else {
@@ -407,17 +418,18 @@ export function urlToRegex(
     // fancy regex above), replace `file:///c:/` or simple `c:/` patterns with
     // an insensitive drive letter.
     patterns.push(
-      `${rePrefix}${re}${reSuffix}`
-        .replace(
-          /^(file:\\\/\\\/\\\/)?([a-z]):/i,
-          (_, file = '', letter) => `${file}[${letter.toUpperCase()}${letter.toLowerCase()}]:`,
-        )
-        .concat('($|\\?)'),
+      makeDriveLetterReCaseInsensitive(`${rePrefix}${re}${reSuffix}`).concat('($|\\?)'),
     );
   }
 
   return patterns.join('|');
 }
+
+export const makeDriveLetterReCaseInsensitive = (re: string) =>
+  re.replace(
+    /^(file:\\\/\\\/\\\/)?([a-z]):/i,
+    (_, file = '', letter) => `${file}[${letter.toUpperCase()}${letter.toLowerCase()}]:`,
+  );
 
 /**
  * Opaque typed used to indicate strings that are file URLs.
@@ -466,6 +478,9 @@ export function platformPathToUrlPath(p: string): string {
   p = platformPathToPreferredCase(p);
 
   if (platform === 'win32') {
+    if (isUncPath(p)) {
+      p = p.slice(1); // emit "file:////" and not "file://///" to match what V8 expects
+    }
     return p
       .split(/[\\//]/g)
       .map((p, i) => (i > 0 ? encodeURIComponent(p) : p))

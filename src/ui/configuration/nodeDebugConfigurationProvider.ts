@@ -90,7 +90,7 @@ export class NodeDynamicDebugConfigurationProvider extends BaseConfigurationProv
       return [openTerminal];
     }
 
-    const scripts = await findScripts([folder.uri.fsPath], true);
+    const scripts = await findScripts([folder], true);
     if (!scripts) {
       return [openTerminal];
     }

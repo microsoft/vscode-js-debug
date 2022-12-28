@@ -3,11 +3,20 @@
  *--------------------------------------------------------*/
 
 import execa from 'execa';
+import { tmpdir } from 'os';
 import * as path from 'path';
 import { FsPromises } from '../ioc-extras';
 import { EnvironmentVars } from './environmentVars';
 import { existsInjected } from './fsUtils';
 import { removeNulls } from './objUtils';
+
+/** Platform-specific path for named sockets */
+export const namedSocketDirectory = process.platform === 'win32' ? '\\\\.\\pipe\\' : tmpdir();
+
+let pipeCounter = 0;
+
+export const getRandomPipe = () =>
+  path.join(namedSocketDirectory, `node-cdp.${process.pid}-${pipeCounter++}.sock`);
 
 /*
  * Lookup the given program on the PATH and return its absolute path on success and undefined otherwise.
@@ -219,4 +228,4 @@ export const isUncPath = (path: string) => path.startsWith('\\\\');
 /**
  * Returns whether the path looks like a Windows path.
  */
-export const isWindowsPath = (path: string) => /^[A-Za-z]:/.test(path);
+export const isWindowsPath = (path: string) => /^[A-Za-z]:/.test(path) || isUncPath(path);

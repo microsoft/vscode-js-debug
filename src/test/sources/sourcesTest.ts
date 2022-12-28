@@ -87,6 +87,21 @@ describe('sources', () => {
     p.assertLog();
   });
 
+  itIntegrates('supports nested sourcemaps (#1390)', async ({ r }) => {
+    await r.initialize;
+
+    const cwd = join(testWorkspace, 'nestedSourceMaps');
+    const handle = await r.runScript(join(cwd, 'a/main.bundle.js'), { cwd });
+    await handle.dap.setBreakpoints({
+      source: { path: join(testWorkspace, 'nestedSourceMaps', 'b', 'lib.js') },
+      breakpoints: [{ line: 2, column: 1 }],
+    });
+
+    handle.load();
+    await waitForPause(handle);
+    handle.assertLog({ substring: true });
+  });
+
   itIntegrates('works with relative webpack sourcemaps (#479)', async ({ r }) => {
     const p = await r.launchUrl('webpack/relative-paths.html');
 

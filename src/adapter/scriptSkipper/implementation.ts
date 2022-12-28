@@ -10,7 +10,7 @@ import { MapUsingProjection } from '../../common/datastructure/mapUsingProjectio
 import { EventEmitter } from '../../common/events';
 import { ILogger, LogTag } from '../../common/logging';
 import { node15InternalsPrefix } from '../../common/node15Internal';
-import { trailingEdgeThrottle } from '../../common/objUtils';
+import { memoizeLast, trailingEdgeThrottle, truthy } from '../../common/objUtils';
 import * as pathUtils from '../../common/pathUtils';
 import { getDeferred, IDeferred } from '../../common/promiseUtil';
 import { escapeRegexSpecialChars } from '../../common/stringUtils';
@@ -26,6 +26,7 @@ import {
   SourceFromMap,
 } from '../sources';
 import { getSourceSuffix } from '../templates';
+import { simpleGlobsToRe } from './simpleGlobToRe';
 
 interface ISharedSkipToggleEvent {
   rootTargetId: string;
@@ -33,20 +34,63 @@ interface ISharedSkipToggleEvent {
   params: Dap.ToggleSkipFileStatusParams;
 }
 
+function preprocessNodeInternals(userSkipPatterns: ReadonlyArray<string>): string[] | undefined {
+  const nodeInternalRegex = /^<node_internals>[\/\\](.*)$/;
+
+  const nodeInternalPatterns = userSkipPatterns
+    .map(userPattern => {
+      userPattern = userPattern.trim();
+      const nodeInternalPattern = nodeInternalRegex.exec(userPattern);
+      return nodeInternalPattern ? nodeInternalPattern[1] : null;
+    })
+    .filter(truthy);
+
+  return nodeInternalPatterns.length > 0 ? nodeInternalPatterns : undefined;
+}
+
+function preprocessAuthoredGlobs(userSkipPatterns: ReadonlyArray<string>): string[] {
+  const authoredGlobs = userSkipPatterns
+    .filter(pattern => !pattern.includes('<node_internals>'))
+    .map(pattern =>
+      urlUtils.isAbsolute(pattern)
+        ? urlUtils.absolutePathToFileUrl(pattern)
+        : pathUtils.forceForwardSlashes(pattern),
+    )
+    .map(urlUtils.lowerCaseInsensitivePath);
+
+  return authoredGlobs;
+}
+
 @injectable()
 export class ScriptSkipper {
   private static sharedSkipsEmitter = new EventEmitter<ISharedSkipToggleEvent>();
 
-  private _nonNodeInternalGlobs: string[] | null = null;
+  /**
+   * Globs for non-<node_internals> skipfiles. This might be changed over time
+   * if the user uses the "toggle skipping this file" command.
+   */
+  private _authoredGlobs: readonly string[];
 
-  // filtering node internals
-  private _nodeInternalsGlobs: string[] | null = null;
-  private _allNodeInternals?: IDeferred<ReadonlySet<string>>; // only set by Node
+  /** Memoized computer for non-<node_internals> skipfiles */
+  private _regexForAuthored = memoizeLast(simpleGlobsToRe);
 
-  private _isUrlSkipped: Map<string, boolean>;
-  private _isAuthoredUrlSkipped: Map<string, boolean>;
+  /**
+   * Globs for node internals. These are treated specially, at least until we
+   * drop support for Node <=14, since in Node 15 the internals all have a
+   * `node:` prefix that we can match against.
+   */
+  private _nodeInternalsGlobs: string[] | undefined;
 
-  private _updateSkippedDebounce: () => void;
+  /** Set of all internal modules, read from the runtime */
+  private _allNodeInternals?: IDeferred<ReadonlySet<string>>;
+
+  /**
+   * Mapping of URLs from sourcemaps to a boolean indicating whether they're
+   * skipped. These are kept and used in addition to the authoredGlobs, since
+   * if a compiled file is skipped, we want to skip the sourcemapped sources
+   * as well.
+   */
+  private _isUrlFromSourceMapSkipped: Map<string, boolean>;
 
   /**
    * A set of script ID that have one or more skipped ranges in them. Mostly
@@ -55,7 +99,7 @@ export class ScriptSkipper {
   private _scriptsWithSkipping = new Set<string>();
 
   private _sourceContainer!: SourceContainer;
-
+  private _updateSkippedDebounce: () => void;
   private _targetId: string;
   private _rootTargetId: string;
 
@@ -67,17 +111,21 @@ export class ScriptSkipper {
   ) {
     this._targetId = target.id();
     this._rootTargetId = getRootTarget(target).id();
-    this._isUrlSkipped = new MapUsingProjection<string, boolean>(key => this._normalizeUrl(key));
-    this._isAuthoredUrlSkipped = new MapUsingProjection<string, boolean>(key =>
+    this._isUrlFromSourceMapSkipped = new MapUsingProjection<string, boolean>(key =>
       this._normalizeUrl(key),
     );
 
-    this._preprocessNodeInternals(skipFiles);
-    this._setRegexForNonNodeInternals(skipFiles);
+    this._authoredGlobs = preprocessAuthoredGlobs(skipFiles);
+    this._nodeInternalsGlobs = preprocessNodeInternals(skipFiles);
+
     this._initNodeInternals(target); // Purposely don't wait, no need to slow things down
     this._updateSkippedDebounce = trailingEdgeThrottle(500, () =>
       this._updateGeneratedSkippedSources(),
     );
+
+    if (skipFiles.length) {
+      this._updateGeneratedSkippedSources();
+    }
 
     ScriptSkipper.sharedSkipsEmitter.event(e => {
       if (e.rootTargetId === this._rootTargetId && e.targetId !== this._targetId) {
@@ -88,33 +136,6 @@ export class ScriptSkipper {
 
   public setSourceContainer(sourceContainer: SourceContainer): void {
     this._sourceContainer = sourceContainer;
-  }
-
-  private _preprocessNodeInternals(userSkipPatterns: ReadonlyArray<string>): void {
-    const nodeInternalRegex = /^<node_internals>[\/\\](.*)$/;
-
-    const nodeInternalPatterns = userSkipPatterns
-      .map(userPattern => {
-        userPattern = userPattern.trim();
-        const nodeInternalPattern = nodeInternalRegex.exec(userPattern);
-        return nodeInternalPattern ? nodeInternalPattern[1] : null;
-      })
-      .filter(nonNullPattern => nonNullPattern) as string[];
-
-    if (nodeInternalPatterns.length > 0) {
-      this._nodeInternalsGlobs = nodeInternalPatterns;
-    }
-  }
-
-  private _setRegexForNonNodeInternals(userSkipPatterns: ReadonlyArray<string>): void {
-    const nonNodeInternalGlobs = userSkipPatterns
-      .filter(pattern => !pattern.includes('<node_internals>'))
-      .map(pattern => pathUtils.forceForwardSlashes(pattern))
-      .map(urlUtils.lowerCaseInsensitivePath);
-
-    if (nonNodeInternalGlobs.length > 0) {
-      this._nonNodeInternalGlobs = nonNodeInternalGlobs;
-    }
   }
 
   private _testSkipNodeInternal(testString: string): boolean {
@@ -129,17 +150,8 @@ export class ScriptSkipper {
     return micromatch([testString], this._nodeInternalsGlobs).length > 0;
   }
 
-  private _testSkipNonNodeInternal(testString: string): boolean {
-    if (this._nonNodeInternalGlobs) {
-      return (
-        micromatch(
-          [urlUtils.lowerCaseInsensitivePath(pathUtils.forceForwardSlashes(testString))],
-          this._nonNodeInternalGlobs,
-          { dot: true },
-        ).length > 0
-      );
-    }
-    return false;
+  private _testSkipAuthored(testString: string): boolean {
+    return this._regexForAuthored(this._authoredGlobs).some(re => re.test(testString));
   }
 
   private _isNodeInternal(url: string, nodeInternals: ReadonlySet<string> | undefined): boolean {
@@ -150,30 +162,40 @@ export class ScriptSkipper {
     return nodeInternals?.has(url) || /^internal\/.+\.js$/.test(url);
   }
 
-  private async _updateBlackboxedUrls(urlsToBlackbox: string[]): Promise<void> {
-    const blackboxPatterns = urlsToBlackbox
-      .map(url => escapeRegexSpecialChars(url))
-      .map(url => `^${url}$`);
-    await this.cdp.Debugger.setBlackboxPatterns({ patterns: blackboxPatterns });
-  }
+  private async _updateGeneratedSkippedSources(): Promise<void> {
+    const patterns: string[] = this._regexForAuthored(this._authoredGlobs).map(re => re.source);
 
-  private _updateGeneratedSkippedSources(): Promise<void> {
-    const urlsToSkip: string[] = [];
-    for (const [url, isSkipped] of this._isUrlSkipped.entries()) {
-      if (isSkipped) {
-        urlsToSkip.push(url);
+    const nodeInternals = this._allNodeInternals?.settledValue;
+    if (nodeInternals) {
+      patterns.push(`^(${node15InternalsPrefix})?internal\\/`);
+      for (const internal of nodeInternals) {
+        if (this._testSkipNodeInternal(internal)) {
+          patterns.push(`^(${node15InternalsPrefix})?${escapeRegexSpecialChars(internal)}$`);
+        }
       }
     }
-    return this._updateBlackboxedUrls(urlsToSkip);
+
+    await this.cdp.Debugger.setBlackboxPatterns({ patterns });
   }
 
   private _normalizeUrl(url: string): string {
     return pathUtils.forceForwardSlashes(url.toLowerCase());
   }
 
+  /**
+   * Gets whether the script at the URL is skipped.
+   */
   public isScriptSkipped(url: string): boolean {
-    const norm = this._normalizeUrl(url);
-    return this._isUrlSkipped.get(norm) === true || this._isAuthoredUrlSkipped.get(norm) === true;
+    if (this._isNodeInternal(url, this._allNodeInternals?.settledValue)) {
+      return this._testSkipNodeInternal(url);
+    }
+
+    url = this._normalizeUrl(url);
+    if (this._isUrlFromSourceMapSkipped.get(url) === true) {
+      return true;
+    }
+
+    return this._testSkipAuthored(this._normalizeUrl(url));
   }
 
   private async _updateSourceWithSkippedSourceMappedSources(
@@ -225,56 +247,40 @@ export class ScriptSkipper {
   }
 
   public initializeSkippingValueForSource(source: Source) {
-    const nodeInternals = this._allNodeInternals?.settledValue;
-    if (this._allNodeInternals && !nodeInternals) {
-      this._allNodeInternals.promise.then(v => this._initializeSkippingValueForSource(source, v));
-    } else {
-      this._initializeSkippingValueForSource(source, nodeInternals);
-    }
+    this._initializeSkippingValueForSource(source);
   }
 
-  private _initializeSkippingValueForSource(
-    source: Source,
-    nodeInternals: ReadonlySet<string> | undefined,
-    scriptIds = source.scriptIds(),
-  ): boolean {
-    const map = source instanceof SourceFromMap ? this._isAuthoredUrlSkipped : this._isUrlSkipped;
+  private _initializeSkippingValueForSource(source: Source, scriptIds = source.scriptIds()) {
     const url = source.url;
-    if (!map.has(this._normalizeUrl(url))) {
-      if (this._isNodeInternal(url, nodeInternals)) {
-        map.set(url, this._testSkipNodeInternal(url));
-      } else if (source.absolutePath) {
-        map.set(url, this._testSkipNonNodeInternal(source.absolutePath));
-      } else {
-        map.set(url, this._testSkipNonNodeInternal(url));
-      }
-    }
+    let skipped = this.isScriptSkipped(url);
 
-    let hasSkip = this.isScriptSkipped(url);
-    if (hasSkip) {
-      if (isSourceWithMap(source)) {
-        // if compiled and skipped, also skip authored sources
-        const authoredSources = Array.from(source.sourceMap.sourceByUrl.values());
-        authoredSources.forEach(authoredSource => {
-          this._isAuthoredUrlSkipped.set(authoredSource.url, true);
-        });
-      }
+    // Check if this source was mapped to a URL we should have skipped, but didn't (oops)
+    // This can happen if the user skips absolute paths which are served from a different
+    // place in the server.
+    if (
+      !skipped &&
+      source.absolutePath &&
+      this._testSkipAuthored(urlUtils.absolutePathToFileUrl(source.absolutePath))
+    ) {
+      this.setIsUrlBlackboxSkipped(url, true);
+      skipped = true;
+      this._updateSkippedDebounce();
     }
 
     if (isSourceWithMap(source)) {
+      if (skipped) {
+        // if compiled and skipped, also skip authored sources
+        for (const authoredSource of source.sourceMap.sourceByUrl.values()) {
+          this._isUrlFromSourceMapSkipped.set(authoredSource.url, true);
+        }
+      }
+
       for (const nestedSource of source.sourceMap.sourceByUrl.values()) {
-        hasSkip =
-          this._initializeSkippingValueForSource(nestedSource, nodeInternals, scriptIds) || hasSkip;
+        this._initializeSkippingValueForSource(nestedSource, scriptIds);
       }
 
       this._updateSourceWithSkippedSourceMappedSources(source, scriptIds);
     }
-
-    if (hasSkip) {
-      this._updateSkippedDebounce();
-    }
-
-    return hasSkip;
   }
 
   private async _initNodeInternals(target: ITarget): Promise<void> {
@@ -294,6 +300,8 @@ export class ScriptSkipper {
     } else {
       deferred.resolve(new Set());
     }
+
+    await this._updateGeneratedSkippedSources(); // updates skips now that we loaded internals
   }
 
   private async _toggleSkippingFile(
@@ -305,38 +313,53 @@ export class ScriptSkipper {
         path = params.resource;
       }
     }
+
     const sourceParams: Dap.Source = { path: path, sourceReference: params.sourceReference };
-
     const source = this._sourceContainer.source(sourceParams);
-    if (source) {
-      const newSkipValue = !this.isScriptSkipped(source.url);
-      if (source instanceof SourceFromMap) {
-        this._isAuthoredUrlSkipped.set(source.url, newSkipValue);
+    if (!source) {
+      return {};
+    }
 
-        // Changed the skip value for an authored source, update it for all its compiled sources
-        const compiledSources = Array.from(source.compiledToSourceUrl.keys());
-        await Promise.all(
-          compiledSources.map(compiledSource =>
-            this._updateSourceWithSkippedSourceMappedSources(
-              compiledSource,
-              compiledSource.scriptIds(),
-            ),
+    const newSkipValue = !this.isScriptSkipped(source.url);
+    if (source instanceof SourceFromMap) {
+      this._isUrlFromSourceMapSkipped.set(source.url, newSkipValue);
+
+      // Changed the skip value for an authored source, update it for all its compiled sources
+      const compiledSources = Array.from(source.compiledToSourceUrl.keys());
+      await Promise.all(
+        compiledSources.map(compiledSource =>
+          this._updateSourceWithSkippedSourceMappedSources(
+            compiledSource,
+            compiledSource.scriptIds(),
           ),
-        );
-      } else {
-        this._isUrlSkipped.set(source.url, newSkipValue);
-        if (isSourceWithMap(source)) {
-          // if compiled, get authored sources
-          for (const authoredSource of source.sourceMap.sourceByUrl.values()) {
-            this._isAuthoredUrlSkipped.set(authoredSource.url, newSkipValue);
-          }
+        ),
+      );
+    } else {
+      if (isSourceWithMap(source)) {
+        // if compiled, get authored sources
+        for (const authoredSource of source.sourceMap.sourceByUrl.values()) {
+          this._isUrlFromSourceMapSkipped.set(authoredSource.url, newSkipValue);
         }
       }
 
+      this.setIsUrlBlackboxSkipped(source.url, newSkipValue);
       await this._updateGeneratedSkippedSources();
     }
 
     return {};
+  }
+
+  /** Sets whether the URL is explicitly skipped in the blackbox patterns */
+  private setIsUrlBlackboxSkipped(url: string, skipped: boolean) {
+    const positive = url;
+    const negative = `!${positive}`;
+
+    const globs = this._authoredGlobs.filter(g => g !== positive && g !== negative);
+    if (this._regexForAuthored(globs).some(r => r.test(url)) !== skipped) {
+      globs.push(skipped ? positive : negative);
+      this._regexForAuthored.clear();
+    }
+    this._authoredGlobs = globs;
   }
 
   public async toggleSkippingFile(

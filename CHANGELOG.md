@@ -4,6 +4,47 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
+- fix: js files with sourceURLs opening readonly versions ([#1476](https://github.com/microsoft/vscode-js-debug/issues/1476))
+- fix: breakpoints not setting in paths with special glob characters ([vscode#166400](https://github.com/microsoft/vscode/issues/166400))
+- fix: better handling of multiple glob patterns and negations ([#1479](https://github.com/microsoft/vscode-js-debug/issues/1479))
+- fix: skipFiles making catastrophic regexes ([#1469](https://github.com/microsoft/vscode-js-debug/issues/1469))
+- fix: private properties in Blazor apps not grouping correctly ([#1331](https://github.com/microsoft/vscode-js-debug/issues/1331))
+- fix: perScriptSourcemaps not reliably breaking ([vscode#166369](https://github.com/microsoft/vscode/issues/166369))
+- fix: custom object `toString()` previews being too short ([vscode#155142](https://github.com/microsoft/vscode/issues/155142))
+- fix: show warning if console output length is hit ([vscode#154479](https://github.com/microsoft/vscode/issues/154479))
+- fix: improve variable and repl performance in large projects ([#1433](https://github.com/microsoft/vscode-js-debug/issues/1433))
+- fix: add ipv4->6 fallback ([vscode#167353](https://github.com/microsoft/vscode/issues/167353))
+- fix: js-debug in the browser showing extraneous error ([#1440](https://github.com/microsoft/vscode-js-debug/issues/1440))
+- fix: sourcemap renames not resolving property accessors ([#1383](https://github.com/microsoft/vscode-js-debug/issues/1383))
+- fix: breakpoint in blazor files set in JS not applying ([#1488](https://github.com/microsoft/vscode-js-debug/issues/1488))
+- fix: reduce number of ports used by debugger ([vscode#169182](https://github.com/microsoft/vscode/issues/169182))
+
+## v1.74 (November 2022)
+
+### v1.74.0 - 2022-11-28
+
+- feat: add automatic support for nested sourcemaps ([#1390](https://github.com/microsoft/vscode-js-debug/issues/1390))
+- feat: add an `ignoreLaunchArgs` option ([vscode#162957](https://github.com/microsoft/vscode/issues/162957))
+- feat: add support for `console.profile` ([#1443](https://github.com/microsoft/vscode-js-debug/issues/1443))
+- fix: copying a date object resulting in an empty object ([vscode#162747](https://github.com/microsoft/vscode/issues/162747))
+- fix: improve performance when using skipFiles in large projects ([#1179](https://github.com/microsoft/vscode-js-debug/issues/1179))
+- fix: breakpoints failing to set on paths with multibyte URL characters ([#1364](https://github.com/microsoft/vscode-js-debug/issues/1364))
+- fix: properly handle UNC paths ([#1148](https://github.com/microsoft/vscode-js-debug/issues/1148))
+- fix: discover npm scripts in nested workspace folders ([#1321](https://github.com/microsoft/vscode-js-debug/issues/1321))
+- chore: loosen restriction around enabling auto attach ([#1392](https://github.com/microsoft/vscode-js-debug/issues/1392))
+- fix: use platform preferred case in launcher ([#1448](https://github.com/microsoft/vscode-js-debug/1448)) Contributed on behalf of STMicroelectronics
+
+## v1.72 (September 2022)
+
+### v1.72.0 - 2022-09-27
+
+- fix: request loop on certain kinds of Node.js attach failures ([vscode#156810](https://github.com/microsoft/vscode/issues/156810))
+- fix: breakpoints not being removed during startup ([#1371](https://github.com/microsoft/vscode-js-debug/issues/1371))
+
+## v1.71 (August 2022)
+
+### v1.71.0 - 2022-08-24
+
 - feat: make Deno easier to configure
 - fix: path display issues in breakpoint diagnostic tool ([#1343](https://github.com/microsoft/vscode-js-debug/issues/1343))
 - fix: improve breakpoint resolution in webpack HMR ([vscode#155331](https://github.com/microsoft/vscode/issues/155331))

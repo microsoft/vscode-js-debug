@@ -47,7 +47,7 @@ import {
 } from '../configuration';
 import strings from './strings';
 
-const appInsightsKey = 'AIF-d9b70cd4-b9f9-4d70-929b-a071c400b217';
+const appInsightsKey = '0c6ae279ed8443289764825290e4f9e2-1a736e7c-1324-4338-be46-fc2a58ae4d14-7255';
 
 type OmittedKeysFromAttributes =
   | keyof IMandatedConfiguration
@@ -127,7 +127,7 @@ interface IDebugger<T extends AnyLaunchConfiguration> {
   } & Described)[];
   configurationAttributes: ConfigurationAttributes<T>;
   defaults: T;
-  uiMessages?: { unverifiedBreakpoints?: string };
+  strings?: { unverifiedBreakpoints?: string };
 }
 
 const commonLanguages = ['javascript', 'typescript', 'javascriptreact', 'typescriptreact'];
@@ -814,6 +814,11 @@ const chromeLaunchConfig: IDebugger<IChromeLaunchConfiguration> = {
       description: refString('browser.includeDefaultArgs.description'),
       default: true,
     },
+    includeLaunchArgs: {
+      type: 'boolean',
+      description: refString('browser.includeLaunchArgs.description'),
+      default: true,
+    },
     runtimeExecutable: {
       type: ['string', 'null'],
       description: refString('browser.runtimeExecutable.description'),
@@ -1046,7 +1051,7 @@ function buildDebuggers() {
       aiKey: appInsightsKey,
       configurationAttributes: {},
       configurationSnippets: [],
-      uiMessages: { unverifiedBreakpoints: refString('debug.unverifiedBreakpoints') },
+      strings: { unverifiedBreakpoints: refString('debug.unverifiedBreakpoints') },
     };
     output.push(entry);
     return entry;

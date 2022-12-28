@@ -458,7 +458,7 @@ export class StackFrame implements IFrameElement {
 
     const extraProperties: IExtraProperty[] = [];
     if (scopeNumber === 0) {
-      extraProperties.push({ name: 'this', value: scope.thisObject });
+      if (scope.thisObject) extraProperties.push({ name: 'this', value: scope.thisObject });
       if (scope.returnValue)
         extraProperties.push({
           name: localize('scope.returnValue', 'Return value'),
@@ -473,7 +473,7 @@ export class StackFrame implements IFrameElement {
     return (scope.variables[scopeNumber] = variable);
   }
 
-  async completions(): Promise<Dap.CompletionItem[]> {
+  public readonly completions = once(async (): Promise<Dap.CompletionItem[]> => {
     if (!this._scope) return [];
     const variableStore = this._thread.pausedVariables();
     if (!variableStore) {
@@ -484,14 +484,14 @@ export class StackFrame implements IFrameElement {
     for (let scopeNumber = 0; scopeNumber < this._scope.chain.length; scopeNumber++) {
       promises.push(
         this._scopeVariable(scopeNumber, this._scope).then(async scopeVariable => {
-          const variables = await variableStore.getVariables({
+          const variables = await variableStore.getVariableNames({
             variablesReference: scopeVariable.id,
           });
-          return variables.map(variable => ({ label: variable.name, type: 'property' }));
+          return variables.map(label => ({ label, type: 'property' }));
         }),
       );
     }
     const completions = await Promise.all(promises);
     return ([] as Dap.CompletionItem[]).concat(...completions);
-  }
+  });
 }
