@@ -49,7 +49,7 @@
   },
   "dependencies": {
     "@c4312/chromehash": "^0.3.0",
-    "@vscode/js-debug-browsers": "^1.0.6",
+    "@vscode/js-debug-browsers": "^1.0.8",
     "@vscode/win32-app-container-tokens": "^0.1.0",
     "acorn": "^8.7.0",
     "acorn-loose": "^8.3.0",
