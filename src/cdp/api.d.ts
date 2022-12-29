@@ -23807,6 +23807,16 @@ export namespace Cdp {
       throwOnSideEffect?: boolean;
 
       /**
+       * An alternative way to specify the execution context to call function on.
+       * Compared to contextId that may be reused across processes, this is guaranteed to be
+       * system-unique, so it can be used to prevent accidental function call
+       * in context different than intended (e.g. as a result of navigation across process
+       * boundaries).
+       * This is mutually exclusive with `executionContextId`.
+       */
+      uniqueContextId?: string;
+
+      /**
        * Whether the result should contain `webDriverValue`, serialized according to
        * https://w3c.github.io/webdriver-bidi. This is mutually exclusive with `returnByValue`, but
        * resulting `objectId` is still provided.
