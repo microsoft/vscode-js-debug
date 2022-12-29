@@ -18,6 +18,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: sourcemap renames not resolving property accessors ([#1383](https://github.com/microsoft/vscode-js-debug/issues/1383))
 - fix: breakpoint in blazor files set in JS not applying ([#1488](https://github.com/microsoft/vscode-js-debug/issues/1488))
 - fix: reduce number of ports used by debugger ([vscode#169182](https://github.com/microsoft/vscode/issues/169182))
+- fix: support launching chrome dev/beta as default fallbacks ([#1489](https://github.com/microsoft/vscode-js-debug/issues/1489))
 
 ## v1.74 (November 2022)
 
