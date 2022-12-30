@@ -6,16 +6,20 @@ import globStream from 'glob-stream';
 import { inject, injectable } from 'inversify';
 import { FileGlobList } from '../fileGlobList';
 import { ILogger, LogTag } from '../logging';
+import { truthy } from '../objUtils';
 import { fixDriveLetterAndSlashes } from '../pathUtils';
-import { ISourceMapMetadata } from './sourceMap';
-import { createMetadataForFile, ISearchStrategy } from './sourceMapRepository';
+import {
+  createMetadataForFile,
+  ISearchStrategy,
+  ISourcemapStreamOptions,
+} from './sourceMapRepository';
 
 /**
  * A source map repository that uses globbing to find candidate files.
  */
 @injectable()
 export class NodeSearchStrategy implements ISearchStrategy {
-  constructor(@inject(ILogger) private readonly logger: ILogger) {}
+  constructor(@inject(ILogger) protected readonly logger: ILogger) {}
 
   /**
    * @inheritdoc
@@ -38,16 +42,16 @@ export class NodeSearchStrategy implements ISearchStrategy {
   /**
    * @inheritdoc
    */
-  public async streamChildrenWithSourcemaps<T>(
-    files: FileGlobList,
-    onChild: (child: Required<ISourceMapMetadata>) => T | Promise<T>,
-  ): Promise<T[]> {
-    const todo: (T | Promise<T | void>)[] = [];
+  public async streamChildrenWithSourcemaps<T, R>(
+    opts: ISourcemapStreamOptions<T, R>,
+  ): Promise<{ values: R[]; state: unknown }> {
+    const todo: (R | Promise<R | void>)[] = [];
 
-    await this.globForFiles(files, value =>
+    await this.globForFiles(opts.files, value =>
       todo.push(
         createMetadataForFile(fixDriveLetterAndSlashes(value.path))
-          .then(parsed => parsed && onChild(parsed))
+          .then(parsed => parsed && opts.processMap(parsed))
+          .then(processed => processed && opts.onProcessedMap(processed))
           .catch(error =>
             this.logger.warn(LogTag.SourceMapParsing, 'Error parsing source map', {
               error,
@@ -58,11 +62,11 @@ export class NodeSearchStrategy implements ISearchStrategy {
     );
 
     // Type annotation is necessary for https://github.com/microsoft/TypeScript/issues/47144
-    const results: (T | void)[] = await Promise.all(todo);
-    return results.filter((t): t is T => t !== undefined);
+    const results: (R | void)[] = await Promise.all(todo);
+    return { values: results.filter(truthy), state: undefined };
   }
 
-  private async globForFiles(files: FileGlobList, onFile: (file: globStream.Entry) => void) {
+  protected async globForFiles(files: FileGlobList, onFile: (file: globStream.Entry) => void) {
     await Promise.all(
       [...files.explode()].map(
         glob =>

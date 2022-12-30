@@ -8,8 +8,11 @@ import { FileGlobList, IExplodedGlob } from '../fileGlobList';
 import { ILogger, LogTag } from '../logging';
 import { truthy } from '../objUtils';
 import { NodeSearchStrategy } from './nodeSearchStrategy';
-import { ISourceMapMetadata } from './sourceMap';
-import { createMetadataForFile, ISearchStrategy } from './sourceMapRepository';
+import {
+  createMetadataForFile,
+  ISearchStrategy,
+  ISourcemapStreamOptions,
+} from './sourceMapRepository';
 
 /**
  * A source map repository that uses VS Code's proposed search API to
@@ -49,22 +52,19 @@ export class CodeSearchStrategy implements ISearchStrategy {
   /**
    * @inheritdoc
    */
-  public async streamChildrenWithSourcemaps<T>(
-    outFiles: FileGlobList,
-    onChild: (child: Required<ISourceMapMetadata>) => T | Promise<T>,
-  ): Promise<T[]> {
-    const todo: Promise<T | undefined>[] = [];
+  public async streamChildrenWithSourcemaps<T, R>(opts: ISourcemapStreamOptions<T, R>) {
+    const todo: Promise<R | undefined>[] = [];
     await Promise.all(
-      [...outFiles.explode()].map(glob => this._streamChildrenWithSourcemaps(onChild, glob, todo)),
+      [...opts.files.explode()].map(glob => this._streamChildrenWithSourcemaps(opts, glob, todo)),
     );
     const done = await Promise.all(todo);
-    return done.filter(truthy);
+    return { values: done.filter(truthy), state: undefined };
   }
 
-  private async _streamChildrenWithSourcemaps<T>(
-    onChild: (child: Required<ISourceMapMetadata>) => T | Promise<T>,
+  private async _streamChildrenWithSourcemaps<T, R>(
+    opts: ISourcemapStreamOptions<T, R>,
     glob: IExplodedGlob,
-    todo: Promise<T | undefined>[],
+    todo: Promise<R | undefined>[],
   ) {
     await this.vscode.workspace.findTextInFiles(
       { pattern: 'sourceMappingURL', isCaseSensitive: true },
@@ -76,7 +76,8 @@ export class CodeSearchStrategy implements ISearchStrategy {
         const text = 'text' in result ? result.text : result.preview.text;
         todo.push(
           createMetadataForFile(result.uri.fsPath, text)
-            .then(parsed => parsed && onChild(parsed))
+            .then(parsed => parsed && opts.processMap(parsed))
+            .then(processed => processed && opts.onProcessedMap(processed))
             .catch(error => {
               this.logger.warn(LogTag.SourceMapParsing, 'Error parsing source map', {
                 error,
@@ -91,8 +92,8 @@ export class CodeSearchStrategy implements ISearchStrategy {
     this.logger.info(LogTag.SourceMapParsing, `findTextInFiles search found ${todo.length} files`);
 
     // Type annotation is necessary for https://github.com/microsoft/TypeScript/issues/47144
-    const results: (T | void)[] = await Promise.all(todo);
-    return results.filter((t): t is T => t !== undefined);
+    const results: (R | void)[] = await Promise.all(todo);
+    return results.filter(truthy);
   }
 
   private getTextSearchOptions(glob: IExplodedGlob): vscodeType.FindTextInFilesOptions {

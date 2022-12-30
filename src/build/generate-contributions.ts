@@ -355,6 +355,11 @@ const nodeBaseConfigurationAttributes: ConfigurationAttributes<INodeBaseConfigur
     description: refString('node.versionHint.description'),
     default: 12,
   },
+  enableTurboSourcemaps: {
+    type: 'boolean',
+    default: true,
+    description: refString('node.enableTurboSourcemaps.description'),
+  },
 };
 
 /**
