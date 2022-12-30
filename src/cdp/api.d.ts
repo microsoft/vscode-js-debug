@@ -9945,6 +9945,13 @@ export namespace Cdp {
     ): Promise<DotnetDebugger.SetDebuggerPropertyResult | undefined>;
 
     /**
+     * Set options for evaluation
+     */
+    setEvaluationOptions(
+      params: DotnetDebugger.SetEvaluationOptionsParams,
+    ): Promise<DotnetDebugger.SetEvaluationOptionsResult | undefined>;
+
+    /**
      * Sets options for locating symbols.
      */
     setSymbolOptions(
@@ -9969,6 +9976,20 @@ export namespace Cdp {
     export interface SetDebuggerPropertyResult {}
 
     /**
+     * Parameters of the 'DotnetDebugger.setEvaluationOptions' method.
+     */
+    export interface SetEvaluationOptionsParams {
+      options: EvaluationOptions;
+
+      type: string;
+    }
+
+    /**
+     * Return value of the 'DotnetDebugger.setEvaluationOptions' method.
+     */
+    export interface SetEvaluationOptionsResult {}
+
+    /**
      * Parameters of the 'DotnetDebugger.setSymbolOptions' method.
      */
     export interface SetSymbolOptionsParams {}
@@ -9982,6 +10003,13 @@ export namespace Cdp {
      * Arguments for "setDebuggerProperty" request. Properties are determined by debugger.
      */
     export interface SetDebuggerPropertyParams {
+      [key: string]: any;
+    }
+
+    /**
+     * Options that will be used to evaluate or to get variables.
+     */
+    export interface EvaluationOptions {
       [key: string]: any;
     }
 
@@ -22769,7 +22797,8 @@ export namespace Cdp {
       | 'SameSiteCrossOriginNavigationNotOptIn'
       | 'ActivationNavigationParameterMismatch'
       | 'ActivatedInBackground'
-      | 'EmbedderHostDisallowed';
+      | 'EmbedderHostDisallowed'
+      | 'ActivationNavigationDestroyedBeforeSuccess';
   }
 
   /**
@@ -23776,6 +23805,16 @@ export namespace Cdp {
        * Whether to throw an exception if side effect cannot be ruled out during evaluation.
        */
       throwOnSideEffect?: boolean;
+
+      /**
+       * An alternative way to specify the execution context to call function on.
+       * Compared to contextId that may be reused across processes, this is guaranteed to be
+       * system-unique, so it can be used to prevent accidental function call
+       * in context different than intended (e.g. as a result of navigation across process
+       * boundaries).
+       * This is mutually exclusive with `executionContextId`.
+       */
+      uniqueContextId?: string;
 
       /**
        * Whether the result should contain `webDriverValue`, serialized according to
@@ -26053,6 +26092,13 @@ export namespace Cdp {
     ): Promise<Storage.ClearSharedStorageEntriesResult | undefined>;
 
     /**
+     * Resets the budget for `ownerOrigin` by clearing all budget withdrawals.
+     */
+    resetSharedStorageBudget(
+      params: Storage.ResetSharedStorageBudgetParams,
+    ): Promise<Storage.ResetSharedStorageBudgetResult | undefined>;
+
+    /**
      * Enables/disables issuing of sharedStorageAccessed events.
      */
     setSharedStorageTracking(
@@ -26535,6 +26581,18 @@ export namespace Cdp {
      * Return value of the 'Storage.clearSharedStorageEntries' method.
      */
     export interface ClearSharedStorageEntriesResult {}
+
+    /**
+     * Parameters of the 'Storage.resetSharedStorageBudget' method.
+     */
+    export interface ResetSharedStorageBudgetParams {
+      ownerOrigin: string;
+    }
+
+    /**
+     * Return value of the 'Storage.resetSharedStorageBudget' method.
+     */
+    export interface ResetSharedStorageBudgetResult {}
 
     /**
      * Parameters of the 'Storage.setSharedStorageTracking' method.

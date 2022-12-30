@@ -264,6 +264,7 @@ export class DebugAdapter implements IDisposable {
       supportsBreakpointLocationsRequest: true,
       supportsClipboardContext: true,
       supportsExceptionFilterOptions: true,
+      supportsEvaluationOptions: extended ? true : false,
       supportsDebuggerProperties: extended ? true : false,
       supportsSetSymbolOptions: extended ? true : false,
       //supportsDataBreakpoints: false,

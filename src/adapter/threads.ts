@@ -436,7 +436,7 @@ export class Thread implements IVariableStoreLocationProvider {
       .map(label => ({ label, start: 0, length: params.text.length }));
   }
 
-  async evaluate(args: Dap.EvaluateParams): Promise<Dap.EvaluateResult> {
+  async evaluate(args: Dap.EvaluateParamsExtended): Promise<Dap.EvaluateResult> {
     let callFrameId: Cdp.Debugger.CallFrameId | undefined;
     let stackFrame: StackFrame | undefined;
     if (args.frameId !== undefined) {
@@ -494,6 +494,12 @@ export class Thread implements IVariableStoreLocationProvider {
       }
       params.expression += getReplSourceSuffix();
     }
+
+    if (args.evaluationOptions)
+      this.cdp().DotnetDebugger.setEvaluationOptions({
+        options: args.evaluationOptions,
+        type: 'evaluation',
+      });
 
     const responsePromise = this.evaluator.evaluate(
       callFrameId

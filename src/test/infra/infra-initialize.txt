@@ -36,6 +36,7 @@
     supportsDebuggerProperties : false
     supportsDelayedStackTraceLoading : true
     supportsEvaluateForHovers : true
+    supportsEvaluationOptions : false
     supportsExceptionFilterOptions : true
     supportsExceptionInfoRequest : true
     supportsExceptionOptions : false

@@ -271,7 +271,10 @@ class VariableContext {
   /**
    * Creates Variables for each property on the RemoteObject.
    */
-  public async createObjectPropertyVars(object: Cdp.Runtime.RemoteObject): Promise<Variable[]> {
+  public async createObjectPropertyVars(
+    object: Cdp.Runtime.RemoteObject,
+    evaluationOptions?: Dap.EvaluationOptions,
+  ): Promise<Variable[]> {
     const properties: (Promise<Variable[]> | Variable[])[] = [];
 
     if (this.settings.customPropertiesGenerator) {
@@ -298,6 +301,12 @@ class VariableContext {
     if (!object.objectId) {
       return [];
     }
+
+    if (evaluationOptions)
+      this.cdp.DotnetDebugger.setEvaluationOptions({
+        options: evaluationOptions,
+        type: 'variable',
+      });
 
     const [accessorsProperties, ownProperties, stringyProps] = await Promise.all([
       this.cdp.Runtime.getProperties({
@@ -789,8 +798,8 @@ class ObjectVariable extends Variable implements IMemoryReadable {
     return result.value;
   }
 
-  public override getChildren(_params: Dap.VariablesParams) {
-    return this.context.createObjectPropertyVars(this.remoteObject);
+  public override getChildren(_params: Dap.VariablesParamsExtended) {
+    return this.context.createObjectPropertyVars(this.remoteObject, _params.evaluationOptions);
   }
 }
 

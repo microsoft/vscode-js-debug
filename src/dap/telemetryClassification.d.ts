@@ -136,6 +136,8 @@ interface IDAPOperationClassification {
   '!setdebuggerproperty.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   capabilitiesextended: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!capabilitiesextended.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  evaluationoptions: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!evaluationoptions.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   setsymboloptions: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!setsymboloptions.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
 }
