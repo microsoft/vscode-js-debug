@@ -1,10 +1,5 @@
 <h1>
   <img alt="vscode-js-debug" src="resources/readme/logo-with-text.png" width="500">
-  <br>
-  <a href="https://marketplace.visualstudio.com/items?itemName=ms-vscode.js-debug-nightly" alt="Click to visit marketplace">
-    <img src="https://vsmarketplacebadge.apphb.com/version-short/ms-vscode.js-debug-nightly.svg">
-    <img src="https://vsmarketplacebadge.apphb.com/rating-star/ms-vscode.js-debug-nightly.svg">
-  </a>
 </h1>
 
 This is a [DAP](https://microsoft.github.io/debug-adapter-protocol/)-based JavaScript debugger. It debugs Node.js, Chrome, Edge, WebView2, VS Code extensions, and more. It has been the default JavaScript debugger in Visual Studio Code since 1.46, and is gradually rolling out in Visual Studio proper.
