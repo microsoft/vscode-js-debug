@@ -8,8 +8,6 @@ Source event for
         sourceReference : <number>
     }
 }
-text/javascript
----------
 import * as m1 from './module1';
 import * as m2 from './module2';
 
@@ -32,8 +30,6 @@ Source event for
         sourceReference : <number>
     }
 }
-text/javascript
----------
 export const kModule1 = 1;
 export function foo() {
   debugger;
@@ -56,8 +52,6 @@ Source event for
         sourceReference : <number>
     }
 }
-text/javascript
----------
 export const kModule2 = 2;
 export function bar(callback) {
   callback();

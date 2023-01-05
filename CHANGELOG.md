@@ -20,6 +20,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: reduce number of ports used by debugger ([vscode#169182](https://github.com/microsoft/vscode/issues/169182))
 - fix: support launching chrome dev/beta as default fallbacks ([#1489](https://github.com/microsoft/vscode-js-debug/issues/1489))
 - fix: show memory refrence button for top-level watch expressions ([vscode#164124](https://github.com/microsoft/vscode/issues/164124))
+- fix: don't hardcode generated source types as javascript ([vscode#168013](https://github.com/microsoft/vscode/issues/168013))
 - refactor: improve breakpoint scanning speed 2-3x ([#1498](https://github.com/microsoft/vscode-js-debug/issues/1498))
 
 ## v1.74 (November 2022)
