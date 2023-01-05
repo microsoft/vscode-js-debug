@@ -8,8 +8,6 @@ Source event for foo.js
         sourceReference : <number>
     }
 }
-text/javascript
----------
 a
 //# sourceURL=foo.js
 ---------
@@ -23,8 +21,6 @@ Source event for foo.js
         sourceReference : <number>
     }
 }
-text/javascript
----------
 b
 //# sourceURL=foo.js
 ---------
@@ -38,8 +34,6 @@ Source event for empty.js
         sourceReference : <number>
     }
 }
-text/javascript
----------
 "111111111111111111111111111111111111111111111111111"
 
 ---------
@@ -53,8 +47,6 @@ Source event for empty2.js
         sourceReference : <number>
     }
 }
-text/javascript
----------
 
 ---------
 

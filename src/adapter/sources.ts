@@ -229,10 +229,6 @@ export class Source {
     return content;
   }
 
-  mimeType(): string {
-    return 'text/javascript';
-  }
-
   /**
    * Pretty-prints the source. Generates a beauitified source map if possible
    * and it hasn't already been done, and returns the created map and created
