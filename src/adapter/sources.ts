@@ -217,6 +217,17 @@ export class Source {
     return this._scriptIds;
   }
 
+  /**
+   * Gets a suggested mimetype for the source.
+   */
+  get getSuggestedMimeType(): string | undefined {
+    // only return an explicit mimetype if the file has no extension (such as
+    // with node internals.) Otherwise, let the editor guess.
+    if (!/\.[^/]+$/.test(this.url)) {
+      return 'text/javascript';
+    }
+  }
+
   async content(): Promise<string | undefined> {
     let content = await this._contentGetter();
 
