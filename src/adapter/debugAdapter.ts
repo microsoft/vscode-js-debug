@@ -338,7 +338,7 @@ export class DebugAdapter implements IDisposable {
       );
     }
 
-    return { content, mimeType: source.mimeType };
+    return { content, mimeType: source.getSuggestedMimeType };
   }
 
   async _onThreads(): Promise<Dap.ThreadsResult | Dap.Error> {

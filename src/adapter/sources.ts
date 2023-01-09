@@ -220,7 +220,7 @@ export class Source {
   /**
    * Gets a suggested mimetype for the source.
    */
-  get mimeType(): string | undefined {
+  get getSuggestedMimeType(): string | undefined {
     // only return an explicit mimetype if the file has no extension (such as
     // with node internals.) Otherwise, let the editor guess.
     if (!/\.[^/]+$/.test(this.url)) {
