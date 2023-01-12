@@ -88,13 +88,19 @@ export class ServerSessionManager<T extends IDebugSessionLike> {
    * @param debugSession The IDE-specific debug session
    * @returns The newly created debug server and a promise which resolves to the DapConnection associated with the session
    */
-  public createChildDebugServer(debugSession: T): Promise<IDebugServerCreateResult> {
-    return this.innerCreateServer(debugSession, transport =>
-      this.sessionManager.createNewChildSession(
-        debugSession,
-        (debugSession.configuration as IPseudoAttachConfiguration).__pendingTargetId,
-        transport,
-      ),
+  public createChildDebugServer(
+    debugSession: T,
+    debugServerPort?: number,
+  ): Promise<IDebugServerCreateResult> {
+    return this.innerCreateServer(
+      debugSession,
+      transport =>
+        this.sessionManager.createNewChildSession(
+          debugSession,
+          (debugSession.configuration as IPseudoAttachConfiguration).__pendingTargetId,
+          transport,
+        ),
+      debugServerPort,
     );
   }
 
