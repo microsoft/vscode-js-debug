@@ -5,7 +5,6 @@
 import { Container } from 'inversify';
 import { homedir } from 'os';
 import * as vscode from 'vscode';
-import * as nls from 'vscode-nls';
 import { IPortLeaseTracker } from '../adapter/portLeaseTracker';
 import { NeverCancelled } from '../common/cancellation';
 import {
@@ -16,6 +15,7 @@ import {
   registerCommand,
 } from '../common/contributionUtils';
 import { EventEmitter } from '../common/events';
+import { l10n } from '../common/l10n';
 import { ProxyLogger } from '../common/logging/proxyLogger';
 import {
   applyDefaults,
@@ -33,8 +33,6 @@ import { MutableTargetOrigin } from '../targets/targetOrigin';
 import { ITarget } from '../targets/targets';
 import { DapTelemetryReporter } from '../telemetry/dapTelemetryReporter';
 import { TerminalLinkHandler } from './terminalLinkHandler';
-
-const localize = nls.loadMessageBundle();
 
 export const launchVirtualTerminalParent = (
   delegate: DelegateLauncherFactory,
@@ -176,10 +174,7 @@ async function getWorkspaceFolder() {
       folder,
     })),
     {
-      placeHolder: localize(
-        'terminal.cwdpick',
-        'Select current working directory for new terminal',
-      ),
+      placeHolder: l10n.t('Select current working directory for new terminal'),
     },
   );
 

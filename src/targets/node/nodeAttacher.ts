@@ -3,12 +3,12 @@
  *--------------------------------------------------------*/
 
 import { inject, injectable } from 'inversify';
-import * as nls from 'vscode-nls';
 import { IPortLeaseTracker } from '../../adapter/portLeaseTracker';
 import { getSourceSuffix } from '../../adapter/templates';
 import Cdp from '../../cdp/api';
 import { CancellationTokenSource } from '../../common/cancellation';
 import { DebugType } from '../../common/contributionUtils';
+import { l10n } from '../../common/l10n';
 import { ILogger, LogTag } from '../../common/logging';
 import { delay } from '../../common/promiseUtil';
 import { isLoopback } from '../../common/urlUtils';
@@ -24,8 +24,6 @@ import { IRunData } from './nodeLauncherBase';
 import { IProgram, StubProgram, WatchDogProgram } from './program';
 import { IRestartPolicy, RestartPolicyFactory } from './restartPolicy';
 import { WatchDog } from './watchdogSpawn';
-
-const localize = nls.loadMessageBundle();
 
 /**
  * Attaches to ongoing Node processes. This works pretty similar to the
@@ -117,11 +115,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
       }
 
       runData.context.dap.output({
-        output: localize(
-          'node.attach.restart.message',
-          'Lost connection to debugee, reconnecting in {0}ms\r\n',
-          nextRestart.delay,
-        ),
+        output: l10n.t('Lost connection to debugee, reconnecting in {0}ms\r\n', nextRestart.delay),
       });
 
       const deferred = new StubProgram();

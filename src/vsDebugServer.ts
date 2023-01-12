@@ -13,8 +13,8 @@ import * as path from 'path';
 import 'reflect-metadata';
 import { Readable, Writable } from 'stream';
 import { DebugConfiguration } from 'vscode';
-import * as nls from 'vscode-nls';
 import { DebugType } from './common/contributionUtils';
+import { l10n } from './common/l10n';
 import { getDeferred, IDeferred } from './common/promiseUtil';
 import { IPseudoAttachConfiguration } from './configuration';
 import DapConnection from './dap/connection';
@@ -24,8 +24,6 @@ import { IDebugSessionLike, ISessionLauncher, Session } from './sessionManager';
 import { ITarget } from './targets/targets';
 
 const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-js-debug-'));
-
-const localize = nls.loadMessageBundle();
 
 class VSDebugSession implements IDebugSessionLike {
   constructor(
@@ -62,7 +60,7 @@ class VsDebugServer implements ISessionLauncher<VSDebugSession> {
     const deferredConnection: IDeferred<DapConnection> = getDeferred();
     const rootSession = new VSDebugSession(
       'root',
-      localize('session.rootSessionName', 'JavaScript debug adapter'),
+      l10n.t('JavaScript debug adapter'),
       deferredConnection.promise,
       { type: DebugType.Chrome, name: 'root', request: 'launch' },
     );

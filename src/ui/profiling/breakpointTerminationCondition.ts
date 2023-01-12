@@ -5,13 +5,12 @@
 import { inject, injectable } from 'inversify';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import * as nls from 'vscode-nls';
+import { l10n } from '../../common/l10n';
 import { memoize, truthy } from '../../common/objUtils';
 import Dap from '../../dap/api';
 import { ExtensionContext, FS, FsPromises } from '../../ioc-extras';
 import { ITerminationCondition, ITerminationConditionFactory } from './terminationCondition';
 
-const localize = nls.loadMessageBundle();
 const warnedKey = 'breakpointTerminationWarnedSlow';
 
 type BreakpointPickItem = {
@@ -23,11 +22,8 @@ type BreakpointPickItem = {
 export class BreakpointTerminationConditionFactory implements ITerminationConditionFactory {
   public readonly sortOrder = 2;
   public readonly id = 'breakpoint';
-  public readonly label = localize('profile.termination.breakpoint.label', 'Pick Breakpoint');
-  public readonly description = localize(
-    'profile.termination.breakpoint.description',
-    'Run until a specific breakpoint is hit',
-  );
+  public readonly label = l10n.t('Pick Breakpoint');
+  public readonly description = l10n.t('Run until a specific breakpoint is hit');
 
   constructor(
     @inject(FS) private readonly fs: FsPromises,
@@ -95,11 +91,10 @@ export class BreakpointTerminationConditionFactory implements ITerminationCondit
     }
 
     vscode.window.showWarningMessage(
-      localize(
-        'breakpointTerminationWarnSlow',
+      l10n.t(
         'Profiling with breakpoints enabled can change the performance of your code. It can be useful to validate your findings with the "duration" or "manual" termination conditions.',
       ),
-      localize('breakpointTerminationWarnConfirm', 'Got it!'),
+      l10n.t('Got it!'),
     );
     await this.context.workspaceState.update(warnedKey, true);
   }

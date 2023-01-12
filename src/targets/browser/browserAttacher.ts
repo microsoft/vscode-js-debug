@@ -5,11 +5,11 @@
 import { inject, injectable, optional } from 'inversify';
 import type * as vscodeType from 'vscode';
 import { CancellationToken } from 'vscode';
-import * as nls from 'vscode-nls';
 import CdpConnection from '../../cdp/connection';
 import { NeverCancelled } from '../../common/cancellation';
 import { DebugType } from '../../common/contributionUtils';
 import { EventEmitter, IDisposable } from '../../common/events';
+import { l10n } from '../../common/l10n';
 import { ILogger } from '../../common/logging';
 import { delay } from '../../common/promiseUtil';
 import { ISourcePathResolver } from '../../common/sourcePathResolver';
@@ -27,8 +27,6 @@ import { ILaunchContext, ILauncher, ILaunchResult, IStopMetadata, ITarget } from
 import { BrowserTargetManager } from './browserTargetManager';
 import { BrowserTargetType } from './browserTargets';
 import * as launcher from './launcher';
-
-const localize = nls.loadMessageBundle();
 
 @injectable()
 export class BrowserAttacher<
@@ -198,7 +196,7 @@ export class BrowserAttacher<
       return target => target.targetId === targets[0].targetId;
     }
 
-    const placeHolder = localize('chrome.targets.placeholder', 'Select a tab');
+    const placeHolder = l10n.t('Select a tab');
     const selected = await this.vscode.window.showQuickPick(
       targets.map(target => ({
         label: target.title,
@@ -229,8 +227,7 @@ export class BrowserAttacher<
         if (cancellationToken.isCancellationRequested) {
           throw new ProtocolError(
             browserAttachFailed(
-              localize(
-                'attach.cannotConnect',
+              l10n.t(
                 'Cannot connect to the target at {0}: {1}',
                 `${params.address}:${params.port}`,
                 e.message,
@@ -245,8 +242,7 @@ export class BrowserAttacher<
 
     throw new ProtocolError(
       browserAttachFailed(
-        localize(
-          'attach.cannotConnect',
+        l10n.t(
           'Cannot connect to the target at {0}: {1}',
           `${params.address}:${params.port}`,
           'Cancelled',

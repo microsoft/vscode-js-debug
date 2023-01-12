@@ -31,7 +31,7 @@ extends:
     ${{ if eq(parameters.publishGhRelease, true) }}:
       ghCreateRelease: true
       ghReleaseAddChangeLog: true
-    l10nShouldProcess: false
+    l10nSourcePaths: $(Build.SourcesDirectory)/src
     buildSteps:
       - script: npm install
         displayName: Install dependencies

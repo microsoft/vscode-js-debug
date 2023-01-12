@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import Cdp from '../cdp/api';
-import * as nls from 'vscode-nls';
+import { l10n } from '../common/l10n';
 
 export type CustomBreakpointId = string;
 
@@ -19,8 +19,6 @@ const map: Map<string, ICustomBreakpoint> = new Map();
 
 export function customBreakpoints(): Map<string, ICustomBreakpoint> {
   if (map.size) return map;
-
-  const localize = nls.loadMessageBundle();
 
   function g(group: string, breakpoints: ICustomBreakpoint[]) {
     for (const b of breakpoints) {
@@ -42,9 +40,8 @@ export function customBreakpoints(): Map<string, ICustomBreakpoint> {
           // If there is a hex code of the error, display only this.
           errorName = errorName.replace(/^.*(0x[0-9a-f]+).*$/i, '$1');
           return {
-            short: localize('breakpoint.webglErrorNamed', 'WebGL Error "{0}"', errorName),
-            long: localize(
-              'breakpoint.webglErrorNamedDetails',
+            short: errorName,
+            long: l10n.t(
               'Paused on WebGL Error instrumentation breakpoint, error "{0}"',
               errorName,
             ),
@@ -52,13 +49,8 @@ export function customBreakpoints(): Map<string, ICustomBreakpoint> {
         }
         if (instrumentation === 'scriptBlockedByCSP' && data['directiveText']) {
           return {
-            short: localize(
-              'breakpoint.cspViolationNamed',
-              'CSP violation "{0}"',
-              data['directiveText'],
-            ),
-            long: localize(
-              'breakpoint.cspViolationNamedDetails',
+            short: l10n.t('CSP violation "{0}"', data['directiveText']),
+            long: l10n.t(
               'Paused on Content Security Policy violation instrumentation breakpoint, directive "{0}"',
               data['directiveText'],
             ),
@@ -66,11 +58,7 @@ export function customBreakpoints(): Map<string, ICustomBreakpoint> {
         }
         return {
           short: title,
-          long: localize(
-            'breakpoint.instrumentationNamed',
-            'Paused on instrumentation breakpoint "{0}"',
-            title,
-          ),
+          long: l10n.t('Paused on instrumentation breakpoint "{0}"', title),
         };
       },
       apply: async (cdp: Cdp.Api, enabled: boolean): Promise<boolean> => {
@@ -97,8 +85,7 @@ export function customBreakpoints(): Map<string, ICustomBreakpoint> {
         const eventTargetName = (data.targetName || '*').toLowerCase();
         return {
           short: eventTargetName + '.' + eventName,
-          long: localize(
-            'breakpoint.eventListenerNamed',
+          long: l10n.t(
             'Paused on event listener breakpoint "{0}", triggered on "{1}"',
             eventName,
             eventTargetName,
@@ -129,33 +116,18 @@ export function customBreakpoints(): Map<string, ICustomBreakpoint> {
   }
 
   g(`Animation`, [
-    i(
-      'requestAnimationFrame',
-      localize('breakpoint.requestAnimationFrame', 'Request Animation Frame'),
-    ),
-    i(
-      'cancelAnimationFrame',
-      localize('breakpoint.cancelAnimationFrame', 'Cancel Animation Frame'),
-    ),
-    i(
-      'requestAnimationFrame.callback',
-      localize('breakpoint.animationFrameFired', 'Animation Frame Fired'),
-    ),
+    i('requestAnimationFrame', l10n.t('Request Animation Frame')),
+    i('cancelAnimationFrame', l10n.t('Cancel Animation Frame')),
+    i('requestAnimationFrame.callback', l10n.t('Animation Frame Fired')),
   ]);
   g(`Canvas`, [
-    i('canvasContextCreated', localize('breakpoint.createCanvasContext', 'Create canvas context')),
-    i('webglErrorFired', localize('breakpoint.webglErrorFired', 'WebGL Error Fired')),
-    i('webglWarningFired', localize('breakpoint.webglWarningFired', 'WebGL Warning Fired')),
+    i('canvasContextCreated', l10n.t('Create canvas context')),
+    i('webglErrorFired', l10n.t('WebGL Error Fired')),
+    i('webglWarningFired', l10n.t('WebGL Warning Fired')),
   ]);
   g(`Script`, [
-    i(
-      'scriptFirstStatement',
-      localize('breakpoint.scriptFirstStatement', 'Script First Statement'),
-    ),
-    i(
-      'scriptBlockedByCSP',
-      localize('breakpoint.cspViolation', 'Script Blocked by Content Security Policy'),
-    ),
+    i('scriptFirstStatement', l10n.t('Script First Statement')),
+    i('scriptBlockedByCSP', l10n.t('Script Blocked by Content Security Policy')),
   ]);
   g(`Geolocation`, [
     i('Geolocation.getCurrentPosition', `getCurrentPosition`),
@@ -163,7 +135,7 @@ export function customBreakpoints(): Map<string, ICustomBreakpoint> {
   ]);
   g(`Notification`, [i('Notification.requestPermission', `requestPermission`)]);
   g(`Parse`, [
-    i('Element.setInnerHTML', localize('breakpoint.setInnerHtml', 'Set innerHTML')),
+    i('Element.setInnerHTML', l10n.t('Set innerHTML')),
     i('Document.write', `document.write`),
   ]);
   g(`Timer`, [
@@ -171,15 +143,15 @@ export function customBreakpoints(): Map<string, ICustomBreakpoint> {
     i('clearTimeout'),
     i('setInterval'),
     i('clearInterval'),
-    i('setTimeout.callback', localize('breakpoint.setTimeoutFired', 'setTimeout fired')),
-    i('setInterval.callback', localize('breakpoint.setIntervalFired', 'setInterval fired')),
+    i('setTimeout.callback', l10n.t('setTimeout fired')),
+    i('setInterval.callback', l10n.t('setInterval fired')),
   ]);
   g(`Window`, [i('DOMWindow.close', `window.close`)]);
   g(`WebAudio`, [
-    i('audioContextCreated', localize('breakpoint.createAudioContext', 'Create AudioContext')),
-    i('audioContextClosed', localize('breakpoint.closeAudioContext', 'Close AudioContext')),
-    i('audioContextResumed', localize('breakpoint.resumeAudioContext', 'Resume AudioContext')),
-    i('audioContextSuspended', localize('breakpoint.suspendAudioContext', 'Suspend AudioContext')),
+    i('audioContextCreated', l10n.t('Create AudioContext')),
+    i('audioContextClosed', l10n.t('Close AudioContext')),
+    i('audioContextResumed', l10n.t('Resume AudioContext')),
+    i('audioContextSuspended', l10n.t('Suspend AudioContext')),
   ]);
   const av = ['audio', 'video'];
   g(`Media`, [

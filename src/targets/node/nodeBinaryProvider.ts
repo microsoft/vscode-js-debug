@@ -5,8 +5,8 @@
 import { inject, injectable, optional } from 'inversify';
 import { basename, dirname, extname, isAbsolute, resolve } from 'path';
 import type * as vscodeType from 'vscode';
-import * as nls from 'vscode-nls';
 import { EnvironmentVars } from '../../common/environmentVars';
+import { l10n } from '../../common/l10n';
 import { ILogger, LogTag } from '../../common/logging';
 import { findExecutable, findInPath } from '../../common/pathUtils';
 import { spawnAsync } from '../../common/processUtils';
@@ -21,8 +21,6 @@ import {
 import { ProtocolError } from '../../dap/protocolError';
 import { FS, FsPromises, VSCodeApi } from '../../ioc-extras';
 import { IPackageJsonProvider } from './packageJsonProvider';
-
-const localize = nls.loadMessageBundle();
 
 export const INodeBinaryProvider = Symbol('INodeBinaryProvider');
 
@@ -74,16 +72,14 @@ const warningMessages: ReadonlyArray<IWarningMessage> = [
   {
     inclusiveMin: new Semver(16, 0, 0),
     inclusiveMax: new Semver(16, 3, 99),
-    message: localize(
-      'warning.16bpIssue',
+    message: l10n.t(
       'Some breakpoints might not work in your version of Node.js. We recommend upgrading for the latest bug, performance, and security fixes. Details: https://aka.ms/AAcsvqm',
     ),
   },
   {
     inclusiveMin: new Semver(7, 0, 0),
     inclusiveMax: new Semver(8, 99, 99),
-    message: localize(
-      'warning.8outdated',
+    message: l10n.t(
       "You're running an outdated version of Node.js. We recommend upgrading for the latest bug, performance, and security fixes.",
     ),
   },
@@ -256,12 +252,7 @@ export class NodeBinaryProvider {
     const location = await this.resolveBinaryLocation(executable, env);
     this.logger.info(LogTag.RuntimeLaunch, 'Using binary at', { location, executable });
     if (!location) {
-      throw new ProtocolError(
-        cannotFindNodeBinary(
-          executable,
-          localize('runtime.node.notfound.enoent', 'path does not exist'),
-        ),
-      );
+      throw new ProtocolError(cannotFindNodeBinary(executable, l10n.t('path does not exist')));
     }
 
     if (explicitVersion) {
@@ -356,12 +347,7 @@ export class NodeBinaryProvider {
       });
       return stdout.trim();
     } catch (e) {
-      throw new ProtocolError(
-        cannotFindNodeBinary(
-          binary,
-          localize('runtime.node.notfound.spawnErr', 'error getting version: {0}', e.message),
-        ),
-      );
+      throw new ProtocolError(cannotFindNodeBinary(binary, e.message));
     }
   }
 }
@@ -384,11 +370,8 @@ export class InteractiveNodeBinaryProvider extends NodeBinaryProvider {
       return false;
     }
 
-    const yes = localize('yes', 'Yes');
-    const response = await this.vscode.window.showErrorMessage(
-      localize('outOfDate', '{0} Would you like to try debugging anyway?', message),
-      yes,
-    );
+    const yes = l10n.t('Yes');
+    const response = await this.vscode.window.showErrorMessage(message, yes);
 
     return response === yes;
   }

@@ -5,8 +5,8 @@
 import { injectable } from 'inversify';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import * as nls from 'vscode-nls';
 import { DebugType, getPreferredOrDebugType } from '../../common/contributionUtils';
+import { l10n } from '../../common/l10n';
 import { flatten } from '../../common/objUtils';
 import {
   AnyNodeConfiguration,
@@ -20,8 +20,6 @@ import { findScripts } from '../debugNpmScript';
 import { getPackageManager } from '../getRunScriptCommand';
 import { BaseConfigurationProvider } from './baseConfigurationProvider';
 import { createLaunchConfigFromContext } from './nodeDebugConfigurationResolver';
-
-const localize = nls.loadMessageBundle();
 
 @injectable()
 export class NodeInitialDebugConfigurationProvider extends BaseConfigurationProvider<AnyNodeConfiguration> {
@@ -81,7 +79,7 @@ export class NodeDynamicDebugConfigurationProvider extends BaseConfigurationProv
   protected async getFromNpmScripts(folder?: vscode.WorkspaceFolder): Promise<DynamicConfig[]> {
     const openTerminal: AnyResolvingConfiguration = {
       type: getPreferredOrDebugType(DebugType.Terminal),
-      name: localize('debug.terminal.label', 'JavaScript Debug Terminal'),
+      name: l10n.t('JavaScript Debug Terminal'),
       request: 'launch',
       cwd: folder?.uri.fsPath,
     };
@@ -99,7 +97,7 @@ export class NodeDynamicDebugConfigurationProvider extends BaseConfigurationProv
     return scripts
       .map<DynamicConfig>(script => ({
         type: getPreferredOrDebugType(DebugType.Terminal),
-        name: localize('node.launch.script', 'Run Script: {0}', script.name),
+        name: l10n.t(script.name),
         request: 'launch',
         command: `${packageManager} run ${script.name}`,
         cwd: script.directory,
@@ -123,7 +121,7 @@ export class NodeDynamicDebugConfigurationProvider extends BaseConfigurationProv
     return [
       {
         type: getPreferredOrDebugType(DebugType.Node),
-        name: localize('node.launch.currentFile', 'Run Current File'),
+        name: l10n.t('Run Current File'),
         request: 'launch',
         program: editor.document.uri.fsPath,
       },

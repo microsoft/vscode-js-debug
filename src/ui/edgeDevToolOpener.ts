@@ -4,13 +4,11 @@
 
 import { inject, injectable } from 'inversify';
 import * as vscode from 'vscode';
-import * as nls from 'vscode-nls';
 import { Commands, DebugType, registerCommand } from '../common/contributionUtils';
+import { l10n } from '../common/l10n';
 import { IExtensionContribution } from '../ioc-extras';
 import { BrowserTargetType } from '../targets/browser/browserTargets';
 import { DebugSessionTracker } from './debugSessionTracker';
-
-const localize = nls.loadMessageBundle();
 
 const qualifies = (session: vscode.DebugSession) => {
   if (session?.type !== DebugType.Edge) {
@@ -45,10 +43,7 @@ export class EdgeDevToolOpener implements IExtensionContribution {
             ? vscode.debug.activeDebugSession
             : await DebugSessionTracker.pickSession(
                 this.tracker.getConcreteSessions().filter(qualifies),
-                localize(
-                  'selectEdgeToolSession',
-                  'Select the page where you want to open the devtools',
-                ),
+                l10n.t('Select the page where you want to open the devtools'),
               );
 
         if (!session) {

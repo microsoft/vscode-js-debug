@@ -4,19 +4,17 @@
 
 import { inject, injectable } from 'inversify';
 import { isAbsolute, join } from 'path';
-import * as nls from 'vscode-nls';
 import { IProfile, IProfiler, StartProfileParams } from '.';
 import Cdp from '../../cdp/api';
 import { ICdpApi } from '../../cdp/connection';
 import { EventEmitter } from '../../common/events';
+import { l10n } from '../../common/l10n';
 import { AnyLaunchConfiguration } from '../../configuration';
 import { profileCaptureError } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
 import { FS, FsPromises } from '../../ioc-extras';
 import { SourceContainer } from '../sources';
 import { SourceAnnotationHelper } from './sourceAnnotationHelper';
-
-const localize = nls.loadMessageBundle();
 
 export interface IBasicProfileParams {
   precise: boolean;
@@ -30,9 +28,8 @@ export interface IBasicProfileParams {
 export class BasicCpuProfiler implements IProfiler<IBasicProfileParams> {
   public static readonly type = 'cpu';
   public static readonly extension = '.cpuprofile';
-  public static readonly label = localize('profile.cpu.label', 'CPU Profile');
-  public static readonly description = localize(
-    'profile.cpu.description',
+  public static readonly label = l10n.t('CPU Profile');
+  public static readonly description = l10n.t(
     'Generates a .cpuprofile file you can open in the Chrome devtools',
   );
   public static readonly editable = true;

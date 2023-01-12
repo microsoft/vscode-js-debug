@@ -3,9 +3,9 @@
  *--------------------------------------------------------*/
 
 import { Container } from 'inversify';
-import * as nls from 'vscode-nls';
 import { Cdp } from '../cdp/api';
 import { DisposableList, IDisposable } from '../common/disposable';
+import { l10n } from '../common/l10n';
 import { ILogger, LogTag } from '../common/logging';
 import { posInt32Counter, truthy } from '../common/objUtils';
 import { Base1Position } from '../common/positions';
@@ -39,8 +39,6 @@ import { SmartStepper } from './smartStepping';
 import { ISourceWithMap, SourceContainer, SourceFromMap } from './sources';
 import { Thread } from './threads';
 import { VariableStore } from './variableStore';
-
-const localize = nls.loadMessageBundle();
 
 // This class collects configuration issued before "launch" request,
 // to be applied after launch.
@@ -219,24 +217,18 @@ export class DebugAdapter implements IDisposable {
       exceptionBreakpointFilters: [
         {
           filter: PauseOnExceptionsState.All,
-          label: localize('breakpoint.caughtExceptions', 'Caught Exceptions'),
+          label: l10n.t('Caught Exceptions'),
           default: false,
           supportsCondition: true,
-          description: localize(
-            'breakpoint.caughtExceptions.description',
-            "Breaks on all throw errors, even if they're caught later.",
-          ),
+          description: l10n.t("Breaks on all throw errors, even if they're caught later."),
           conditionDescription: `error.name == "MyError"`,
         },
         {
           filter: PauseOnExceptionsState.Uncaught,
-          label: localize('breakpoint.uncaughtExceptions', 'Uncaught Exceptions'),
+          label: l10n.t('Uncaught Exceptions'),
           default: false,
           supportsCondition: true,
-          description: localize(
-            'breakpoint.caughtExceptions.description',
-            'Breaks only on errors or promise rejections that are not handled.',
-          ),
+          description: l10n.t('Breaks only on errors or promise rejections that are not handled.'),
           conditionDescription: `error.name == "MyError"`,
         },
       ],
@@ -300,11 +292,11 @@ export class DebugAdapter implements IDisposable {
   private async _onDisableSourcemap(params: Dap.DisableSourcemapParams) {
     const source = this.sourceContainer.source(params.source);
     if (!source) {
-      return errors.createSilentError(localize('error.sourceNotFound', 'Source not found'));
+      return errors.createSilentError(l10n.t('Source not found'));
     }
 
     if (!(source instanceof SourceFromMap)) {
-      return errors.createSilentError(localize('error.sourceNotFound', 'Source not a source map'));
+      return errors.createSilentError(l10n.t('Source not a source map'));
     }
 
     for (const compiled of source.compiledToSourceUrl.keys()) {
@@ -324,7 +316,7 @@ export class DebugAdapter implements IDisposable {
     params.source.path = urlUtils.platformPathToPreferredCase(params.source.path);
     const source = this.sourceContainer.source(params.source);
     if (!source) {
-      return errors.createSilentError(localize('error.sourceNotFound', 'Source not found'));
+      return errors.createSilentError(l10n.t('Source not found'));
     }
 
     const content = await source.content();
@@ -333,9 +325,7 @@ export class DebugAdapter implements IDisposable {
         this.dap.suggestDisableSourcemap({ source: params.source });
       }
 
-      return errors.createSilentError(
-        localize('error.sourceContentDidFail', 'Unable to retrieve source content'),
-      );
+      return errors.createSilentError(l10n.t('Unable to retrieve source content'));
     }
 
     return { content, mimeType: source.getSuggestedMimeType };
@@ -413,8 +403,7 @@ export class DebugAdapter implements IDisposable {
 
   async _onSetVariable(params: Dap.SetVariableParams): Promise<Dap.SetVariableResult | Dap.Error> {
     const variableStore = this.findVariableStore(v => v.hasVariable(params.variablesReference));
-    if (!variableStore)
-      return errors.createSilentError(localize('error.variableNotFound', 'Variable not found'));
+    if (!variableStore) return errors.createSilentError(l10n.t('Variable not found'));
     params.value = sourceUtils.wrapObjectLiteral(params.value.trim());
     return variableStore.setVariable(params);
   }
@@ -518,14 +507,12 @@ export class DebugAdapter implements IDisposable {
     params.source.path = urlUtils.platformPathToPreferredCase(params.source.path);
     const source = this.sourceContainer.source(params.source);
     if (!source) {
-      return errors.createSilentError(localize('error.sourceNotFound', 'Source not found'));
+      return errors.createSilentError(l10n.t('Source not found'));
     }
 
     const prettified = await source.prettyPrint();
     if (!prettified) {
-      return errors.createSilentError(
-        localize('error.cannotPrettyPrint', 'Unable to pretty print'),
-      );
+      return errors.createSilentError(l10n.t('Unable to pretty print'));
     }
 
     const { map: sourceMap, source: generated } = prettified;

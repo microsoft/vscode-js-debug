@@ -3,19 +3,17 @@
  *--------------------------------------------------------*/
 
 import { inject, injectable } from 'inversify';
-import * as nls from 'vscode-nls';
 import { IProfile, IProfiler, StartProfileParams } from '.';
 import Cdp from '../../cdp/api';
 import { ICdpApi } from '../../cdp/connection';
 import { EventEmitter } from '../../common/events';
+import { l10n } from '../../common/l10n';
 import { AnyLaunchConfiguration } from '../../configuration';
 import { profileCaptureError } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
 import { FS, FsPromises } from '../../ioc-extras';
 import { SourceContainer } from '../sources';
 import { SourceAnnotationHelper } from './sourceAnnotationHelper';
-
-const localize = nls.loadMessageBundle();
 
 /**
  * Basic profiler that uses the stable `HeapProfiler` API available everywhere.
@@ -25,9 +23,8 @@ const localize = nls.loadMessageBundle();
 export class BasicHeapProfiler implements IProfiler<{}> {
   public static readonly type = 'heap';
   public static readonly extension = '.heapprofile';
-  public static readonly label = localize('profile.heap.label', 'Heap Profile');
-  public static readonly description = localize(
-    'profile.heap.description',
+  public static readonly label = l10n.t('Heap Profile');
+  public static readonly description = l10n.t(
     'Generates a .heapprofile file you can open in the Chrome devtools',
   );
   public static readonly editable = true;

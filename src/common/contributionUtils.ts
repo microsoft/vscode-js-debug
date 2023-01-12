@@ -58,6 +58,14 @@ export const enum Commands {
   //#endregion
 }
 
+export const enum DebugType {
+  ExtensionHost = 'pwa-extensionHost',
+  Terminal = 'node-terminal',
+  Node = 'pwa-node',
+  Chrome = 'pwa-chrome',
+  Edge = 'pwa-msedge',
+}
+
 export const preferredDebugTypes: ReadonlyMap<DebugType, string> = new Map([
   [DebugType.Node, 'node'],
   [DebugType.Chrome, 'chrome'],
@@ -67,14 +75,6 @@ export const preferredDebugTypes: ReadonlyMap<DebugType, string> = new Map([
 
 export const getPreferredOrDebugType = <T extends DebugType>(t: T) =>
   (preferredDebugTypes.get(t) as T) || t;
-
-export const enum DebugType {
-  ExtensionHost = 'pwa-extensionHost',
-  Terminal = 'node-terminal',
-  Node = 'pwa-node',
-  Chrome = 'pwa-chrome',
-  Edge = 'pwa-msedge',
-}
 
 // constructing it this way makes sure we can't forget to add a type:
 const debugTypes: { [K in DebugType]: null } = {

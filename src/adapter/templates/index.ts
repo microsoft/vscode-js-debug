@@ -6,7 +6,7 @@ import { Node, parseExpressionAt } from 'acorn';
 import { randomBytes } from 'crypto';
 import { Expression } from 'estree';
 import Cdp from '../../cdp/api';
-import { SourceConstants } from '../sources';
+import { SourceConstants } from '../../common/sourceUtils';
 
 /**
  * Gets the suffix containing the `sourceURL` to mark a script as internal.

@@ -6,9 +6,9 @@ import { execSync } from 'child_process';
 import { promises as fsPromises } from 'fs';
 import { basename } from 'path';
 import * as vscode from 'vscode';
-import * as nls from 'vscode-nls';
 import { Configuration, readConfig } from '../common/contributionUtils';
 import { LocalFsUtils } from '../common/fsUtils';
+import { l10n } from '../common/l10n';
 import { isSubdirectoryOf } from '../common/pathUtils';
 import { nearestDirectoryContaining } from '../common/urlUtils';
 import {
@@ -19,8 +19,6 @@ import {
 import { analyseArguments, processTree } from './processTree/processTree';
 
 const INSPECTOR_PORT_DEFAULT = 9229;
-
-const localize = nls.loadMessageBundle();
 
 interface IProcessItem extends vscode.QuickPickItem {
   pidAndPort: string; // picker result
@@ -70,11 +68,7 @@ export async function resolveProcessId(
   const result = processId && decodePidAndPort(processId);
   if (!result || isNaN(result.pid)) {
     throw new Error(
-      localize(
-        'process.id.error',
-        "Attach to process: '{0}' doesn't look like a process id.",
-        processId,
-      ),
+      l10n.t("Attach to process: '{0}' doesn't look like a process id.", processId || '<unknown>'),
     );
   }
 
@@ -123,10 +117,7 @@ export async function pickProcess(): Promise<string | null> {
     const item = await listProcesses();
     return item ? item.pidAndPort : null;
   } catch (err) {
-    await vscode.window.showErrorMessage(
-      localize('process.picker.error', 'Process picker failed ({0})', err.message),
-      { modal: true },
-    );
+    await vscode.window.showErrorMessage(l10n.t(err.message), { modal: true });
     return null;
   }
 }
@@ -144,7 +135,7 @@ async function listProcesses(): Promise<IProcessItem | undefined> {
   let seq = 0; // default sort key
 
   const quickPick = vscode.window.createQuickPick<IProcessItem>();
-  quickPick.placeholder = localize('pickNodeProcess', 'Pick the node.js process to attach to');
+  quickPick.placeholder = l10n.t('Pick the node.js process to attach to');
   quickPick.matchOnDescription = true;
   quickPick.matchOnDetail = true;
   quickPick.busy = true;
@@ -179,14 +170,8 @@ async function listProcesses(): Promise<IProcessItem | undefined> {
         pidAndPort: encodePidAndPort(leaf.pid, port),
         sortKey: leaf.date ? leaf.date : seq++,
         detail: port
-          ? localize(
-              'process.id.port.signal',
-              'process id: {0}, debug port: {1} ({2})',
-              leaf.pid,
-              port,
-              'SIGUSR1',
-            )
-          : localize('process.id.signal', 'process id: {0} ({1})', leaf.pid, 'SIGUSR1'),
+          ? l10n.t('process id: {0}, debug port: {1} ({2})', leaf.pid, port, 'SIGUSR1')
+          : l10n.t('process id: {0} ({1})', leaf.pid, 'SIGUSR1'),
       };
 
       const index = acc.findIndex(item => item.sortKey < newItem.sortKey);
@@ -220,12 +205,7 @@ function putPidInDebugMode(pid: number): void {
     }
   } catch (e) {
     throw new Error(
-      localize(
-        'cannot.enable.debug.mode.error',
-        "Attach to process: cannot enable debug mode for process '{0}' ({1}).",
-        pid,
-        e,
-      ),
+      l10n.t("Attach to process: cannot enable debug mode for process '{0}' ({1}).", pid, e),
     );
   }
 }

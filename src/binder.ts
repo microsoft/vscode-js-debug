@@ -5,7 +5,6 @@
 import { Container } from 'inversify';
 import * as os from 'os';
 import { CancellationToken } from 'vscode';
-import * as nls from 'vscode-nls';
 import { getAsyncStackPolicy, IAsyncStackPolicy } from './adapter/asyncStackPolicy';
 import { DebugAdapter } from './adapter/debugAdapter';
 import { DiagnosticToolSuggester } from './adapter/diagnosticToolSuggester';
@@ -13,6 +12,7 @@ import { SelfProfile } from './adapter/selfProfile';
 import { Thread } from './adapter/threads';
 import { CancellationTokenSource } from './common/cancellation';
 import { EventEmitter, IDisposable } from './common/events';
+import { l10n } from './common/l10n';
 import { ILogger, LogTag, resolveLoggerOptions } from './common/logging';
 import { MutableLaunchConfig } from './common/mutableLaunchConfig';
 import { mapValues } from './common/objUtils';
@@ -36,8 +36,6 @@ import {
   filterErrorsReportedToTelemetry,
   installUnhandledErrorReporter,
 } from './telemetry/unhandledErrorReporter';
-
-const localize = nls.loadMessageBundle();
 
 export interface IBinderDelegate {
   acquireDap(target: ITarget): Promise<DapConnection>;
@@ -109,7 +107,7 @@ export class Binder implements IDisposable {
             params.breakpoints?.map(() => ({
               id: ++lastBreakpointId,
               verified: false,
-              message: localize('breakpoint.provisionalBreakpoint', `Unbound breakpoint`),
+              message: l10n.t(`Unbound breakpoint`),
             })) ?? [],
         }; // TODO: Put a useful message here
       });

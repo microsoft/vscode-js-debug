@@ -2,15 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import * as nls from 'vscode-nls';
 import Cdp from '../../cdp/api';
+import { l10n } from '../../common/l10n';
 import { getDeferred } from '../../common/promiseUtil';
 import Dap from '../../dap/api';
 import { BreakpointManager } from '../breakpoints';
 import { Breakpoint, BreakpointCdpReference, CdpReferenceState } from './breakpointBase';
 import { IBreakpointCondition } from './conditions';
-
-const localize = nls.loadMessageBundle();
 
 export class UserDefinedBreakpoint extends Breakpoint {
   /**
@@ -89,7 +87,7 @@ export class UserDefinedBreakpoint extends Breakpoint {
     return {
       id: this.dapId,
       verified: false,
-      message: localize('breakpoint.provisionalBreakpoint', `Unbound breakpoint`), // TODO: Put a useful message here
+      message: l10n.t(`Unbound breakpoint`), // TODO: Put a useful message here
     };
   }
 
