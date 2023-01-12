@@ -2,13 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { createWriteStream, WriteStream } from 'fs';
 import { inject, injectable } from 'inversify';
 import { IProfile, IProfiler, StartProfileParams } from '.';
 import Cdp from '../../cdp/api';
 import { ICdpApi } from '../../cdp/connection';
 import { EventEmitter } from '../../common/events';
-import { l10n } from '../../common/l10n';
 
 /**
  * Basic instant that uses the HeapProfiler API to grab a snapshot.

@@ -2,6 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { inject, injectable } from 'inversify';
 import { xxHash32 } from 'js-xxhash';
 import { relative } from 'path';
@@ -10,7 +11,6 @@ import { URL } from 'url';
 import Cdp from '../cdp/api';
 import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
 import { EventEmitter } from '../common/events';
-import { l10n } from '../common/l10n';
 import { ILogger, LogTag } from '../common/logging';
 import { once } from '../common/objUtils';
 import { forceForwardSlashes, isSubdirectoryOf, properResolve } from '../common/pathUtils';

@@ -2,11 +2,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { generate } from 'astring';
 import { inject, injectable } from 'inversify';
 import Cdp from '../cdp/api';
 import { ICdpApi } from '../cdp/connection';
-import { l10n } from '../common/l10n';
 import { flatten, isInstanceOf } from '../common/objUtils';
 import { parseSource, statementsToFunction } from '../common/sourceCodeManipulations';
 import { IRenameProvider } from '../common/sourceMaps/renameProvider';

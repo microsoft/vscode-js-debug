@@ -2,6 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { inject, injectable } from 'inversify';
 import { URL } from 'url';
 import * as vscode from 'vscode';
@@ -13,7 +14,6 @@ import {
   readConfig,
 } from '../common/contributionUtils';
 import { DefaultBrowser, IDefaultBrowserProvider } from '../common/defaultBrowserProvider';
-import { l10n } from '../common/l10n';
 import { ExtensionContext, IExtensionContribution } from '../ioc-extras';
 
 function getPossibleUrl(link: string, requirePort: boolean): string | undefined {

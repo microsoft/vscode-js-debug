@@ -1,11 +1,11 @@
 /*---------------------------------------------------------
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
+import * as l10n from '@vscode/l10n';
 import { Container } from 'inversify';
 import * as vscode from 'vscode';
 import { IPortLeaseTracker } from '../adapter/portLeaseTracker';
 import { Commands, Configuration, readConfig, registerCommand } from '../common/contributionUtils';
-import { l10n } from '../common/l10n';
 import { ProxyLogger } from '../common/logging/proxyLogger';
 import { FS } from '../ioc-extras';
 import { DelegateLauncherFactory } from '../targets/delegate/delegateLauncherFactory';

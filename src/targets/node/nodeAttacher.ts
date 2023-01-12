@@ -2,13 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { inject, injectable } from 'inversify';
 import { IPortLeaseTracker } from '../../adapter/portLeaseTracker';
 import { getSourceSuffix } from '../../adapter/templates';
 import Cdp from '../../cdp/api';
 import { CancellationTokenSource } from '../../common/cancellation';
 import { DebugType } from '../../common/contributionUtils';
-import { l10n } from '../../common/l10n';
 import { ILogger, LogTag } from '../../common/logging';
 import { delay } from '../../common/promiseUtil';
 import { isLoopback } from '../../common/urlUtils';

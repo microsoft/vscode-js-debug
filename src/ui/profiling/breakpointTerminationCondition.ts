@@ -2,10 +2,10 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { inject, injectable } from 'inversify';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import { l10n } from '../../common/l10n';
 import { memoize, truthy } from '../../common/objUtils';
 import Dap from '../../dap/api';
 import { ExtensionContext, FS, FsPromises } from '../../ioc-extras';

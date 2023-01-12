@@ -2,6 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { promises as fs } from 'fs';
 import { inject, injectable } from 'inversify';
 import * as path from 'path';
@@ -12,7 +13,6 @@ import { DebugType } from '../../common/contributionUtils';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { findOpenPort } from '../../common/findOpenPort';
 import { existsInjected, IFsUtils, LocalFsUtils } from '../../common/fsUtils';
-import { l10n } from '../../common/l10n';
 import { forceForwardSlashes, isSubpathOrEqualTo } from '../../common/pathUtils';
 import { some } from '../../common/promiseUtil';
 import { getNormalizedBinaryName, nearestDirectoryWhere } from '../../common/urlUtils';
@@ -70,12 +70,18 @@ export class NodeConfigurationResolver extends BaseConfigurationResolver<AnyNode
     if (config.cwd) {
       const stats = await existsInjected(fs, config.cwd);
       if (!stats) {
-        vscode.window.showErrorMessage(l10n.t(config.cwd), { modal: true });
+        vscode.window.showErrorMessage(
+          l10n.t('The configured `cwd` {0} does not exist.', config.cwd),
+          { modal: true },
+        );
         return;
       }
 
       if (!stats.isDirectory()) {
-        vscode.window.showErrorMessage(l10n.t(config.cwd), { modal: true });
+        vscode.window.showErrorMessage(
+          l10n.t('The configured `cwd` {0} is not a folder.', config.cwd),
+          { modal: true },
+        );
         return;
       }
     }

@@ -2,8 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import Cdp from '../../cdp/api';
-import { l10n } from '../../common/l10n';
 import { getDeferred } from '../../common/promiseUtil';
 import Dap from '../../dap/api';
 import { BreakpointManager } from '../breakpoints';

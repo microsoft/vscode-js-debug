@@ -2,6 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { Container } from 'inversify';
 import * as os from 'os';
 import { CancellationToken } from 'vscode';
@@ -12,7 +13,6 @@ import { SelfProfile } from './adapter/selfProfile';
 import { Thread } from './adapter/threads';
 import { CancellationTokenSource } from './common/cancellation';
 import { EventEmitter, IDisposable } from './common/events';
-import { l10n } from './common/l10n';
 import { ILogger, LogTag, resolveLoggerOptions } from './common/logging';
 import { MutableLaunchConfig } from './common/mutableLaunchConfig';
 import { mapValues } from './common/objUtils';

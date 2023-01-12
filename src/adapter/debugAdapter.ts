@@ -2,10 +2,10 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { Container } from 'inversify';
 import { Cdp } from '../cdp/api';
 import { DisposableList, IDisposable } from '../common/disposable';
-import { l10n } from '../common/l10n';
 import { ILogger, LogTag } from '../common/logging';
 import { posInt32Counter, truthy } from '../common/objUtils';
 import { Base1Position } from '../common/positions';

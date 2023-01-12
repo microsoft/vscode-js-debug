@@ -2,12 +2,12 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { Commands, runCommand } from '../common/contributionUtils';
 import { readfile } from '../common/fsUtils';
-import { l10n } from '../common/l10n';
 import { getRunScriptCommand } from './getRunScriptCommand';
 
 interface IScript {

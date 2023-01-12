@@ -2,6 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { inject, injectable } from 'inversify';
 import { find as findLink } from 'linkifyjs';
 import { URL } from 'url';
@@ -14,7 +15,6 @@ import {
 } from '../common/contributionUtils';
 import { DefaultBrowser, IDefaultBrowserProvider } from '../common/defaultBrowserProvider';
 import { DisposableList, IDisposable } from '../common/disposable';
-import { l10n } from '../common/l10n';
 import { once } from '../common/objUtils';
 import { isLoopbackIp, isMetaAddress } from '../common/urlUtils';
 

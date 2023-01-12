@@ -2,6 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { inject, injectable, optional } from 'inversify';
 import type * as vscodeType from 'vscode';
 import { CancellationToken } from 'vscode';
@@ -9,7 +10,6 @@ import CdpConnection from '../../cdp/connection';
 import { NeverCancelled } from '../../common/cancellation';
 import { DebugType } from '../../common/contributionUtils';
 import { EventEmitter, IDisposable } from '../../common/events';
-import { l10n } from '../../common/l10n';
 import { ILogger } from '../../common/logging';
 import { delay } from '../../common/promiseUtil';
 import { ISourcePathResolver } from '../../common/sourcePathResolver';

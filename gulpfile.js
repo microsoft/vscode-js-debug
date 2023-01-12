@@ -199,7 +199,7 @@ async function runWebpack({
       },
       devtool: devtool,
       resolve: {
-        extensions: isInExtension ? ['.extensionOnly.js', '.js', '.json'] : ['.js', '.json'],
+        extensions: isInExtension ? ['.js', '.json'] : ['.js', '.json'],
         alias: {
           // their .mjs seems broken:
           acorn: require.resolve('acorn'),
@@ -233,6 +233,13 @@ async function runWebpack({
       config.output.libraryTarget = 'commonjs2';
     }
 
+    if (isInExtension) {
+      config.resolve.alias['@vscode/l10n'] = path.resolve(
+        __dirname,
+        `${buildSrcDir}/common/l10n.extensionOnly.js`,
+      );
+    }
+
     todo.push(
       execa('node', [path.join(__dirname, 'src/build/webpackBuild')], {
         stdio: 'inherit',
@@ -241,6 +248,7 @@ async function runWebpack({
           CONFIG: JSON.stringify(config),
           ANALYZE_SIZE: String(process.argv.includes('--analyze-size')),
           WATCH: String(watch),
+          USE_VSCODE_L10N: Boolean(isInExtension),
         },
       }),
     );

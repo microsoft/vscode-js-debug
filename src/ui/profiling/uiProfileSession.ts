@@ -2,11 +2,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import * as vscode from 'vscode';
 import { IProfilerCtor } from '../../adapter/profiling';
 import { DisposableList, IDisposable } from '../../common/disposable';
 import { EventEmitter } from '../../common/events';
-import { l10n } from '../../common/l10n';
 import Dap from '../../dap/api';
 import { ITerminationCondition } from './terminationCondition';
 

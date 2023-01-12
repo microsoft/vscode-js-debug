@@ -2,11 +2,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { injectable } from 'inversify';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { DebugType, getPreferredOrDebugType } from '../../common/contributionUtils';
-import { l10n } from '../../common/l10n';
 import { flatten } from '../../common/objUtils';
 import {
   AnyNodeConfiguration,
@@ -97,7 +97,7 @@ export class NodeDynamicDebugConfigurationProvider extends BaseConfigurationProv
     return scripts
       .map<DynamicConfig>(script => ({
         type: getPreferredOrDebugType(DebugType.Terminal),
-        name: l10n.t(script.name),
+        name: l10n.t('Run Script: {0}', script.name),
         request: 'launch',
         command: `${packageManager} run ${script.name}`,
         cwd: script.directory,

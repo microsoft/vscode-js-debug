@@ -2,10 +2,10 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { URL } from 'url';
 import * as vscode from 'vscode';
 import { Configuration, readConfig } from '../common/contributionUtils';
-import { l10n } from '../common/l10n';
 import Dap from '../dap/api';
 import { DebugSessionTunnels } from './debugSessionTunnels';
 

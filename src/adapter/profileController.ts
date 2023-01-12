@@ -2,13 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { randomBytes } from 'crypto';
 import { inject, injectable } from 'inversify';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import Cdp from '../cdp/api';
 import { ICdpApi } from '../cdp/connection';
-import { l10n } from '../common/l10n';
 import Dap from '../dap/api';
 import { invalidConcurrentProfile } from '../dap/errors';
 import { ProtocolError } from '../dap/protocolError';

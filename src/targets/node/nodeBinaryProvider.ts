@@ -2,11 +2,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { inject, injectable, optional } from 'inversify';
 import { basename, dirname, extname, isAbsolute, resolve } from 'path';
 import type * as vscodeType from 'vscode';
 import { EnvironmentVars } from '../../common/environmentVars';
-import { l10n } from '../../common/l10n';
 import { ILogger, LogTag } from '../../common/logging';
 import { findExecutable, findInPath } from '../../common/pathUtils';
 import { spawnAsync } from '../../common/processUtils';

@@ -2,10 +2,10 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { inject, injectable } from 'inversify';
 import * as vscode from 'vscode';
 import { Commands, DebugType, registerCommand } from '../common/contributionUtils';
-import { l10n } from '../common/l10n';
 import { IExtensionContribution } from '../ioc-extras';
 import { BrowserTargetType } from '../targets/browser/browserTargets';
 import { DebugSessionTracker } from './debugSessionTracker';

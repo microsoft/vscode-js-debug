@@ -2,12 +2,12 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { inject, injectable } from 'inversify';
 import { IProfile, IProfiler, StartProfileParams } from '.';
 import Cdp from '../../cdp/api';
 import { ICdpApi } from '../../cdp/connection';
 import { EventEmitter } from '../../common/events';
-import { l10n } from '../../common/l10n';
 import { AnyLaunchConfiguration } from '../../configuration';
 import { profileCaptureError } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';

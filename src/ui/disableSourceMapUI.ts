@@ -2,11 +2,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { injectable } from 'inversify';
 import * as vscode from 'vscode';
 import { ExtensionContext } from 'vscode';
 import { Configuration, isDebugType, readConfig, writeConfig } from '../common/contributionUtils';
-import { l10n } from '../common/l10n';
 import Dap from '../dap/api';
 import { IExtensionContribution } from '../ioc-extras';
 

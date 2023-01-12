@@ -2,9 +2,9 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { inject, injectable } from 'inversify';
 import type * as vscodeType from 'vscode';
-import { l10n } from '../common/l10n';
 import { ExtensionContext, VSCodeApi } from '../ioc-extras';
 import { ILinkedBreakpointLocation } from './linkedBreakpointLocation';
 

@@ -8,4 +8,4 @@ import * as vscode from 'vscode';
  * This file is only included in the extension build, to pull localization from
  * the vscode API. Otherwise, the l10n.t(s file is used.
  */
-export const l10n = vscode.l10n;
+export const t = vscode.l10n.t;

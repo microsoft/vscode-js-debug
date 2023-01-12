@@ -2,6 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { inject, injectable, multiInject } from 'inversify';
 import { homedir } from 'os';
 import { basename, join } from 'path';
@@ -10,7 +11,6 @@ import { getDefaultProfileName, ProfilerFactory } from '../../adapter/profiling'
 import { Commands, ContextKey, setContextKey } from '../../common/contributionUtils';
 import { DisposableList, IDisposable } from '../../common/disposable';
 import { moveFile } from '../../common/fsUtils';
-import { l10n } from '../../common/l10n';
 import { AnyLaunchConfiguration } from '../../configuration';
 import Dap from '../../dap/api';
 import { FS, FsPromises, SessionSubStates } from '../../ioc-extras';

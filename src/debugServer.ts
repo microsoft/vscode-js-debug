@@ -2,6 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import * as fs from 'fs';
 import * as net from 'net';
 import * as os from 'os';
@@ -9,7 +10,6 @@ import * as path from 'path';
 import { DebugAdapter } from './adapter/debugAdapter';
 import { Binder, IBinderDelegate } from './binder';
 import { IDisposable } from './common/disposable';
-import { l10n } from './common/l10n';
 import { ILogger } from './common/logging';
 import Dap from './dap/api';
 import DapConnection from './dap/connection';

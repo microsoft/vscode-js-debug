@@ -2,13 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { execSync } from 'child_process';
 import { promises as fsPromises } from 'fs';
 import { basename } from 'path';
 import * as vscode from 'vscode';
 import { Configuration, readConfig } from '../common/contributionUtils';
 import { LocalFsUtils } from '../common/fsUtils';
-import { l10n } from '../common/l10n';
 import { isSubdirectoryOf } from '../common/pathUtils';
 import { nearestDirectoryContaining } from '../common/urlUtils';
 import {

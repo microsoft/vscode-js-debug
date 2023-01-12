@@ -2,8 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import Cdp from '../cdp/api';
-import { l10n } from '../common/l10n';
 import { once, posInt32Counter } from '../common/objUtils';
 import { Base0Position } from '../common/positions';
 import { SourceConstants } from '../common/sourceUtils';

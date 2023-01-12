@@ -2,10 +2,10 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { injectable } from 'inversify';
 import * as vscode from 'vscode';
 import { DebugType } from '../../common/contributionUtils';
-import { l10n } from '../../common/l10n';
 import {
   AnyEdgeConfiguration,
   edgeAttachConfigDefaults,

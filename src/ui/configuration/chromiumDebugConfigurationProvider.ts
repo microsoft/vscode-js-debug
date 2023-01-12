@@ -2,6 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { inject, injectable } from 'inversify';
 import { tmpdir } from 'os';
 import { basename, join } from 'path';
@@ -9,7 +10,6 @@ import * as vscode from 'vscode';
 import { DebugType } from '../../common/contributionUtils';
 import { isPortOpen } from '../../common/findOpenPort';
 import { existsWithoutDeref } from '../../common/fsUtils';
-import { l10n } from '../../common/l10n';
 import { some } from '../../common/promiseUtil';
 import {
   AnyChromiumConfiguration,
