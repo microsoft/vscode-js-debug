@@ -95,7 +95,7 @@ export class BasicResourceProvider implements IResourceProvider {
     // Try the other net family if localhost fails,
     // see https://github.com/microsoft/vscode/issues/140536#issuecomment-1011281962
     // and later https://github.com/microsoft/vscode/issues/167353
-    if (response.statusCode === 503 && parsed.hostname === 'localost') {
+    if (response.statusCode === 503 && parsed.hostname === 'localhost') {
       let resolved: LookupAddress;
       try {
         resolved = await dns.lookup(parsed.hostname);
