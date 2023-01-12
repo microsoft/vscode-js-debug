@@ -107,7 +107,7 @@ class VsDebugServer implements ISessionLauncher<VSDebugSession> {
       childAttachConfig,
     );
 
-    this.sessionServer.createChildDebugServer(session).then(({ server, connectionPromise }) => {
+    this.sessionServer.createChildDebugServer(session, 0).then(({ server, connectionPromise }) => {
       connectionPromise.then(x => deferredConnection.resolve(x));
       childAttachConfig.__jsDebugChildServer = (
         server.address() as net.AddressInfo
