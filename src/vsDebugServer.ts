@@ -26,7 +26,7 @@ import { ITarget } from './targets/targets';
 const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-js-debug-'));
 
 if (process.env.L10N_FSPATH_TO_BUNDLE) {
-  l10n.l10n({ fsPath: process.env.L10N_FSPATH_TO_BUNDLE });
+  l10n.config({ fsPath: process.env.L10N_FSPATH_TO_BUNDLE });
 }
 
 class VSDebugSession implements IDebugSessionLike {

@@ -107,7 +107,7 @@ export class Binder implements IDisposable {
             params.breakpoints?.map(() => ({
               id: ++lastBreakpointId,
               verified: false,
-              message: l10n.t(`Unbound breakpoint`),
+              message: l10n.t('Unbound breakpoint'),
             })) ?? [],
         }; // TODO: Put a useful message here
       });

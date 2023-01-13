@@ -37,7 +37,7 @@ class Configurator {
       const breakpoints = ids.map(id => ({
         id,
         verified: false,
-        message: l10n.t(`Unbound breakpoint`),
+        message: l10n.t('Unbound breakpoint'),
       })); // TODO: Put a useful message here
       return { breakpoints };
     });

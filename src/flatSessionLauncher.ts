@@ -25,7 +25,7 @@ import { createGlobalContainer } from './ioc';
 import { IDebugSessionLike, ISessionLauncher, SessionManager } from './sessionManager';
 
 if (process.env.L10N_FSPATH_TO_BUNDLE) {
-  l10n.l10n({ fsPath: process.env.L10N_FSPATH_TO_BUNDLE });
+  l10n.config({ fsPath: process.env.L10N_FSPATH_TO_BUNDLE });
 }
 
 const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-js-debug-'));

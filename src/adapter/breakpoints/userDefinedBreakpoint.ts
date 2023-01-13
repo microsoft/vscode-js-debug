@@ -87,7 +87,7 @@ export class UserDefinedBreakpoint extends Breakpoint {
     return {
       id: this.dapId,
       verified: false,
-      message: l10n.t(`Unbound breakpoint`), // TODO: Put a useful message here
+      message: l10n.t('Unbound breakpoint'), // TODO: Put a useful message here
     };
   }
 
