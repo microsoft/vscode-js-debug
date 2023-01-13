@@ -3,7 +3,6 @@
   "displayName": "JavaScript Debugger",
   "version": "1.74.0",
   "publisher": "ms-vscode",
-  "l10n": "./l10n",
   "author": {
     "name": "Microsoft Corporation"
   },
