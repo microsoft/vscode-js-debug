@@ -133,7 +133,11 @@ export async function findScripts(
       parsed = JSON.parse(await readfile(fsPath));
     } catch (e) {
       if (!silent) {
-        promptToOpen('showWarningMessage', l10n.t(fsPath, e.message), fsPath);
+        promptToOpen(
+          'showWarningMessage',
+          l10n.t('Could not read {0}: {1}', fsPath, e.message),
+          fsPath,
+        );
       }
       // set the candidate to 'undefined', since we already displayed an error
       // and if there are no other candidates then that alone is fine.

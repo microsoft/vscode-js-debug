@@ -352,7 +352,7 @@ export class StackFrame implements IFrameElement {
           break;
       }
       if (scope.name && scope.type === 'closure') {
-        name = l10n.t(scope.name);
+        name = l10n.t('Closure ({0})', scope.name);
       } else if (scope.name) {
         name = `${name}: ${scope.name}`;
       }

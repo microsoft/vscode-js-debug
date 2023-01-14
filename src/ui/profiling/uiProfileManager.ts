@@ -263,11 +263,12 @@ export class UiProfileManager implements IDisposable {
     if (this.activeSessions.size === 1) {
       const session: UiProfileSession = this.activeSessions.values().next().value;
       this.statusBarItem.text = session.status
-        ? l10n.t('$(loading~spin) Click to Stop Profiling ({0})', session.status)
-        : l10n.t('$(loading~spin) Click to Stop Profiling');
+        ? l10n.t('{0} Click to Stop Profiling ({1})', '$(loading~spin)', session.status)
+        : l10n.t('{0} Click to Stop Profiling', '$(loading~spin)');
     } else {
       this.statusBarItem.text = l10n.t(
-        '$(loading~spin) Click to Stop Profiling ({0} sessions)',
+        '{0} Click to Stop Profiling ({1} sessions)',
+        '$(loading~spin)',
         this.activeSessions.size,
       );
     }

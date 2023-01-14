@@ -92,7 +92,10 @@ export const nvmVersionNotFound = (version: string, versionManager: string) =>
   );
 
 export const cannotLaunchInTerminal = (errorMessage: string) =>
-  createUserError(errorMessage, ErrorCodes.CannotLaunchInTerminal);
+  createUserError(
+    l10n.t('Cannot launch debug target in terminal ({0}).', errorMessage),
+    ErrorCodes.CannotLaunchInTerminal,
+  );
 
 export const cannotLoadEnvironmentVars = (errorMessage: string) =>
   createUserError(
@@ -163,7 +166,10 @@ export const browserNotFound = (
   );
 
 export const browserLaunchFailed = (innerError: Error) =>
-  createUserError(innerError.message, ErrorCodes.BrowserLaunchFailed);
+  createUserError(
+    l10n.t('Unable to launch browser: "{0}"', innerError.message),
+    ErrorCodes.BrowserLaunchFailed,
+  );
 
 export const browserAttachFailed = (message?: string) =>
   createUserError(message ?? l10n.t('Unable to attach to browser'), ErrorCodes.BrowserAttachFailed);
@@ -202,7 +208,7 @@ export const threadNotAvailable = () =>
 // use the compiledUrl instead of the source map url here, since the source
 // map could be a very large data URI
 export const sourceMapParseFailed = (compiledUrl: string, message: string) =>
-  createUserError(l10n.t(compiledUrl, message));
+  createUserError(l10n.t('Could not read source map for {0}: {1}', compiledUrl, message));
 
 export const uwpPipeNotAvailable = () =>
   createUserError(l10n.t('UWP webview debugging is not available on your platform.'));

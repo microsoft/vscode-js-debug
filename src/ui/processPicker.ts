@@ -117,7 +117,9 @@ export async function pickProcess(): Promise<string | null> {
     const item = await listProcesses();
     return item ? item.pidAndPort : null;
   } catch (err) {
-    await vscode.window.showErrorMessage(l10n.t(err.message), { modal: true });
+    await vscode.window.showErrorMessage(l10n.t('Process picker failed ({0})', err.message), {
+      modal: true,
+    });
     return null;
   }
 }
