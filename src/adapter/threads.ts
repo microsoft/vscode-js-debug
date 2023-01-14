@@ -2,8 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { randomBytes } from 'crypto';
-import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
 import { DebugType } from '../common/contributionUtils';
 import { EventEmitter } from '../common/events';
@@ -42,7 +42,6 @@ import {
   IUiLocation,
   rawToUiOffset,
   Source,
-  SourceConstants,
   SourceContainer,
 } from './sources';
 import { StackFrame, StackTrace } from './stackTrace';
@@ -51,7 +50,6 @@ import {
   serializeForClipboardTmpl,
 } from './templates/serializeForClipboard';
 import { IVariableStoreLocationProvider, VariableStore } from './variableStore';
-const localize = nls.loadMessageBundle();
 
 export type PausedReason =
   | 'step'
@@ -145,7 +143,9 @@ const sourcesEqual = (a: Dap.Source, b: Dap.Source) =>
   urlUtils.comparePathsWithoutCasing(a.path || '', b.path || '');
 
 const getReplSourceSuffix = () =>
-  `\n//# sourceURL=eval-${randomBytes(4).toString('hex')}${SourceConstants.ReplExtension}\n`;
+  `\n//# sourceURL=eval-${randomBytes(4).toString('hex')}${
+    sourceUtils.SourceConstants.ReplExtension
+  }\n`;
 
 export class Thread implements IVariableStoreLocationProvider {
   private static _lastThreadId = 0;
@@ -248,7 +248,7 @@ export class Thread implements IVariableStoreLocationProvider {
     if (!(await this._cdp.Debugger.resume({}))) {
       // We don't report the failure if the target wasn't paused. VS relies on this behavior.
       if (this._pausedDetails !== undefined) {
-        return errors.createSilentError(localize('error.resumeDidFail', 'Unable to resume'));
+        return errors.createSilentError(l10n.t('Unable to resume'));
       }
     }
     return { allThreadsContinued: false };
@@ -261,7 +261,7 @@ export class Thread implements IVariableStoreLocationProvider {
       return {};
     }
 
-    return errors.createSilentError(localize('error.pauseDidFail', 'Unable to pause'));
+    return errors.createSilentError(l10n.t('Unable to pause'));
   }
 
   async stepOver(): Promise<Dap.NextResult | Dap.Error> {
@@ -270,7 +270,7 @@ export class Thread implements IVariableStoreLocationProvider {
       return {};
     }
 
-    return errors.createSilentError(localize('error.stepOverDidFail', 'Unable to step next'));
+    return errors.createSilentError(l10n.t('Unable to step next'));
   }
 
   async stepInto(targetId?: number): Promise<Dap.StepInResult | Dap.Error> {
@@ -292,7 +292,7 @@ export class Thread implements IVariableStoreLocationProvider {
       }
     }
 
-    return errors.createSilentError(localize('error.stepInDidFail', 'Unable to step in'));
+    return errors.createSilentError(l10n.t('Unable to step in'));
   }
 
   async stepOut(): Promise<Dap.StepOutResult | Dap.Error> {
@@ -302,17 +302,15 @@ export class Thread implements IVariableStoreLocationProvider {
       return {};
     }
 
-    return errors.createSilentError(localize('error.stepOutDidFail', 'Unable to step out'));
+    return errors.createSilentError(l10n.t('Unable to step out'));
   }
 
   _stackFrameNotFoundError(): Dap.Error {
-    return errors.createSilentError(localize('error.stackFrameNotFound', 'Stack frame not found'));
+    return errors.createSilentError(l10n.t('Stack frame not found'));
   }
 
   _evaluateOnAsyncFrameError(): Dap.Error {
-    return errors.createSilentError(
-      localize('error.evaluateOnAsyncStackFrame', 'Unable to evaluate on async stack frame'),
-    );
+    return errors.createSilentError(l10n.t('Unable to evaluate on async stack frame'));
   }
 
   async restartFrame(params: Dap.RestartFrameParams): Promise<Dap.RestartFrameResult | Dap.Error> {
@@ -323,9 +321,7 @@ export class Thread implements IVariableStoreLocationProvider {
 
     const callFrameId = stackFrame.callFrameId();
     if (!callFrameId) {
-      return errors.createUserError(
-        localize('error.restartFrameAsync', 'Cannot restart asynchronous frame'),
-      );
+      return errors.createUserError(l10n.t('Cannot restart asynchronous frame'));
     }
 
     // Cast is necessary since the devtools-protocol is being slow to update:
@@ -336,14 +332,12 @@ export class Thread implements IVariableStoreLocationProvider {
       mode: 'StepInto',
     } as Cdp.Debugger.RestartFrameParams);
     if (!ok) {
-      return errors.createUserError(
-        localize('error.unknownRestartError', 'Frame could not be restarted'),
-      );
+      return errors.createUserError(l10n.t('Frame could not be restarted'));
     }
 
     this._expectedPauseReason = {
       reason: 'frame_entry',
-      description: localize('reason.description.restart', 'Paused on frame entry'),
+      description: l10n.t('Paused on frame entry'),
     };
 
     // Chromium versions before 104 didn't have an explicit `canBeRestarted`
@@ -358,8 +352,7 @@ export class Thread implements IVariableStoreLocationProvider {
   }
 
   async stackTrace(params: Dap.StackTraceParams): Promise<Dap.StackTraceResult | Dap.Error> {
-    if (!this._pausedDetails)
-      return errors.createSilentError(localize('error.threadNotPaused', 'Thread is not paused'));
+    if (!this._pausedDetails) return errors.createSilentError(l10n.t('Thread is not paused'));
     return this._pausedDetails.stackTrace.toDap(params);
   }
 
@@ -373,10 +366,7 @@ export class Thread implements IVariableStoreLocationProvider {
 
   async exceptionInfo(): Promise<Dap.ExceptionInfoResult | Dap.Error> {
     const exception = this._pausedDetails && this._pausedDetails.exception;
-    if (!exception)
-      return errors.createSilentError(
-        localize('error.threadNotPausedOnException', 'Thread is not paused on exception'),
-      );
+    if (!exception) return errors.createSilentError(l10n.t('Thread is not paused on exception'));
     const preview = objectPreview.previewException(exception);
     return {
       exceptionId: preview.title,
@@ -517,10 +507,7 @@ export class Thread implements IVariableStoreLocationProvider {
     }
 
     const response = await responsePromise;
-    if (!response)
-      throw new ProtocolError(
-        errors.createSilentError(localize('error.evaluateDidFail', 'Unable to evaluate')),
-      );
+    if (!response) throw new ProtocolError(errors.createSilentError(l10n.t('Unable to evaluate')));
     if (response.exceptionDetails) {
       let text = response.exceptionDetails.exception
         ? objectPreview.previewException(response.exceptionDetails.exception).title
@@ -531,9 +518,7 @@ export class Thread implements IVariableStoreLocationProvider {
 
     const variableStore = callFrameId ? this._pausedVariables : this.replVariables;
     if (!variableStore) {
-      throw new ProtocolError(
-        errors.createSilentError(localize('error.evaluateDidFail', 'Unable to evaluate')),
-      );
+      throw new ProtocolError(errors.createSilentError(l10n.t('Unable to evaluate')));
     }
 
     const variable = await variableStore
@@ -591,8 +576,7 @@ export class Thread implements IVariableStoreLocationProvider {
       setImmediate(() =>
         this.console.enqueue(this, {
           toDap: () => ({
-            output: localize(
-              'repl.truncated',
+            output: l10n.t(
               'Output has been truncated to the first {0} characters. Run `{1}` to copy the full output.',
               budget,
               `copy(${originalCall.expression.trim()}))`,
@@ -1201,7 +1185,7 @@ export class Thread implements IVariableStoreLocationProvider {
         event,
         stackTrace,
         reason: 'breakpoint',
-        description: localize('pause.breakpoint', 'Paused on breakpoint'),
+        description: l10n.t('Paused on breakpoint'),
       };
     }
 
@@ -1211,7 +1195,7 @@ export class Thread implements IVariableStoreLocationProvider {
         event,
         stackTrace,
         reason: 'step',
-        description: localize('pause.default', 'Paused'),
+        description: l10n.t('Paused'),
       };
     }
 
@@ -1222,7 +1206,7 @@ export class Thread implements IVariableStoreLocationProvider {
           event,
           stackTrace,
           reason: 'exception',
-          description: localize('pause.assert', 'Paused on assert'),
+          description: l10n.t('Paused on assert'),
         };
       case 'debugCommand':
         return {
@@ -1230,7 +1214,7 @@ export class Thread implements IVariableStoreLocationProvider {
           event,
           stackTrace,
           reason: 'pause',
-          description: localize('pause.debugCommand', 'Paused on debug() call'),
+          description: l10n.t('Paused on debug() call'),
         };
       case 'DOM':
         return {
@@ -1238,7 +1222,7 @@ export class Thread implements IVariableStoreLocationProvider {
           event,
           stackTrace,
           reason: 'data breakpoint',
-          description: localize('pause.DomBreakpoint', 'Paused on DOM breakpoint'),
+          description: l10n.t('Paused on DOM breakpoint'),
         };
       case 'EventListener':
         return this._resolveEventListenerBreakpointDetails(stackTrace, event);
@@ -1248,7 +1232,7 @@ export class Thread implements IVariableStoreLocationProvider {
           event,
           stackTrace,
           reason: 'exception',
-          description: localize('pause.exception', 'Paused on exception'),
+          description: l10n.t('Paused on exception'),
           exception: event.data as Cdp.Runtime.RemoteObject | undefined,
         };
       case 'promiseRejection':
@@ -1257,7 +1241,7 @@ export class Thread implements IVariableStoreLocationProvider {
           event,
           stackTrace,
           reason: 'exception',
-          description: localize('pause.promiseRejection', 'Paused on promise rejection'),
+          description: l10n.t('Paused on promise rejection'),
           exception: event.data as Cdp.Runtime.RemoteObject | undefined,
         };
       case 'instrumentation':
@@ -1267,7 +1251,7 @@ export class Thread implements IVariableStoreLocationProvider {
             event,
             stackTrace,
             reason: 'step',
-            description: localize('pause.default', 'Paused'),
+            description: l10n.t('Paused'),
           };
         }
         return {
@@ -1275,7 +1259,7 @@ export class Thread implements IVariableStoreLocationProvider {
           event,
           stackTrace,
           reason: 'function breakpoint',
-          description: localize('pause.instrumentation', 'Paused on instrumentation breakpoint'),
+          description: l10n.t('Paused on instrumentation breakpoint'),
         };
       case 'XHR':
         return {
@@ -1283,7 +1267,7 @@ export class Thread implements IVariableStoreLocationProvider {
           event,
           stackTrace,
           reason: 'data breakpoint',
-          description: localize('pause.xhr', 'Paused on XMLHttpRequest or fetch'),
+          description: l10n.t('Paused on XMLHttpRequest or fetch'),
         };
       case 'OOM':
         return {
@@ -1291,7 +1275,7 @@ export class Thread implements IVariableStoreLocationProvider {
           event,
           stackTrace,
           reason: 'exception',
-          description: localize('pause.oom', 'Paused before Out Of Memory exception'),
+          description: l10n.t('Paused before Out Of Memory exception'),
         };
       default:
         if (event.hitBreakpoints && event.hitBreakpoints.length) {
@@ -1326,7 +1310,7 @@ export class Thread implements IVariableStoreLocationProvider {
             stackTrace,
             hitBreakpoints: event.hitBreakpoints,
             reason: isStopOnEntry ? 'entry' : 'breakpoint',
-            description: localize('pause.breakpoint', 'Paused on breakpoint'),
+            description: l10n.t('Paused on breakpoint'),
           };
         }
         if (this._expectedPauseReason) {
@@ -1334,7 +1318,7 @@ export class Thread implements IVariableStoreLocationProvider {
             thread: this,
             event,
             stackTrace,
-            description: localize('pause.default', 'Paused'),
+            description: l10n.t('Paused'),
             ...this._expectedPauseReason,
           };
         }
@@ -1343,7 +1327,7 @@ export class Thread implements IVariableStoreLocationProvider {
           event,
           stackTrace,
           reason: 'pause',
-          description: localize('pause.default', 'Paused on debugger statement'),
+          description: l10n.t('Paused on debugger statement'),
         };
     }
   }
@@ -1371,7 +1355,7 @@ export class Thread implements IVariableStoreLocationProvider {
       event,
       stackTrace,
       reason: 'function breakpoint',
-      description: localize('pause.eventListener', 'Paused on event listener'),
+      description: l10n.t('Paused on event listener'),
     };
   }
 
@@ -1393,7 +1377,7 @@ export class Thread implements IVariableStoreLocationProvider {
   }
 
   private _onScriptParsed(event: Cdp.Debugger.ScriptParsedEvent) {
-    if (event.url.endsWith(SourceConstants.InternalExtension)) {
+    if (event.url.endsWith(sourceUtils.SourceConstants.InternalExtension)) {
       // The customer doesn't care about the internal cdp files, so skip this event
       return;
     }
@@ -1534,8 +1518,7 @@ export class Thread implements IVariableStoreLocationProvider {
       this._dap.with(dap =>
         dap.output({
           category: 'stderr',
-          output: localize(
-            'warnings.handleSourceMapPause.didNotWait',
+          output: l10n.t(
             'WARNING: Processing source-maps of {0} took longer than {1} ms so we continued execution without waiting for all the breakpoints for the script to be set.',
             script.url || script.scriptId,
             timeout,

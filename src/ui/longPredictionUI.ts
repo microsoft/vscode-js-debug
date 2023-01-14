@@ -2,13 +2,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { inject, injectable } from 'inversify';
 import { join } from 'path';
 import * as vscode from 'vscode';
-import * as nls from 'vscode-nls';
 import { ExtensionContext, IExtensionContribution } from '../ioc-extras';
-
-const localize = nls.loadMessageBundle();
 
 const omitLongPredictionKey = 'omitLongPredictions';
 
@@ -33,12 +31,11 @@ export class LongPredictionUI implements IExtensionContribution {
       return;
     }
 
-    const message = localize(
-      'longPredictionWarning.message',
+    const message = l10n.t(
       "It's taking a while to configure your breakpoints. You can speed this up by updating the 'outFiles' in your launch.json.",
     );
-    const openLaunch = localize('longPredictionWarning.open', 'Open launch.json');
-    const dontShow = localize('longPredictionWarning.disable', "Don't show again");
+    const openLaunch = l10n.t('Open launch.json');
+    const dontShow = l10n.t("Don't show again");
     const result = await vscode.window.showWarningMessage(message, dontShow, openLaunch);
 
     if (result === dontShow) {
@@ -55,9 +52,7 @@ export class LongPredictionUI implements IExtensionContribution {
     }
 
     if (!workspaceFolder) {
-      await vscode.window.showWarningMessage(
-        localize('longPredictionWarning.noFolder', 'No workspace folder open.'),
-      );
+      await vscode.window.showWarningMessage(l10n.t('No workspace folder open.'));
       return;
     }
 

@@ -2,9 +2,9 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { generate } from 'astring';
 import { inject, injectable } from 'inversify';
-import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
 import { ICdpApi } from '../cdp/connection';
 import { flatten, isInstanceOf } from '../common/objUtils';
@@ -25,8 +25,6 @@ import { getStringyProps, getToStringIfCustom } from './templates/getStringyProp
 import { invokeGetter } from './templates/invokeGetter';
 import { readMemory } from './templates/readMemory';
 import { writeMemory } from './templates/writeMemory';
-
-const localize = nls.loadMessageBundle();
 
 const getVariableId = (() => {
   let last = 0;
@@ -114,12 +112,7 @@ const localizeIndescribable = (str: string) => {
     return str;
   }
 
-  return localize(
-    'error.customValueDescriptionGeneratorFailed',
-    "{0} (couldn't describe: {1})",
-    error,
-    key,
-  );
+  return l10n.t("{0} (couldn't describe: {1})", error, key);
 };
 
 /**
@@ -292,7 +285,7 @@ class VariableContext {
             ErrorVariable,
             { name: '', sortOrder: SortOrder.Error },
             result as Cdp.Runtime.RemoteObject,
-            result?.description || errorDescription || localize('error.unknown', 'Unknown error'),
+            result?.description || errorDescription || l10n.t('Unknown error'),
           ),
         ]);
       }
@@ -493,7 +486,7 @@ class VariableContext {
           return { errorDescription: customValueDescription.result.description };
         }
       }
-      return { errorDescription: localize('error.unknown', 'Unknown error') };
+      return { errorDescription: l10n.t('Unknown error') };
     } catch (e) {
       return { errorDescription: e.stack || e.message || String(e) };
     }
@@ -578,11 +571,7 @@ class Variable implements IVariable {
     });
 
     if (!result) {
-      throw new ProtocolError(
-        errors.createSilentError(
-          localize('error.setVariableDidFail', 'Unable to set variable value'),
-        ),
-      );
+      throw new ProtocolError(errors.createSilentError(l10n.t('Unable to set variable value')));
     }
 
     if (result.exceptionDetails) {
@@ -988,9 +977,7 @@ class Scope implements IVariableContainer {
       callFrameId: this.ref.callFrameId,
     });
     if (!evaluated) {
-      throw new ProtocolError(
-        errors.createUserError(localize('error.invalidExpression', 'Invalid expression')),
-      );
+      throw new ProtocolError(errors.createUserError(l10n.t('Invalid expression')));
     }
     if (evaluated.exceptionDetails) {
       throw new ProtocolError(errorFromException(evaluated.exceptionDetails));
@@ -1208,18 +1195,14 @@ export class VariableStore {
     const container = this.vars.get(params.variablesReference);
 
     if (!params.value) {
-      throw new ProtocolError(
-        errors.createUserError(localize('error.emptyExpression', 'Cannot set an empty value')),
-      );
+      throw new ProtocolError(errors.createUserError(l10n.t('Cannot set an empty value')));
     }
 
     if (container instanceof Scope || container instanceof Variable) {
       const newVar = await container.setProperty(params.name, params.value);
       return await newVar.toDap(PreviewContextType.PropertyValue, params.format);
     } else {
-      throw new ProtocolError(
-        errors.createSilentError(localize('error.variableNotFound', 'Variable not found')),
-      );
+      throw new ProtocolError(errors.createSilentError(l10n.t('Variable not found')));
     }
   }
 

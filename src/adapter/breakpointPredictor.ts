@@ -9,7 +9,7 @@ import { Event } from 'vscode';
 import { EventEmitter } from '../common/events';
 import { OutFiles } from '../common/fileGlobList';
 import { ILogger, LogTag } from '../common/logging';
-import { forceForwardSlashes } from '../common/pathUtils';
+import { fixDriveLetterAndSlashes, forceForwardSlashes } from '../common/pathUtils';
 import { ISourceMapMetadata } from '../common/sourceMaps/sourceMap';
 import { ISourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
 import {
@@ -144,7 +144,7 @@ export abstract class BreakpointSearch {
             });
           }
 
-          return { discovered, compiledPath: metadata.compiledPath };
+          return { discovered, compiledPath: fixDriveLetterAndSlashes(metadata.compiledPath) };
         },
         onProcessedMap: ({ discovered }) => {
           for (const discovery of discovered) {

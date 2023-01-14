@@ -2,9 +2,9 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { injectable } from 'inversify';
 import * as vscode from 'vscode';
-import * as nls from 'vscode-nls';
 import { DebugType } from '../../common/contributionUtils';
 import {
   AnyEdgeConfiguration,
@@ -17,8 +17,6 @@ import {
   ChromiumDebugConfigurationProvider,
   ChromiumDebugConfigurationResolver,
 } from './chromiumDebugConfigurationProvider';
-
-const localize = nls.loadMessageBundle();
 
 /**
  * Configuration provider for Chrome debugging.
@@ -75,7 +73,7 @@ export class EdgeDebugConfigurationProvider extends ChromiumDebugConfigurationPr
   protected getDefaultLaunch() {
     return {
       ...super.getDefaultLaunch(),
-      name: localize('chrome.launch.name', 'Launch Edge against localhost'),
+      name: l10n.t('Launch Edge against localhost'),
     };
   }
 }

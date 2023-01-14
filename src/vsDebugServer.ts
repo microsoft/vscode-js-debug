@@ -3,6 +3,7 @@
  *--------------------------------------------------------*/
 
 require('source-map-support').install(); // Enable TypeScript stack traces translation
+import * as l10n from '@vscode/l10n';
 import * as fs from 'fs';
 /**
  * This script launches vscode-js-debug in server mode for Visual Studio
@@ -13,7 +14,6 @@ import * as path from 'path';
 import 'reflect-metadata';
 import { Readable, Writable } from 'stream';
 import { DebugConfiguration } from 'vscode';
-import * as nls from 'vscode-nls';
 import { DebugType } from './common/contributionUtils';
 import { getDeferred, IDeferred } from './common/promiseUtil';
 import { IPseudoAttachConfiguration } from './configuration';
@@ -25,7 +25,9 @@ import { ITarget } from './targets/targets';
 
 const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-js-debug-'));
 
-const localize = nls.loadMessageBundle();
+if (process.env.L10N_FSPATH_TO_BUNDLE) {
+  l10n.config({ fsPath: process.env.L10N_FSPATH_TO_BUNDLE });
+}
 
 class VSDebugSession implements IDebugSessionLike {
   constructor(
@@ -62,7 +64,7 @@ class VsDebugServer implements ISessionLauncher<VSDebugSession> {
     const deferredConnection: IDeferred<DapConnection> = getDeferred();
     const rootSession = new VSDebugSession(
       'root',
-      localize('session.rootSessionName', 'JavaScript debug adapter'),
+      l10n.t('JavaScript debug adapter'),
       deferredConnection.promise,
       { type: DebugType.Chrome, name: 'root', request: 'launch' },
     );

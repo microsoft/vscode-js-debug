@@ -2,10 +2,10 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { Container } from 'inversify';
 import { homedir } from 'os';
 import * as vscode from 'vscode';
-import * as nls from 'vscode-nls';
 import { IPortLeaseTracker } from '../adapter/portLeaseTracker';
 import { NeverCancelled } from '../common/cancellation';
 import {
@@ -33,8 +33,6 @@ import { MutableTargetOrigin } from '../targets/targetOrigin';
 import { ITarget } from '../targets/targets';
 import { DapTelemetryReporter } from '../telemetry/dapTelemetryReporter';
 import { TerminalLinkHandler } from './terminalLinkHandler';
-
-const localize = nls.loadMessageBundle();
 
 export const launchVirtualTerminalParent = (
   delegate: DelegateLauncherFactory,
@@ -176,10 +174,7 @@ async function getWorkspaceFolder() {
       folder,
     })),
     {
-      placeHolder: localize(
-        'terminal.cwdpick',
-        'Select current working directory for new terminal',
-      ),
+      placeHolder: l10n.t('Select current working directory for new terminal'),
     },
   );
 

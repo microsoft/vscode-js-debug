@@ -2,23 +2,20 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { createGlobalContainer, createTopLevelSessionContainer } from './ioc';
-
+import * as l10n from '@vscode/l10n';
 import * as fs from 'fs';
-import * as path from 'path';
-import * as os from 'os';
 import * as net from 'net';
-import { Binder, IBinderDelegate } from './binder';
-import DapConnection from './dap/connection';
+import * as os from 'os';
+import * as path from 'path';
 import { DebugAdapter } from './adapter/debugAdapter';
-import Dap from './dap/api';
+import { Binder, IBinderDelegate } from './binder';
 import { IDisposable } from './common/disposable';
-import * as nls from 'vscode-nls';
-import { TargetOrigin } from './targets/targetOrigin';
 import { ILogger } from './common/logging';
+import Dap from './dap/api';
+import DapConnection from './dap/connection';
 import { StreamDapTransport } from './dap/transport';
-
-const localize = nls.loadMessageBundle();
+import { createGlobalContainer, createTopLevelSessionContainer } from './ioc';
+import { TargetOrigin } from './targets/targetOrigin';
 
 const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-js-debug-'));
 
@@ -40,7 +37,7 @@ class Configurator {
       const breakpoints = ids.map(id => ({
         id,
         verified: false,
-        message: localize('breakpoint.provisionalBreakpoint', `Unbound breakpoint`),
+        message: l10n.t('Unbound breakpoint'),
       })); // TODO: Put a useful message here
       return { breakpoints };
     });

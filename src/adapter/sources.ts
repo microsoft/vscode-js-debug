@@ -2,12 +2,12 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { inject, injectable } from 'inversify';
 import { xxHash32 } from 'js-xxhash';
 import { relative } from 'path';
 import { NullableMappedPosition, SourceMapConsumer } from 'source-map';
 import { URL } from 'url';
-import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
 import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
 import { EventEmitter } from '../common/events';
@@ -32,8 +32,6 @@ import { IResourceProvider } from './resourceProvider';
 import { ScriptSkipper } from './scriptSkipper/implementation';
 import { IScriptSkipper } from './scriptSkipper/scriptSkipper';
 import { Script } from './threads';
-
-const localize = nls.loadMessageBundle();
 
 // This is a ui location which corresponds to a position in the document user can see (Source, Dap.Source).
 export interface IUiLocation {
@@ -63,22 +61,6 @@ type ContentGetter = () => Promise<string | undefined>;
 
 // Each source map has a number of compiled sources referncing it.
 type SourceMapData = { compiled: Set<ISourceWithMap>; map?: SourceMap; loaded: Promise<void> };
-
-export const enum SourceConstants {
-  /**
-   * Extension of evaluated sources internal to the debugger. Sources with
-   * this suffix will be ignored when displaying sources or stacktracees.
-   */
-  InternalExtension = '.cdp',
-
-  /**
-   * Extension of evaluated REPL source. Stack traces which include frames
-   * from this suffix will be truncated to keep only frames from code called
-   * by the REPL.
-   */
-  ReplExtension = '.repl',
-}
-
 export type SourceMapTimeouts = {
   // This is a source map loading delay used for testing.
   load: number;
@@ -303,7 +285,7 @@ export class Source {
       path: this._fqname,
       sourceReference: this.sourceReference,
       presentationHint: this.blackboxed() ? 'deemphasize' : undefined,
-      origin: this.blackboxed() ? localize('source.skipFiles', 'Skipped by skipFiles') : undefined,
+      origin: this.blackboxed() ? l10n.t('Skipped by skipFiles') : undefined,
     };
 
     if (existingAbsolutePath) {
@@ -349,7 +331,7 @@ export class Source {
       return '<eval>/VM' + this.sourceReference;
     }
 
-    if (this.url.endsWith(SourceConstants.ReplExtension)) {
+    if (this.url.endsWith(sourceUtils.SourceConstants.ReplExtension)) {
       return 'repl';
     }
 

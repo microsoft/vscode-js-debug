@@ -2,11 +2,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { inject, injectable } from 'inversify';
 import { find as findLink } from 'linkifyjs';
 import { URL } from 'url';
 import * as vscode from 'vscode';
-import * as nls from 'vscode-nls';
 import {
   Configuration,
   DebugByLinkState,
@@ -17,8 +17,6 @@ import { DefaultBrowser, IDefaultBrowserProvider } from '../common/defaultBrowse
 import { DisposableList, IDisposable } from '../common/disposable';
 import { once } from '../common/objUtils';
 import { isLoopbackIp, isMetaAddress } from '../common/urlUtils';
-
-const localize = nls.loadMessageBundle();
 
 interface ITerminalLink extends vscode.TerminalLink {
   target: URL;
@@ -123,7 +121,7 @@ export class TerminalLinkHandler
         links.push({
           startIndex: start,
           length: link.value.length,
-          tooltip: localize('terminalLinkHover.debug', 'Debug URL'),
+          tooltip: l10n.t('Debug URL'),
           target: uri,
           workspaceFolder: getCwd()?.index,
         });
@@ -158,8 +156,7 @@ export class TerminalLinkHandler
       }
 
       vscode.window.showInformationMessage(
-        localize(
-          'cantOpenChromeOnWeb',
+        l10n.t(
           "We can't launch a browser in debug mode from here. If you want to debug this webpage, open this workspace from VS Code on your desktop.",
         ),
       );

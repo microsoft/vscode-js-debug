@@ -2,15 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import * as vscode from 'vscode';
-import * as nls from 'vscode-nls';
 import { IProfilerCtor } from '../../adapter/profiling';
 import { DisposableList, IDisposable } from '../../common/disposable';
 import { EventEmitter } from '../../common/events';
 import Dap from '../../dap/api';
 import { ITerminationCondition } from './terminationCondition';
-
-const localize = nls.loadMessageBundle();
 
 const enum State {
   Collecting,
@@ -85,7 +83,7 @@ export class UiProfileSession implements IDisposable {
       await vscode.window.withProgress(
         {
           location: vscode.ProgressLocation.Window,
-          title: localize('progress.profile.start', 'Starting profile...'),
+          title: l10n.t('Starting profile...'),
         },
         () =>
           this.session.customRequest('startProfile', {
@@ -123,13 +121,13 @@ export class UiProfileSession implements IDisposable {
       return;
     }
 
-    this.setStatus(Category.Overwrite, localize('profile.saving', 'Saving'));
+    this.setStatus(Category.Overwrite, l10n.t('Saving'));
     this.state = State.Saving;
 
     await vscode.window.withProgress(
       {
         location: vscode.ProgressLocation.Window,
-        title: localize('progress.profile.stop', 'Stopping profile...'),
+        title: l10n.t('Stopping profile...'),
       },
       () => this.session.customRequest('stopProfile', {}),
     );

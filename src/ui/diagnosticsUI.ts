@@ -2,14 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { inject, injectable } from 'inversify';
 import * as vscode from 'vscode';
-import * as nls from 'vscode-nls';
 import { Commands, Contributions, isDebugType, registerCommand } from '../common/contributionUtils';
 import { ExtensionContext, FS, FsPromises, IExtensionContribution } from '../ioc-extras';
 import { DebugSessionTracker } from './debugSessionTracker';
 
-const localize = nls.loadMessageBundle();
 const neverRemindKey = 'neverRemind';
 
 @injectable()
@@ -58,9 +57,9 @@ export class DiagnosticsUI implements IExtensionContribution {
 
         this.isPrompting = true;
 
-        const yes = localize('yes', 'Yes');
-        const notNow = localize('notNow', 'Not Now');
-        const never = localize('never', 'Never');
+        const yes = l10n.t('Yes');
+        const notNow = l10n.t('Not Now');
+        const never = l10n.t('Never');
         const response = await vscode.window.showInformationMessage(
           'It looks like you might be having trouble with breakpoints. Would you like to open our diagnostic tool?',
           yes,
@@ -106,7 +105,7 @@ export class DiagnosticsUI implements IExtensionContribution {
   private pickSession() {
     return DebugSessionTracker.pickSession(
       this.tracker.getConcreteSessions(),
-      localize('selectInspectSession', 'Select the session you want to inspect:'),
+      l10n.t('Select the session you want to inspect:'),
     );
   }
 
@@ -116,8 +115,7 @@ export class DiagnosticsUI implements IExtensionContribution {
   ) {
     if (!session || !this.tracker.isRunning(session)) {
       vscode.window.showErrorMessage(
-        localize(
-          'inspectSessionEnded',
+        l10n.t(
           'It looks like your debug session has already ended. Try debugging again, then run the "Debug: Diagnose Breakpoint Problems" command.',
         ),
       );

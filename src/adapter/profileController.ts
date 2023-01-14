@@ -2,11 +2,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { randomBytes } from 'crypto';
 import { inject, injectable } from 'inversify';
 import { tmpdir } from 'os';
 import { join } from 'path';
-import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
 import { ICdpApi } from '../cdp/connection';
 import Dap from '../dap/api';
@@ -18,8 +18,6 @@ import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
 import { getDefaultProfileName, IProfile, IProfilerFactory } from './profiling';
 import { BasicCpuProfiler } from './profiling/basicCpuProfiler';
 import { Thread } from './threads';
-
-const localize = nls.loadMessageBundle();
 
 /**
  * Provides profiling functionality for the debug adapter.
@@ -63,7 +61,7 @@ export class ProfileController implements IProfileController {
 
     this.cdp.Profiler.on('consoleProfileStarted', () => {
       dap.output({
-        output: localize('profileController.console.started', 'Console profile started') + '\n',
+        output: l10n.t('Console profile started') + '\n',
         category: 'console',
       });
     });
@@ -100,12 +98,7 @@ export class ProfileController implements IProfileController {
     await this.basicCpuProfiler.save(evt.profile, withExt);
 
     dap.output({
-      output:
-        localize(
-          'profileController.console.ended',
-          'CPU profile saved as "{0}" in your workspace folder',
-          withExt,
-        ) + '\n',
+      output: l10n.t('CPU profile saved as "{0}" in your workspace folder', withExt) + '\n',
       category: 'console',
     });
   }

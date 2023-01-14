@@ -2,8 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { inject, injectable } from 'inversify';
-import * as nls from 'vscode-nls';
 import { IProfile, IProfiler, StartProfileParams } from '.';
 import Cdp from '../../cdp/api';
 import { ICdpApi } from '../../cdp/connection';
@@ -15,8 +15,6 @@ import { FS, FsPromises } from '../../ioc-extras';
 import { SourceContainer } from '../sources';
 import { SourceAnnotationHelper } from './sourceAnnotationHelper';
 
-const localize = nls.loadMessageBundle();
-
 /**
  * Basic profiler that uses the stable `HeapProfiler` API available everywhere.
  * In Chrome, and probably in Node, this will be superceded by the Tracing API.
@@ -25,9 +23,8 @@ const localize = nls.loadMessageBundle();
 export class BasicHeapProfiler implements IProfiler<{}> {
   public static readonly type = 'heap';
   public static readonly extension = '.heapprofile';
-  public static readonly label = localize('profile.heap.label', 'Heap Profile');
-  public static readonly description = localize(
-    'profile.heap.description',
+  public static readonly label = l10n.t('Heap Profile');
+  public static readonly description = l10n.t(
     'Generates a .heapprofile file you can open in the Chrome devtools',
   );
   public static readonly editable = true;

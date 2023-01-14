@@ -2,11 +2,9 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import * as nls from 'vscode-nls';
+import * as l10n from '@vscode/l10n';
 import Dap from './api';
 import { ProtocolError } from './protocolError';
-
-const localize = nls.loadMessageBundle();
 
 export const enum ErrorCodes {
   SilentError = 9222,
@@ -65,8 +63,7 @@ export function createUserError(text: string, code = ErrorCodes.UserError): Dap.
 
 export const nvmNotFound = () =>
   createUserError(
-    localize(
-      'NVS_HOME.not.found.message',
+    l10n.t(
       "Attribute 'runtimeVersion' requires Node.js version manager 'nvs' or 'nvm' to be installed.",
     ),
     ErrorCodes.NvmOrNvsNotFound,
@@ -74,26 +71,19 @@ export const nvmNotFound = () =>
 
 export const nvsNotFound = () =>
   createUserError(
-    localize(
-      'NVS_HOME.not.found.message',
-      "Attribute 'runtimeVersion' with a flavor/architecture requires 'nvs' to be installed.",
-    ),
+    l10n.t("Attribute 'runtimeVersion' with a flavor/architecture requires 'nvs' to be installed."),
     ErrorCodes.NvsNotFound,
   );
 
 export const nvmHomeNotFound = () =>
   createUserError(
-    localize(
-      'NVM_HOME.not.found.message',
-      "Attribute 'runtimeVersion' requires Node.js version manager 'nvm-windows' or 'nvs'.",
-    ),
+    l10n.t("Attribute 'runtimeVersion' requires Node.js version manager 'nvm-windows' or 'nvs'."),
     ErrorCodes.NvmHomeNotFound,
   );
 
 export const nvmVersionNotFound = (version: string, versionManager: string) =>
   createUserError(
-    localize(
-      'runtime.version.not.found.message',
+    l10n.t(
       "Node.js version '{0}' not installed using version manager {1}.",
       version,
       versionManager,
@@ -103,20 +93,19 @@ export const nvmVersionNotFound = (version: string, versionManager: string) =>
 
 export const cannotLaunchInTerminal = (errorMessage: string) =>
   createUserError(
-    localize('VSND2011', 'Cannot launch debug target in terminal ({0}).', errorMessage),
+    l10n.t('Cannot launch debug target in terminal ({0}).', errorMessage),
     ErrorCodes.CannotLaunchInTerminal,
   );
 
 export const cannotLoadEnvironmentVars = (errorMessage: string) =>
   createUserError(
-    localize('VSND2029', "Can't load environment variables from file ({0}).", errorMessage),
+    l10n.t("Can't load environment variables from file ({0}).", errorMessage),
     ErrorCodes.CannotLoadEnvironmentVariables,
   );
 
 export const cannotFindNodeBinary = (attemptedPath: string, reason: string) =>
   createUserError(
-    localize(
-      'runtime.node.notfound',
+    l10n.t(
       'Can\'t find Node.js binary "{0}": {1}. Make sure Node.js is installed and in your PATH, or set the "runtimeExecutable" in your launch.json',
       attemptedPath,
       reason,
@@ -126,8 +115,7 @@ export const cannotFindNodeBinary = (attemptedPath: string, reason: string) =>
 
 export const nodeBinaryOutOfDate = (readVersion: string, attemptedPath: string) =>
   createUserError(
-    localize(
-      'runtime.node.outdated',
+    l10n.t(
       'The Node version in "{0}" is outdated (version {1}), we require at least Node 8.x.',
       attemptedPath,
       readVersion,
@@ -137,8 +125,7 @@ export const nodeBinaryOutOfDate = (readVersion: string, attemptedPath: string) 
 
 export const invalidHitCondition = (expression: string) =>
   createUserError(
-    localize(
-      'invalidHitCondition',
+    l10n.t(
       'Invalid hit condition "{0}". Expected an expression like "> 42" or "== 2".',
       expression,
     ),
@@ -147,16 +134,13 @@ export const invalidHitCondition = (expression: string) =>
 
 export const profileCaptureError = () =>
   createUserError(
-    localize('profile.error.generic', 'An error occurred taking a profile from the target.'),
+    l10n.t('An error occurred taking a profile from the target.'),
     ErrorCodes.ProfileCaptureError,
   );
 
 export const invalidConcurrentProfile = () =>
   createUserError(
-    localize(
-      'profile.error.concurrent',
-      'Please stop the running profile before starting a new one.',
-    ),
+    l10n.t('Please stop the running profile before starting a new one.'),
     ErrorCodes.InvalidConcurrentProfile,
   );
 
@@ -169,12 +153,10 @@ export const browserNotFound = (
 ) =>
   createUserError(
     requested === '*' && !available.length
-      ? localize(
-          'noBrowserInstallFound',
+      ? l10n.t(
           'Unable to find an installation of the browser on your system. Try installing it, or providing an absolute path to the browser in the "runtimeExecutable" in your launch.json.',
         )
-      : localize(
-          'browserVersionNotFound',
+      : l10n.t(
           'Unable to find {0} version {1}. Available auto-discovered versions are: {2}. You can set the "runtimeExecutable" in your launch.json to one of these, or provide an absolute path to the browser executable.',
           browserType,
           requested,
@@ -185,20 +167,16 @@ export const browserNotFound = (
 
 export const browserLaunchFailed = (innerError: Error) =>
   createUserError(
-    localize('error.browserLaunchError', 'Unable to launch browser: "{0}"', innerError.message),
+    l10n.t('Unable to launch browser: "{0}"', innerError.message),
     ErrorCodes.BrowserLaunchFailed,
   );
 
 export const browserAttachFailed = (message?: string) =>
-  createUserError(
-    message ?? localize('error.browserAttachError', 'Unable to attach to browser'),
-    ErrorCodes.BrowserAttachFailed,
-  );
+  createUserError(message ?? l10n.t('Unable to attach to browser'), ErrorCodes.BrowserAttachFailed);
 
 export const targetPageNotFound = () =>
   createUserError(
-    localize(
-      'error.threadNotFound',
+    l10n.t(
       'Target page not found. You may need to update your "urlFilter" to match the page you want to debug.',
     ),
     ErrorCodes.TargetPageNotFound,
@@ -209,14 +187,13 @@ export const invalidLogPointSyntax = (error: string) =>
 
 export const asyncScopesNotAvailable = () =>
   createSilentError(
-    localize('asyncScopesNotAvailable', 'Variables not available in async stacks'),
+    l10n.t('Variables not available in async stacks'),
     ErrorCodes.AsyncScopesNotAvailable,
   );
 
 export const invalidBreakPointCondition = (params: Dap.SourceBreakpoint, error: string) =>
   createUserError(
-    localize(
-      'breakpointSyntaxError',
+    l10n.t(
       'Syntax error setting breakpoint with condition {0} on line {1}: {2}',
       JSON.stringify(params.condition),
       params.line,
@@ -226,27 +203,19 @@ export const invalidBreakPointCondition = (params: Dap.SourceBreakpoint, error: 
   );
 
 export const threadNotAvailable = () =>
-  createSilentError(
-    localize('error.threadNotFound', 'Thread not found'),
-    ErrorCodes.ThreadNotAvailable,
-  );
+  createSilentError(l10n.t('Thread not found'), ErrorCodes.ThreadNotAvailable);
 
 // use the compiledUrl instead of the source map url here, since the source
 // map could be a very large data URI
 export const sourceMapParseFailed = (compiledUrl: string, message: string) =>
-  createUserError(
-    localize('sourcemapParseError', 'Could not read source map for {0}: {1}', compiledUrl, message),
-  );
+  createUserError(l10n.t('Could not read source map for {0}: {1}', compiledUrl, message));
 
 export const uwpPipeNotAvailable = () =>
-  createUserError(
-    localize('uwpPipeNotAvailable', 'UWP webview debugging is not available on your platform.'),
-  );
+  createUserError(l10n.t('UWP webview debugging is not available on your platform.'));
 
 export const noUwpPipeFound = () =>
   createUserError(
-    localize(
-      'noUwpPipeFound',
+    l10n.t(
       'Could not connect to any UWP Webview pipe. Make sure your webview is hosted in debug mode, and that the `pipeName` in your `launch.json` is correct.',
     ),
   );

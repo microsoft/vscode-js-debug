@@ -2,11 +2,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { inject, injectable, multiInject } from 'inversify';
 import { homedir } from 'os';
 import { basename, join } from 'path';
 import * as vscode from 'vscode';
-import * as nls from 'vscode-nls';
 import { getDefaultProfileName, ProfilerFactory } from '../../adapter/profiling';
 import { Commands, ContextKey, setContextKey } from '../../common/contributionUtils';
 import { DisposableList, IDisposable } from '../../common/disposable';
@@ -18,8 +18,6 @@ import { DebugSessionTracker } from '../debugSessionTracker';
 import { ManualTerminationCondition } from './manualTerminationCondition';
 import { ITerminationCondition, ITerminationConditionFactory } from './terminationCondition';
 import { UiProfileSession } from './uiProfileSession';
-
-const localize = nls.loadMessageBundle();
 
 const isProfileCandidate = (session: vscode.DebugSession) =>
   '__pendingTargetId' in session.configuration;
@@ -195,7 +193,7 @@ export class UiProfileManager implements IDisposable {
    */
   private registerSession(uiSession: UiProfileSession, onCompleteCommand?: string) {
     this.activeSessions.set(uiSession.session.id, uiSession);
-    this.sessionStates.add(uiSession.session.id, localize('profile.sessionState', 'Profiling'));
+    this.sessionStates.add(uiSession.session.id, l10n.t('Profiling'));
     uiSession.onStatusChange(() => this.updateStatusBar());
     uiSession.onStop(file => {
       if (file) {
@@ -265,16 +263,12 @@ export class UiProfileManager implements IDisposable {
     if (this.activeSessions.size === 1) {
       const session: UiProfileSession = this.activeSessions.values().next().value;
       this.statusBarItem.text = session.status
-        ? localize(
-            'profile.status.single',
-            '$(loading~spin) Click to Stop Profiling ({0})',
-            session.status,
-          )
-        : localize('profile.status.default', '$(loading~spin) Click to Stop Profiling');
+        ? l10n.t('{0} Click to Stop Profiling ({1})', '$(loading~spin)', session.status)
+        : l10n.t('{0} Click to Stop Profiling', '$(loading~spin)');
     } else {
-      this.statusBarItem.text = localize(
-        'profile.status.multiSession',
-        '$(loading~spin) Click to Stop Profiling ({0} sessions)',
+      this.statusBarItem.text = l10n.t(
+        '{0} Click to Stop Profiling ({1} sessions)',
+        '$(loading~spin)',
         this.activeSessions.size,
       );
     }
@@ -287,11 +281,10 @@ export class UiProfileManager implements IDisposable {
    * if they want to stop and start profiling it again.
    */
   private async alreadyRunningSession(existing: UiProfileSession) {
-    const yes = localize('yes', 'Yes');
-    const no = localize('no', 'No');
+    const yes = l10n.t('Yes');
+    const no = l10n.t('No');
     const stopExisting = await vscode.window.showErrorMessage(
-      localize(
-        'profile.alreadyRunning',
+      l10n.t(
         'A profiling session is already running, would you like to stop it and start a new session?',
       ),
       yes,
@@ -334,7 +327,7 @@ export class UiProfileManager implements IDisposable {
     }
 
     const chosen = await this.pickWithLastDefault(
-      localize('profile.type.title', 'Type of profile:'),
+      l10n.t('Type of profile:'),
       ProfilerFactory.ctors.filter(ctor => ctor.canApplyTo(params)),
       this.lastChosenType,
     );
@@ -360,7 +353,7 @@ export class UiProfileManager implements IDisposable {
     }
 
     const chosen = await this.pickWithLastDefault(
-      localize('profile.termination.title', 'How long to run the profile:'),
+      l10n.t('How long to run the profile:'),
       this.terminationConditions,
       this.lastChosenTermination,
     );

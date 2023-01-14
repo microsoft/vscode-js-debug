@@ -2,14 +2,12 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { ITerminationConditionFactory, ITerminationCondition } from './terminationCondition';
-import * as nls from 'vscode-nls';
-import * as vscode from 'vscode';
-import { UiProfileSession, Category } from './uiProfileSession';
+import * as l10n from '@vscode/l10n';
 import { injectable } from 'inversify';
+import * as vscode from 'vscode';
 import { DisposableList } from '../../common/disposable';
-
-const localize = nls.loadMessageBundle();
+import { ITerminationCondition, ITerminationConditionFactory } from './terminationCondition';
+import { Category, UiProfileSession } from './uiProfileSession';
 
 @injectable()
 export class DurationTerminationConditionFactory implements ITerminationConditionFactory {
@@ -17,11 +15,8 @@ export class DurationTerminationConditionFactory implements ITerminationConditio
 
   public readonly sortOrder = 1;
   public readonly id = 'duration';
-  public readonly label = localize('profile.termination.duration.label', 'Duration');
-  public readonly description = localize(
-    'profile.termination.duration.description',
-    'Run for a specific amount of time',
-  );
+  public readonly label = l10n.t('Duration');
+  public readonly description = l10n.t('Run for a specific amount of time');
 
   public async onPick(_session: vscode.DebugSession, duration?: number) {
     if (duration) {
@@ -29,11 +24,8 @@ export class DurationTerminationConditionFactory implements ITerminationConditio
     }
 
     const input = vscode.window.createInputBox();
-    input.title = localize('profile.termination.duration.inputTitle', 'Duration of Profile');
-    input.placeholder = localize(
-      'profile.termination.duration.placeholder',
-      'Profile duration in seconds, e.g "5"',
-    );
+    input.title = l10n.t('Duration of Profile');
+    input.placeholder = l10n.t('Profile duration in seconds, e.g "5"');
 
     if (this.lastDuration) {
       input.value = String(this.lastDuration);
@@ -41,15 +33,9 @@ export class DurationTerminationConditionFactory implements ITerminationConditio
 
     input.onDidChangeValue(value => {
       if (!/^[0-9]+$/.test(value)) {
-        input.validationMessage = localize(
-          'profile.termination.duration.invalidFormat',
-          'Please enter a number',
-        );
+        input.validationMessage = l10n.t('Please enter a number');
       } else if (Number(value) < 1) {
-        input.validationMessage = localize(
-          'profile.termination.duration.invalidLength',
-          'Please enter a number greater than 1',
-        );
+        input.validationMessage = l10n.t('Please enter a number greater than 1');
       } else {
         input.validationMessage = undefined;
       }

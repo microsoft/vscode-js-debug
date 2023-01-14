@@ -4,6 +4,8 @@
 
 const path = require('path');
 const config = JSON.parse(process.env.CONFIG);
+const webpack = require('webpack');
+
 for (const rule of config.module.rules) {
   if (typeof rule.test === 'string') {
     rule.test = new RegExp(rule.test);
@@ -19,7 +21,13 @@ if (process.env.ANALYZE_SIZE === 'true') {
   );
 }
 
-const compiler = require('webpack')(config);
+if (process.env.USE_VSCODE_L10N === 'true') {
+  config.plugins.push(
+    new webpack.NormalModuleReplacementPlugin(/common\/l10n(.js)?$/, './l10n.extensionOnly.js'),
+  );
+}
+
+const compiler = webpack(config);
 
 const handleResult = (err, stats) => {
   if (err) {

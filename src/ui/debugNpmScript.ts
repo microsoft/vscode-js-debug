@@ -2,15 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as vscode from 'vscode';
-import * as nls from 'vscode-nls';
 import { Commands, runCommand } from '../common/contributionUtils';
 import { readfile } from '../common/fsUtils';
 import { getRunScriptCommand } from './getRunScriptCommand';
-
-const localize = nls.loadMessageBundle();
 
 interface IScript {
   directory: string;
@@ -99,10 +97,7 @@ export async function findScripts(
   if (!folders || folders.length === 0) {
     if (!silent) {
       vscode.window.showErrorMessage(
-        localize(
-          'debug.npm.noWorkspaceFolder',
-          'You need to open a workspace folder to debug npm scripts.',
-        ),
+        l10n.t('You need to open a workspace folder to debug npm scripts.'),
       );
     }
     return;
@@ -140,7 +135,7 @@ export async function findScripts(
       if (!silent) {
         promptToOpen(
           'showWarningMessage',
-          localize('debug.npm.parseError', 'Could not read {0}: {1}', fsPath, e.message),
+          l10n.t('Could not read {0}: {1}', fsPath, e.message),
           fsPath,
         );
       }
@@ -170,7 +165,7 @@ export async function findScripts(
     if (editCandidate.path && !silent) {
       promptToOpen(
         'showErrorMessage',
-        localize('debug.npm.noScripts', 'No npm scripts found in your package.json'),
+        l10n.t('No npm scripts found in your package.json'),
         editCandidate.path,
       );
     }
@@ -189,7 +184,7 @@ async function promptToOpen(
   message: string,
   file: string,
 ) {
-  const openAction = localize('debug.npm.notFound.open', 'Edit package.json');
+  const openAction = l10n.t('Edit package.json');
   if ((await vscode.window[method](message, openAction)) !== openAction) {
     return;
   }

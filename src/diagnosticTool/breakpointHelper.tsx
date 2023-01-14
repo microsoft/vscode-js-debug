@@ -5,7 +5,6 @@
 import { diffChars } from 'diff';
 import { Fragment, FunctionComponent, h } from 'preact';
 import { useState } from 'preact/hooks';
-import { CdpReferenceState } from '../adapter/breakpoints/breakpointBase';
 import {
   DiagnosticBreakpointArgs,
   IDiagnosticBreakpoint,
@@ -78,10 +77,8 @@ const buildTracing = (bp: IDiagnosticBreakpoint, dump: IDiagnosticDump) => {
     </li>,
   );
 
-  const applied = bp.cdp.filter(cdp => cdp.state === CdpReferenceState.Applied);
-  const uiLocations = flatten(
-    applied.map(a => (a.state === CdpReferenceState.Applied ? a.uiLocations : [])),
-  );
+  const applied = bp.cdp.filter(cdp => cdp.state === 1 /* Applied */);
+  const uiLocations = flatten(applied.map(a => (a.state === 1 /* Applied */ ? a.uiLocations : [])));
   if (!uiLocations.length) {
     steps.push(
       <li key={key++}>

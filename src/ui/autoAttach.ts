@@ -1,9 +1,9 @@
 /*---------------------------------------------------------
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
+import * as l10n from '@vscode/l10n';
 import { Container } from 'inversify';
 import * as vscode from 'vscode';
-import * as nls from 'vscode-nls';
 import { IPortLeaseTracker } from '../adapter/portLeaseTracker';
 import { Commands, Configuration, readConfig, registerCommand } from '../common/contributionUtils';
 import { ProxyLogger } from '../common/logging/proxyLogger';
@@ -17,8 +17,6 @@ import { NodeBinaryProvider } from '../targets/node/nodeBinaryProvider';
 import { noPackageJsonProvider } from '../targets/node/packageJsonProvider';
 import { NodeOnlyPathResolverFactory } from '../targets/sourcePathResolverFactory';
 import { launchVirtualTerminalParent } from './debugTerminalUI';
-
-const localize = nls.loadMessageBundle();
 
 export function registerAutoAttach(
   context: vscode.ExtensionContext,
@@ -76,7 +74,7 @@ export function registerAutoAttach(
         return { ipcAddress: launcher.deferredSocketName as string };
       } catch (e) {
         if (e instanceof AutoAttachPreconditionFailed && e.helpLink) {
-          const details = localize('details', 'Details');
+          const details = l10n.t('Details');
           if ((await vscode.window.showErrorMessage(e.message, details)) === details) {
             vscode.env.openExternal(vscode.Uri.parse(e.helpLink));
           }

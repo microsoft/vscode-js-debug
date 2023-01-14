@@ -6,7 +6,6 @@ const del = require('del');
 const filter = require('gulp-filter');
 const gulp = require('gulp');
 const minimist = require('minimist');
-const nls = require('vscode-nls-dev');
 const path = require('path');
 const sourcemaps = require('gulp-sourcemaps');
 const tsb = require('gulp-tsb');
@@ -26,9 +25,6 @@ const got = require('got').default;
 const execa = require('execa');
 
 const dirname = 'js-debug';
-const translationProjectName = 'vscode-extensions';
-const translationExtensionName = 'js-debug';
-
 const sources = ['src/**/*.{ts,tsx}'];
 const allPackages = [];
 
@@ -191,7 +187,7 @@ async function runWebpack({
   ];
 
   let todo = [];
-  for (const { entry, target, library, filename } of packages) {
+  for (const { entry, target, library, filename, isInExtension } of packages) {
     const config = {
       mode,
       target: target || 'async-node',
@@ -203,7 +199,7 @@ async function runWebpack({
       },
       devtool: devtool,
       resolve: {
-        extensions: ['.js', '.json'],
+        extensions: isInExtension ? ['.js', '.json'] : ['.js', '.json'],
         alias: {
           // their .mjs seems broken:
           acorn: require.resolve('acorn'),
@@ -213,12 +209,6 @@ async function runWebpack({
       },
       module: {
         rules: [
-          {
-            loader: 'vscode-nls-dev/lib/webpack-loader',
-            options: {
-              base: path.join(__dirname, 'out/src'),
-            },
-          },
           {
             test: '\\.node$', // will be regex'd in the webpackBuild script
             loader: 'node-loader',
@@ -243,6 +233,13 @@ async function runWebpack({
       config.output.libraryTarget = 'commonjs2';
     }
 
+    if (isInExtension) {
+      config.resolve.alias['@vscode/l10n'] = path.resolve(
+        __dirname,
+        `${buildSrcDir}/common/l10n.extensionOnly.js`,
+      );
+    }
+
     todo.push(
       execa('node', [path.join(__dirname, 'src/build/webpackBuild')], {
         stdio: 'inherit',
@@ -251,6 +248,7 @@ async function runWebpack({
           CONFIG: JSON.stringify(config),
           ANALYZE_SIZE: String(process.argv.includes('--analyze-size')),
           WATCH: String(watch),
+          USE_VSCODE_L10N: Boolean(isInExtension),
         },
       }),
     );
@@ -262,7 +260,12 @@ async function runWebpack({
 /** Run webpack to bundle the extension output files */
 gulp.task('package:webpack-bundle', async () => {
   const packages = [
-    { entry: `${buildSrcDir}/extension.js`, filename: 'extension.js', library: true },
+    {
+      entry: `${buildSrcDir}/extension.js`,
+      filename: 'extension.js',
+      library: true,
+      isInExtension: true,
+    },
   ];
   return runWebpack({ packages });
 });
@@ -321,60 +324,6 @@ gulp.task('package:createVSIX', () =>
   }),
 );
 
-gulp.task('nls:bundle-download', async () => {
-  const res = await got.stream('https://github.com/microsoft/vscode-loc/archive/main.zip');
-  await new Promise((resolve, reject) =>
-    res
-      .pipe(unzipper.Parse())
-      .on('entry', entry => {
-        const match = /vscode-language-pack-(.*?)\/.+ms-vscode\.js-debug.*?\.i18n\.json$/.exec(
-          entry.path,
-        );
-        if (!match) {
-          return entry.autodrain();
-        }
-
-        const buffer = new streamBuffers.WritableStreamBuffer();
-        const locale = match[1];
-        entry.pipe(buffer).on('finish', () => {
-          try {
-            const strings = JSON.parse(buffer.getContentsAsString('utf-8'));
-            fs.writeFileSync(
-              path.join(distDir, `nls.bundle.${locale}.json`),
-              JSON.stringify(strings.contents),
-            );
-            signale.info(`Added strings for ${locale}`);
-          } catch (e) {
-            reject(`Error parsing ${entry.path}: ${e}`);
-          }
-        });
-      })
-      .on('end', resolve)
-      .on('error', reject)
-      .resume(),
-  );
-});
-
-gulp.task('nls:bundle-create', () =>
-  gulp
-    .src(sources, { base: __dirname })
-    .pipe(nls.createMetaDataFiles())
-    .pipe(nls.bundleMetaDataFiles(`ms-vscode.${extensionName}`, ''))
-    .pipe(nls.bundleLanguageFiles())
-    .pipe(filter('**/nls.*.json'))
-    .pipe(gulp.dest('dist')),
-);
-
-gulp.task(
-  'translations-export',
-  gulp.series('clean', 'compile', 'nls:bundle-create', () =>
-    gulp
-      .src(['out/package.json', 'out/nls.metadata.header.json', 'out/nls.metadata.json'])
-      .pipe(nls.createXlfFiles(translationProjectName, translationExtensionName))
-      .pipe(gulp.dest(`../vscode-translations-export`)),
-  ),
-);
-
 /** Clean, compile, bundle, and create vsix for the extension */
 gulp.task(
   'package:prepare',
@@ -386,7 +335,6 @@ gulp.task(
     'package:webpack-bundle',
     'package:bootloader-as-cdp',
     'package:copy-extension-files',
-    'nls:bundle-create',
     'package:createVSIX',
   ),
 );
@@ -401,7 +349,6 @@ gulp.task(
     'flatSessionBundle:webpack-bundle',
     'package:bootloader-as-cdp',
     'package:copy-extension-files',
-    gulp.parallel('nls:bundle-download', 'nls:bundle-create'),
   ),
 );
 
@@ -415,7 +362,6 @@ gulp.task(
     'flatSessionBundle:webpack-bundle',
     'package:bootloader-as-cdp',
     'package:copy-extension-files',
-    gulp.parallel('nls:bundle-download', 'nls:bundle-create'),
   ),
 );
 

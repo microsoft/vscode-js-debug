@@ -2,10 +2,10 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { Container } from 'inversify';
 import * as os from 'os';
 import { CancellationToken } from 'vscode';
-import * as nls from 'vscode-nls';
 import { getAsyncStackPolicy, IAsyncStackPolicy } from './adapter/asyncStackPolicy';
 import { DebugAdapter } from './adapter/debugAdapter';
 import { DiagnosticToolSuggester } from './adapter/diagnosticToolSuggester';
@@ -36,8 +36,6 @@ import {
   filterErrorsReportedToTelemetry,
   installUnhandledErrorReporter,
 } from './telemetry/unhandledErrorReporter';
-
-const localize = nls.loadMessageBundle();
 
 export interface IBinderDelegate {
   acquireDap(target: ITarget): Promise<DapConnection>;
@@ -109,7 +107,7 @@ export class Binder implements IDisposable {
             params.breakpoints?.map(() => ({
               id: ++lastBreakpointId,
               verified: false,
-              message: localize('breakpoint.provisionalBreakpoint', `Unbound breakpoint`),
+              message: l10n.t('Unbound breakpoint'),
             })) ?? [],
         }; // TODO: Put a useful message here
       });
