@@ -106,7 +106,7 @@ export class Hasher implements IDisposable {
       return undefined;
     }
 
-    const instance = (this.instance = new Worker(join(__dirname, 'hash.js')));
+    const instance = (this.instance = new Worker(join(__dirname, 'hash.bundle.js')));
 
     instance.setMaxListeners(Infinity);
     instance.on('message', raw => {
