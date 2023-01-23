@@ -4,7 +4,7 @@
 
 import { Dirent, promises as fs, Stats } from 'fs';
 import micromatch from 'micromatch';
-import { isAbsolute, relative } from 'path';
+import { isAbsolute, relative, sep } from 'path';
 import toAbsGlob from 'to-absolute-glob';
 import { EventEmitter } from '../events';
 import { memoize } from '../objUtils';
@@ -43,6 +43,8 @@ export interface ITurboGlobStreamOptions<E> {
   /** File to transform a path into extracted data emitted on onFile */
   fileProcessor: (path: string) => Promise<E>;
 }
+
+const forwardSlashRe = /\//g;
 
 /**
  * A smart, cachable glob-stream-like implementation. Caches tree info in its
@@ -299,11 +301,12 @@ export class TurboGlobStream<E> {
   }
 
   private async handleFile(mtime: number, path: string, cache: CacheTree<IGlobCached<E>>) {
+    const platformPath = sep === '/' ? path : path.replace(forwardSlashRe, sep);
     let extracted: E;
     try {
-      extracted = await this.processor(path);
+      extracted = await this.processor(platformPath);
     } catch (error) {
-      this.errorEmitter.fire({ path, error });
+      this.errorEmitter.fire({ path: platformPath, error });
       return;
     }
 

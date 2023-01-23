@@ -4,6 +4,7 @@
 
 import { expect } from 'chai';
 import { promises as fs } from 'fs';
+import { join } from 'path';
 import { spy } from 'sinon';
 import { createFileTree, getTestDir } from '../../test/createFileTree';
 import { CacheTree } from './cacheTree';
@@ -80,6 +81,21 @@ describe('TurboGlobStream', () => {
     });
 
     expect(fileProcessor.callCount).to.equal(1);
+  });
+
+  it('uses platform preferred path', async () => {
+    const expected = join(dir, 'a', 'a1.js');
+    await doTests({
+      expected: [expected],
+      opts: {
+        pattern: 'a/a1.js',
+        ignore: [],
+        fileProcessor: async fpath => {
+          expect(fpath).to.equal(expected);
+          return fpath;
+        },
+      },
+    });
   });
 
   it('globs for multiple files in a single dir', async () => {
