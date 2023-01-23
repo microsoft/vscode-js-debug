@@ -4,6 +4,12 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
+Nothing, yet
+
+## v1.75 (January 2023)
+
+### v1.75.0 - 2023-01-23
+
 - fix: js files with sourceURLs opening readonly versions ([#1476](https://github.com/microsoft/vscode-js-debug/issues/1476))
 - fix: breakpoints not setting in paths with special glob characters ([vscode#166400](https://github.com/microsoft/vscode/issues/166400))
 - fix: better handling of multiple glob patterns and negations ([#1479](https://github.com/microsoft/vscode-js-debug/issues/1479))
