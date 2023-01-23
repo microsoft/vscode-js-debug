@@ -139,18 +139,19 @@ export default class Connection {
     this.transport.close();
   }
 
-  _send(message: Message) {
+  _send(message: Message, onDidWrite?: () => void) {
     if (!this.closed) {
       message.seq = this._sequence++;
 
       const shouldLog = message.type !== 'event' || !logOmittedCalls.has(message.body);
-      this.transport.send(message, shouldLog);
+      this.transport.send(message, shouldLog, onDidWrite);
     } else {
       this.logger.warn(
         LogTag.DapSend,
         `Not sending message because the connection has ended`,
         message,
       );
+      onDidWrite?.();
     }
   }
 
@@ -178,15 +179,18 @@ export default class Connection {
               body: { error: result.error },
             });
           } else {
-            this._send({ ...response, body: result });
+            const msg = { ...response, body: result };
             if (response.command === 'initialize') {
+              this._send(msg);
               this._initialized.resolve(this);
             } else if (response.command === 'disconnect') {
               // close the DAP connection after we respond to disconnect so that
               // no more messages are allowed to go through.
-              process.nextTick(() => {
+              this._send({ ...response, body: result }, () => {
                 this.stop();
               });
+            } else {
+              this._send(msg);
             }
           }
         }
