@@ -13,6 +13,7 @@ import { node15InternalsPrefix } from '../../common/node15Internal';
 import { memoizeLast, trailingEdgeThrottle, truthy } from '../../common/objUtils';
 import * as pathUtils from '../../common/pathUtils';
 import { getDeferred, IDeferred } from '../../common/promiseUtil';
+import { ISourcePathResolver } from '../../common/sourcePathResolver';
 import { escapeRegexSpecialChars } from '../../common/stringUtils';
 import * as urlUtils from '../../common/urlUtils';
 import { AnyLaunchConfiguration } from '../../configuration';
@@ -48,12 +49,15 @@ function preprocessNodeInternals(userSkipPatterns: ReadonlyArray<string>): strin
   return nodeInternalPatterns.length > 0 ? nodeInternalPatterns : undefined;
 }
 
-function preprocessAuthoredGlobs(userSkipPatterns: ReadonlyArray<string>): string[] {
+function preprocessAuthoredGlobs(
+  spr: ISourcePathResolver,
+  userSkipPatterns: ReadonlyArray<string>,
+): string[] {
   const authoredGlobs = userSkipPatterns
     .filter(pattern => !pattern.includes('<node_internals>'))
     .map(pattern =>
       urlUtils.isAbsolute(pattern)
-        ? urlUtils.absolutePathToFileUrl(pattern)
+        ? urlUtils.absolutePathToFileUrlWithDetection(spr.rebaseLocalToRemote(pattern))
         : pathUtils.forceForwardSlashes(pattern),
     )
     .map(urlUtils.lowerCaseInsensitivePath);
@@ -105,6 +109,7 @@ export class ScriptSkipper {
 
   constructor(
     @inject(AnyLaunchConfiguration) { skipFiles }: AnyLaunchConfiguration,
+    @inject(ISourcePathResolver) sourcePathResolver: ISourcePathResolver,
     @inject(ILogger) private readonly logger: ILogger,
     @inject(ICdpApi) private readonly cdp: Cdp.Api,
     @inject(ITarget) target: ITarget,
@@ -115,7 +120,7 @@ export class ScriptSkipper {
       this._normalizeUrl(key),
     );
 
-    this._authoredGlobs = preprocessAuthoredGlobs(skipFiles);
+    this._authoredGlobs = preprocessAuthoredGlobs(sourcePathResolver, skipFiles);
     this._nodeInternalsGlobs = preprocessNodeInternals(skipFiles);
 
     this._initNodeInternals(target); // Purposely don't wait, no need to slow things down
@@ -195,7 +200,7 @@ export class ScriptSkipper {
       return true;
     }
 
-    return this._testSkipAuthored(this._normalizeUrl(url));
+    return this._testSkipAuthored(url);
   }
 
   private async _updateSourceWithSkippedSourceMappedSources(
