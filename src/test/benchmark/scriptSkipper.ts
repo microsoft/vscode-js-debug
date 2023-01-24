@@ -8,12 +8,15 @@ import { Source } from '../../adapter/sources';
 import Connection from '../../cdp/connection';
 import { NullTransport } from '../../cdp/nullTransport';
 import { Logger } from '../../common/logging/logger';
+import { upcastPartial } from '../../common/objUtils';
+import { ISourcePathResolver } from '../../common/sourcePathResolver';
 import { AnyLaunchConfiguration } from '../../configuration';
 import { ITarget } from '../../targets/targets';
 import { NullTelemetryReporter } from '../../telemetry/nullTelemetryReporter';
 
 const skipper = new ScriptSkipper(
   { skipFiles: ['<node_internals>/**', '/foo/*.js'] } as unknown as AnyLaunchConfiguration,
+  upcastPartial<ISourcePathResolver>({ rebaseLocalToRemote: p => p }),
   Logger.null,
   new Connection(new NullTransport(), Logger.null, new NullTelemetryReporter()).createSession(''),
   {
