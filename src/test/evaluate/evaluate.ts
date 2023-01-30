@@ -54,6 +54,11 @@ describe('evaluate', () => {
     await p.logger.evaluateAndLog(`Object.create({ get foo() { throw 'wat'; } })`, { depth: 2 });
     p.log('');
 
+    await p.logger.evaluateAndLog(`Object.create({ get [Symbol.toStringTag]() { return 42 } })`, {
+      depth: 2,
+    });
+    p.log('');
+
     p.evaluate(`setTimeout(() => { throw new Error('bar')}, 0)`);
     await p.logger.logOutput(await p.dap.once('output'));
     p.log('');
