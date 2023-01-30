@@ -4,7 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
-Nothing, yet
+- fix: typeerror for users of vsDebugServer.bundle.js ([#1502](https://github.com/microsoft/vscode-js-debug/issues/1502))
 
 ## v1.75 (January 2023)
 

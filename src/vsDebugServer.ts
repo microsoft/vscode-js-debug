@@ -90,7 +90,7 @@ class VsDebugServer implements ISessionLauncher<VSDebugSession> {
   }
 
   async launchRoot(deferredConnection: IDeferred<DapConnection>, session: VSDebugSession) {
-    const result = await this.sessionServer.createRootDebugServer(session, debugServerPort);
+    const result = await this.sessionServer.createRootDebugServer(session, debugServerPort ?? 0);
     result.connectionPromise.then(x => deferredConnection.resolve(x));
     console.log((result.server.address() as net.AddressInfo).port.toString());
   }
