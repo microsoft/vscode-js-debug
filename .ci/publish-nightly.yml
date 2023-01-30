@@ -28,3 +28,6 @@ extends:
 
       - script: npm run compile -- package:prepare --nightly
         displayName: Package
+
+      - script: npx -y @vscode/l10n-dev export --outDir ./dist/l10n-extract ./src
+        displayName: Extract localization

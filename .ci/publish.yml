@@ -39,5 +39,5 @@ extends:
       - script: npm run compile -- package:prepare
         displayName: Package Stable
 
-      - script: npx -y @vscode/l10n-dev export --outDir ./l10n-extract ./src
+      - script: npx -y @vscode/l10n-dev export --outDir ./dist/l10n-extract ./src
         displayName: Extract localization
