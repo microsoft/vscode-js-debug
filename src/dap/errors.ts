@@ -30,6 +30,7 @@ export const enum ErrorCodes {
   BrowserAttachFailed,
   TaskCancelled,
   ThreadNotAvailable,
+  CwdDoesNotExist,
 }
 
 export function reportToConsole(dap: Dap.Api, error: string) {
@@ -101,6 +102,12 @@ export const cannotLoadEnvironmentVars = (errorMessage: string) =>
   createUserError(
     l10n.t("Can't load environment variables from file ({0}).", errorMessage),
     ErrorCodes.CannotLoadEnvironmentVariables,
+  );
+
+export const cwdDoesNotExist = (cwd: string) =>
+  createUserError(
+    l10n.t('The configured `cwd` {0} does not exist.', cwd),
+    ErrorCodes.CwdDoesNotExist,
   );
 
 export const cannotFindNodeBinary = (attemptedPath: string, reason: string) =>

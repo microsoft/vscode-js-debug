@@ -7,6 +7,7 @@ import { inject, injectable, optional } from 'inversify';
 import { basename, dirname, extname, isAbsolute, resolve } from 'path';
 import type * as vscodeType from 'vscode';
 import { EnvironmentVars } from '../../common/environmentVars';
+import { existsInjected } from '../../common/fsUtils';
 import { ILogger, LogTag } from '../../common/logging';
 import { findExecutable, findInPath } from '../../common/pathUtils';
 import { spawnAsync } from '../../common/processUtils';
@@ -14,6 +15,7 @@ import { Semver } from '../../common/semver';
 import { getNormalizedBinaryName } from '../../common/urlUtils';
 import {
   cannotFindNodeBinary,
+  cwdDoesNotExist,
   ErrorCodes,
   isErrorOfType,
   nodeBinaryOutOfDate,
@@ -347,6 +349,10 @@ export class NodeBinaryProvider {
       });
       return stdout.trim();
     } catch (e) {
+      if (cwd && !(await existsInjected(this.fs, cwd))?.isDirectory()) {
+        throw new ProtocolError(cwdDoesNotExist(cwd));
+      }
+
       throw new ProtocolError(cannotFindNodeBinary(binary, e.message));
     }
   }
