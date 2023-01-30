@@ -71,6 +71,13 @@ result: 3
         > foo: (...)
         > [[Prototype]]: Object
 
+> result: {}
+    > Symbol(Symbol.toStringTag): (...)
+        Symbol(Symbol.toStringTag): 42
+    > [[Prototype]]: Object
+        > Symbol(Symbol.toStringTag): (...)
+        > [[Prototype]]: Object
+
 Evaluating#1: setTimeout(() => { throw new Error('bar')}, 0)
 stderr> Uncaught Error Error: bar
     at <anonymous> (localhost꞉8001/eval1.js:1:26)

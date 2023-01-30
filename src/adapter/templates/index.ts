@@ -106,6 +106,11 @@ type RemoteObjectWithType<R, ByValue> = ByValue extends true
   ? Omit<Cdp.Runtime.RemoteObject, 'value'> & { value: R }
   : Omit<Cdp.Runtime.RemoteObject, 'value'> & { objectId: string };
 
+/** Represets a CDP remote object that can be used as an argument to RemoteFunctions */
+export class RemoteObjectId {
+  constructor(public readonly objectId: string) {}
+}
+
 /**
  * Wraps the function such that it can be invoked over CDP. Returns a function
  * that takes the CDP and arguments with which to invoke the function. The
@@ -122,7 +127,7 @@ export function remoteFunction<Args extends unknown[], R>(fn: string | ((...args
     cdp,
     args,
     ...options
-  }: { cdp: Cdp.Api; args: Args } & Omit<
+  }: { cdp: Cdp.Api; args: Args | RemoteObjectId[] } & Omit<
     Cdp.Runtime.CallFunctionOnParams,
     'functionDeclaration' | 'arguments' | 'returnByValue'
   > &
@@ -131,7 +136,9 @@ export function remoteFunction<Args extends unknown[], R>(fn: string | ((...args
   > => {
     const result = await cdp.Runtime.callFunctionOn({
       functionDeclaration: stringified,
-      arguments: args.map(value => ({ value })),
+      arguments: args.map(value =>
+        value instanceof RemoteObjectId ? { objectId: value.objectId } : { value },
+      ),
       ...options,
     });
 

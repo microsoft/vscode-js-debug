@@ -18,7 +18,7 @@ import { ProtocolError } from '../dap/protocolError';
 import * as objectPreview from './objectPreview';
 import { PreviewContextType } from './objectPreview/contexts';
 import { StackFrame, StackTrace } from './stackTrace';
-import { getSourceSuffix, RemoteException } from './templates';
+import { getSourceSuffix, RemoteException, RemoteObjectId } from './templates';
 import { getArrayProperties } from './templates/getArrayProperties';
 import { getArraySlots } from './templates/getArraySlots';
 import { getStringyProps, getToStringIfCustom } from './templates/getStringyProps';
@@ -919,7 +919,9 @@ class GetterVariable extends AccessorVariable {
       const result = await invokeGetter({
         cdp: this.context.cdp,
         objectId: this.parentObject.objectId,
-        args: [this.context.name],
+        // object ID is always set for functions:
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        args: [new RemoteObjectId(this.remoteObject.objectId!)],
       });
 
       return [
