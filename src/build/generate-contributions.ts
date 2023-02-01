@@ -1323,7 +1323,7 @@ const menus: Menus = {
     {
       command: Commands.PrettyPrint,
       title: refString('pretty.print.script'),
-      when: forAnyDebugType('debugType', 'inDebugMode'),
+      when: forAnyDebugType('debugType', 'debugState == stopped'),
     },
     {
       command: Commands.StartProfile,
@@ -1501,7 +1501,7 @@ const menus: Menus = {
     {
       command: Commands.PrettyPrint,
       group: 'navigation',
-      when: `resource in ${ContextKey.CanPrettyPrint}`,
+      when: `debugState == stopped && resource in ${ContextKey.CanPrettyPrint}`,
     },
   ],
 };
