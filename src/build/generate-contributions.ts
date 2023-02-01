@@ -9,7 +9,6 @@ import {
   Commands,
   Configuration,
   ContextKey,
-  Contributions,
   CustomViews,
   DebugType,
   IConfigurationTypes,
@@ -1552,6 +1551,20 @@ const views = {
   ],
 };
 
+const activationEvents = new Set([
+  'onDebugDynamicConfigurations',
+  'onDebugInitialConfigurations',
+  ...[...debuggers.map(dbg => dbg.type), ...preferredDebugTypes.values()].map(
+    t => `onDebugResolve:${t}`,
+  ),
+  ...[...allCommands].map(cmd => `onCommand:${cmd}`),
+]);
+
+// remove implicit commands:
+for (const { command } of commands) {
+  activationEvents.delete(`onCommand:${command}`);
+}
+
 if (require.main === module) {
   process.stdout.write(
     JSON.stringify({
@@ -1562,16 +1575,7 @@ if (require.main === module) {
           description: refString('workspaceTrust.description'),
         },
       },
-      activationEvents: Array.from(
-        new Set([
-          ...[...allCommands].map(cmd => `onCommand:${cmd}`),
-          ...[...debuggers.map(dbg => dbg.type), ...preferredDebugTypes.values()].map(
-            t => `onDebugResolve:${t}`,
-          ),
-          ...views.debug.map(v => `onView:${v.id}`),
-          `onWebviewPanel:${Contributions.DiagnosticsView}`,
-        ]),
-      ),
+      activationEvents: [...activationEvents],
       contributes: {
         menus,
         breakpoints: breakpointLanguages.map(language => ({ language })),
