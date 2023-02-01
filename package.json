@@ -176,14 +176,6 @@
     "workspaceTrust",
     "tunnels"
   ],
-  "activationEvents": [
-    "onDebugDynamicConfigurations",
-    "onDebugInitialConfigurations",
-    "onDebugResolve:node",
-    "onDebugResolve:extensionHost",
-    "onDebugResolve:chrome",
-    "onTerminalProfile:extension.js-debug.debugTerminal"
-  ],
   "extensionKind": [
     "workspace"
   ],
