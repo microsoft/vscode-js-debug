@@ -1554,6 +1554,9 @@ const views = {
 const activationEvents = new Set([
   'onDebugDynamicConfigurations',
   'onDebugInitialConfigurations',
+  ...[...debuggers.map(dbg => dbg.type), ...preferredDebugTypes.values()].map(
+    t => `onDebugResolve:${t}`,
+  ),
   ...[...allCommands].map(cmd => `onCommand:${cmd}`),
 ]);
 
@@ -1572,7 +1575,7 @@ if (require.main === module) {
           description: refString('workspaceTrust.description'),
         },
       },
-      activationEvents,
+      activationEvents: [...activationEvents],
       contributes: {
         menus,
         breakpoints: breakpointLanguages.map(language => ({ language })),
