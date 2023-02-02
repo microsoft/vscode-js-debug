@@ -2,7 +2,6 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { sortKeys } from '../common/objUtils';
-import strings from './strings';
+import { readFileRaw } from '../common/fsUtils';
 
-process.stdout.write(JSON.stringify(sortKeys(strings)));
+process.stdout.write(readFileRaw('../../package.nls.json'));
