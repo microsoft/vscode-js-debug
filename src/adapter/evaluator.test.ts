@@ -5,7 +5,7 @@
 import { expect } from 'chai';
 import Cdp from '../cdp/api';
 import { stubbedCdpApi, StubCdpApi } from '../cdp/stubbedApi';
-import { Base01Position } from '../common/positions';
+import { Base01Position, PositionRange } from '../common/positions';
 import { RenameMapping } from '../common/sourceMaps/renameProvider';
 import { Evaluator } from './evaluator';
 
@@ -56,7 +56,7 @@ describe('Evaluator', () => {
       isInternalScript: false,
       renames: {
         mapping: new RenameMapping([
-          { original: 'foo', compiled: 'bar', position: new Base01Position(0, 1) },
+          { original: 'foo', compiled: 'bar', scope: PositionRange.Infinite },
         ]),
         position: new Base01Position(0, 1),
       },
@@ -81,7 +81,7 @@ try {} catch ({ foo }) {}`,
         isInternalScript: false,
         renames: {
           mapping: new RenameMapping([
-            { original: 'foo', compiled: 'bar', position: new Base01Position(0, 1) },
+            { original: 'foo', compiled: 'bar', scope: PositionRange.Infinite },
           ]),
           position: new Base01Position(0, 1),
         },

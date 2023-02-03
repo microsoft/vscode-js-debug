@@ -2,11 +2,14 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { SourceLocation } from 'acorn';
+import { traverse } from 'estraverse';
 import { inject, injectable } from 'inversify';
 import { ISourceWithMap, Source, SourceFromMap } from '../../adapter/sources';
 import { StackFrame } from '../../adapter/stackTrace';
 import { AnyLaunchConfiguration } from '../../configuration';
-import { Base01Position, IPosition } from '../positions';
+import { Base01Position, IPosition, PositionRange } from '../positions';
+import { parseProgram } from '../sourceCodeManipulations';
 import { PositionToOffset } from '../stringUtils';
 import { SourceMap } from './sourceMap';
 import { ISourceMapFactory } from './sourceMapFactory';
@@ -14,7 +17,7 @@ import { ISourceMapFactory } from './sourceMapFactory';
 interface IRename {
   original: string;
   compiled: string;
-  position: Base01Position;
+  scope: PositionRange;
 }
 
 /** Very approximate regex for JS identifiers, allowing member expressions as well */
@@ -101,9 +104,34 @@ export class RenameProvider implements IRenameProvider {
 
   private createFromSourceMap(sourceMap: SourceMap, content: string) {
     const toOffset = new PositionToOffset(content);
-    const renames: IRename[] = [];
+    const renames: (IRename & { scopeDepth: number })[] = [];
 
-    // todo: may eventually want to be away
+    const program = parseProgram(content);
+    const blocks: { range: PositionRange; depth: number }[] = [];
+    let depth = 0;
+    traverse(program, {
+      enter: (node, parent) => {
+        if (node.type === 'BlockStatement' && parent) {
+          depth++;
+          // use the parent statement as the location to capture renames for
+          // any locals (like function parameters or loop variables)
+          const loc = parent.loc as SourceLocation;
+          blocks.push({
+            range: new PositionRange(
+              new Base01Position(loc.start.line, loc.start.column),
+              new Base01Position(loc.end.line, loc.end.column),
+            ),
+            depth,
+          });
+        }
+      },
+      leave: node => {
+        if (node.type === 'BlockStatement') {
+          depth--;
+        }
+      },
+    });
+
     sourceMap.eachMapping(mapping => {
       if (!mapping.name) {
         return;
@@ -118,10 +146,21 @@ export class RenameProvider implements IRenameProvider {
         return;
       }
 
-      renames.push({ compiled: match[0], original: mapping.name, position });
+      let containingScope = blocks[0];
+      for (let i = 1; i < blocks.length && blocks[i].range.start.compare(position) < 0; i++) {
+        containingScope = blocks[i];
+      }
+
+      renames.push({
+        compiled: match[0],
+        original: mapping.name,
+        scopeDepth: containingScope?.depth || 0,
+        scope: containingScope?.range,
+      });
     });
 
-    renames.sort((a, b) => a.position.compare(b.position));
+    // sort deeper scopes first so that we prefer more specific (shadowed) renames
+    renames.sort((a, b) => b.scopeDepth - a.scopeDepth);
 
     return new RenameMapping(renames);
   }
@@ -154,22 +193,6 @@ export class RenameMapping {
   }
 
   private getClosestRename(compiledPosition: IPosition, filter: (rename: IRename) => boolean) {
-    const compiled01 = compiledPosition.base01;
-    let best: IRename | undefined;
-
-    for (const rename of this.renames) {
-      if (!filter(rename)) {
-        continue;
-      }
-
-      const isBefore = rename.position.compare(compiled01) < 0;
-      if (!isBefore && best) {
-        return best;
-      }
-
-      best = rename;
-    }
-
-    return best;
+    return this.renames.find(r => filter(r) && r.scope.contains(compiledPosition));
   }
 }

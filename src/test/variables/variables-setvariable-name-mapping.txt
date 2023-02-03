@@ -1,6 +1,6 @@
 
-hitDebugger @ ${workspaceFolder}/web/minified/index.js:13:5
-  > scope #0: Local: hitDebugger
+c @ ${workspaceFolder}/web/minified/index.js:13:5
+  > scope #0: Local: c
       arg1: 2
       arg2: 3
       > this: Window
@@ -8,17 +8,25 @@ hitDebugger @ ${workspaceFolder}/web/minified/index.js:13:5
 
 test @ ${workspaceFolder}/web/minified/index.js:6:5
   > scope #0: Block: test
-      inner1: 2
       inner2: 3
+      outer: 2
       > this: Window
   > scope #1: Local: test
-
-> hitDebugger: ƒ hitDebugger(arg1, arg2) {
-    debugger;
-  }
-      later: undefined
+      > hitDebugger: ƒ c(n,t){debugger}
+      inner2: undefined
       outer: 1
   scope #2: Global [expensive]
 
 <anonymous> @ <eval>/VM<xx>:1:1
   scope #0: Global [expensive]
+Evaluating "arg1"{
+    result : 2
+    type : number
+    variablesReference : <number>
+}
+Evaluating "((arg1) => arg1)(true)"{
+    result : true
+    type : boolean
+    variablesReference : <number>
+}
+Evaluating "inner2"Uncaught ReferenceError: inner2 is not defined

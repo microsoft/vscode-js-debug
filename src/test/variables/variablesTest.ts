@@ -366,6 +366,29 @@ describe('variables', () => {
       p.cdp.Runtime.evaluate({ expression: `test()` });
       const event = await p.dap.once('stopped');
       await p.logger.logStackTrace(event.threadId!, true);
+
+      const frameId = await p.dap
+        .stackTrace({ threadId: event.threadId! })
+        .then(x => x.stackFrames[0].id);
+
+      const exprs = [
+        // simple evaluate rename
+        'arg1',
+        // test for invalid contexts
+        '((arg1) => arg1)(true)',
+        // does not rename variables not in this scope
+        'inner2',
+      ];
+      for (const expr of exprs) {
+        p.log(
+          await p.dap.evaluate({
+            expression: expr,
+            frameId,
+          }),
+          `Evaluating "${expr}"`,
+        );
+      }
+
       await p.dap.continue({ threadId: event.threadId! });
       p.assertLog();
     });

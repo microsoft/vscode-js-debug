@@ -22,9 +22,9 @@ export const comparePositions = (a: IPosition, b: IPosition) => {
   if (a instanceof Base0Position) {
     return a.compare(b.base0);
   } else if (a instanceof Base01Position) {
-    return b.compare(b.base01);
+    return a.compare(b.base01);
   } else if (a instanceof Base1Position) {
-    return b.compare(b.base1);
+    return a.compare(b.base1);
   } else {
     throw new Error(`Invalid position ${a}`);
   }
@@ -81,7 +81,7 @@ export class Base1Position implements IPosition {
 }
 
 /**
- * A position that starts a line 0 and column 1 (used by sourcemaps).
+ * A position that starts a line 1 and column 0 (used by sourcemaps).
  */
 export class Base01Position implements IPosition {
   declare readonly __isBase01: undefined;
@@ -102,5 +102,18 @@ export class Base01Position implements IPosition {
 
   public compare(other: Base01Position) {
     return this.lineNumber - other.lineNumber || this.columnNumber - other.columnNumber || 0;
+  }
+}
+
+export class PositionRange {
+  public static readonly Infinite = new PositionRange(
+    new Base0Position(0, 0),
+    new Base0Position(Infinity, Infinity),
+  );
+
+  constructor(public readonly start: IPosition, public readonly end: IPosition) {}
+
+  public contains(position: IPosition) {
+    return comparePositions(this.start, position) <= 0 && comparePositions(this.end, position) > 0;
   }
 }
