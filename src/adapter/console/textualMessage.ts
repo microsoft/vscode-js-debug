@@ -117,7 +117,7 @@ export abstract class TextualMessage<T extends { stackTrace?: Cdp.Runtime.StackT
       includeStackInVariables ? this.stackTrace(thread) : undefined,
     );
 
-    return { output: '', variablesReference: outputVar.id };
+    return { output, variablesReference: outputVar.id };
   }
 }
 
