@@ -1,60 +1,80 @@
 Evaluating: 'console.log(nodelist)'
+stdout> HTMLCollection(1) [select#sel, sel: select#sel]
 stdout> > HTMLCollection(1) [select#sel, sel: select#sel]
 
 Evaluating: 'console.log([nodelist])'
+stdout> (1) [HTMLCollection(1)]
 stdout> > (1) [HTMLCollection(1)]
 
 Evaluating: 'console.log(htmlcollection)'
+stdout> HTMLCollection(0) []
 stdout> > HTMLCollection(0) []
 
 Evaluating: 'console.log([htmlcollection])'
+stdout> (1) [HTMLCollection(0)]
 stdout> > (1) [HTMLCollection(0)]
 
 Evaluating: 'console.log(options)'
+stdout> HTMLOptionsCollection(2) [option, option, selectedIndex: 0]
 stdout> > HTMLOptionsCollection(2) [option, option, selectedIndex: 0]
 
 Evaluating: 'console.log([options])'
+stdout> (1) [HTMLOptionsCollection(2)]
 stdout> > (1) [HTMLOptionsCollection(2)]
 
 Evaluating: 'console.log(all)'
+stdout> HTMLAllCollection(11) [html, head, body, div.c1.c2.c3, form#f, select#sel, option, option, input, input, script, f: form#f, sel: select#sel, x: HTMLCollection(2)]
 stdout> > HTMLAllCollection(11) [html, head, body, div.c1.c2.c3, form#f, select#sel, option, option, input, input, script, f: form#f, sel: select#sel, x: HTMLCollection(2)]
 
 Evaluating: 'console.log([all])'
+stdout> (1) [HTMLAllCollection(11)]
 stdout> > (1) [HTMLAllCollection(11)]
 
 Evaluating: 'console.log(formControls)'
+stdout> HTMLFormControlsCollection(3) [select#sel, input, input, sel: select#sel, x: RadioNodeList(2)]
 stdout> > HTMLFormControlsCollection(3) [select#sel, input, input, sel: select#sel, x: RadioNodeList(2)]
 
 Evaluating: 'console.log([formControls])'
+stdout> (1) [HTMLFormControlsCollection(3)]
 stdout> > (1) [HTMLFormControlsCollection(3)]
 
 Evaluating: 'console.log(radioNodeList)'
+stdout> RadioNodeList(2) [input, input, value: '']
 stdout> > RadioNodeList(2) [input, input, value: '']
 
 Evaluating: 'console.log([radioNodeList])'
+stdout> (1) [RadioNodeList(2)]
 stdout> > (1) [RadioNodeList(2)]
 
 Evaluating: 'console.log(arrayX)'
+stdout> (2) [1, Array(2)]
 stdout> > (2) [1, Array(2)]
 
 Evaluating: 'console.log([arrayX])'
+stdout> (1) [Array(2)]
 stdout> > (1) [Array(2)]
 
 Evaluating: 'console.log(nonArray)'
+stdout> NonArrayWithLength {keys: Array(0)}
 stdout> > NonArrayWithLength {keys: Array(0)}
 
 Evaluating: 'console.log([nonArray])'
+stdout> (1) [NonArrayWithLength]
 stdout> > (1) [NonArrayWithLength]
 
 Evaluating: 'console.log(generateArguments(1, "2"))'
+stdout> Arguments(2) [1, '2', callee: ƒ, Symbol(Symbol.iterator): ƒ]
 stdout> > Arguments(2) [1, '2', callee: ƒ, Symbol(Symbol.iterator): ƒ]
 
 Evaluating: 'console.log([generateArguments(1, "2")])'
+stdout> (1) [Arguments(2)]
 stdout> > (1) [Arguments(2)]
 
 Evaluating: 'console.log(div.classList)'
+stdout> DOMTokenList(3) ['c1', 'c2', 'c3', value: 'c1 c2 c3']
 stdout> > DOMTokenList(3) ['c1', 'c2', 'c3', value: 'c1 c2 c3']
 
 Evaluating: 'console.log([div.classList])'
+stdout> (1) [DOMTokenList(3)]
 stdout> > (1) [DOMTokenList(3)]
 

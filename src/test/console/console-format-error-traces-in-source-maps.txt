@@ -1,4 +1,10 @@
 Evaluating: 'try { throwError() } catch (e) { console.error(e) }'
+stderr> Error
+    at throwError (${workspaceFolder}/web/browserify/module1.ts:6:9)
+    at <anonymous>:1:7 {stack: 'Error
+    at throwError (http://localhost:800…erify/bundle.js:23:11)
+    at <anonymous>:1:7'}
+
 stderr>
 > Error
     at throwError (${workspaceFolder}/web/browserify/module1.ts:6:9)

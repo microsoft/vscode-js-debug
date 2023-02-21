@@ -1,96 +1,126 @@
 Evaluating: 'console.log(p)'
+stdout> Promise {[[PromiseState]]: 'rejected', [[PromiseResult]]: -0}
 stdout> > Promise {[[PromiseState]]: 'rejected', [[PromiseResult]]: -0}
 
 Evaluating: 'console.log([p])'
+stdout> (1) [Promise]
 stdout> > (1) [Promise]
 
 Evaluating: 'console.log(p2)'
+stdout> Promise {[[PromiseState]]: 'fulfilled', [[PromiseResult]]: 1}
 stdout> > Promise {[[PromiseState]]: 'fulfilled', [[PromiseResult]]: 1}
 
 Evaluating: 'console.log([p2])'
+stdout> (1) [Promise]
 stdout> > (1) [Promise]
 
 Evaluating: 'console.log(p3)'
+stdout> Promise {[[PromiseState]]: 'pending', [[PromiseResult]]: undefined}
 stdout> > Promise {[[PromiseState]]: 'pending', [[PromiseResult]]: undefined}
 
 Evaluating: 'console.log([p3])'
+stdout> (1) [Promise]
 stdout> > (1) [Promise]
 
 Evaluating: 'console.log(smb1)'
 stdout> Symbol()
 
 Evaluating: 'console.log([smb1])'
+stdout> (1) [Symbol()]
 stdout> > (1) [Symbol()]
 
 Evaluating: 'console.log(smb2)'
 stdout> Symbol(a)
 
 Evaluating: 'console.log([smb2])'
+stdout> (1) [Symbol(a)]
 stdout> > (1) [Symbol(a)]
 
 Evaluating: 'console.log(obj)'
+stdout> {getter: <accessor>, a: Symbol(), Symbol(a): 2}
 stdout> > {getter: <accessor>, a: Symbol(), Symbol(a): 2}
 
 Evaluating: 'console.log([obj])'
+stdout> (1) [{…}]
 stdout> > (1) [{…}]
 
 Evaluating: 'console.log(map)'
+stdout> Map(1) {size: 1, {getter: <a…r>, …} => {foo: 1}}
 stdout> > Map(1) {size: 1, {getter: <a…r>, …} => {foo: 1}}
 
 Evaluating: 'console.log([map])'
+stdout> (1) [Map(1)]
 stdout> > (1) [Map(1)]
 
 Evaluating: 'console.log(weakMap)'
+stdout> WeakMap {{getter: <a…r>, …} => {foo: 1}}
 stdout> > WeakMap {{getter: <a…r>, …} => {foo: 1}}
 
 Evaluating: 'console.log([weakMap])'
+stdout> (1) [WeakMap]
 stdout> > (1) [WeakMap]
 
 Evaluating: 'console.log(set)'
+stdout> Set(1) {size: 1, {getter: <a…r>, …}}
 stdout> > Set(1) {size: 1, {getter: <a…r>, …}}
 
 Evaluating: 'console.log([set])'
+stdout> (1) [Set(1)]
 stdout> > (1) [Set(1)]
 
 Evaluating: 'console.log(weakSet)'
+stdout> WeakSet {{getter: <a…r>, …}}
 stdout> > WeakSet {{getter: <a…r>, …}}
 
 Evaluating: 'console.log([weakSet])'
+stdout> (1) [WeakSet]
 stdout> > (1) [WeakSet]
 
 Evaluating: 'console.log(mapMap0)'
+stdout> Map(1) {size: 1, Map(0) {…} => WeakMap}
 stdout> > Map(1) {size: 1, Map(0) {…} => WeakMap}
 
 Evaluating: 'console.log([mapMap0])'
+stdout> (1) [Map(1)]
 stdout> > (1) [Map(1)]
 
 Evaluating: 'console.log(mapMap)'
+stdout> Map(1) {size: 1, Map(1) {…} => WeakMap {…}}
 stdout> > Map(1) {size: 1, Map(1) {…} => WeakMap {…}}
 
 Evaluating: 'console.log([mapMap])'
+stdout> (1) [Map(1)]
 stdout> > (1) [Map(1)]
 
 Evaluating: 'console.log(setSet0)'
+stdout> Set(1) {size: 1, WeakSet}
 stdout> > Set(1) {size: 1, WeakSet}
 
 Evaluating: 'console.log([setSet0])'
+stdout> (1) [Set(1)]
 stdout> > (1) [Set(1)]
 
 Evaluating: 'console.log(setSet)'
+stdout> Set(1) {size: 1, WeakSet {…}}
 stdout> > Set(1) {size: 1, WeakSet {…}}
 
 Evaluating: 'console.log([setSet])'
+stdout> (1) [Set(1)]
 stdout> > (1) [Set(1)]
 
 Evaluating: 'console.log(bigmap)'
+stdout> Map(6) {size: 6,  from str  =>  to str , undefined => undefined, null => null, 42 => 42, {foo: 'from'} => {foo: 'to'}, …}
 stdout> > Map(6) {size: 6,  from str  =>  to str , undefined => undefined, null => null, 42 => 42, {foo: 'from'} => {foo: 'to'}, …}
 
 Evaluating: 'console.log([bigmap])'
+stdout> (1) [Map(6)]
 stdout> > (1) [Map(6)]
 
 Evaluating: 'console.log(generator)'
+stdout> genFunction {[[GeneratorState]]: 'suspended'}
 stdout> > genFunction {[[GeneratorState]]: 'suspended'}
 
 Evaluating: 'console.log([generator])'
+stdout> (1) [genFunction]
 stdout> > (1) [genFunction]
 
