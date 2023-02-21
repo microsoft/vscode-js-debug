@@ -1,33 +1,44 @@
 Evaluating: 'console.log(a0)'
+stdout> (0) []
 stdout> > (0) []
 
 Evaluating: 'console.log(a1)'
+stdout> (1) […]
 stdout> > (1) […]
 
 Evaluating: 'console.log(a2)'
+stdout> (5) […]
 stdout> > (5) […]
 
 Evaluating: 'console.log(a3)'
+stdout> (3) […, 2, 3]
 stdout> > (3) […, 2, 3]
 
 Evaluating: 'console.log(a4)'
+stdout> (15) […]
 stdout> > (15) […]
 
 Evaluating: 'console.log(a5)'
+stdout> (15) […, 8, …]
 stdout> > (15) […, 8, …]
 
 Evaluating: 'console.log(a6)'
+stdout> (15) [0, …, 10, …]
 stdout> > (15) [0, …, 10, …]
 
 Evaluating: 'console.log(a7)'
+stdout> (15) […, 4, …, index0: 0, index1: 1, index2: 2, index3: 3, index4: 4, …]
 stdout> > (15) […, 4, …, index0: 0, index1: 1, index2: 2, index3: 3, index4: 4, …]
 
 Evaluating: 'console.log(a8)'
+stdout> (10) [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 stdout> > (10) [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
 
 Evaluating: 'console.log(a9)'
+stdout> (11) […, 1, 2, 3, 4, …, 6, 7, 8, 9, …, foo: 'bar']
 stdout> > (11) […, 1, 2, 3, 4, …, 6, 7, 8, 9, …, foo: 'bar']
 
 Evaluating: 'console.log(a10)'
+stdout> Array
 stdout> > Array
 

@@ -17,6 +17,7 @@ stdout> in named
 
 Evaluating: 'console.group({ complex: true })'
 # group: start
+stdout> {complex: true}
 stdout> > {complex: true}
 stdout>     complex: true
 stdout>     > [[Prototype]]: Object
