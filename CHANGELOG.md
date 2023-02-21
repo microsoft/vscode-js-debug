@@ -7,6 +7,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: typeerror for users of vsDebugServer.bundle.js ([#1502](https://github.com/microsoft/vscode-js-debug/issues/1502))
 - fix: expansion of non-primitive getters not working ([#1525](https://github.com/microsoft/vscode-js-debug/issues/1525))
 - fix: support rich ANSI output for complex logs ([vscode#172868](https://github.com/microsoft/vscode/issues/172868))
+- fix: revert support for renamed property accessors ([#1561](https://github.com/microsoft/vscode-js-debug/issues/1561))
 
 ## v1.75 (January 2023)
 
