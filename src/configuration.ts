@@ -961,8 +961,11 @@ export function defaultSourceMapPathOverrides(webRoot: string): { [key: string]:
   };
 }
 
-const applyNodeishDefaults = (
-  config: ResolvingNodeConfiguration | ResolvingTerminalConfiguration,
+export const applyNodeishDefaults = (
+  config:
+    | ResolvingNodeConfiguration
+    | ResolvingTerminalConfiguration
+    | ResolvingExtensionHostConfiguration,
 ) => {
   if (!config.sourceMapPathOverrides && config.cwd) {
     config.sourceMapPathOverrides = defaultSourceMapPathOverrides(config.cwd);
