@@ -149,6 +149,10 @@ export function properRelative(fromPath: string, toPath: string): string {
   }
 }
 
+const splitRe = /\/|\\/;
+
+export const properSplit = (path: string) => path.split(splitRe);
+
 export function fixDriveLetter(aPath: string, uppercaseDriveLetter = false): string {
   if (!aPath) return aPath;
 
