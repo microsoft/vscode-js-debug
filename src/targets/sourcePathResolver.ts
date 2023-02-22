@@ -14,11 +14,11 @@ import {
   properJoin,
   properRelative,
   properResolve,
+  properSplit,
 } from '../common/pathUtils';
 import { ISourceMapMetadata } from '../common/sourceMaps/sourceMap';
 import { ISourcePathResolver, IUrlResolution } from '../common/sourcePathResolver';
 import {
-  comparePathsWithoutCasing,
   fileUrlToAbsolutePath,
   getCaseSensitivePaths,
   isAbsolute,
@@ -62,13 +62,22 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
     suffix = forceForwardSlashes(properResolve(suffix));
 
     // replace special minimatch characters that appear in the local root (vscode#166400)
-    // we compare against the original location since forceForwardSlashes will
-    // prevent matching on Windows
-    const wf = this.options.workspaceFolder;
-    if (comparePathsWithoutCasing(wf, location.slice(prefix.length, prefix.length + wf.length))) {
-      suffix =
-        suffix.slice(0, wf.length).replace(/[\[\]\(\)\{\}\!\*]/g, '\\$&') + suffix.slice(wf.length);
+    const wfParts = properSplit(this.options.workspaceFolder);
+    const suffixParts = properSplit(suffix);
+    let sharedPrefixLen = 0;
+    for (
+      let i = 0;
+      i < wfParts.length &&
+      i < suffixParts.length &&
+      suffixParts[i].toLowerCase() === wfParts[i].toLowerCase();
+      i++
+    ) {
+      sharedPrefixLen += wfParts[i].length + 1;
     }
+
+    suffix =
+      suffix.slice(0, sharedPrefixLen).replace(/[\[\]\(\)\{\}\!\*]/g, '\\$&') +
+      suffix.slice(sharedPrefixLen);
 
     return prefix + suffix;
   });
