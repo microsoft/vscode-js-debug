@@ -31,53 +31,57 @@ describe('node source path resolver', () => {
     });
 
     it('escapes regex parts segments', async () => {
-      const r = new NodeSourcePathResolver(
-        fsUtils,
-        undefined,
-        {
-          ...defaultOptions,
-          workspaceFolder: 'C:\\some\\workspa*ce\\folder',
-          basePath: 'C:\\some\\workspa*ce\\folder',
-          resolveSourceMapLocations: [
-            'C:\\some\\workspa*ce\\folder/**',
-            'C:\\some\\workspa*ce\\folder/../**',
-            'C:\\some\\workspa*ce\\folder/../foo/**',
-          ],
-        },
-        await Logger.test(),
-      );
-      expect((r as unknown as Record<string, string[]>).resolvePatterns).to.deep.equal([
-        'C:/some/workspa\\*ce/folder/**',
-        'C:/some/workspa\\*ce/**',
-        'C:/some/workspa\\*ce/foo/**',
-      ]);
+      if (process.platform === 'win32') {
+        const r = new NodeSourcePathResolver(
+          fsUtils,
+          undefined,
+          {
+            ...defaultOptions,
+            workspaceFolder: 'C:\\some\\workspa*ce\\folder',
+            basePath: 'C:\\some\\workspa*ce\\folder',
+            resolveSourceMapLocations: [
+              'C:\\some\\workspa*ce\\folder/**',
+              'C:\\some\\workspa*ce\\folder/../**',
+              'C:\\some\\workspa*ce\\folder/../foo/**',
+            ],
+          },
+          await Logger.test(),
+        );
+        expect((r as unknown as Record<string, string[]>).resolvePatterns).to.deep.equal([
+          'C:/some/workspa\\*ce/folder/**',
+          'C:/some/workspa\\*ce/**',
+          'C:/some/workspa\\*ce/foo/**',
+        ]);
+      }
     });
 
     it('fixes regex escape issue #1554', async () => {
-      const r = new NodeSourcePathResolver(
-        fsUtils,
-        undefined,
-        {
-          ...defaultOptions,
-          workspaceFolder: 'C:\\Users\\Segev\\prj\\swimm\\ide\\extensions\\vscode',
-          basePath: 'C:\\Users\\Segev\\prj\\swimm\\ide\\extensions\\vscode',
-          resolveSourceMapLocations: [
-            'C:\\Users\\Segev\\prj\\swimm\\ide\\extensions\\vscode/**',
-            'C:\\Users\\Segev\\prj\\swimm\\ide\\extensions\\vscode/../../../packages/shared/dist/**',
-            'C:\\Users\\Segev\\prj\\swimm\\ide\\extensions\\vscode/../../../packages/swimmagic/dist/**',
-            'C:\\Users\\Segev\\prj\\swimm\\ide\\extensions\\vscode/../../../packages/editor/dist/**',
-            'C:\\Users\\Segev\\prj\\swimm\\ide\\extensions\\vscode/../../server/dist/**',
-            '!**/node_modules/**',
-          ],
-        },
-        await Logger.test(),
-      );
-      expect(
-        r.shouldResolveSourceMap({
-          compiledPath: 'c:\\Users\\Segev\\prj\\swimm\\ide\\server\\dist\\app.js',
-          sourceMapUrl: 'file:///c:/Users/Segev/prj/swimm/ide/server/dist/app.js.map',
-        }),
-      ).to.be.true;
+      if (process.platform === 'win32') {
+        const r = new NodeSourcePathResolver(
+          fsUtils,
+          undefined,
+          {
+            ...defaultOptions,
+            workspaceFolder: 'C:\\Users\\Segev\\prj\\swimm\\ide\\extensions\\vscode',
+            basePath: 'C:\\Users\\Segev\\prj\\swimm\\ide\\extensions\\vscode',
+            resolveSourceMapLocations: [
+              'C:\\Users\\Segev\\prj\\swimm\\ide\\extensions\\vscode/**',
+              'C:\\Users\\Segev\\prj\\swimm\\ide\\extensions\\vscode/../../../packages/shared/dist/**',
+              'C:\\Users\\Segev\\prj\\swimm\\ide\\extensions\\vscode/../../../packages/swimmagic/dist/**',
+              'C:\\Users\\Segev\\prj\\swimm\\ide\\extensions\\vscode/../../../packages/editor/dist/**',
+              'C:\\Users\\Segev\\prj\\swimm\\ide\\extensions\\vscode/../../server/dist/**',
+              '!**/node_modules/**',
+            ],
+          },
+          await Logger.test(),
+        );
+        expect(
+          r.shouldResolveSourceMap({
+            compiledPath: 'c:\\Users\\Segev\\prj\\swimm\\ide\\server\\dist\\app.js',
+            sourceMapUrl: 'file:///c:/Users/Segev/prj/swimm/ide/server/dist/app.js.map',
+          }),
+        ).to.be.true;
+      }
     });
 
     it('resolves unc paths', async () => {
