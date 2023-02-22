@@ -116,6 +116,13 @@ export async function findScripts(
     )
   ).flat();
 
+  if (candidates.length === 0) {
+    if (!silent) {
+      vscode.window.showErrorMessage(l10n.t('No package.json files found in your workspace.'));
+    }
+    return;
+  }
+
   const scripts: IScript[] = [];
 
   // editCandidate is the file we'll edit if we don't find any npm scripts.
