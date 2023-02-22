@@ -4,6 +4,12 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
+Nothing (yet)
+
+## v1.76 (February 2023)
+
+### v1.76.0 - 2023-02-22
+
 - fix: typeerror for users of vsDebugServer.bundle.js ([#1502](https://github.com/microsoft/vscode-js-debug/issues/1502))
 - fix: don't fail on dynamic config provisioning if no package.json's exist ([vscode#172522](https://github.com/microsoft/vscode/issues/172522))
 - fix: expansion of non-primitive getters not working ([#1525](https://github.com/microsoft/vscode-js-debug/issues/1525))
