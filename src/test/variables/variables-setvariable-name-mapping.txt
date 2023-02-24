@@ -23,3 +23,4 @@ test @ ${workspaceFolder}/web/minified/index.js:6:5
 Preserves eval sourceURL (#1259):
 Uncaught ReferenceError ReferenceError: thenSomethingInvalid is not defined
     at eval (repl:2:1)
+
