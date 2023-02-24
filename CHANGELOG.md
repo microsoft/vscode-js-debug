@@ -4,7 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
-Nothing (yet)
+- fix: repl stacktrace with renames showing too much info ([#1259](https://github.com/microsoft/vscode-js-debug/issues/1259#issuecomment-1409443564))
 
 ## v1.76 (February 2023)
 
