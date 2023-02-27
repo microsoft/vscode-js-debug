@@ -1124,6 +1124,17 @@ export class SourceContainer {
             sourceMapUrl = rawSmUri;
           }
         }
+
+        if (absolutePath && sourceMapUrl) {
+          const smMetadata: ISourceMapMetadata = {
+            sourceMapUrl,
+            compiledPath: absolutePath,
+          };
+
+          if (!this.sourcePathResolver.shouldResolveSourceMap(smMetadata)) {
+            sourceMapUrl = undefined;
+          }
+        }
       }
 
       const source = new SourceFromMap(
