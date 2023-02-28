@@ -5,7 +5,7 @@
 import { inject, injectable } from 'inversify';
 import Cdp from '../cdp/api';
 import { ILogger, LogTag } from '../common/logging';
-import { bisectArray } from '../common/objUtils';
+import { bisectArray, flatten } from '../common/objUtils';
 import { IPosition } from '../common/positions';
 import { delay } from '../common/promiseUtil';
 import { SourceMap } from '../common/sourceMaps/sourceMap';
@@ -193,7 +193,7 @@ export class BreakpointManager {
         }
       }
 
-      return (await Promise.all(todo)).reduce((a, b) => [...a, ...b], []);
+      return flatten(await Promise.all(todo));
     };
   }
 
