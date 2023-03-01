@@ -4,21 +4,34 @@
 
 import { expect } from 'chai';
 import del from 'del';
+import esbuild from 'esbuild';
+import { promises as fs } from 'fs';
 import { join, resolve } from 'path';
 import { Worker } from 'worker_threads';
 import { Hasher } from '.';
 import { createFileTree, getTestDir } from '../../test/createFileTree';
 import { HashMode } from './hash';
 
-const hashTestCaseDir = resolve(__dirname, '../../../../testWorkspace/hashTestCases');
+const hashTestCaseDir = resolve(__dirname, '../../../testWorkspace/hashTestCases');
 
 describe('hash process', function () {
   this.timeout(15_000);
   let hasher: Hasher;
+  let hashScript: string;
   let testDir: string;
 
-  before(() => {
-    hasher = new Hasher();
+  before(async () => {
+    hashScript = join(hashTestCaseDir, 'hash.js');
+    const src = await esbuild.transform(await fs.readFile(join(__dirname, 'hash.ts')), {
+      loader: 'ts',
+    });
+    fs.writeFile(hashScript, src.code);
+
+    hasher = new Hasher(undefined, hashScript);
+  });
+
+  after(async () => {
+    await fs.rm(hashScript);
   });
 
   beforeEach(() => {

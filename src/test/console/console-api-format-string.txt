@@ -1,0 +1,69 @@
+Evaluating: 'console.table(peopleObject)'
+stdout>
+> ╭┄┄┄┄┄┄┄┬┄┄┄┄┄┄┄┬┄┄┄┄┄┄┄╮
+┊       ┊ 0     ┊ 1     ┊
+├┄┄┄┄┄┄┄┼┄┄┄┄┄┄┄┼┄┄┄┄┄┄┄┤
+┊ one   ┊ John  ┊ Smith ┊
+┊ two   ┊ Jane  ┊ Doe   ┊
+┊ three ┊ Emily ┊ Jones ┊
+╰┄┄┄┄┄┄┄┴┄┄┄┄┄┄┄┴┄┄┄┄┄┄┄╯: {one: Array(2), two: Array(2), three: Array(2)}
+
+Evaluating: 'console.table(peopleObject2)'
+stdout>
+> ╭┄┄┄┄┄┄┄┬┄┄┄┄┄┄┄┬┄┄┄┄┄┄┄╮
+┊       ┊ name  ┊ last  ┊
+├┄┄┄┄┄┄┄┼┄┄┄┄┄┄┄┼┄┄┄┄┄┄┄┤
+┊ one   ┊ John  ┊ Smith ┊
+┊ two   ┊ Jane  ┊ Doe   ┊
+┊ three ┊ Emily ┊ Jones ┊
+╰┄┄┄┄┄┄┄┴┄┄┄┄┄┄┄┴┄┄┄┄┄┄┄╯: {one: {…}, two: {…}, three: {…}}
+
+Evaluating: 'console.table(peopleLongHeader)'
+stdout>
+> ╭┄┄┄┄┄┄┄┬┄┄┄┄┄┄┄┄┄┄┄┄┬┄┄┄┄┄┄┄┄┄┄┄╮
+┊       ┊ first name ┊ last name ┊
+├┄┄┄┄┄┄┄┼┄┄┄┄┄┄┄┄┄┄┄┄┼┄┄┄┄┄┄┄┄┄┄┄┤
+┊ one   ┊ John       ┊ Smith     ┊
+┊ two   ┊ Jane       ┊ Doe       ┊
+┊ three ┊ Emily      ┊ Jones     ┊
+╰┄┄┄┄┄┄┄┴┄┄┄┄┄┄┄┄┄┄┄┄┴┄┄┄┄┄┄┄┄┄┄┄╯: {one: {…}, two: {…}, three: {…}}
+
+Evaluating: 'console.table(peopleArray)'
+stdout>
+> ╭┄┄┄┬┄┄┄┄┄┄┄┬┄┄┄┄┄┄┄╮
+┊   ┊ 0     ┊ 1     ┊
+├┄┄┄┼┄┄┄┄┄┄┄┼┄┄┄┄┄┄┄┤
+┊ 0 ┊ John  ┊ Smith ┊
+┊ 1 ┊ Jane  ┊ Doe   ┊
+┊ 2 ┊ Emily ┊ Jones ┊
+╰┄┄┄┴┄┄┄┄┄┄┄┴┄┄┄┄┄┄┄╯: (3) [Array(2), Array(2), Array(2)]
+
+Evaluating: 'console.table(trimEmptyColumn)'
+stdout>
+> ╭┄┄┄┬┄┄┄┄┄┄┄┬┄┄┄┄┄┄┄╮
+┊   ┊ 0     ┊ 1     ┊
+├┄┄┄┼┄┄┄┄┄┄┄┼┄┄┄┄┄┄┄┤
+┊ 0 ┊ John  ┊ Smith ┊
+┊ 1 ┊ Jane  ┊ Doe   ┊
+┊ 2 ┊ Emily ┊ Jones ┊
+╰┄┄┄┴┄┄┄┄┄┄┄┴┄┄┄┄┄┄┄╯: (3) [Array(3), Array(3), Array(3)]
+
+Evaluating: 'console.table(cellOverflow)'
+stdout>
+> ╭┄┄┄┄┄┬┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┬┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄╮
+┊     ┊ 0                                                             ┊ 1                                             ┊
+├┄┄┄┄┄┼┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┼┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┤
+┊ one ┊ John                                                          ┊ Smith                                         ┊
+┊ two ┊ Jane Jane Jane Jane Jane Jane Jane Jane Jane Jane …ane Jane … ┊ Doe Doe Doe Doe Doe Doe Doe DoeDoe DoeDoe Do… ┊
+┊ th… ┊ Emily                                                         ┊ Jones                                         ┊
+╰┄┄┄┄┄┴┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┴┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄╯: {one: Array(2), two: Array(2), three: Array(2)}
+
+Evaluating: 'console.table(longTableOverflow)'
+stdout>
+> ╭┄┄┄┄┄┬┄┄┄┄┄┬┄┄┄┄┄┬┄┄┄┄┄┬┄┄┄┄┄┬┄┄┄┄┄┬┄┄┄┄┄┬┄┄┄┄┄┬┄┄┄┄┄┬┄┄┄┄┄┬┄┄┄┄┄┬┄┄┄┄┄┬┄┄┄┄┄┬┄┄┄┄┄┬┄┄┄┄┄┬┄┄┄┄┄┬┄┄┄┄┄┬┄┄┄┄┄┬┄┄┄┄┄┬┄┄┄┄…
+┊     ┊ 0   ┊ 1   ┊ 2   ┊ 3   ┊ 4   ┊ 5   ┊ 6   ┊ 7   ┊ 8   ┊ 9   ┊ 10  ┊ 11  ┊ 12  ┊ 13  ┊ 14  ┊ 15  ┊ 16  ┊ 17  ┊ 18 …
+├┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄┄┼┄┄┄┄…
+┊ 0   ┊ 0   ┊ 0   ┊ 0   ┊ 0   ┊ 0   ┊ 0   ┊ 0   ┊ 0   ┊ 0   ┊ 0   ┊ 0   ┊ 0   ┊ 0   ┊ 0   ┊ 0   ┊ 0   ┊ 0   ┊ 0   ┊ 0  …
+┊ 1   ┊ 1   ┊ 1   ┊ 1   ┊ 1   ┊ 1   ┊ 1   ┊ 1   ┊ 1   ┊ 1   ┊ 1   ┊ 1   ┊ 1   ┊ 1   ┊ 1   ┊ 1   ┊ 1   ┊ 1   ┊ 1   ┊ 1  …
+╰┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄┄┴┄┄┄┄…: (2) [Array(1000), Array(1000)]
+

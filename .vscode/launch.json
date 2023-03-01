@@ -17,7 +17,7 @@
       "type": "node",
       "request": "launch",
       "name": "Debug Server",
-      "program": "${workspaceFolder}/out/src/debugServerMain.js",
+      "program": "${workspaceFolder}/dist/src/debugServerMain.js",
       "args": [
         "4711"
       ]
@@ -28,7 +28,7 @@
       "request": "launch",
       "name": "Debug Server (Flat Session)",
       "trace": true,
-      "program": "${workspaceFolder}/out/src/flatSessionLauncher.js",
+      "program": "${workspaceFolder}/dist/src/flatSessionLauncher.js",
       "args": [
         "4712"
       ],
@@ -42,7 +42,7 @@
       "request": "launch",
       "name": "Debug Server (VS Server)",
       "trace": true,
-      "program": "${workspaceFolder}/out/src/vsDebugServer.js",
+      "program": "${workspaceFolder}/dist/src/vsDebugServer.js",
       "args": [
         "4712"
       ],
@@ -60,11 +60,11 @@
       ],
       "args": [
         "--enable-proposed-api=ms-vscode.js-debug",
-        "--extensionDevelopmentPath=${workspaceFolder}/out",
+        "--extensionDevelopmentPath=${workspaceFolder}/dist",
         "--extensionDevelopmentPath=${workspaceFolder}/../vscode-hexeditor",
       ],
       "outFiles": [
-        "${workspaceFolder}/out/**/*.js",
+        "${workspaceFolder}/dist/**/*.js",
         "${workspaceFolder}/../vscode/extensions/debug-auto-launch/out/**/*.js"
       ]
       // "preLaunchTask": "npm: watch"
@@ -95,7 +95,7 @@
       "args": [
         "--enable-proposed-api=ms-vscode.js-debug",
         "--extensionDevelopmentPath=${workspaceFolder}/../vscode/extensions/debug-auto-launch",
-        "--extensionDevelopmentPath=${workspaceFolder}/out"
+        "--extensionDevelopmentPath=${workspaceFolder}/dist"
       ],
       "resolveSourceMapLocations": [
         "${workspaceFolder}/**",
@@ -103,7 +103,7 @@
         "!**/node_modules/**"
       ],
       "outFiles": [
-        "${workspaceFolder}/out/**/*.js",
+        "${workspaceFolder}/dist/**/*.js",
         "${workspaceFolder}/../vscode-js-debug-companion/out/**/*.js"
       ]
     },
@@ -117,7 +117,7 @@
       "args": [
         "--enable-proposed-api=ms-vscode.js-debug",
         "--extensionDevelopmentPath=${workspaceFolder}/../vscode-js-debug-companion",
-        "--extensionDevelopmentPath=${workspaceFolder}/out"
+        "--extensionDevelopmentPath=${workspaceFolder}/dist"
       ],
       "env": {
         "JS_DEBUG_USE_COMPANION": "1"
@@ -129,7 +129,7 @@
         "!**/node_modules/**"
       ],
       "outFiles": [
-        "${workspaceFolder}/out/**/*.js",
+        "${workspaceFolder}/dist/**/*.js",
         "${workspaceFolder}/../vscode-js-debug-companion/out/**/*.js"
       ]
     },
@@ -141,11 +141,11 @@
         "<node_internals>/**"
       ],
       "args": [
-        "--extensionDevelopmentPath=${workspaceFolder}/out",
-        "--extensionTestsPath=${workspaceFolder}/out/src/test/testRunner"
+        "--extensionDevelopmentPath=${workspaceFolder}/dist",
+        "--extensionTestsPath=${workspaceFolder}/dist/src/testRunner"
       ],
       "outFiles": [
-        "${workspaceFolder}/out/**/*.js"
+        "${workspaceFolder}/dist/**/*.js"
       ]
     },
     {
@@ -161,7 +161,7 @@
         ".mocharc.unit.js"
       ],
       "outFiles": [
-        "${workspaceFolder}/out/**/*.js"
+        "${workspaceFolder}/dist/**/*.js"
       ]
     },
     {
