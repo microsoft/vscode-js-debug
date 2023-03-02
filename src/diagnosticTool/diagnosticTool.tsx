@@ -10,7 +10,7 @@ import { SourceExplorer } from './sourceExplorer';
 import { DumpContext } from './useDump';
 import { usePersistedState } from './usePersistentState';
 
-require('../../../src/diagnosticTool/diagnosticTool.css');
+import './diagnosticTool.css';
 
 declare const DUMP: IDiagnosticDump | undefined;
 

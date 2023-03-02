@@ -7,6 +7,7 @@ import { promises as fsPromises } from 'fs';
 import { join, resolve } from 'path';
 import { LocalFsUtils } from '../../common/fsUtils';
 import { Logger } from '../../common/logging/logger';
+import { fixDriveLetter } from '../../common/pathUtils';
 import { resetCaseSensitivePaths, setCaseSensitivePaths } from '../../common/urlUtils';
 import { NodeSourcePathResolver } from '../../targets/node/nodeSourcePathResolver';
 
@@ -147,7 +148,7 @@ describe('node source path resolver', () => {
           url: 'webpack:///hello.js',
           map: { sourceRoot: '', metadata: { compiledPath: 'hello.js' } } as any,
         }),
-      ).to.equal(join(__dirname, 'hello.js'));
+      ).to.equal(fixDriveLetter(join(__dirname, 'hello.js')));
     });
 
     it('loads local node internals (#823)', async () => {
@@ -228,7 +229,9 @@ describe('node source path resolver', () => {
           });
 
           if (ok) {
-            expect(result).to.equal(join(__dirname, 'hello.js'));
+            expect(result && fixDriveLetter(result)).to.equal(
+              fixDriveLetter(join(__dirname, 'hello.js')),
+            );
           } else {
             expect(result).to.be.undefined;
           }

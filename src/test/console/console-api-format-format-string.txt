@@ -1,0 +1,27 @@
+Evaluating: 'console.log('Log')'
+stdout> Log
+
+Evaluating: 'console.info('Info')'
+stdout> Info
+
+Evaluating: 'console.warn('Warn')'
+stderr> Warn
+
+Evaluating: 'console.error('Error')'
+stderr> Error
+
+Evaluating: 'console.assert(false, 'Assert')'
+stderr> Assert
+
+Evaluating: 'console.assert(false)'
+stderr> Assertion failed
+
+Evaluating: 'console.trace('Trace')'
+stdout> Trace
+
+Evaluating: 'console.count('Counter')'
+stdout> Counter: 1
+
+Evaluating: 'console.count('Counter')'
+stdout> Counter: 2
+

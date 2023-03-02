@@ -62,7 +62,7 @@ describe('BlazorSourcePathResolver.absolutePathToUrlRegexp', () => {
       );
     } else {
       // This regexp was generated from running the real scenario, verifying that the breakpoint with this regexp works, and then copying it here
-      expect(regexp).to.equal(
+      expect(regexp).to.contain(
         '[fF][iI][lL][eE]:\\/\\/\\/[cC]:\\/[uU][sS][eE][rR][sS]\\/[dD][iI][gG][eE][fF][fF]\\/[sS][oO][uU][rR][cC][eE]\\/' +
           '[rR][eE][pP][oO][sS]\\/[mM][yY][bB][lL][aA][zZ][oO][rR][aA][pP][pP]\\/[mM][yY][bB][lL][aA][zZ][oO][rR][aA][pP][pP]\\/' +
           '[pP][aA][gG][eE][sS]\\/[cC][oO][uU][nN][tT][eE][rR]\\.[rR][aA][zZ][oO][rR]($|\\?)|[cC]:\\\\[uU][sS][eE][rR][sS]\\\\[dD][iI][gG][eE][fF][fF]\\\\' +

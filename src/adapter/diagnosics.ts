@@ -9,7 +9,7 @@ import { mapValues } from '../common/objUtils';
 import { ISourceMapMetadata } from '../common/sourceMaps/sourceMap';
 import { AnyLaunchConfiguration } from '../configuration';
 import Dap from '../dap/api';
-import { toolPath } from '../diagnosticTool';
+import { toolPath, toolStylePath } from '../diagnosticTool';
 import { FS, FsPromises } from '../ioc-extras';
 import { ITarget } from '../targets/targets';
 import { BreakpointManager } from './breakpoints';
@@ -95,6 +95,7 @@ export class Diagnostics {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Document</title>
+        <style>${await this.fs.readFile(toolStylePath, 'utf-8')}<</style>
       </head>
       <body>
         <script>window.DUMP=${JSON.stringify(await this.generateObject())}</script>

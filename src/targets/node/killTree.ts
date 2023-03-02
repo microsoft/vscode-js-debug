@@ -37,7 +37,7 @@ export function killTree(
   } else {
     // on linux and OS X we kill all direct and indirect child processes as well
     try {
-      const cmd = join(__dirname, './terminateProcess.sh');
+      const cmd = join(__dirname, './targets/node/terminateProcess.sh');
       const r = spawnSync('sh', [
         cmd,
         processId.toString(),
