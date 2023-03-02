@@ -24,7 +24,8 @@ export type TFunction = {
   type: 'function';
   subtype: undefined;
   className: string;
-  description: string;
+  // defined in V8, undefined in Hermes
+  description?: string;
 };
 export type FunctionPreview = { type: 'function'; subtype: undefined; description: string };
 export type FunctionObj = TFunction;
