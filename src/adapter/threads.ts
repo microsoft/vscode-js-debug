@@ -531,7 +531,7 @@ export class Thread implements IVariableStoreLocationProvider {
     }
 
     const variable = await variableStore
-      .createFloatingVariable(response.result)
+      .createFloatingVariable(params.expression, response.result)
       .toDap(args.context as PreviewContextType, args.format);
 
     return {
@@ -575,7 +575,7 @@ export class Thread implements IVariableStoreLocationProvider {
         ? `\x1b[33m[${this.target.executionContextName(this._selectedContext.description)}] `
         : '';
     const resultVar = await this.replVariables
-      .createFloatingVariable(response.result)
+      .createFloatingVariable(originalCall.expression, response.result)
       .toDap(PreviewContextType.Repl, format);
 
     const budget = getContextForType(PreviewContextType.Repl).budget;

@@ -6,6 +6,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 - fix: repl stacktrace with renames showing too much info ([#1259](https://github.com/microsoft/vscode-js-debug/issues/1259#issuecomment-1409443564))
 - fix: recursive source map resolution parsing ignored locations ([vscode#169733](https://github.com/microsoft/vscode/issues/169733))
+- fix: evaluateName in watch variables not being set correctly ([vscode#175758](https://github.com/microsoft/vscode/issues/175758))
 - fix: unbound breakpoints in sourcemaps on Chrome 112 ([#1567](https://github.com/microsoft/vscode-js-debug/issues/1567))
 - fix: assorted bad source behaviors when reloading a page ([#1582](https://github.com/microsoft/vscode-js-debug/issues/1582))
 - chore: remove webpack, adopt esbuild
