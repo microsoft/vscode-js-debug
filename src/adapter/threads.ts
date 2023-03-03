@@ -853,6 +853,14 @@ export class Thread implements IVariableStoreLocationProvider {
         )
       ) {
         // Check if there are any user-defined breakpoints on this line
+      } else if (
+        this._expectedPauseReason?.reason === 'step' &&
+        this._expectedPauseReason.direction === StepDirection.Over
+      ) {
+        // Check if we're in the middle of a step over, e.g. stepping over a
+        // function compilation. Stepping in should still remain paused,
+        // and an instrumentation pause in step out should not be possible.
+        return this._cdp.Debugger.stepOut({});
       } else {
         // If none of this above, it's pure instrumentation.
         return this.resume();
