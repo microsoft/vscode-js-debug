@@ -135,7 +135,6 @@ gulp.task('compile:build-scripts', () =>
 gulp.task('compile:dynamic', async () => {
   const [contributions, strings] = await Promise.all([
     runBuildScript('generate-contributions'),
-    runBuildScript('generate-strings'),
     runBuildScript('documentReadme'),
   ]);
 
@@ -158,13 +157,24 @@ gulp.task('compile:dynamic', async () => {
 
 gulp.task('compile:static', () =>
   merge(
-    gulp.src(['LICENSE', 'resources/**/*', 'README.md', 'src/**/*.sh', '.vscodeignore'], { base: '.' }),
+    gulp.src(
+      [
+        'LICENSE',
+        'resources/**/*',
+        'README.md',
+        'package.nls.json',
+        'src/**/*.sh',
+        '.vscodeignore',
+      ],
+      {
+        base: '.',
+      },
+    ),
     gulp
       .src(['node_modules/source-map/lib/*.wasm', 'node_modules/@c4312/chromehash/pkg/*.wasm'])
       .pipe(rename({ dirname: 'src' })),
   ).pipe(gulp.dest(buildDir)),
 );
-
 
 const resolveDefaultExts = ['.tsx', '.ts', '.jsx', '.js', '.css', '.json'];
 
