@@ -274,7 +274,8 @@ export class Evaluator implements IEvaluator {
     });
 
     const parents: Node[] = [];
-    const transformed = replace(parseProgram(expr), {
+    const program = parseProgram(expr);
+    const transformed = replace(program, {
       enter(node, parent) {
         const asAcorn = node as AcornNode;
         if (node.type !== 'Identifier' || expr[asAcorn.start - 1] === '.') {
@@ -305,7 +306,14 @@ export class Evaluator implements IEvaluator {
       },
     });
 
-    return { hoisted, transformed: mutated ? generate(transformed) : expr };
+    if (!mutated) {
+      return { hoisted, transformed: expr };
+    }
+
+    // preserve any trailing comment, which might be something like `sourceURL=...`
+    // see https://github.com/microsoft/vscode-js-debug/issues/1259#issuecomment-1442584596
+    const stmtsEnd = (program.body[program.body.length - 1] as AcornNode).end;
+    return { hoisted, transformed: generate(transformed) + expr.slice(stmtsEnd) };
   }
 }
 

@@ -1,4 +1,5 @@
 stdout> 123
+stdout> {foo: 'bar'}
 stdout> > {foo: 'bar'}
 stdout>     > arg1: {foo: 'bar'}
 stdout> 1

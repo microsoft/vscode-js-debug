@@ -42,7 +42,6 @@ import { BasicCpuProfiler } from './adapter/profiling/basicCpuProfiler';
 import { BasicHeapProfiler } from './adapter/profiling/basicHeapProfiler';
 import { HeapDumpProfiler } from './adapter/profiling/heapDumpProfiler';
 import { IResourceProvider } from './adapter/resourceProvider';
-import { IRequestOptionsProvider } from './adapter/resourceProvider/requestOptionsProvider';
 import { ResourceProviderState } from './adapter/resourceProvider/resourceProviderState';
 import { StatefulResourceProvider } from './adapter/resourceProvider/statefulResourceProvider';
 import { ScriptSkipper } from './adapter/scriptSkipper/implementation';
@@ -80,7 +79,6 @@ import {
   SessionSubStates,
   StoragePath,
   trackDispose,
-  VSCodeApi,
 } from './ioc-extras';
 import { BrowserAttacher } from './targets/browser/browserAttacher';
 import { ChromeLauncher } from './targets/browser/chromeLauncher';
@@ -118,6 +116,7 @@ import { NullExperimentationService } from './telemetry/nullExperimentationServi
 import { NullTelemetryReporter } from './telemetry/nullTelemetryReporter';
 import { ITelemetryReporter } from './telemetry/telemetryReporter';
 import { IShutdownParticipants, ShutdownParticipants } from './ui/shutdownParticipants';
+import { registerTopLevelSessionComponents, registerUiComponents } from './ui/ui-ioc';
 
 /**
  * Contains IOC container factories for the extension. We use Inverisfy, which
@@ -250,24 +249,7 @@ export const createTopLevelSessionContainer = (parent: Container) => {
   container.bind(IProgramLauncher).to(TerminalProgramLauncher);
   container.bind(IPackageJsonProvider).to(PackageJsonProvider).inSingletonScope();
 
-  if (parent.get(IsVSCode)) {
-    // dynamic require to not break the debug server
-    container
-      .bind(ILauncher)
-      .to(require('./targets/node/terminalNodeLauncher').TerminalNodeLauncher)
-      .onActivation(trackDispose);
-
-    // request options:
-    container
-      .bind(IRequestOptionsProvider)
-      .to(require('./ui/settingRequestOptionsProvider').SettingRequestOptionsProvider)
-      .inSingletonScope();
-
-    container
-      .bind(IExperimentationService)
-      .to(require('./telemetry/vscodeExperimentationService').VSCodeExperimentationService)
-      .inSingletonScope();
-  }
+  registerTopLevelSessionComponents(container);
 
   container.bind(ILauncher).to(NodeAttacher).onActivation(trackDispose);
 
@@ -338,13 +320,7 @@ export const createGlobalContainer = (options: {
     container.bind(ExtensionContext).toConstantValue(options.context);
   }
 
-  // Dependency that pull from the vscode global--aren't safe to require at
-  // a top level (e.g. in the debug server)
-  if (options.isVsCode) {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    container.bind(VSCodeApi).toConstantValue(require('vscode'));
-    require('./ui/ui-ioc').registerUiComponents(container);
-  }
+  registerUiComponents(container);
 
   return container;
 };

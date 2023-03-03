@@ -2,9 +2,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import * as glob from 'glob';
+//@ts-ignore
+import allTests from '**/*.test.ts';
 import Mocha from 'mocha';
 import { join } from 'path';
+import LoggingReporter from './reporters/logTestReporter';
 import './testHooks';
 
 function setupCoverage() {
@@ -44,20 +46,10 @@ export async function run(): Promise<void> {
     mochaOpts.grep = new RegExp(String(grep), 'i');
   }
 
-  // Paths are relative to Mocha
-  const logTestReporter = '../../../out/src/test/reporters/logTestReporter';
-  // const goldenTextReporter =
-  //   '../../../out/src/test/reporters/goldenTextReporter';
-
-  mochaOpts.reporter = 'mocha-multi-reporters';
-  mochaOpts.reporterOptions = {
-    // reporterEnabled: `${logTestReporter}, ${goldenTextReporter}`,
-    // reporterEnabled: goldenTextReporter
-    reporterEnabled: logTestReporter,
-  };
+  mochaOpts.reporter = LoggingReporter;
   if (process.env.BUILD_ARTIFACTSTAGINGDIRECTORY) {
     mochaOpts.reporterOptions = {
-      reporterEnabled: `${logTestReporter}, mocha-junit-reporter`,
+      reporterEnabled: `mocha-junit-reporter`,
       mochaJunitReporterReporterOptions: {
         testsuitesTitle: `tests ${process.platform}`,
         mochaFile: join(
@@ -69,39 +61,43 @@ export async function run(): Promise<void> {
   }
 
   const runner = new Mocha(mochaOpts);
+  const addFile = async (file: string, doImport: () => Promise<unknown>) => {
+    runner.suite.emit(Mocha.Suite.constants.EVENT_FILE_PRE_REQUIRE, globalThis, file, runner);
+    const m = await doImport();
+    runner.suite.emit(Mocha.Suite.constants.EVENT_FILE_REQUIRE, m, file, runner);
+    runner.suite.emit(Mocha.Suite.constants.EVENT_FILE_POST_REQUIRE, globalThis, file, runner);
+  };
 
   // todo: retry failing tests https://github.com/microsoft/vscode-pwa/issues/28
   if (process.env.RETRY_TESTS) {
     runner.retries(Number(process.env.RETRY_TESTS));
   }
 
+  const rel = (f: string) => join(__dirname, `${f}.ts`);
   if (process.env.FRAMEWORK_TESTS) {
-    runner.addFile(join(__dirname, 'framework/reactTest'));
+    await addFile(rel('framework/reactTest'), () => import('./framework/reactTest'));
   } else {
-    runner.addFile(join(__dirname, 'testIntegrationUtils'));
-    runner.addFile(join(__dirname, 'infra/infra'));
-    runner.addFile(join(__dirname, 'breakpoints/breakpointsTest'));
-    runner.addFile(join(__dirname, 'browser/framesTest'));
-    runner.addFile(join(__dirname, 'browser/blazorSourcePathResolverTest'));
-    runner.addFile(join(__dirname, 'evaluate/evaluate'));
-    runner.addFile(join(__dirname, 'sources/sourcesTest'));
-    runner.addFile(join(__dirname, 'stacks/stacksTest'));
-    runner.addFile(join(__dirname, 'threads/threadsTest'));
-    runner.addFile(join(__dirname, 'variables/variablesTest'));
-    runner.addFile(join(__dirname, 'console/consoleFormatTest'));
-    runner.addFile(join(__dirname, 'console/consoleAPITest'));
+    await addFile(rel('testIntegrationUtils'), () => import('./testIntegrationUtils'));
+    await addFile(rel('infra/infra'), () => import('./infra/infra'));
+    await addFile(
+      rel('breakpoints/breakpointsTest'),
+      () => import('./breakpoints/breakpointsTest'),
+    );
+    await addFile(rel('browser/framesTest'), () => import('./browser/framesTest'));
+    await addFile(
+      rel('browser/blazorSourcePathResolverTest'),
+      () => import('./browser/blazorSourcePathResolverTest'),
+    );
+    await addFile(rel('evaluate/evaluate'), () => import('./evaluate/evaluate'));
+    await addFile(rel('sources/sourcesTest'), () => import('./sources/sourcesTest'));
+    await addFile(rel('stacks/stacksTest'), () => import('./stacks/stacksTest'));
+    await addFile(rel('threads/threadsTest'), () => import('./threads/threadsTest'));
+    await addFile(rel('variables/variablesTest'), () => import('./variables/variablesTest'));
+    await addFile(rel('console/consoleFormatTest'), () => import('./console/consoleFormatTest'));
+    await addFile(rel('console/consoleAPITest'), () => import('./console/consoleAPITest'));
 
-    const options = { cwd: __dirname };
-    const files = glob.sync('**/*.test.js', options);
-
-    // Only run tests on supported platforms
-    // https://nodejs.org/api/process.html#process_process_platform
-    if (process.platform === 'win32') {
-      files.push(...glob.sync('**/*.test.win.js', options));
-    }
-
-    for (const file of files) {
-      runner.addFile(join(__dirname, file));
+    for (const [path, imp] of allTests) {
+      await addFile(rel(path), imp);
     }
   }
 

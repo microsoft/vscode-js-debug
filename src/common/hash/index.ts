@@ -20,7 +20,10 @@ export class Hasher implements IDisposable {
 
   private readonly deferCleanup = debounce(30_000, () => this.cleanup());
 
-  constructor(private readonly maxFailures = 3) {}
+  constructor(
+    private readonly maxFailures = 3,
+    private readonly hasherScriptPath = join(__dirname, 'hash.js'),
+  ) {}
 
   /**
    * Gets the Chrome content hash of script contents.
@@ -75,7 +78,7 @@ export class Hasher implements IDisposable {
   private send<T extends HashRequest>(req: T): Promise<HashResponse<T>> {
     const cp = this.getProcess();
     if (!cp) {
-      throw new Error('hash.bundle.js process unexpectedly exited');
+      throw new Error('hash.js process unexpectedly exited');
     }
 
     this.deferCleanup();
@@ -106,7 +109,7 @@ export class Hasher implements IDisposable {
       return undefined;
     }
 
-    const instance = (this.instance = new Worker(join(__dirname, 'hash.bundle.js')));
+    const instance = (this.instance = new Worker(this.hasherScriptPath));
 
     instance.setMaxListeners(Infinity);
     instance.on('message', raw => {
@@ -127,7 +130,7 @@ export class Hasher implements IDisposable {
 
       if (!newInstance) {
         for (const { deferred } of this.deferredMap.values()) {
-          deferred.reject(new Error('hash.bundle.js process unexpectedly exited'));
+          deferred.reject(new Error('hash.js process unexpectedly exited'));
         }
         this.deferredMap.clear();
         this.deferCleanup.clear();

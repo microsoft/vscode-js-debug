@@ -1,23 +1,4 @@
-.cache/**/*
-.headless-profile/**/*
-.vscode/**/*
-.vscode-test/**/*
-.profile/**/*
-demos/**/*
-node_modules/**/*
-out/**/*
-!out/extension.js
-!out/bootloader.js
-!out/watchdog.js
-!out/mappings.wasm
-scripts/**/*
-src/**/*
-testWorkspace/**/*
-.gitignore
-.vscodeignore
-build.sh
-**/*.md
-package-lock.json
-testdata/**/*
-.ci/**/*
-gulpfile.js
+# note: this is moved into `dist` during compilation, and does not actually apply here
+**/*.map
+src/build/**
+src/testRunner.js

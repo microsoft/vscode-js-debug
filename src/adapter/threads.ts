@@ -108,7 +108,6 @@ export type Script = {
 export type ScriptWithSourceMapHandler = (
   script: Script,
   sources: Source[],
-  brokenOn?: Cdp.Debugger.Location,
 ) => Promise<IUiLocation[]>;
 export type SourceMapDisabler = (hitBreakpoints: string[]) => ISourceWithMap[];
 
@@ -146,6 +145,13 @@ const getReplSourceSuffix = () =>
   `\n//# sourceURL=eval-${randomBytes(4).toString('hex')}${
     sourceUtils.SourceConstants.ReplExtension
   }\n`;
+
+/** Auxillary data present in Cdp.Debugger.Paused events in recent Chrome versions */
+interface IInstrumentationPauseAuxData {
+  scriptId: string;
+  url: string;
+  sourceMapURL: string;
+}
 
 export class Thread implements IVariableStoreLocationProvider {
   private static _lastThreadId = 0;
@@ -807,11 +813,11 @@ export class Thread implements IVariableStoreLocationProvider {
     // https://github.com/denoland/deno/blob/2703996dea73c496d79fcedf165886a1659622d1/core/inspector.rs#L571
     const isInspectBrk =
       (event.reason as string) === 'Break on start' || event.reason === 'debugCommand';
-    const location = event.callFrames[0].location;
-    const scriptId = event.data?.scriptId || location.scriptId;
+    const location = event.callFrames[0]?.location as Cdp.Debugger.Location | undefined;
+    const scriptId = (event.data as IInstrumentationPauseAuxData)?.scriptId || location?.scriptId;
     const isSourceMapPause =
       (event.reason === 'instrumentation' && event.data?.scriptId) ||
-      this._breakpointManager.isEntrypointBreak(hitBreakpoints, scriptId);
+      (scriptId && this._breakpointManager.isEntrypointBreak(hitBreakpoints, scriptId));
     this.evaluator.setReturnedValue(event.callFrames[0]?.returnValue);
 
     if (isSourceMapPause) {
@@ -826,7 +832,7 @@ export class Thread implements IVariableStoreLocationProvider {
         event.data.__rewriteAs = 'breakpoint';
       }
 
-      if (await this._handleSourceMapPause(scriptId, location)) {
+      if (scriptId && (await this._handleSourceMapPause(scriptId, location))) {
         // Pause if we just resolved a breakpoint that's on this
         // location; this won't have existed before now.
       } else if (isInspectBrk) {
@@ -1483,7 +1489,10 @@ export class Thread implements IVariableStoreLocationProvider {
    * Wait for source map to load and set all breakpoints in this particular
    * script. Returns true if the debugger should remain paused.
    */
-  async _handleSourceMapPause(scriptId: string, brokenOn: Cdp.Debugger.Location): Promise<boolean> {
+  async _handleSourceMapPause(
+    scriptId: string,
+    brokenOn?: Cdp.Debugger.Location,
+  ): Promise<boolean> {
     this._pausedForSourceMapScriptId = scriptId;
     const perScriptTimeout = this._sourceContainer.sourceMapTimeouts().sourceMapMinPause;
     const timeout =
@@ -1496,10 +1505,7 @@ export class Thread implements IVariableStoreLocationProvider {
     }
 
     const timer = new HrTime();
-    const result = await Promise.race([
-      this._getOrStartLoadingSourceMaps(script, brokenOn),
-      delay(timeout),
-    ]);
+    const result = await Promise.race([this._getOrStartLoadingSourceMaps(script), delay(timeout)]);
 
     const timeSpentWallClockInMs = timer.elapsed().ms;
     const sourceMapCumulativePause =
@@ -1530,16 +1536,12 @@ export class Thread implements IVariableStoreLocationProvider {
     console.assert(this._pausedForSourceMapScriptId === scriptId);
     this._pausedForSourceMapScriptId = undefined;
 
-    return (
-      !!result &&
-      result
-        .map(base1To0)
-        .some(
-          b =>
-            b.lineNumber === brokenOn.lineNumber &&
-            (brokenOn.columnNumber === undefined || brokenOn.columnNumber === b.columnNumber),
-        )
-    );
+    const bLine = brokenOn?.lineNumber || 0;
+    const bColumn = brokenOn?.columnNumber;
+
+    return !!result
+      ?.map(base1To0)
+      .some(b => b.lineNumber === bLine && (bColumn === undefined || bColumn === b.columnNumber));
   }
 
   /**
@@ -1547,7 +1549,7 @@ export class Thread implements IVariableStoreLocationProvider {
    * haven't already done so. Returns a promise that resolves with the
    * handler's results.
    */
-  private _getOrStartLoadingSourceMaps(script: Script, brokenOn?: Cdp.Debugger.Location) {
+  private _getOrStartLoadingSourceMaps(script: Script) {
     const existing = this._sourceMapLoads.get(script.scriptId);
     if (existing) {
       return existing;
@@ -1557,7 +1559,7 @@ export class Thread implements IVariableStoreLocationProvider {
       .then(source => this._sourceContainer.waitForSourceMapSources(source))
       .then(sources =>
         sources.length && this._scriptWithSourceMapHandler
-          ? this._scriptWithSourceMapHandler(script, sources, brokenOn)
+          ? this._scriptWithSourceMapHandler(script, sources)
           : [],
       );
 

@@ -35,7 +35,7 @@ extends:
     l10nPackageNlsPath: ../package.nls.json
     l10nSourcePaths: ../src
     buildSteps:
-      - script: npm install
+      - script: npm install --legacy-peer-deps
         displayName: Install dependencies
 
       - script: npm run compile -- package:prepare

@@ -192,7 +192,7 @@ export class AutoAttachLauncher
 
     await Promise.all([
       copyFile(this.fs, bootloaderDefaultPath, bootloaderPath),
-      copyFile(this.fs, watchdogPath, path.join(storagePath, 'watchdog.bundle.js')),
+      copyFile(this.fs, watchdogPath, path.join(storagePath, 'watchdog.js')),
     ]);
 
     const p = forceForwardSlashes(bootloaderPath);

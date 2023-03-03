@@ -41,7 +41,7 @@ import { getLogFileForTest } from './reporters/logReporterUtils';
 
 export const kStabilizeNames = ['id', 'threadId', 'sourceReference', 'variablesReference'];
 
-export const workspaceFolder = path.join(__dirname, '..', '..', '..');
+export const workspaceFolder = path.join(__dirname, '..', '..');
 export const testWorkspace = path.join(workspaceFolder, 'testWorkspace');
 export const testSources = path.join(workspaceFolder, 'src');
 export const testFixturesDirName = '.dynamic-testWorkspace';
@@ -345,9 +345,7 @@ export class TestRoot {
     this._args = ['--headless'];
     this.log = goldenText.log.bind(goldenText);
     this.assertLog = goldenText.assertLog.bind(goldenText);
-    this._workspaceRoot = utils.platformPathToPreferredCase(
-      path.join(__dirname, '..', '..', '..', 'testWorkspace'),
-    );
+    this._workspaceRoot = utils.platformPathToPreferredCase(testWorkspace);
     this._webRoot = path.join(this._workspaceRoot, 'web');
 
     const storagePath = path.join(__dirname, '..', '..');

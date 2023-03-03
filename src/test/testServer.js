@@ -2,12 +2,14 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import express from 'express';
-import * as path from 'path';
+//@ts-check
+
+const express = require('express');
+const path = require('path');
 
 const port = +process.argv[2];
 const app = express();
-const webRoot = path.join(__dirname, '..', '..', '..', 'testWorkspace', 'web');
+const webRoot = path.join(__dirname, '..', '..', 'testWorkspace', 'web');
 app.get('/cookies/home', (req, res) => {
   res.header('Set-Cookie', 'authed=true');
   res.sendFile(path.join(webRoot, 'browserify/pause.html'));
@@ -51,5 +53,5 @@ app.get('/greet', (_req, res) => res.send('Hello world!'));
 app.use('/', express.static(path.join(webRoot)));
 
 app.listen(port, () => {
-  process.send!('ready');
+  process.send('ready');
 });
