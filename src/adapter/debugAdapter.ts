@@ -9,7 +9,7 @@ import { DisposableList, IDisposable } from '../common/disposable';
 import { ILogger, LogTag } from '../common/logging';
 import { posInt32Counter, truthy } from '../common/objUtils';
 import { Base1Position } from '../common/positions';
-import { getDeferred, IDeferred } from '../common/promiseUtil';
+import { IDeferred, getDeferred } from '../common/promiseUtil';
 import { IRenameProvider } from '../common/sourceMaps/renameProvider';
 import * as sourceUtils from '../common/sourceUtils';
 import * as urlUtils from '../common/urlUtils';
@@ -17,7 +17,7 @@ import { AnyLaunchConfiguration } from '../configuration';
 import Dap from '../dap/api';
 import * as errors from '../dap/errors';
 import { ProtocolError } from '../dap/protocolError';
-import { disposeContainer, FS, FsPromises } from '../ioc-extras';
+import { FS, FsPromises, disposeContainer } from '../ioc-extras';
 import { ITarget } from '../targets/targets';
 import { ITelemetryReporter } from '../telemetry/telemetryReporter';
 import { IShutdownParticipants } from '../ui/shutdownParticipants';
@@ -392,13 +392,20 @@ export class DebugAdapter implements IDisposable {
       throw new ProtocolError(errors.threadNotAvailable());
     }
 
-    const { result, ...rest } = await this._thread.evaluate({
+    const r = await this._thread.evaluate({
       expression: `${params.expression} = ${sourceUtils.wrapObjectLiteral(params.value)}`,
       context: 'repl',
       frameId: params.frameId,
     });
 
-    return { value: result, ...rest };
+    return {
+      value: r.result,
+      variablesReference: r.variablesReference,
+      indexedVariables: r.indexedVariables,
+      namedVariables: r.namedVariables,
+      presentationHint: r.presentationHint,
+      type: r.type,
+    };
   }
 
   async _onSetVariable(params: Dap.SetVariableParams): Promise<Dap.SetVariableResult | Dap.Error> {
