@@ -17,7 +17,7 @@ import { forceForwardSlashes, isSubdirectoryOf, properResolve } from '../common/
 import { delay, getDeferred } from '../common/promiseUtil';
 import { ISourceMapMetadata, SourceMap } from '../common/sourceMaps/sourceMap';
 import { CachingSourceMapFactory, ISourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
-import { InlineScriptOffset, ISourcePathResolver } from '../common/sourcePathResolver';
+import { ISourcePathResolver, InlineScriptOffset } from '../common/sourcePathResolver';
 import * as sourceUtils from '../common/sourceUtils';
 import { prettyPrintAsSourceMap } from '../common/sourceUtils';
 import * as utils from '../common/urlUtils';
@@ -95,6 +95,12 @@ const defaultTimeouts: SourceMapTimeouts = {
   sourceMapCumulativePause: 10000,
 };
 
+export interface ISourceScript {
+  executionContextId: Cdp.Runtime.ExecutionContextId;
+  scriptId: Cdp.Runtime.ScriptId;
+  url: string;
+}
+
 // Represents a text source visible to the user.
 //
 // Source maps flow (start with compiled1 and compiled2). Two different compiled sources
@@ -134,7 +140,7 @@ export class Source {
   // This is the same as |_absolutePath|, but additionally checks that file exists to
   // avoid errors when page refers to non-existing paths/urls.
   private readonly _existingAbsolutePath: Promise<string | undefined>;
-  private readonly _scriptIds: Cdp.Runtime.ScriptId[] = [];
+  private _scripts: ISourceScript[] = [];
 
   /**
    * @param inlineScriptOffset Offset of the start location of the script in
@@ -157,7 +163,7 @@ export class Source {
     sourceMapUrl?: string,
     public readonly inlineScriptOffset?: InlineScriptOffset,
     public readonly runtimeScriptOffset?: InlineScriptOffset,
-    contentHash?: string,
+    public readonly contentHash?: string,
   ) {
     this.sourceReference = container.getSourceReference(url);
     this._contentGetter = once(contentGetter);
@@ -191,12 +197,26 @@ export class Source {
     };
   }
 
-  addScriptId(scriptId: Cdp.Runtime.ScriptId): void {
-    this._scriptIds.push(scriptId);
+  /**
+   * Associated a script with this source. This is only valid for a source
+   * from the runtime, not a {@link SourceFromMap}.
+   */
+  addScript(script: ISourceScript): void {
+    this._scripts.push(script);
   }
 
-  scriptIds(): Cdp.Runtime.ScriptId[] {
-    return this._scriptIds;
+  /**
+   * Filters scripts from a source, done when an execution context is removed.
+   */
+  filterScripts(fn: (s: ISourceScript) => boolean): void {
+    this._scripts = this._scripts.filter(fn);
+  }
+
+  /**
+   * Gets scripts associated with this source.
+   */
+  get scripts(): ReadonlyArray<ISourceScript> {
+    return this._scripts;
   }
 
   /**
@@ -903,6 +923,9 @@ export class SourceContainer {
   }
 
   private async _addSource(source: Source) {
+    // todo: we should allow the same source at multiple uri's if their scripts
+    // have different executionContextId. We only really need the overwrite
+    // behavior in Node for tools that transpile sources inline.
     const existingByUrl = source.url && this._sourceByOriginalUrl.get(source.url);
     if (existingByUrl && !isOriginalSourceOf(existingByUrl, source)) {
       this.removeSource(existingByUrl, true);
@@ -1023,6 +1046,12 @@ export class SourceContainer {
       'Expected source to be the same as the existing reference',
     );
     this._sourceByReference.delete(source.sourceReference);
+
+    // check for overwrites:
+    if (this._sourceByOriginalUrl.get(source.url) === source) {
+      this._sourceByOriginalUrl.delete(source.url);
+    }
+
     if (source instanceof SourceFromMap) {
       this._sourceMapSourcesByUrl.delete(source.url);
       for (const [compiled, key] of source.compiledToSourceUrl) {
