@@ -140,7 +140,7 @@ export class Diagnostics {
           sourceReference: source.sourceReference,
           absolutePath: source.absolutePath,
           actualAbsolutePath: await source.existingAbsolutePath(),
-          scriptIds: source.scriptIds(),
+          scriptIds: source.scripts.map(s => s.scriptId),
           prettyName: await source.prettyName(),
           compiledSourceRefToUrl:
             source instanceof SourceFromMap

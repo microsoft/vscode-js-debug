@@ -11,7 +11,7 @@ import { HrTime } from '../common/hrnow';
 import { ILogger, LogTag } from '../common/logging';
 import { isInstanceOf, truthy } from '../common/objUtils';
 import { Base1Position } from '../common/positions';
-import { delay, getDeferred, IDeferred } from '../common/promiseUtil';
+import { IDeferred, delay, getDeferred } from '../common/promiseUtil';
 import { IRenameProvider } from '../common/sourceMaps/renameProvider';
 import * as sourceUtils from '../common/sourceUtils';
 import { StackTraceParser } from '../common/stackTraceParser';
@@ -33,16 +33,16 @@ import { CustomBreakpointId, customBreakpoints } from './customBreakpoints';
 import { IEvaluator } from './evaluator';
 import { IExceptionPauseService } from './exceptionPauseService';
 import * as objectPreview from './objectPreview';
-import { getContextForType, PreviewContextType } from './objectPreview/contexts';
+import { PreviewContextType, getContextForType } from './objectPreview/contexts';
 import { SmartStepper } from './smartStepping';
 import {
-  base1To0,
   IPreferredUiLocation,
   ISourceWithMap,
   IUiLocation,
-  rawToUiOffset,
   Source,
   SourceContainer,
+  base1To0,
+  rawToUiOffset,
 } from './sources';
 import { StackFrame, StackTrace } from './stackTrace';
 import {
@@ -85,22 +85,33 @@ export interface IPausedDetails {
 }
 
 export class ExecutionContext {
-  readonly thread: Thread;
-  readonly description: Cdp.Runtime.ExecutionContextDescription;
+  public readonly sourceMapLoads = new Map<string, Promise<IUiLocation[]>>();
+  public readonly scripts: Script[] = [];
 
-  constructor(thread: Thread, description: Cdp.Runtime.ExecutionContextDescription) {
-    this.thread = thread;
-    this.description = description;
+  constructor(public readonly description: Cdp.Runtime.ExecutionContextDescription) {}
+
+  get isDefault(): boolean {
+    return this.description.auxData && this.description.auxData['isDefault'];
   }
 
-  isDefault(): boolean {
-    return this.description.auxData && this.description.auxData['isDefault'];
+  /** Removes all scripts associated with the context */
+  async remove(container: SourceContainer) {
+    await Promise.all(
+      this.scripts.map(async s => {
+        const source = await s.source;
+        source.filterScripts(s => s.executionContextId !== this.description.id);
+        if (!source.scripts.length) {
+          container.removeSource(source);
+        }
+      }),
+    );
   }
 }
 
 export type Script = {
   url: string;
   scriptId: string;
+  executionContextId: number;
   source: Promise<Source>;
   resolvedSource?: Source;
 };
@@ -168,12 +179,8 @@ export class Thread implements IVariableStoreLocationProvider {
   static _allThreadsByDebuggerId = new Map<Cdp.Runtime.UniqueDebuggerId, Thread>();
   private _scriptWithSourceMapHandler?: ScriptWithSourceMapHandler;
   private _sourceMapDisabler?: SourceMapDisabler;
-  // url => (hash => Source)
-  private _scriptSources = new Map<string, Map<string, Source>>();
-  private _sourceMapLoads = new Map<string, Promise<IUiLocation[]>>();
   private _expectedPauseReason?: ExpectedPauseReason;
   private _excludedCallers: readonly Dap.ExcludedCaller[] = [];
-  private readonly _sourceScripts = new WeakMap<Source, Set<Script>>();
   private readonly _onPausedEmitter = new EventEmitter<IPausedDetails>();
   private readonly _dap: DeferredContainer<Dap.Api>;
   private disposed = false;
@@ -239,13 +246,9 @@ export class Thread implements IVariableStoreLocationProvider {
     return this._pausedVariables;
   }
 
-  executionContexts(): ExecutionContext[] {
-    return Array.from(this._executionContexts.values());
-  }
-
   defaultExecutionContext(): ExecutionContext | undefined {
     for (const context of this._executionContexts.values()) {
-      if (context.isDefault()) return context;
+      if (context.isDefault) return context;
     }
   }
 
@@ -774,7 +777,7 @@ export class Thread implements IVariableStoreLocationProvider {
   }
 
   private _executionContextCreated(description: Cdp.Runtime.ExecutionContextDescription) {
-    const context = new ExecutionContext(this, description);
+    const context = new ExecutionContext(description);
     this._executionContexts.set(description.id, context);
   }
 
@@ -782,6 +785,7 @@ export class Thread implements IVariableStoreLocationProvider {
     const context = this._executionContexts.get(contextId);
     if (!context) return;
     this._executionContexts.delete(contextId);
+    context.remove(this._sourceContainer);
   }
 
   _executionContextsCleared() {
@@ -1372,14 +1376,8 @@ export class Thread implements IVariableStoreLocationProvider {
     };
   }
 
-  scriptsFromSource(source: Source): Set<Script> {
-    return this._sourceScripts.get(source) || new Set();
-  }
-
   private _removeAllScripts(silent = false) {
     this._sourceContainer.clear(silent);
-    this._scriptSources.clear();
-    this._sourceMapLoads.clear();
   }
 
   private _onScriptParsed(event: Cdp.Debugger.ScriptParsedEvent) {
@@ -1397,18 +1395,23 @@ export class Thread implements IVariableStoreLocationProvider {
       return;
     }
 
-    if (event.url) event.url = this.target.scriptUrlToUrl(event.url);
+    if (event.url) {
+      event.url = this.target.scriptUrlToUrl(event.url);
+    }
 
-    let urlHashMap = this._scriptSources.get(event.url);
-    if (!urlHashMap) {
-      urlHashMap = new Map();
-      this._scriptSources.set(event.url, urlHashMap);
+    const executionContext = this._executionContexts.get(event.executionContextId);
+    if (!executionContext) {
+      return;
     }
 
     const createSource = async () => {
-      const prevSource = event.url && event.hash && urlHashMap && urlHashMap.get(event.hash);
-      if (prevSource) {
-        prevSource.addScriptId(event.scriptId);
+      const prevSource = this._sourceContainer.getSourceByOriginalUrl(event.url);
+      if (event.hash && prevSource?.contentHash === event.hash) {
+        prevSource.addScript({
+          scriptId: event.scriptId,
+          url: event.url,
+          executionContextId: event.executionContextId,
+        });
         return prevSource;
       }
 
@@ -1454,16 +1457,11 @@ export class Thread implements IVariableStoreLocationProvider {
         !event.hasSourceURL && this.launchConfig.enableContentValidation ? event.hash : undefined,
       );
 
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      urlHashMap!.set(event.hash, source);
-      source.addScriptId(event.scriptId);
-
-      let scriptSet = this._sourceScripts.get(source);
-      if (!scriptSet) {
-        scriptSet = new Set();
-        this._sourceScripts.set(source, scriptSet);
-      }
-      scriptSet.add(script);
+      source.addScript({
+        scriptId: event.scriptId,
+        url: event.url,
+        executionContextId: event.executionContextId,
+      });
 
       return source;
     };
@@ -1471,9 +1469,11 @@ export class Thread implements IVariableStoreLocationProvider {
     const script: Script = {
       url: event.url,
       scriptId: event.scriptId,
+      executionContextId: event.executionContextId,
       source: createSource(),
     };
     script.source.then(s => (script.resolvedSource = s));
+    executionContext.scripts.push(script);
 
     this._sourceContainer.addScriptById(script);
 
@@ -1550,7 +1550,12 @@ export class Thread implements IVariableStoreLocationProvider {
    * handler's results.
    */
   private _getOrStartLoadingSourceMaps(script: Script) {
-    const existing = this._sourceMapLoads.get(script.scriptId);
+    const ctx = this._executionContexts.get(script.executionContextId);
+    if (!ctx) {
+      return Promise.resolve([]);
+    }
+
+    const existing = ctx.sourceMapLoads.get(script.scriptId);
     if (existing) {
       return existing;
     }
@@ -1563,7 +1568,7 @@ export class Thread implements IVariableStoreLocationProvider {
           : [],
       );
 
-    this._sourceMapLoads.set(script.scriptId, result);
+    ctx.sourceMapLoads.set(script.scriptId, result);
     return result;
   }
 

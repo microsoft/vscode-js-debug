@@ -1228,4 +1228,29 @@ describe('breakpoints', () => {
     await evaluation;
     p.assertLog();
   });
+
+  itIntegrates.only('deals with removed execution contexts (#1582)', async ({ r }) => {
+    const p = await r.launchUrlAndLoad('iframe-1582/index.html');
+
+    const source: Dap.Source = {
+      path: p.workspacePath('web/iframe-1582/inner.js'),
+    };
+    p.dap.setBreakpoints({ source, breakpoints: [{ line: 3 }] });
+    await waitForPause(p, async () => {
+      await p.dap.evaluate({
+        expression: 'document.getElementsByTagName("IFRAME")[0].src += ""',
+        context: 'repl',
+      });
+    });
+
+    await waitForPause(p, async () => {
+      await p.dap.setBreakpoints({ source, breakpoints: [] });
+    });
+
+    // re-sets the breakpoints in the new script
+    p.dap.setBreakpoints({ source, breakpoints: [{ line: 3 }] });
+
+    await waitForPause(p);
+    p.assertLog();
+  });
 });

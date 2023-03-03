@@ -26,17 +26,17 @@ import { PatternEntryBreakpoint } from './breakpoints/patternEntrypointBreakpoin
 import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
 import { DiagnosticToolSuggester } from './diagnosticToolSuggester';
 import {
-  base0To1,
-  base1To0,
   ISourceWithMap,
-  isSourceWithMap,
   IUiLocation,
-  rawToUiOffset,
   Source,
   SourceContainer,
+  base0To1,
+  base1To0,
+  isSourceWithMap,
+  rawToUiOffset,
   uiToRawOffset,
 } from './sources';
-import { Script, ScriptWithSourceMapHandler, Thread } from './threads';
+import { ScriptWithSourceMapHandler, Thread } from './threads';
 
 /**
  * Differential result used internally in setBreakpoints.
@@ -348,16 +348,15 @@ export class BreakpointManager {
         continue;
       }
 
-      // Only take the first script that matches this source. The breakpoints
+      // Only take the last script that matches this source. The breakpoints
       // are all coming from the same source code, so possible breakpoints
       // at one location where this source is present should match every other.
       const lsrc = start.source;
-      const scripts = thread.scriptsFromSource(lsrc);
-      if (scripts.size === 0) {
+      if (!lsrc.scripts.length) {
         continue;
       }
 
-      const { scriptId } = scripts.values().next().value as Script;
+      const { scriptId } = lsrc.scripts[lsrc.scripts.length - 1];
       todo.push(
         thread
           .cdp()
@@ -610,7 +609,7 @@ export class BreakpointManager {
     await Promise.all(
       result.unbound.map(b => {
         this._byDapId.delete(b.dapId);
-        b.disable();
+        return b.disable();
       }),
     );
 
