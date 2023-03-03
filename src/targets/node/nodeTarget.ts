@@ -151,8 +151,10 @@ export class NodeTarget implements ITarget {
     this._cdp.NodeWorker.enable({ waitForDebuggerOnStart: true });
 
     if (result && '__dynamicAttach' in result) {
-      await this._cdp.Debugger.enable({});
+      // order matters! The runtime must be enabled first so we know what
+      // execution contexts scripts are in
       await this._cdp.Runtime.enable({});
+      await this._cdp.Debugger.enable({});
     }
 
     let defaultCountextId: number;
