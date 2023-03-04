@@ -12,6 +12,7 @@ import Dap from '../../dap/api';
 import { ILaunchContext } from '../targets';
 import { getNodeLaunchArgs, IProgramLauncher } from './processLauncher';
 import { SubprocessProgram } from './program';
+import { StdStreamTracker } from './stdStreamTracker';
 
 /**
  * Launcher that boots a subprocess.
@@ -61,8 +62,10 @@ export class SubprocessProgramLauncher implements IProgramLauncher {
    * Called for a child process when the stdio should be written over DAP.
    */
   private captureStdio(dap: Dap.Api, child: ChildProcessWithoutNullStreams) {
-    child.stdout.on('data', data => dap.output({ category: 'stdout', output: data.toString() }));
-    child.stderr.on('data', data => dap.output({ category: 'stderr', output: data.toString() }));
+    const stdOutTracker = new StdStreamTracker('stdout', dap);
+    const stdErrTracker = new StdStreamTracker('stderr', dap);
+    child.stdout.on('data', stdOutTracker.consumeStdStreamData);
+    child.stderr.on('data', stdErrTracker.consumeStdStreamData);
     child.stdout.resume();
     child.stderr.resume();
   }
