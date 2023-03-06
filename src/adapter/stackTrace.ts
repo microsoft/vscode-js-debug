@@ -428,7 +428,9 @@ export class StackFrame implements IFrameElement {
   async formatAsNative(): Promise<string> {
     const uiLocation = await this.uiLocation();
     const url =
-      (await uiLocation?.source.existingAbsolutePath()) || (await uiLocation?.source.prettyName());
+      (await uiLocation?.source.existingAbsolutePath()) ||
+      (await uiLocation?.source.prettyName()) ||
+      this.callFrame.url;
     const { lineNumber, columnNumber } = uiLocation || this._rawLocation;
     return `    at ${this._name} (${url}:${lineNumber}:${columnNumber})`;
   }
