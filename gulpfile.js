@@ -133,7 +133,7 @@ gulp.task('compile:build-scripts', () =>
 );
 
 gulp.task('compile:dynamic', async () => {
-  const [contributions, strings] = await Promise.all([
+  const [contributions] = await Promise.all([
     runBuildScript('generate-contributions'),
     runBuildScript('documentReadme'),
   ]);
@@ -149,10 +149,7 @@ gulp.task('compile:dynamic', async () => {
 
   packageJson = deepmerge(packageJson, contributions);
 
-  return Promise.all([
-    writeFile(`${buildDir}/package.json`, JSON.stringify(packageJson)),
-    writeFile(`${buildDir}/package.nls.json`, JSON.stringify(strings)),
-  ]);
+  await writeFile(`${buildDir}/package.json`, JSON.stringify(packageJson));
 });
 
 gulp.task('compile:static', () =>
