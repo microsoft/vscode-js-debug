@@ -3,9 +3,14 @@
  *--------------------------------------------------------*/
 
 import { URL } from 'url';
+import { absolutePathToFileUrlWithDetection } from '../../common/urlUtils';
 import { AnyChromiumConfiguration } from '../../configuration';
 
 export function baseURL(params: AnyChromiumConfiguration): string | undefined {
+  if ('file' in params && params.file) {
+    return absolutePathToFileUrlWithDetection(params.file);
+  }
+
   if (params.url) {
     try {
       const baseUrl = new URL(params.url);
