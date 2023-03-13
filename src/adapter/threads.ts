@@ -807,8 +807,8 @@ export class Thread implements IVariableStoreLocationProvider {
     // https://github.com/denoland/deno/blob/2703996dea73c496d79fcedf165886a1659622d1/core/inspector.rs#L571
     const isInspectBrk =
       (event.reason as string) === 'Break on start' || event.reason === 'debugCommand';
-    const location = event.callFrames[0].location;
-    const scriptId = event.data?.scriptId || location.scriptId;
+    const location = event.callFrames[0]?.location as Cdp.Debugger.Location | undefined;
+    const scriptId = event.data?.scriptId || location?.scriptId;
     const isSourceMapPause =
       (event.reason === 'instrumentation' && event.data?.scriptId) ||
       this._breakpointManager.isEntrypointBreak(hitBreakpoints, scriptId);
@@ -826,7 +826,16 @@ export class Thread implements IVariableStoreLocationProvider {
         event.data.__rewriteAs = 'breakpoint';
       }
 
-      if (await this._handleSourceMapPause(scriptId, location)) {
+      if (
+        await this._handleSourceMapPause(
+          scriptId,
+          location || {
+            lineNumber: 0,
+            columnNumber: 0,
+            scriptId,
+          },
+        )
+      ) {
         // Pause if we just resolved a breakpoint that's on this
         // location; this won't have existed before now.
       } else if (isInspectBrk) {
