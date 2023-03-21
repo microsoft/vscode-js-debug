@@ -4,6 +4,12 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
+Nothing (yet)
+
+## v1.77 (March 2023)
+
+### v1.77.0 - 2023-03-21
+
 - fix: repl stacktrace with renames showing too much info ([#1259](https://github.com/microsoft/vscode-js-debug/issues/1259#issuecomment-1409443564))
 - fix: recursive source map resolution parsing ignored locations ([vscode#169733](https://github.com/microsoft/vscode/issues/169733))
 - fix: evaluateName in watch variables not being set correctly ([vscode#175758](https://github.com/microsoft/vscode/issues/175758))
