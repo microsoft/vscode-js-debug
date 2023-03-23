@@ -8,8 +8,6 @@ Source event for inline
         sourceReference : <number>
     }
 }
-text/javascript
----------
 
 
     console.log('inline script');
@@ -25,8 +23,6 @@ Source event for empty.js
         sourceReference : <number>
     }
 }
-text/javascript
----------
 "111111111111111111111111111111111111111111111111111"
 
 ---------
@@ -41,8 +37,6 @@ Source event for does not exist
         sourceReference : <number>
     }
 }
-text/javascript
----------
 17
 //# sourceURL=http://localhost:8001/doesnotexist.js
 ---------
@@ -56,8 +50,6 @@ Source event for dir/helloworld
         sourceReference : <number>
     }
 }
-text/javascript
----------
 console.log('Hello, world!');
 
 ---------
@@ -72,8 +64,6 @@ Source event for eval
         sourceReference : <number>
     }
 }
-text/javascript
----------
 42
 
 ---------

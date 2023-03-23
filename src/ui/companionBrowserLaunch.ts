@@ -2,14 +2,12 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { URL } from 'url';
 import * as vscode from 'vscode';
-import * as nls from 'vscode-nls';
 import { Configuration, readConfig } from '../common/contributionUtils';
 import Dap from '../dap/api';
 import { DebugSessionTunnels } from './debugSessionTunnels';
-
-const localize = nls.loadMessageBundle();
 
 const isTunnelForPort = (port: number) => (tunnel: vscode.TunnelDescription) =>
   typeof tunnel.localAddress === 'string'
@@ -55,9 +53,9 @@ const launchCompanionBrowser = async (
   args: Dap.LaunchBrowserInCompanionEventParams,
 ) => {
   if (vscode.env.uiKind === vscode.UIKind.Web) {
+    vscode.debug.stopDebugging(session);
     return vscode.window.showErrorMessage(
-      localize(
-        'cannotDebugInBrowser',
+      l10n.t(
         "We can't launch a browser in debug mode from here. Open this workspace in VS Code on your desktop to enable debugging.",
       ),
     );
@@ -83,12 +81,12 @@ const launchCompanionBrowser = async (
   }
 };
 
-const killCompanionBrowser = (
+const killCompanionBrowser = async (
   session: vscode.DebugSession,
   tunnels: DebugSessionTunnels,
   { launchId }: Dap.KillCompanionBrowserEventParams,
 ) => {
-  vscode.commands.executeCommand('js-debug-companion.kill', { launchId });
+  await vscode.commands.executeCommand('js-debug-companion.kill', { launchId });
   tunnels.destroySession(session.id);
 };
 

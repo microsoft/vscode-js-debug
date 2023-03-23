@@ -71,7 +71,9 @@ function previewRemoteObjectInternal(
 ): string {
   // Evaluating function does not produce preview object for it.
   if (object.type === 'function') {
-    return formatFunctionDescription(object.description, context.budget);
+    return object.description
+      ? formatFunctionDescription(object.description, context.budget)
+      : '<function>';
   }
 
   if (object.type === 'object' && object.subtype === 'node') {

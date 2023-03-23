@@ -1,0 +1,27 @@
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+<anonymous> @ ${workspaceFolder}/web/iframe-1582/inner.js:3:3
+----setInterval----
+<anonymous> @ ${workspaceFolder}/web/iframe-1582/inner.js:2:1
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+<anonymous> @ ${workspaceFolder}/web/iframe-1582/inner.js:3:3
+----setInterval----
+<anonymous> @ ${workspaceFolder}/web/iframe-1582/inner.js:2:1
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+<anonymous> @ ${workspaceFolder}/web/iframe-1582/inner.js:3:3
+----setInterval----
+<anonymous> @ ${workspaceFolder}/web/iframe-1582/inner.js:2:1

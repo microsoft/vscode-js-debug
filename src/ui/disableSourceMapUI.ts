@@ -2,15 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { injectable } from 'inversify';
 import * as vscode from 'vscode';
 import { ExtensionContext } from 'vscode';
-import * as nls from 'vscode-nls';
 import { Configuration, isDebugType, readConfig, writeConfig } from '../common/contributionUtils';
 import Dap from '../dap/api';
 import { IExtensionContribution } from '../ioc-extras';
-
-const localize = nls.loadMessageBundle();
 
 @injectable()
 export class DisableSourceMapUI implements IExtensionContribution {
@@ -37,18 +35,17 @@ export class DisableSourceMapUI implements IExtensionContribution {
   }
 
   private async prompt() {
-    const always = localize('always', 'Always');
-    const alwayInWorkspace = localize('always', 'Always in this Workspace');
-    const yes = localize('yes', 'Yes');
+    const always = l10n.t('Always');
+    const alwayInWorkspace = l10n.t('Always in this Workspace');
+    const yes = l10n.t('Yes');
 
     const result = await vscode.window.showInformationMessage(
-      localize(
-        'disableSourceMapUi.msg',
+      l10n.t(
         'This is a missing file path referenced by a sourcemap. Would you like to debug the compiled version instead?',
       ),
       always,
       alwayInWorkspace,
-      localize('no', 'No'),
+      l10n.t('No'),
       yes,
     );
 

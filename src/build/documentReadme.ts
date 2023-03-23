@@ -6,9 +6,9 @@ import { promises as fs } from 'fs';
 import { marked } from 'marked';
 import { format } from 'prettier';
 import { prettier as prettierOpts } from '../../package.json';
+import strings from '../../package.nls.json';
 import { getPreferredOrDebugType } from '../common/contributionUtils';
 import { debuggers, DescribedAttribute } from './generate-contributions.js';
-import strings from './strings';
 
 (async () => {
   let out = `# Options\n\n`;
@@ -26,7 +26,7 @@ import strings from './strings';
         continue;
       }
 
-      const descriptionKey = descriptionKeyRaw.slice(1, -1) as keyof typeof strings;
+      const descriptionKey = descriptionKeyRaw.slice(1, -1);
       const description = strings[descriptionKey].replace(/\n/g, '<br>');
       if (!description) {
         continue;

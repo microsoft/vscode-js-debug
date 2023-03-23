@@ -17,6 +17,8 @@ steps:
 - task: Npm@1
   displayName: npm install
   inputs:
+    command: custom
+    customCommand: install --legacy-peer-deps
     verbose: false
 
 - task: NodeTool@0

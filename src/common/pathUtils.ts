@@ -2,12 +2,25 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { randomBytes } from 'crypto';
 import execa from 'execa';
+import { tmpdir } from 'os';
 import * as path from 'path';
 import { FsPromises } from '../ioc-extras';
 import { EnvironmentVars } from './environmentVars';
 import { existsInjected } from './fsUtils';
 import { removeNulls } from './objUtils';
+
+/** Platform-specific path for named sockets */
+export const namedSocketDirectory = process.platform === 'win32' ? '\\\\.\\pipe\\' : tmpdir();
+
+let pipeCounter = 0;
+
+export const getRandomPipe = () =>
+  path.join(
+    namedSocketDirectory,
+    `node-cdp.${process.pid}-${randomBytes(4).toString('hex')}-${pipeCounter++}.sock`,
+  );
 
 /*
  * Lookup the given program on the PATH and return its absolute path on success and undefined otherwise.
@@ -139,6 +152,10 @@ export function properRelative(fromPath: string, toPath: string): string {
     return path.relative(fromPath, toPath);
   }
 }
+
+const splitRe = /\/|\\/;
+
+export const properSplit = (path: string) => path.split(splitRe);
 
 export function fixDriveLetter(aPath: string, uppercaseDriveLetter = false): string {
   if (!aPath) return aPath;

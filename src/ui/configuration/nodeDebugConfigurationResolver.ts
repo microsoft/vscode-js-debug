@@ -2,12 +2,12 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { promises as fs } from 'fs';
 import { inject, injectable } from 'inversify';
 import * as path from 'path';
 import * as vscode from 'vscode';
 import { CancellationToken } from 'vscode';
-import * as nls from 'vscode-nls';
 import { writeToConsole } from '../../common/console';
 import { DebugType } from '../../common/contributionUtils';
 import { EnvironmentVars } from '../../common/environmentVars';
@@ -30,8 +30,6 @@ import { INvmResolver } from '../../targets/node/nvmResolver';
 import { fixInspectFlags } from '../configurationUtils';
 import { resolveProcessId } from '../processPicker';
 import { BaseConfigurationResolver } from './baseConfigurationResolver';
-
-const localize = nls.loadMessageBundle();
 
 type ResolvingNodeConfiguration =
   | ResolvingNodeAttachConfiguration
@@ -73,7 +71,7 @@ export class NodeConfigurationResolver extends BaseConfigurationResolver<AnyNode
       const stats = await existsInjected(fs, config.cwd);
       if (!stats) {
         vscode.window.showErrorMessage(
-          localize('cwd.notFound', 'The configured `cwd` {0} does not exist.', config.cwd),
+          l10n.t('The configured `cwd` {0} does not exist.', config.cwd),
           { modal: true },
         );
         return;
@@ -81,7 +79,7 @@ export class NodeConfigurationResolver extends BaseConfigurationResolver<AnyNode
 
       if (!stats.isDirectory()) {
         vscode.window.showErrorMessage(
-          localize('cwd.notFound', 'The configured `cwd` {0} is not a folder.', config.cwd),
+          l10n.t('The configured `cwd` {0} is not a folder.', config.cwd),
           { modal: true },
         );
         return;
@@ -102,10 +100,7 @@ export class NodeConfigurationResolver extends BaseConfigurationResolver<AnyNode
     if (!config.name && !config.type && !config.request) {
       config = await createLaunchConfigFromContext(folder, true, config);
       if (config.request === 'launch' && !config.program) {
-        vscode.window.showErrorMessage(
-          localize('program.not.found.message', 'Cannot find a program to debug'),
-          { modal: true },
-        );
+        vscode.window.showErrorMessage(l10n.t('Cannot find a program to debug'), { modal: true });
         return;
       }
     }
@@ -320,7 +315,7 @@ export async function createLaunchConfigFromContext(
   const config: ResolvingNodeConfiguration = {
     type: DebugType.Node,
     request: 'launch',
-    name: localize('node.launch.config.name', 'Launch Program'),
+    name: l10n.t('Launch Program'),
     skipFiles: ['<node_internals>/**'],
   };
 
@@ -334,13 +329,7 @@ export async function createLaunchConfigFromContext(
 
   if (pkg && pkg.name === 'mern-starter') {
     if (resolve) {
-      writeToConsole(
-        localize(
-          'mern.starter.explanation',
-          "Launch configuration for '{0}' project created.",
-          'Mern Starter',
-        ),
-      );
+      writeToConsole(l10n.t("Launch configuration for '{0}' project created.", 'Mern Starter'));
     }
     configureMern(config);
     return config;
@@ -350,12 +339,7 @@ export async function createLaunchConfigFromContext(
     // try to find a value for 'program' by analysing package.json
     program = await guessProgramFromPackage(folder, pkg, resolve);
     if (program && resolve) {
-      writeToConsole(
-        localize(
-          'program.guessed.from.package.json.explanation',
-          "Launch configuration created based on 'package.json'.",
-        ),
-      );
+      writeToConsole(l10n.t("Launch configuration created based on 'package.json'."));
     }
   }
 
@@ -406,8 +390,7 @@ export async function createLaunchConfigFromContext(
   ) {
     if (resolve) {
       writeToConsole(
-        localize(
-          'outFiles.explanation',
+        l10n.t(
           "Adjust glob pattern(s) in the 'outFiles' attribute so that they cover the generated JavaScript.",
         ),
       );

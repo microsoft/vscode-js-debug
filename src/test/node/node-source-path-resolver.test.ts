@@ -7,6 +7,7 @@ import { promises as fsPromises } from 'fs';
 import { join, resolve } from 'path';
 import { LocalFsUtils } from '../../common/fsUtils';
 import { Logger } from '../../common/logging/logger';
+import { fixDriveLetter } from '../../common/pathUtils';
 import { resetCaseSensitivePaths, setCaseSensitivePaths } from '../../common/urlUtils';
 import { NodeSourcePathResolver } from '../../targets/node/nodeSourcePathResolver';
 
@@ -28,6 +29,60 @@ describe('node source path resolver', () => {
       expect(await r.urlToAbsolutePath({ url: 'file:///src/index.js' })).to.equal(
         resolve('/src/index.js'),
       );
+    });
+
+    it('escapes regex parts segments', async () => {
+      if (process.platform === 'win32') {
+        const r = new NodeSourcePathResolver(
+          fsUtils,
+          undefined,
+          {
+            ...defaultOptions,
+            workspaceFolder: 'C:\\some\\workspa*ce\\folder',
+            basePath: 'C:\\some\\workspa*ce\\folder',
+            resolveSourceMapLocations: [
+              'C:\\some\\workspa*ce\\folder/**',
+              'C:\\some\\workspa*ce\\folder/../**',
+              'C:\\some\\workspa*ce\\folder/../foo/**',
+            ],
+          },
+          await Logger.test(),
+        );
+        expect((r as unknown as Record<string, string[]>).resolvePatterns).to.deep.equal([
+          'C:/some/workspa\\*ce/folder/**',
+          'C:/some/workspa\\*ce/**',
+          'C:/some/workspa\\*ce/foo/**',
+        ]);
+      }
+    });
+
+    it('fixes regex escape issue #1554', async () => {
+      if (process.platform === 'win32') {
+        const r = new NodeSourcePathResolver(
+          fsUtils,
+          undefined,
+          {
+            ...defaultOptions,
+            workspaceFolder: 'C:\\Users\\Segev\\prj\\swimm\\ide\\extensions\\vscode',
+            basePath: 'C:\\Users\\Segev\\prj\\swimm\\ide\\extensions\\vscode',
+            resolveSourceMapLocations: [
+              'C:\\Users\\Segev\\prj\\swimm\\ide\\extensions\\vscode/**',
+              'C:\\Users\\Segev\\prj\\swimm\\ide\\extensions\\vscode/../../../packages/shared/dist/**',
+              'C:\\Users\\Segev\\prj\\swimm\\ide\\extensions\\vscode/../../../packages/swimmagic/dist/**',
+              'C:\\Users\\Segev\\prj\\swimm\\ide\\extensions\\vscode/../../../packages/editor/dist/**',
+              'C:\\Users\\Segev\\prj\\swimm\\ide\\extensions\\vscode/../../server/dist/**',
+              '!**/node_modules/**',
+            ],
+          },
+          await Logger.test(),
+        );
+        expect(
+          r.shouldResolveSourceMap({
+            compiledPath: 'c:\\Users\\Segev\\prj\\swimm\\ide\\server\\dist\\app.js',
+            sourceMapUrl: 'file:///c:/Users/Segev/prj/swimm/ide/server/dist/app.js.map',
+          }),
+        ).to.be.true;
+      }
     });
 
     it('resolves unc paths', async () => {
@@ -93,7 +148,7 @@ describe('node source path resolver', () => {
           url: 'webpack:///hello.js',
           map: { sourceRoot: '', metadata: { compiledPath: 'hello.js' } } as any,
         }),
-      ).to.equal(join(__dirname, 'hello.js'));
+      ).to.equal(fixDriveLetter(join(__dirname, 'hello.js')));
     });
 
     it('loads local node internals (#823)', async () => {
@@ -174,7 +229,9 @@ describe('node source path resolver', () => {
           });
 
           if (ok) {
-            expect(result).to.equal(join(__dirname, 'hello.js'));
+            expect(result && fixDriveLetter(result)).to.equal(
+              fixDriveLetter(join(__dirname, 'hello.js')),
+            );
           } else {
             expect(result).to.be.undefined;
           }

@@ -1138,6 +1138,30 @@ export namespace Dap {
     capabilitiesExtendedRequest(
       params: CapabilitiesExtendedParams,
     ): Promise<CapabilitiesExtendedResult>;
+
+    /**
+     * Used by evaluate and variables.
+     */
+    on(
+      request: 'evaluationOptions',
+      handler: (params: EvaluationOptionsParams) => Promise<EvaluationOptionsResult | Error>,
+    ): () => void;
+    /**
+     * Used by evaluate and variables.
+     */
+    evaluationOptionsRequest(params: EvaluationOptionsParams): Promise<EvaluationOptionsResult>;
+
+    /**
+     * Sets options for locating symbols.
+     */
+    on(
+      request: 'setSymbolOptions',
+      handler: (params: SetSymbolOptionsParams) => Promise<SetSymbolOptionsResult | Error>,
+    ): () => void;
+    /**
+     * Sets options for locating symbols.
+     */
+    setSymbolOptionsRequest(params: SetSymbolOptionsParams): Promise<SetSymbolOptionsResult>;
   }
 
   export interface TestApi {
@@ -1892,6 +1916,16 @@ export namespace Dap {
      * The event indicates that one or more capabilities have changed.
      */
     capabilitiesExtended(params: CapabilitiesExtendedParams): Promise<CapabilitiesExtendedResult>;
+
+    /**
+     * Used by evaluate and variables.
+     */
+    evaluationOptions(params: EvaluationOptionsParams): Promise<EvaluationOptionsResult>;
+
+    /**
+     * Sets options for locating symbols.
+     */
+    setSymbolOptions(params: SetSymbolOptionsParams): Promise<SetSymbolOptionsResult>;
   }
 
   export interface AttachParams {
@@ -2256,6 +2290,16 @@ export namespace Dap {
      */
     memoryReference?: string;
   }
+
+  export interface EvaluationOptionsParams {
+    evaluateParams?: EvaluateParamsExtended;
+
+    variablesParams?: VariablesParamsExtended;
+
+    stackTraceParams?: StackTraceParamsExtended;
+  }
+
+  export interface EvaluationOptionsResult {}
 
   export interface ExceptionInfoParams {
     /**
@@ -3366,6 +3410,10 @@ export namespace Dap {
 
   export interface SetSourceMapSteppingResult {}
 
+  export interface SetSymbolOptionsParams {}
+
+  export interface SetSymbolOptionsResult {}
+
   export interface SetVariableParams {
     /**
      * The reference of the variable container. The `variablesReference` must have been obtained in the current suspended state. See 'Lifetime of Object References' in the Overview section for details.
@@ -3951,7 +3999,7 @@ export namespace Dap {
     endColumn?: integer;
 
     /**
-     * Indicates whether this frame can be restarted with the `restart` request. Clients should only use this if the debug adapter supports the `restart` request and the corresponding capability `supportsRestartRequest` is true.
+     * Indicates whether this frame can be restarted with the `restart` request. Clients should only use this if the debug adapter supports the `restart` request and the corresponding capability `supportsRestartRequest` is true. If a debug adapter has this capability, then `canRestart` defaults to `true` if the property is absent.
      */
     canRestart?: boolean;
 
@@ -4182,6 +4230,7 @@ export namespace Dap {
      * The expression that controls how many hits of the breakpoint are ignored.
      * The debug adapter is expected to interpret the expression as needed.
      * The attribute is only honored by a debug adapter if the corresponding capability `supportsHitConditionalBreakpoints` is true.
+     * If both this property and `condition` are specified, `hitCondition` should be evaluated only if the `condition` is met, and the debug adapter should stop only if both conditions are met.
      */
     hitCondition?: string;
 
@@ -4189,6 +4238,7 @@ export namespace Dap {
      * If this attribute exists and is non-empty, the debug adapter must not 'break' (stop)
      * but log the message instead. Expressions within `{}` are interpolated.
      * The attribute is only honored by a debug adapter if the corresponding capability `supportsLogPoints` is true.
+     * If either `hitCondition` or `condition` is specified, then the message should only be logged if those conditions are met.
      */
     logMessage?: string;
   }
@@ -4521,6 +4571,78 @@ export namespace Dap {
    */
   export type ExceptionBreakMode = string;
 
+  export interface StackTraceParamsExtended extends StackTraceParams {
+    noFuncEval?: boolean;
+  }
+
+  export interface VariablesParamsExtended extends VariablesParams {
+    evaluationOptions?: EvaluationOptions;
+  }
+
+  /**
+   * Options passed to expression evaluation commands ("evaluate" and "variables") to control how the evaluation occurs.
+   */
+  export interface EvaluationOptions {
+    /**
+     * Evaluate the expression as a statement.
+     */
+    treatAsStatement?: boolean;
+
+    /**
+     * Allow variables to be declared as part of the expression.
+     */
+    allowImplicitVars?: boolean;
+
+    /**
+     * Evaluate without side effects.
+     */
+    noSideEffects?: boolean;
+
+    /**
+     * Exclude funceval during evaluation.
+     */
+    noFuncEval?: boolean;
+
+    /**
+     * Exclude calling `ToString` during evaluation.
+     */
+    noToString?: boolean;
+
+    /**
+     * Evaluation should take place immediately if possible.
+     */
+    forceEvaluationNow?: boolean;
+
+    /**
+     * Exclude interpretation from evaluation methods.
+     */
+    forceRealFuncEval?: boolean;
+
+    /**
+     * Allow all threads to run during the evaluation.
+     */
+    runAllThreads?: boolean;
+
+    /**
+     * The 'raw' view of objects and structions should be shown - visualization improvements should be disabled.
+     */
+    rawStructures?: boolean;
+
+    /**
+     * Variables responses containing favorites should be filtered to only those items
+     */
+    filterToFavorites?: boolean;
+
+    /**
+     * Auto generated display strings for variables with favorites should not include field names.
+     */
+    simpleDisplayString?: boolean;
+  }
+
+  export interface EvaluateParamsExtended extends EvaluateParams {
+    evaluationOptions?: EvaluationOptions;
+  }
+
   /**
    * Properties of a variable that can be used to determine how to render the variable in the UI.
    */
@@ -4692,6 +4814,13 @@ export namespace Dap {
 
   export interface CapabilitiesExtended extends Capabilities {
     supportsDebuggerProperties?: boolean;
+
+    supportsEvaluationOptions?: boolean;
+
+    /**
+     * The debug adapter supports the set symbol options request
+     */
+    supportsSetSymbolOptions?: boolean;
   }
 
   /**

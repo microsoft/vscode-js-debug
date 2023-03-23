@@ -2,10 +2,10 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { inject, injectable } from 'inversify';
 import { URL } from 'url';
 import * as vscode from 'vscode';
-import * as nls from 'vscode-nls';
 import {
   Commands,
   Configuration,
@@ -15,8 +15,6 @@ import {
 } from '../common/contributionUtils';
 import { DefaultBrowser, IDefaultBrowserProvider } from '../common/defaultBrowserProvider';
 import { ExtensionContext, IExtensionContribution } from '../ioc-extras';
-
-const localize = nls.loadMessageBundle();
 
 function getPossibleUrl(link: string, requirePort: boolean): string | undefined {
   if (!link) {
@@ -109,7 +107,7 @@ export class DebugLinkUi implements IExtensionContribution {
       placeHolder: 'https://localhost:8080',
       validateInput: input => {
         if (input && !getPossibleUrl(input, false)) {
-          return localize('debugLink.invalidUrl', 'The URL provided is invalid');
+          return l10n.t('The URL provided is invalid');
         }
       },
     });
@@ -133,15 +131,12 @@ export class DebugLinkUi implements IExtensionContribution {
       return;
     }
 
-    const yes = localize('yes', 'Yes');
-    const never = localize('never', 'Never');
+    const yes = l10n.t('Yes');
+    const never = l10n.t('Never');
     const r = await vscode.window.showInformationMessage(
-      localize(
-        'debugLink.savePrompt',
-        'Would you like to save a configuration in your launch.json for easy access later?',
-      ),
+      l10n.t('Would you like to save a configuration in your launch.json for easy access later?'),
       yes,
-      localize('no', 'No'),
+      l10n.t('No'),
       never,
     );
 

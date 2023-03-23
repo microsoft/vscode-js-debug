@@ -8,8 +8,6 @@ Source event for test.js
         sourceReference : <number>
     }
 }
-text/javascript
----------
 content1//# sourceURL=test.js
 ---------
 
@@ -22,8 +20,6 @@ Source event for test.js updated
         sourceReference : <number>
     }
 }
-text/javascript
----------
 content2//# sourceURL=test.js
 ---------
 

@@ -20,8 +20,6 @@ describe('sources', () => {
         sourceReference: event.source.sourceReference,
       },
     });
-    p.log(`${content.mimeType}`);
-    p.log('---------');
     p.log(content.content);
     p.log('---------');
   }

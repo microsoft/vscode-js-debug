@@ -2,13 +2,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { inject, injectable } from 'inversify';
 import type * as vscodeType from 'vscode';
-import * as nls from 'vscode-nls';
 import { ExtensionContext, VSCodeApi } from '../ioc-extras';
 import { ILinkedBreakpointLocation } from './linkedBreakpointLocation';
-
-const localize = nls.loadMessageBundle();
 
 const ignoreStorageKey = 'linkBpWarnIgnored';
 const docLink =
@@ -29,8 +27,8 @@ export class LinkedBreakpointLocationUI implements ILinkedBreakpointLocation {
     }
 
     this.didWarn = true;
-    const readMore = localize('readMore', 'Read More');
-    const ignore = localize('ignore', 'Ignore');
+    const readMore = l10n.t('Read More');
+    const ignore = l10n.t('Ignore');
 
     const r = await this.vscode.window.showWarningMessage(
       'It looks like you have symlinked files. You might need to update your configuration to make this work as expected.',

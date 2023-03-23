@@ -6,16 +6,20 @@ import globStream from 'glob-stream';
 import { inject, injectable } from 'inversify';
 import { FileGlobList } from '../fileGlobList';
 import { ILogger, LogTag } from '../logging';
-import { fixDriveLetterAndSlashes, forceForwardSlashes } from '../pathUtils';
-import { ISourceMapMetadata } from './sourceMap';
-import { createMetadataForFile, ISearchStrategy } from './sourceMapRepository';
+import { truthy } from '../objUtils';
+import { fixDriveLetterAndSlashes } from '../pathUtils';
+import {
+  createMetadataForFile,
+  ISearchStrategy,
+  ISourcemapStreamOptions,
+} from './sourceMapRepository';
 
 /**
  * A source map repository that uses globbing to find candidate files.
  */
 @injectable()
 export class NodeSearchStrategy implements ISearchStrategy {
-  constructor(@inject(ILogger) private readonly logger: ILogger) {}
+  constructor(@inject(ILogger) protected readonly logger: ILogger) {}
 
   /**
    * @inheritdoc
@@ -26,13 +30,8 @@ export class NodeSearchStrategy implements ISearchStrategy {
   ): Promise<T[]> {
     const todo: (T | Promise<T>)[] = [];
 
-    await new Promise((resolve, reject) =>
-      this.globForFiles(files)
-        .on('data', (value: globStream.Entry) =>
-          todo.push(onChild(fixDriveLetterAndSlashes(value.path))),
-        )
-        .on('finish', resolve)
-        .on('error', reject),
+    await this.globForFiles(files, value =>
+      todo.push(onChild(fixDriveLetterAndSlashes(value.path))),
     );
 
     // Type annotation is necessary for https://github.com/microsoft/TypeScript/issues/47144
@@ -43,48 +42,54 @@ export class NodeSearchStrategy implements ISearchStrategy {
   /**
    * @inheritdoc
    */
-  public async streamChildrenWithSourcemaps<T>(
-    files: FileGlobList,
-    onChild: (child: Required<ISourceMapMetadata>) => T | Promise<T>,
-  ): Promise<T[]> {
-    const todo: (T | Promise<T | void>)[] = [];
+  public async streamChildrenWithSourcemaps<T, R>(
+    opts: ISourcemapStreamOptions<T, R>,
+  ): Promise<{ values: R[]; state: unknown }> {
+    const todo: (R | Promise<R | void>)[] = [];
 
-    await new Promise((resolve, reject) =>
-      this.globForFiles(files)
-        .on('data', (value: globStream.Entry) =>
-          todo.push(
-            createMetadataForFile(fixDriveLetterAndSlashes(value.path))
-              .then(parsed => parsed && onChild(parsed))
-              .catch(error =>
-                this.logger.warn(LogTag.SourceMapParsing, 'Error parsing source map', {
-                  error,
-                  file: value.path,
-                }),
-              ),
+    await this.globForFiles(opts.files, value =>
+      todo.push(
+        createMetadataForFile(fixDriveLetterAndSlashes(value.path))
+          .then(parsed => parsed && opts.processMap(parsed))
+          .then(processed => processed && opts.onProcessedMap(processed))
+          .catch(error =>
+            this.logger.warn(LogTag.SourceMapParsing, 'Error parsing source map', {
+              error,
+              file: value.path,
+            }),
           ),
-        )
-        .on('finish', resolve)
-        .on('error', reject),
+      ),
     );
 
     // Type annotation is necessary for https://github.com/microsoft/TypeScript/issues/47144
-    const results: (T | void)[] = await Promise.all(todo);
-    return results.filter((t): t is T => t !== undefined);
+    const results: (R | void)[] = await Promise.all(todo);
+    return { values: results.filter(truthy), state: undefined };
   }
 
-  private globForFiles(files: FileGlobList) {
-    return globStream(
-      [
-        ...files.patterns.map(forceForwardSlashes),
-        // Avoid reading asar files: electron patches in support for them, but
-        // if we see an invalid one then it throws a synchronous error that
-        // breaks glob. We don't care about asar's here, so just skip that:
-        '!**/*.asar/**',
-      ],
-      {
-        matchBase: true,
-        cwd: files.rootPath,
-      },
+  protected async globForFiles(files: FileGlobList, onFile: (file: globStream.Entry) => void) {
+    await Promise.all(
+      [...files.explode()].map(
+        glob =>
+          new Promise((resolve, reject) =>
+            globStream(
+              [
+                glob.pattern,
+                // Avoid reading asar files: electron patches in support for them, but
+                // if we see an invalid one then it throws a synchronous error that
+                // breaks glob. We don't care about asar's here, so just skip that:
+                '!**/*.asar/**',
+              ],
+              {
+                ignore: glob.negations,
+                matchBase: true,
+                cwd: glob.cwd,
+              },
+            )
+              .on('data', onFile)
+              .on('finish', resolve)
+              .on('error', reject),
+          ),
+      ),
     );
   }
 }

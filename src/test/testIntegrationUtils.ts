@@ -6,11 +6,11 @@ import * as child_process from 'child_process';
 import del from 'del';
 import { ExclusiveTestFunction, TestFunction } from 'mocha';
 import * as path from 'path';
-import { GoldenText } from './goldenText';
-import { testFixturesDir, TestRoot, testWorkspace, ITestHandle } from './test';
 import { forceForwardSlashes } from '../common/pathUtils';
-import { IGoldenReporterTextTest } from './reporters/goldenTextReporterUtils';
 import { delay } from '../common/promiseUtil';
+import { GoldenText } from './goldenText';
+import { IGoldenReporterTextTest } from './reporters/goldenTextReporterUtils';
+import { ITestHandle, testFixturesDir, TestRoot, testWorkspace } from './test';
 
 process.env['DA_TEST_DISABLE_TELEMETRY'] = 'true';
 
@@ -53,7 +53,15 @@ const itIntegratesBasic = (
   testFunction: TestFunction | ExclusiveTestFunction = it,
 ) =>
   testFunction(test, async function () {
-    const golden = new GoldenText(this.test!.titlePath().join(' '), testWorkspace);
+    if (!this.test?.file) {
+      throw new Error(`Could not find file for test`);
+    }
+
+    const golden = new GoldenText(
+      this.test!.titlePath().join(' '),
+      this.test?.file!,
+      testWorkspace,
+    );
     const root = new TestRoot(golden, this.test!.fullTitle());
     await root.initialize;
 

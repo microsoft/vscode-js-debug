@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { IBrowserFinder, isQuality, Quality } from '@vscode/js-debug-browsers';
+import { IBrowserFinder, isQuality } from '@vscode/js-debug-browsers';
 import * as fs from 'fs';
 import { inject, injectable } from 'inversify';
 import * as path from 'path';
@@ -92,7 +92,7 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
     telemetryReporter: ITelemetryReporter,
     promisedPort?: Promise<number>,
   ): Promise<launcher.ILaunchResult> {
-    const executablePath = await this.findBrowserPath(executable || Quality.Stable);
+    const executablePath = await this.findBrowserPath(executable || 'stable');
 
     // If we had a custom executable, don't resolve a data
     // dir unless it's  explicitly requested.
@@ -298,7 +298,7 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
       // try to find the stable browser, but if that fails just get any browser
       // that's available on the system
       const found =
-        (await finder.findWhere(r => r.quality === Quality.Stable)) || (await finder.findAll())[0];
+        (await finder.findWhere(r => r.quality === 'stable')) || (await finder.findAll())[0];
       return found?.path;
     } else if (isQuality(executablePath)) {
       return (await finder.findWhere(r => r.quality === executablePath))?.path;

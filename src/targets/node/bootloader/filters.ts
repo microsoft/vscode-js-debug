@@ -29,13 +29,12 @@ export const checkLeaseFile = (env: IBootloaderInfo) => {
 
 // Do not enable for Electron and other hybrid environments.
 export const checkNotElectron = () => {
-  try {
-    eval('window');
+  if (typeof window !== 'undefined') {
     bootloaderLogger.info(LogTag.RuntimeLaunch, 'Disabling in Electron (window is set)');
     return false;
-  } catch (e) {
-    return true;
   }
+
+  return true;
 };
 
 export const checkProcessFilter = (env: IBootloaderInfo) => {

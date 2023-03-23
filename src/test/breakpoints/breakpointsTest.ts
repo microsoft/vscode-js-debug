@@ -1228,4 +1228,65 @@ describe('breakpoints', () => {
     await evaluation;
     p.assertLog();
   });
+
+  itIntegrates(
+    'does not interrupt stepOver with instrumentation breakpoint (#1556)',
+    async ({ r }) => {
+      async function pauseAndNext(p: ITestHandle) {
+        const { threadId } = p.log(await p.dap.once('stopped'));
+        await p.logger.logStackTrace(threadId);
+        return p.dap.next({ threadId });
+      }
+
+      const p = await r.launchAndLoad(`
+        <script>
+          function test() {
+            debugger;
+            f=eval(\`
+              (function (a, b) {
+                c = a + b;
+                return c;
+              });
+              //# sourceURL=foo.js
+              //# sourceMappingURL=foo.js.map
+            \`);
+            f(1, 2);
+          }
+        </script>`);
+
+      const evaluate = p.evaluate('test()');
+
+      await pauseAndNext(p); // debugger statement
+      await pauseAndNext(p); // f=eval(...
+      await waitForPause(p); // should now be on f(1, 2)
+
+      await evaluate;
+      p.assertLog();
+    },
+  );
+
+  itIntegrates('deals with removed execution contexts (#1582)', async ({ r }) => {
+    const p = await r.launchUrlAndLoad('iframe-1582/index.html');
+
+    const source: Dap.Source = {
+      path: p.workspacePath('web/iframe-1582/inner.js'),
+    };
+    p.dap.setBreakpoints({ source, breakpoints: [{ line: 3 }] });
+    await waitForPause(p, async () => {
+      await p.dap.evaluate({
+        expression: 'document.getElementsByTagName("IFRAME")[0].src += ""',
+        context: 'repl',
+      });
+    });
+
+    await waitForPause(p, async () => {
+      await p.dap.setBreakpoints({ source, breakpoints: [] });
+    });
+
+    // re-sets the breakpoints in the new script
+    p.dap.setBreakpoints({ source, breakpoints: [{ line: 3 }] });
+
+    await waitForPause(p);
+    p.assertLog();
+  });
 });

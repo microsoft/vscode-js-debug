@@ -2,49 +2,72 @@ Evaluating: 'console.log(regex1)'
 stdout> /^url\(\s*(?:(?:"(?:[^\\\"]|(?:\\[\da-f]{1,6}\s?|\.))*"|'(?:[^\\\']|(?:\\[\da-f]{1,6}\s?|\.))*')|(?:[!#$%&*-~\w]|(?:\\[\da-f]{1,6}\s?|\.))*)\s*\)/i
 
 Evaluating: 'console.log([regex1])'
+stdout> (1) [/^url\(\s*(?:(?:"(?:[^\\\"]|(?:\\[\da-f]{1,6}\s?|\…?:[!#$%&*-~\w]|(?:\\[\da-f]{1,6}\s?|\.))*)\s*\)/i]
 stdout> > (1) [/^url\(\s*(?:(?:"(?:[^\\\"]|(?:\\[\da-f]{1,6}\s?|\…?:[!#$%&*-~\w]|(?:\\[\da-f]{1,6}\s?|\.))*)\s*\)/i]
 
 Evaluating: 'console.log(regex2)'
 stdout> /foo\\bar\sbaz/i
 
 Evaluating: 'console.log([regex2])'
+stdout> (1) [/foo\\bar\sbaz/i]
 stdout> > (1) [/foo\\bar\sbaz/i]
 
 Evaluating: 'console.log(str)'
 stdout> test
 
 Evaluating: 'console.log([str])'
+stdout> (1) ['test']
 stdout> > (1) ['test']
 
 Evaluating: 'console.log(str2)'
 stdout> test named "test"
 
 Evaluating: 'console.log([str2])'
+stdout> (1) ['test named "test"']
 stdout> > (1) ['test named "test"']
 
 Evaluating: 'console.log(error)'
+stdout> Error
+    at console-format:7:23 {stack: 'Error
+    at console-format:7:23'}
+
 stdout>
 > Error
     at console-format:7:23 {stack: 'Error
     at console-format:7:23'}
 
 Evaluating: 'console.log([error])'
+stdout> (1) [Error
+    at console-format:7:23]
 stdout>
 > (1) [Error
     at console-format:7:23]
 
 Evaluating: 'console.log(errorWithMessage)'
+stdout> Error: my error message
+    at console-format:8:34 {stack: 'Error: my error message
+    at console-format:8:34', message: 'my error message'}
+
 stdout>
 > Error: my error message
     at console-format:8:34 {stack: 'Error: my error message
     at console-format:8:34', message: 'my error message'}
 
 Evaluating: 'console.log([errorWithMessage])'
+stdout> (1) [Error: my error message
+    at console-format:8:34]
 stdout>
 > (1) [Error: my error message
     at console-format:8:34]
 
 Evaluating: 'console.log(errorWithMultilineMessage)'
+stdout> Error: my multiline
+error message
+    at console-format:9:43 {stack: 'Error: my multiline
+error message
+    at console-format:9:43', message: 'my multiline
+error message'}
+
 stdout>
 > Error: my multiline
 error message
@@ -54,218 +77,284 @@ error message
 error message'}
 
 Evaluating: 'console.log([errorWithMultilineMessage])'
+stdout> (1) [Error: my multiline
+error message
+    at console-format:9:43]
 stdout>
 > (1) [Error: my multiline
 error message
     at console-format:9:43]
 
 Evaluating: 'console.log(func)'
+stdout> ƒ () { return 1; }
 stdout> > ƒ () { return 1; }
 
 Evaluating: 'console.log([func])'
+stdout> (1) [ƒ]
 stdout> > (1) [ƒ]
 
 Evaluating: 'console.log(multilinefunc)'
+stdout> ƒ () {
+              return 2;
+          }
 stdout>
 > ƒ () {
               return 2;
           }
 
 Evaluating: 'console.log([multilinefunc])'
+stdout> (1) [ƒ]
 stdout> > (1) [ƒ]
 
 Evaluating: 'console.log(num)'
 stdout> 0.12
 
 Evaluating: 'console.log([num])'
+stdout> (1) [0.12]
 stdout> > (1) [0.12]
 
 Evaluating: 'console.log(null)'
 stdout> null
 
 Evaluating: 'console.log([null])'
+stdout> (1) [null]
 stdout> > (1) [null]
 
 Evaluating: 'console.log(undefined)'
 stdout> undefined
 
 Evaluating: 'console.log([undefined])'
+stdout> (1) [undefined]
 stdout> > (1) [undefined]
 
 Evaluating: 'console.log(NaN)'
 stdout> NaN
 
 Evaluating: 'console.log([NaN])'
+stdout> (1) [NaN]
 stdout> > (1) [NaN]
 
 Evaluating: 'console.log(Number.POSITIVE_INFINITY)'
 stdout> Infinity
 
 Evaluating: 'console.log([Number.POSITIVE_INFINITY])'
+stdout> (1) [Infinity]
 stdout> > (1) [Infinity]
 
 Evaluating: 'console.log(Number.NEGATIVE_INFINITY)'
 stdout> -Infinity
 
 Evaluating: 'console.log([Number.NEGATIVE_INFINITY])'
+stdout> (1) [-Infinity]
 stdout> > (1) [-Infinity]
 
 Evaluating: 'console.log({})'
+stdout> {}
 stdout> > {}
 
 Evaluating: 'console.log([{}])'
+stdout> (1) [{…}]
 stdout> > (1) [{…}]
 
 Evaluating: 'console.log([function() {}])'
+stdout> (1) [ƒ]
 stdout> > (1) [ƒ]
 
 Evaluating: 'console.log([[function() {}]])'
+stdout> (1) [Array(1)]
 stdout> > (1) [Array(1)]
 
 Evaluating: 'console.log(objectWithNonEnumerables)'
+stdout> {enumerableProp: 4, __underscoreEnumerableProp__: 5, __underscoreNonEnumerableProp: 2, abc: 3, getFoo: ƒ, …}
 stdout> > {enumerableProp: 4, __underscoreEnumerableProp__: 5, __underscoreNonEnumerableProp: 2, abc: 3, getFoo: ƒ, …}
 
 Evaluating: 'console.log([objectWithNonEnumerables])'
+stdout> (1) [{…}]
 stdout> > (1) [{…}]
 
 Evaluating: 'console.log(negZero)'
 stdout> -0
 
 Evaluating: 'console.log([negZero])'
+stdout> (1) [-0]
 stdout> > (1) [-0]
 
 Evaluating: 'console.log(Object.create(null))'
+stdout> {}
 stdout> > {}
 
 Evaluating: 'console.log([Object.create(null)])'
+stdout> (1) [{…}]
 stdout> > (1) [{…}]
 
 Evaluating: 'console.log(Object)'
+stdout> ƒ Object()
 stdout> > ƒ Object()
 
 Evaluating: 'console.log([Object])'
+stdout> (1) [ƒ]
 stdout> > (1) [ƒ]
 
 Evaluating: 'console.log(Object.prototype)'
+stdout> {constructor: ƒ, __defineGetter__: ƒ, __defineSetter__: ƒ, hasOwnProperty: ƒ, __lookupGetter__: ƒ, …}
 stdout> > {constructor: ƒ, __defineGetter__: ƒ, __defineSetter__: ƒ, hasOwnProperty: ƒ, __lookupGetter__: ƒ, …}
 
 Evaluating: 'console.log([Object.prototype])'
+stdout> (1) [{…}]
 stdout> > (1) [{…}]
 
 Evaluating: 'console.log(new Number(42))'
+stdout> Number (42)
 stdout> > Number (42)
 
 Evaluating: 'console.log([new Number(42)])'
+stdout> (1) [Number]
 stdout> > (1) [Number]
 
 Evaluating: 'console.log(new String("abc"))'
+stdout> String ('abc')
 stdout> > String ('abc')
 
 Evaluating: 'console.log([new String("abc")])'
+stdout> (1) [String]
 stdout> > (1) [String]
 
 Evaluating: 'console.log(arrayLikeFunction)'
+stdout> ƒ ( /**/ foo/**/, /*/**/bar,
+          /**/baz) {}
 stdout>
 > ƒ ( /**/ foo/**/, /*/**/bar,
           /**/baz) {}
 
 Evaluating: 'console.log([arrayLikeFunction])'
+stdout> (1) [ƒ]
 stdout> > (1) [ƒ]
 
 Evaluating: 'console.log(new Uint16Array(["1", "2", "3"]))'
+stdout> Uint16Array(3) [1, 2, 3, buffer: ArrayBuffer(6), byteLength: 6, byteOffset: 0, length: 3, Symbol(Symbol.toStringTag): 'Uint16Array']
 stdout> > Uint16Array(3) [1, 2, 3, buffer: ArrayBuffer(6), byteLength: 6, byteOffset: 0, length: 3, Symbol(Symbol.toStringTag): 'Uint16Array']
 
 Evaluating: 'console.log([new Uint16Array(["1", "2", "3"])])'
+stdout> (1) [Uint16Array(3)]
 stdout> > (1) [Uint16Array(3)]
 
 Evaluating: 'console.log(tinyTypedArray)'
+stdout> Uint8Array(1) [3, buffer: ArrayBuffer(1), byteLength: 1, byteOffset: 0, length: 1, Symbol(Symbol.toStringTag): 'Uint8Array']
 stdout> > Uint8Array(1) [3, buffer: ArrayBuffer(1), byteLength: 1, byteOffset: 0, length: 1, Symbol(Symbol.toStringTag): 'Uint8Array']
 
 Evaluating: 'console.log([tinyTypedArray])'
+stdout> (1) [Uint8Array(1)]
 stdout> > (1) [Uint8Array(1)]
 
 Evaluating: 'console.log(smallTypedArray)'
+stdout> Uint8Array(400) [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, …]
 stdout> > Uint8Array(400) [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, …]
 
 Evaluating: 'console.log([smallTypedArray])'
+stdout> (1) [Uint8Array(400)]
 stdout> > (1) [Uint8Array(400)]
 
 Evaluating: 'console.log(bigTypedArray)'
+stdout> Uint8Array(400000000) [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, …]
 stdout> > Uint8Array(400000000) [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, …]
 
 Evaluating: 'console.log([bigTypedArray])'
+stdout> (1) [Uint8Array(400000000)]
 stdout> > (1) [Uint8Array(400000000)]
 
 Evaluating: 'console.log(throwingLengthGetter)'
+stdout> {length: <accessor>}
 stdout> > {length: <accessor>}
 
 Evaluating: 'console.log([throwingLengthGetter])'
+stdout> (1) [{…}]
 stdout> > (1) [{…}]
 
 Evaluating: 'console.log(domException())'
+stdout> DOMException: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node. {stack: <accessor>, code: 8, name: 'NotFoundError', message: 'Failed to execute 'removeChild' on 'Node': T…e to be removed is not a child of this node.'}
+
 stdout>
 > DOMException: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node. {stack: <accessor>, code: 8, name: 'NotFoundError', message: 'Failed to execute 'removeChild' on 'Node': T…e to be removed is not a child of this node.'}
 
 Evaluating: 'console.log([domException()])'
+stdout> (1) [DOMException: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of t…]
 stdout> > (1) [DOMException: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of t…]
 
 Evaluating: 'console.log(bigArray)'
+stdout> (200) [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, …]
 stdout> > (200) [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, …]
 
 Evaluating: 'console.log([bigArray])'
+stdout> (1) [Array(200)]
 stdout> > (1) [Array(200)]
 
 Evaluating: 'console.log(boxedNumberWithProps)'
+stdout> Number (42)
 stdout> > Number (42)
 
 Evaluating: 'console.log([boxedNumberWithProps])'
+stdout> (1) [Number]
 stdout> > (1) [Number]
 
 Evaluating: 'console.log(boxedStringWithProps)'
+stdout> String ('abc')
 stdout> > String ('abc')
 
 Evaluating: 'console.log([boxedStringWithProps])'
+stdout> (1) [String]
 stdout> > (1) [String]
 
 Evaluating: 'console.log(false)'
 stdout> false
 
 Evaluating: 'console.log([false])'
+stdout> (1) [false]
 stdout> > (1) [false]
 
 Evaluating: 'console.log(true)'
 stdout> true
 
 Evaluating: 'console.log([true])'
+stdout> (1) [true]
 stdout> > (1) [true]
 
 Evaluating: 'console.log(new Boolean(true))'
+stdout> Boolean (true)
 stdout> > Boolean (true)
 
 Evaluating: 'console.log([new Boolean(true)])'
+stdout> (1) [Boolean]
 stdout> > (1) [Boolean]
 
 Evaluating: 'console.log(new Set([1, 2, 3, 4]))'
+stdout> Set(4) {size: 4, 1, 2, 3, 4}
 stdout> > Set(4) {size: 4, 1, 2, 3, 4}
 
 Evaluating: 'console.log([new Set([1, 2, 3, 4])])'
+stdout> (1) [Set(4)]
 stdout> > (1) [Set(4)]
 
 Evaluating: 'console.log(new Set([1, 2, 3, 4, 5, 6, 7, 8]))'
+stdout> Set(8) {size: 8, 1, 2, 3, 4, 5, …}
 stdout> > Set(8) {size: 8, 1, 2, 3, 4, 5, …}
 
 Evaluating: 'console.log([new Set([1, 2, 3, 4, 5, 6, 7, 8])])'
+stdout> (1) [Set(8)]
 stdout> > (1) [Set(8)]
 
 Evaluating: 'console.log(new class { toString() { return "custom to string" } })'
+stdout> {}
 stdout> > custom to string
 
 Evaluating: 'console.log([new class { toString() { return "custom to string" } }])'
+stdout> (1) [{…}]
 stdout> > (1) [{…}]
 
 Evaluating: 'console.log(new class { toString() { return "long custom to string".repeat(500) } })'
+stdout> {}
 stdout> > long custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to stringlong custom to s…
 
 Evaluating: 'console.log([new class { toString() { return "long custom to string".repeat(500) } }])'
+stdout> (1) [{…}]
 stdout> > (1) [{…}]
 

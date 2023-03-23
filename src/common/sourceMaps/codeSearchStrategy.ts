@@ -4,12 +4,15 @@
 
 import { injectable } from 'inversify';
 import type * as vscodeType from 'vscode';
-import { FileGlobList } from '../fileGlobList';
+import { FileGlobList, IExplodedGlob } from '../fileGlobList';
 import { ILogger, LogTag } from '../logging';
-import { forceForwardSlashes } from '../pathUtils';
+import { truthy } from '../objUtils';
 import { NodeSearchStrategy } from './nodeSearchStrategy';
-import { ISourceMapMetadata } from './sourceMap';
-import { createMetadataForFile, ISearchStrategy } from './sourceMapRepository';
+import {
+  createMetadataForFile,
+  ISearchStrategy,
+  ISourcemapStreamOptions,
+} from './sourceMapRepository';
 
 /**
  * A source map repository that uses VS Code's proposed search API to
@@ -49,33 +52,39 @@ export class CodeSearchStrategy implements ISearchStrategy {
   /**
    * @inheritdoc
    */
-  public async streamChildrenWithSourcemaps<T>(
-    outFiles: FileGlobList,
-    onChild: (child: Required<ISourceMapMetadata>) => T | Promise<T>,
-  ): Promise<T[]> {
-    // Fallback for unhandled case: https://github.com/microsoft/vscode/issues/104889#issuecomment-993722692
-    if (outFiles.patterns.some(p => p.startsWith('..'))) {
-      return this.nodeStrategy.streamChildrenWithSourcemaps(outFiles, onChild);
-    }
+  public async streamChildrenWithSourcemaps<T, R>(opts: ISourcemapStreamOptions<T, R>) {
+    const todo: Promise<R | undefined>[] = [];
+    await Promise.all(
+      [...opts.files.explode()].map(glob => this._streamChildrenWithSourcemaps(opts, glob, todo)),
+    );
+    const done = await Promise.all(todo);
+    return { values: done.filter(truthy), state: undefined };
+  }
 
-    const todo: Promise<T | void>[] = [];
+  private async _streamChildrenWithSourcemaps<T, R>(
+    opts: ISourcemapStreamOptions<T, R>,
+    glob: IExplodedGlob,
+    todo: Promise<R | undefined>[],
+  ) {
     await this.vscode.workspace.findTextInFiles(
       { pattern: 'sourceMappingURL', isCaseSensitive: true },
       {
-        ...this.getTextSearchOptions(outFiles),
+        ...this.getTextSearchOptions(glob),
         previewOptions: { charsPerLine: Number.MAX_SAFE_INTEGER, matchLines: 1 },
       },
       result => {
         const text = 'text' in result ? result.text : result.preview.text;
         todo.push(
           createMetadataForFile(result.uri.fsPath, text)
-            .then(parsed => parsed && onChild(parsed))
-            .catch(error =>
+            .then(parsed => parsed && opts.processMap(parsed))
+            .then(processed => processed && opts.onProcessedMap(processed))
+            .catch(error => {
               this.logger.warn(LogTag.SourceMapParsing, 'Error parsing source map', {
                 error,
                 file: result.uri.fsPath,
-              }),
-            ),
+              });
+              return undefined;
+            }),
         );
       },
     );
@@ -83,20 +92,14 @@ export class CodeSearchStrategy implements ISearchStrategy {
     this.logger.info(LogTag.SourceMapParsing, `findTextInFiles search found ${todo.length} files`);
 
     // Type annotation is necessary for https://github.com/microsoft/TypeScript/issues/47144
-    const results: (T | void)[] = await Promise.all(todo);
-    return results.filter((t): t is T => t !== undefined);
+    const results: (R | void)[] = await Promise.all(todo);
+    return results.filter(truthy);
   }
 
-  private getTextSearchOptions(files: FileGlobList): vscodeType.FindTextInFilesOptions {
+  private getTextSearchOptions(glob: IExplodedGlob): vscodeType.FindTextInFilesOptions {
     return {
-      include: new this.vscode.RelativePattern(
-        files.rootPath,
-        forceForwardSlashes(files.patterns.filter(p => !p.startsWith('!')).join(', ')),
-      ),
-      exclude: files.patterns
-        .filter(p => p.startsWith('!'))
-        .map(p => forceForwardSlashes(p.slice(1)))
-        .join(','),
+      include: new this.vscode.RelativePattern(this.vscode.Uri.file(glob.cwd), glob.pattern),
+      exclude: glob.negations.join(','),
       useDefaultExcludes: false,
       useIgnoreFiles: false,
       useGlobalIgnoreFiles: false,

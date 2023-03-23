@@ -2,9 +2,9 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { generate } from 'astring';
 import { inject, injectable } from 'inversify';
-import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
 import { ICdpApi } from '../cdp/connection';
 import { flatten, isInstanceOf } from '../common/objUtils';
@@ -18,15 +18,13 @@ import { ProtocolError } from '../dap/protocolError';
 import * as objectPreview from './objectPreview';
 import { PreviewContextType } from './objectPreview/contexts';
 import { StackFrame, StackTrace } from './stackTrace';
-import { getSourceSuffix, RemoteException } from './templates';
+import { getSourceSuffix, RemoteException, RemoteObjectId } from './templates';
 import { getArrayProperties } from './templates/getArrayProperties';
 import { getArraySlots } from './templates/getArraySlots';
 import { getStringyProps, getToStringIfCustom } from './templates/getStringyProps';
 import { invokeGetter } from './templates/invokeGetter';
 import { readMemory } from './templates/readMemory';
 import { writeMemory } from './templates/writeMemory';
-
-const localize = nls.loadMessageBundle();
 
 const getVariableId = (() => {
   let last = 0;
@@ -114,12 +112,7 @@ const localizeIndescribable = (str: string) => {
     return str;
   }
 
-  return localize(
-    'error.customValueDescriptionGeneratorFailed',
-    "{0} (couldn't describe: {1})",
-    error,
-    key,
-  );
+  return l10n.t("{0} (couldn't describe: {1})", error, key);
 };
 
 /**
@@ -271,7 +264,10 @@ class VariableContext {
   /**
    * Creates Variables for each property on the RemoteObject.
    */
-  public async createObjectPropertyVars(object: Cdp.Runtime.RemoteObject): Promise<Variable[]> {
+  public async createObjectPropertyVars(
+    object: Cdp.Runtime.RemoteObject,
+    evaluationOptions?: Dap.EvaluationOptions,
+  ): Promise<Variable[]> {
     const properties: (Promise<Variable[]> | Variable[])[] = [];
 
     if (this.settings.customPropertiesGenerator) {
@@ -289,7 +285,7 @@ class VariableContext {
             ErrorVariable,
             { name: '', sortOrder: SortOrder.Error },
             result as Cdp.Runtime.RemoteObject,
-            result?.description || errorDescription || localize('error.unknown', 'Unknown error'),
+            result?.description || errorDescription || l10n.t('Unknown error'),
           ),
         ]);
       }
@@ -298,6 +294,12 @@ class VariableContext {
     if (!object.objectId) {
       return [];
     }
+
+    if (evaluationOptions)
+      this.cdp.DotnetDebugger.setEvaluationOptions({
+        options: evaluationOptions,
+        type: 'variable',
+      });
 
     const [accessorsProperties, ownProperties, stringyProps] = await Promise.all([
       this.cdp.Runtime.getProperties({
@@ -349,9 +351,6 @@ class VariableContext {
       if (property.symbol) propertySymbols.push(property);
       else propertiesMap.set(property.name, property);
     }
-    for (const property of ownProperties.privateProperties ?? []) {
-      propertiesMap.set(property.name, property);
-    }
 
     // Push own properties & accessors and symbols
     for (const propertiesCollection of [propertiesMap.values(), propertySymbols.values()]) {
@@ -366,6 +365,15 @@ class VariableContext {
           ),
         );
       }
+    }
+
+    for (const property of ownProperties.privateProperties ?? []) {
+      properties.push(
+        this.createPropertyVar(property, object, undefined, {
+          presentationHint: { visibility: 'private' },
+          sortOrder: SortOrder.Private,
+        }),
+      );
     }
 
     // Push internal properties
@@ -412,30 +420,34 @@ class VariableContext {
     p: AnyPropertyDescriptor,
     owner: Cdp.Runtime.RemoteObject,
     customStringRepr: string | undefined,
+    contextInit?: Partial<IContextInit>,
   ): Promise<Variable[]> {
     const result: Variable[] = [];
+    const hasGetter = p.get && p.get.type !== 'undefined';
+    const hasSetter = p.set && p.set.type !== 'undefined';
+
     const ctx: Required<IContextInit> = {
       name: p.name,
       presentationHint: {},
       sortOrder: SortOrder.Default,
+      ...contextInit,
     };
 
-    const hasGetter = p.get && p.get.type !== 'undefined';
-    const hasSetter = p.set && p.set.type !== 'undefined';
-
-    if (isPublicDescriptor(p)) {
-      // sort non-enumerable properties as private, except for getters, which
-      // are automatically non-enumerable but not (automatically) considered private (#1215)
-      if (p.enumerable === false && !hasGetter) {
-        ctx.presentationHint.visibility = 'internal';
+    if (!contextInit) {
+      if (isPublicDescriptor(p)) {
+        // sort non-enumerable properties as private, except for getters, which
+        // are automatically non-enumerable but not (automatically) considered private (#1215)
+        if (p.enumerable === false && !hasGetter) {
+          ctx.presentationHint.visibility = 'internal';
+          ctx.sortOrder = SortOrder.Private;
+        }
+        if (p.writable === false || (hasGetter && !hasSetter)) {
+          ctx.presentationHint.attributes = ['readOnly'];
+        }
+      } else {
+        ctx.presentationHint.visibility = 'private';
         ctx.sortOrder = SortOrder.Private;
       }
-      if (p.writable === false || (hasGetter && !hasSetter)) {
-        ctx.presentationHint.attributes = ['readOnly'];
-      }
-    } else {
-      ctx.presentationHint.visibility = 'private';
-      ctx.sortOrder = SortOrder.Private;
     }
 
     // If the value is simply present, add that
@@ -474,7 +486,7 @@ class VariableContext {
           return { errorDescription: customValueDescription.result.description };
         }
       }
-      return { errorDescription: localize('error.unknown', 'Unknown error') };
+      return { errorDescription: l10n.t('Unknown error') };
     } catch (e) {
       return { errorDescription: e.stack || e.message || String(e) };
     }
@@ -559,11 +571,7 @@ class Variable implements IVariable {
     });
 
     if (!result) {
-      throw new ProtocolError(
-        errors.createSilentError(
-          localize('error.setVariableDidFail', 'Unable to set variable value'),
-        ),
-      );
+      throw new ProtocolError(errors.createSilentError(l10n.t('Unable to set variable value')));
     }
 
     if (result.exceptionDetails) {
@@ -779,8 +787,8 @@ class ObjectVariable extends Variable implements IMemoryReadable {
     return result.value;
   }
 
-  public override getChildren(_params: Dap.VariablesParams) {
-    return this.context.createObjectPropertyVars(this.remoteObject);
+  public override getChildren(_params: Dap.VariablesParamsExtended) {
+    return this.context.createObjectPropertyVars(this.remoteObject, _params.evaluationOptions);
   }
 }
 
@@ -911,7 +919,9 @@ class GetterVariable extends AccessorVariable {
       const result = await invokeGetter({
         cdp: this.context.cdp,
         objectId: this.parentObject.objectId,
-        args: [this.context.name],
+        // object ID is always set for functions:
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        args: [new RemoteObjectId(this.remoteObject.objectId!)],
       });
 
       return [
@@ -969,9 +979,7 @@ class Scope implements IVariableContainer {
       callFrameId: this.ref.callFrameId,
     });
     if (!evaluated) {
-      throw new ProtocolError(
-        errors.createUserError(localize('error.invalidExpression', 'Invalid expression')),
-      );
+      throw new ProtocolError(errors.createUserError(l10n.t('Invalid expression')));
     }
     if (evaluated.exceptionDetails) {
       throw new ProtocolError(errorFromException(evaluated.exceptionDetails));
@@ -1058,9 +1066,9 @@ export class VariableStore {
   }
 
   /** Creates a variable not attached to any specific scope. */
-  public createFloatingVariable(value: Cdp.Runtime.RemoteObject): IVariable {
+  public createFloatingVariable(expression: string, value: Cdp.Runtime.RemoteObject): IVariable {
     const ctx = this.createFloatingContext();
-    return ctx.createVariableByType({ name: '' }, value);
+    return ctx.createVariableByType({ name: expression }, value);
   }
 
   /**
@@ -1189,18 +1197,14 @@ export class VariableStore {
     const container = this.vars.get(params.variablesReference);
 
     if (!params.value) {
-      throw new ProtocolError(
-        errors.createUserError(localize('error.emptyExpression', 'Cannot set an empty value')),
-      );
+      throw new ProtocolError(errors.createUserError(l10n.t('Cannot set an empty value')));
     }
 
     if (container instanceof Scope || container instanceof Variable) {
       const newVar = await container.setProperty(params.name, params.value);
       return await newVar.toDap(PreviewContextType.PropertyValue, params.format);
     } else {
-      throw new ProtocolError(
-        errors.createSilentError(localize('error.variableNotFound', 'Variable not found')),
-      );
+      throw new ProtocolError(errors.createSilentError(l10n.t('Variable not found')));
     }
   }
 

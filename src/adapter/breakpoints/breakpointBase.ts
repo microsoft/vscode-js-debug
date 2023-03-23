@@ -7,7 +7,14 @@ import { LogTag } from '../../common/logging';
 import { absolutePathToFileUrl, urlToRegex } from '../../common/urlUtils';
 import Dap from '../../dap/api';
 import { BreakpointManager } from '../breakpoints';
-import { base1To0, IUiLocation, Source, SourceFromMap, uiToRawOffset } from '../sources';
+import {
+  base1To0,
+  ISourceScript,
+  IUiLocation,
+  Source,
+  SourceFromMap,
+  uiToRawOffset,
+} from '../sources';
 import { Script, Thread } from '../threads';
 
 export type LineColumn = { lineNumber: number; columnNumber: number }; // 1-based
@@ -451,10 +458,9 @@ export abstract class Breakpoint {
   }
 
   private async _setByUiLocation(thread: Thread, uiLocation: IUiLocation): Promise<void> {
-    const promises: Promise<void>[] = [];
-    const scripts = thread.scriptsFromSource(uiLocation.source);
-    for (const script of scripts) promises.push(this._setByScriptId(thread, script, uiLocation));
-    await Promise.all(promises);
+    await Promise.all(
+      uiLocation.source.scripts.map(script => this._setByScriptId(thread, script, uiLocation)),
+    );
   }
 
   protected async _setByPath(thread: Thread, lineColumn: LineColumn): Promise<void> {
@@ -503,7 +509,7 @@ export abstract class Breakpoint {
    * requests to avoid triggering any logpoint breakpoints multiple times,
    * as would happen if we set a breakpoint both by script and URL.
    */
-  protected hasSetOnLocation(script: Partial<Script>, lineColumn: LineColumn) {
+  protected hasSetOnLocation(script: ISourceScript, lineColumn: LineColumn) {
     return this.cdpBreakpoints.find(
       bp =>
         (script.scriptId &&
@@ -566,7 +572,7 @@ export abstract class Breakpoint {
 
   private async _setByScriptId(
     thread: Thread,
-    script: Script,
+    script: ISourceScript,
     lineColumn: LineColumn,
   ): Promise<void> {
     lineColumn = base1To0(lineColumn);

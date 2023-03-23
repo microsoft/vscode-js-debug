@@ -12,18 +12,20 @@ import { ILogger, LogTag } from '../../common/logging';
 import { node15InternalsPrefix } from '../../common/node15Internal';
 import { memoizeLast, trailingEdgeThrottle, truthy } from '../../common/objUtils';
 import * as pathUtils from '../../common/pathUtils';
-import { getDeferred, IDeferred } from '../../common/promiseUtil';
+import { IDeferred, getDeferred } from '../../common/promiseUtil';
+import { ISourcePathResolver } from '../../common/sourcePathResolver';
 import { escapeRegexSpecialChars } from '../../common/stringUtils';
 import * as urlUtils from '../../common/urlUtils';
 import { AnyLaunchConfiguration } from '../../configuration';
 import Dap from '../../dap/api';
 import { ITarget } from '../../targets/targets';
 import {
+  ISourceScript,
   ISourceWithMap,
-  isSourceWithMap,
   Source,
   SourceContainer,
   SourceFromMap,
+  isSourceWithMap,
 } from '../sources';
 import { getSourceSuffix } from '../templates';
 import { simpleGlobsToRe } from './simpleGlobToRe';
@@ -48,12 +50,15 @@ function preprocessNodeInternals(userSkipPatterns: ReadonlyArray<string>): strin
   return nodeInternalPatterns.length > 0 ? nodeInternalPatterns : undefined;
 }
 
-function preprocessAuthoredGlobs(userSkipPatterns: ReadonlyArray<string>): string[] {
+function preprocessAuthoredGlobs(
+  spr: ISourcePathResolver,
+  userSkipPatterns: ReadonlyArray<string>,
+): string[] {
   const authoredGlobs = userSkipPatterns
     .filter(pattern => !pattern.includes('<node_internals>'))
     .map(pattern =>
       urlUtils.isAbsolute(pattern)
-        ? urlUtils.absolutePathToFileUrl(pattern)
+        ? urlUtils.absolutePathToFileUrlWithDetection(spr.rebaseLocalToRemote(pattern))
         : pathUtils.forceForwardSlashes(pattern),
     )
     .map(urlUtils.lowerCaseInsensitivePath);
@@ -105,6 +110,7 @@ export class ScriptSkipper {
 
   constructor(
     @inject(AnyLaunchConfiguration) { skipFiles }: AnyLaunchConfiguration,
+    @inject(ISourcePathResolver) sourcePathResolver: ISourcePathResolver,
     @inject(ILogger) private readonly logger: ILogger,
     @inject(ICdpApi) private readonly cdp: Cdp.Api,
     @inject(ITarget) target: ITarget,
@@ -115,7 +121,7 @@ export class ScriptSkipper {
       this._normalizeUrl(key),
     );
 
-    this._authoredGlobs = preprocessAuthoredGlobs(skipFiles);
+    this._authoredGlobs = preprocessAuthoredGlobs(sourcePathResolver, skipFiles);
     this._nodeInternalsGlobs = preprocessNodeInternals(skipFiles);
 
     this._initNodeInternals(target); // Purposely don't wait, no need to slow things down
@@ -195,12 +201,12 @@ export class ScriptSkipper {
       return true;
     }
 
-    return this._testSkipAuthored(this._normalizeUrl(url));
+    return this._testSkipAuthored(url);
   }
 
   private async _updateSourceWithSkippedSourceMappedSources(
     source: ISourceWithMap,
-    scriptIds: Cdp.Runtime.ScriptId[],
+    scripts: readonly ISourceScript[],
   ): Promise<void> {
     // Order "should" be correct
     const parentIsSkipped = this.isScriptSkipped(source.url);
@@ -233,14 +239,14 @@ export class ScriptSkipper {
       }
     });
 
-    let targets = scriptIds;
+    let targets = scripts;
     if (!skipRanges.length) {
-      targets = targets.filter(t => this._scriptsWithSkipping.has(t));
-      targets.forEach(t => this._scriptsWithSkipping.delete(t));
+      targets = targets.filter(t => this._scriptsWithSkipping.has(t.scriptId));
+      targets.forEach(t => this._scriptsWithSkipping.delete(t.scriptId));
     }
 
     await Promise.all(
-      targets.map(scriptId =>
+      targets.map(({ scriptId }) =>
         this.cdp.Debugger.setBlackboxedRanges({ scriptId, positions: skipRanges }),
       ),
     );
@@ -250,7 +256,7 @@ export class ScriptSkipper {
     this._initializeSkippingValueForSource(source);
   }
 
-  private _initializeSkippingValueForSource(source: Source, scriptIds = source.scriptIds()) {
+  private _initializeSkippingValueForSource(source: Source, scripts = source.scripts) {
     const url = source.url;
     let skipped = this.isScriptSkipped(url);
 
@@ -276,10 +282,10 @@ export class ScriptSkipper {
       }
 
       for (const nestedSource of source.sourceMap.sourceByUrl.values()) {
-        this._initializeSkippingValueForSource(nestedSource, scriptIds);
+        this._initializeSkippingValueForSource(nestedSource, scripts);
       }
 
-      this._updateSourceWithSkippedSourceMappedSources(source, scriptIds);
+      this._updateSourceWithSkippedSourceMappedSources(source, scripts);
     }
   }
 
@@ -328,10 +334,7 @@ export class ScriptSkipper {
       const compiledSources = Array.from(source.compiledToSourceUrl.keys());
       await Promise.all(
         compiledSources.map(compiledSource =>
-          this._updateSourceWithSkippedSourceMappedSources(
-            compiledSource,
-            compiledSource.scriptIds(),
-          ),
+          this._updateSourceWithSkippedSourceMappedSources(compiledSource, compiledSource.scripts),
         ),
       );
     } else {

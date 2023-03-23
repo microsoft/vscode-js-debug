@@ -4,13 +4,55 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
+Nothing (yet)
+
+## v1.77 (March 2023)
+
+### v1.77.0 - 2023-03-21
+
+- fix: repl stacktrace with renames showing too much info ([#1259](https://github.com/microsoft/vscode-js-debug/issues/1259#issuecomment-1409443564))
+- fix: recursive source map resolution parsing ignored locations ([vscode#169733](https://github.com/microsoft/vscode/issues/169733))
+- fix: evaluateName in watch variables not being set correctly ([vscode#175758](https://github.com/microsoft/vscode/issues/175758))
+- fix: unbound breakpoints in sourcemaps on Chrome 112 ([#1567](https://github.com/microsoft/vscode-js-debug/issues/1567))
+- fix: assorted bad source behaviors when reloading a page ([#1582](https://github.com/microsoft/vscode-js-debug/issues/1582))
+- fix: step over eval/new Function with sourcemaps not working ([#1556](https://github.com/microsoft/vscode-js-debug/issues/1556))
+- fix: 'break on caught exceptions' pausing on worker threads ([#1591](https://github.com/microsoft/vscode-js-debug/issues/1591))
+- chore: remove webpack, adopt esbuild
+
+## v1.76 (February 2023)
+
+### v1.76.0 - 2023-02-22
+
+- fix: typeerror for users of vsDebugServer.bundle.js ([#1502](https://github.com/microsoft/vscode-js-debug/issues/1502))
+- fix: don't fail on dynamic config provisioning if no package.json's exist ([vscode#172522](https://github.com/microsoft/vscode/issues/172522))
+- fix: expansion of non-primitive getters not working ([#1525](https://github.com/microsoft/vscode-js-debug/issues/1525))
+- fix: support rich ANSI output for complex logs ([vscode#172868](https://github.com/microsoft/vscode/issues/172868))
+- fix: source map resolution in parent workspace folder paths not working ([#1554 comment](https://github.com/microsoft/vscode-js-debug/issues/1554#issuecomment-1420520834))
+- fix: revert support for renamed property accessors ([#1561](https://github.com/microsoft/vscode-js-debug/issues/1561))
+- fix: resolveSourceMapLocations not being auto-filled for ext host debug ([#1554 comment](https://github.com/microsoft/vscode-js-debug/issues/1554#issuecomment-1420520834))
+
+## v1.75 (January 2023)
+
+### v1.75.0 - 2023-01-23
+
+- fix: js files with sourceURLs opening readonly versions ([#1476](https://github.com/microsoft/vscode-js-debug/issues/1476))
 - fix: breakpoints not setting in paths with special glob characters ([vscode#166400](https://github.com/microsoft/vscode/issues/166400))
+- fix: better handling of multiple glob patterns and negations ([#1479](https://github.com/microsoft/vscode-js-debug/issues/1479))
 - fix: skipFiles making catastrophic regexes ([#1469](https://github.com/microsoft/vscode-js-debug/issues/1469))
+- fix: private properties in Blazor apps not grouping correctly ([#1331](https://github.com/microsoft/vscode-js-debug/issues/1331))
 - fix: perScriptSourcemaps not reliably breaking ([vscode#166369](https://github.com/microsoft/vscode/issues/166369))
 - fix: custom object `toString()` previews being too short ([vscode#155142](https://github.com/microsoft/vscode/issues/155142))
 - fix: show warning if console output length is hit ([vscode#154479](https://github.com/microsoft/vscode/issues/154479))
 - fix: improve variable and repl performance in large projects ([#1433](https://github.com/microsoft/vscode-js-debug/issues/1433))
 - fix: add ipv4->6 fallback ([vscode#167353](https://github.com/microsoft/vscode/issues/167353))
+- fix: js-debug in the browser showing extraneous error ([#1440](https://github.com/microsoft/vscode-js-debug/issues/1440))
+- fix: sourcemap renames not resolving property accessors ([#1383](https://github.com/microsoft/vscode-js-debug/issues/1383))
+- fix: breakpoint in blazor files set in JS not applying ([#1488](https://github.com/microsoft/vscode-js-debug/issues/1488))
+- fix: reduce number of ports used by debugger ([vscode#169182](https://github.com/microsoft/vscode/issues/169182))
+- fix: support launching chrome dev/beta as default fallbacks ([#1489](https://github.com/microsoft/vscode-js-debug/issues/1489))
+- fix: show memory refrence button for top-level watch expressions ([vscode#164124](https://github.com/microsoft/vscode/issues/164124))
+- fix: don't hardcode generated source types as javascript ([vscode#168013](https://github.com/microsoft/vscode/issues/168013))
+- refactor: improve breakpoint scanning speed 2-3x ([#1498](https://github.com/microsoft/vscode-js-debug/issues/1498))
 
 ## v1.74 (November 2022)
 

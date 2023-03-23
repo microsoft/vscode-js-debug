@@ -3,26 +3,30 @@
  *--------------------------------------------------------*/
 
 require('source-map-support').install(); // Enable TypeScript stack traces translation
-import 'reflect-metadata';
-
+import * as l10n from '@vscode/l10n';
+import * as fs from 'fs';
 /**
  * This script launches the pwa adapter in "flat session" mode for DAP, which means
  * that all DAP traffic will be routed through a single connection (either tcp socket or stdin/out)
  * and use the sessionId field on each message to route it to the correct child session
  */
 import * as net from 'net';
-import * as fs from 'fs';
-import * as path from 'path';
 import * as os from 'os';
-import { createGlobalContainer } from './ioc';
-import { IDebugSessionLike, SessionManager, ISessionLauncher } from './sessionManager';
-import { getDeferred } from './common/promiseUtil';
-import DapConnection from './dap/connection';
-import { IDapTransport, StreamDapTransport, SessionIdDapTransport } from './dap/transport';
+import * as path from 'path';
+import 'reflect-metadata';
 import { Readable, Writable } from 'stream';
-import { IPseudoAttachConfiguration } from './configuration';
 import { DebugConfiguration } from 'vscode';
 import { DebugType } from './common/contributionUtils';
+import { getDeferred } from './common/promiseUtil';
+import { IPseudoAttachConfiguration } from './configuration';
+import DapConnection from './dap/connection';
+import { IDapTransport, SessionIdDapTransport, StreamDapTransport } from './dap/transport';
+import { createGlobalContainer } from './ioc';
+import { IDebugSessionLike, ISessionLauncher, SessionManager } from './sessionManager';
+
+if (process.env.L10N_FSPATH_TO_BUNDLE) {
+  l10n.config({ fsPath: process.env.L10N_FSPATH_TO_BUNDLE });
+}
 
 const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-js-debug-'));
 

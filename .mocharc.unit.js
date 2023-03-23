@@ -1,5 +1,5 @@
 module.exports = {
-  require: ['source-map-support/register', './out/src/test/testHooks'],
-  spec: 'out/src/**/*.test.js',
-  ignore: ['out/src/test/**/*.js'],
+  require: ['source-map-support/register', './src/test/testHooks.ts'],
+  spec: 'src/**/*.test.ts',
+  ignore: ['src/test/**/*.ts'],
 };

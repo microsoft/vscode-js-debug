@@ -2,19 +2,23 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { promises as fs } from 'fs';
 import { inject, injectable } from 'inversify';
 import * as path from 'path';
 import { Event } from 'vscode';
-import { IDisposable } from '../common/disposable';
 import { EventEmitter } from '../common/events';
 import { OutFiles } from '../common/fileGlobList';
 import { ILogger, LogTag } from '../common/logging';
-import { CorrelatedCache } from '../common/sourceMaps/mtimeCorrelatedCache';
-import { ISourceMapMetadata, SourceMap } from '../common/sourceMaps/sourceMap';
-import { CachingSourceMapFactory, ISourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
-import { ISearchStrategy } from '../common/sourceMaps/sourceMapRepository';
+import { fixDriveLetterAndSlashes, forceForwardSlashes } from '../common/pathUtils';
+import { ISourceMapMetadata } from '../common/sourceMaps/sourceMap';
+import { ISourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
+import {
+  ISearchStrategy,
+  ISearchStrategyFallback,
+  ISourcemapStreamOptions,
+} from '../common/sourceMaps/sourceMapRepository';
 import { ISourcePathResolver } from '../common/sourcePathResolver';
-import { getOptimalCompiledPosition } from '../common/sourceUtils';
+import { getOptimalCompiledPosition, parseSourceMappingUrl } from '../common/sourceUtils';
 import * as urlUtils from '../common/urlUtils';
 import { AnyLaunchConfiguration } from '../configuration';
 import Dap from '../dap/api';
@@ -26,10 +30,214 @@ export interface IWorkspaceLocation {
   columnNumber: number; // 1-based
 }
 
-type DiscoveredMetadata = ISourceMapMetadata & { sourceUrl: string; resolvedPath: string };
+// Symbol we we use to keep the inline source map URL in DisoveredMetadata that
+// we create in _this_ session. We have it as a symbol since we don't want to
+// serialize it.
+const InlineSourceMapUrl = Symbol('InlineSourceMapUrl');
+
+type DiscoveredMetadata = Omit<ISourceMapMetadata, 'sourceMapUrl'> & {
+  sourceMapUrl: { [InlineSourceMapUrl]: string } | string;
+  sourceUrl: string;
+  resolvedPath: string;
+};
 type MetadataMap = Map<string, Set<DiscoveredMetadata>>;
 
 const longPredictionWarning = 10 * 1000;
+
+@injectable()
+export class BreakpointPredictorCachedState<T> {
+  private value: T | undefined;
+  private readonly path?: string;
+
+  constructor(@inject(AnyLaunchConfiguration) launchConfig: AnyLaunchConfiguration) {
+    if (launchConfig.__workspaceCachePath) {
+      this.path = path.join(launchConfig.__workspaceCachePath, 'bp-predict.json');
+    }
+  }
+
+  public async load(): Promise<T | undefined> {
+    if (this.value || !this.path) {
+      return this.value;
+    }
+
+    try {
+      this.value = JSON.parse(await fs.readFile(this.path, 'utf-8'));
+    } catch {
+      // ignored
+    }
+
+    return this.value;
+  }
+
+  public async store(value: T) {
+    this.value = value;
+    if (this.path) {
+      await fs.mkdir(path.dirname(this.path), { recursive: true });
+      await fs.writeFile(this.path, JSON.stringify(value));
+    }
+  }
+}
+
+@injectable()
+export abstract class BreakpointSearch {
+  private readonly repo: ISearchStrategy;
+
+  constructor(
+    @inject(AnyLaunchConfiguration) config: AnyLaunchConfiguration,
+    @inject(OutFiles) private readonly outFiles: OutFiles,
+    @inject(ISearchStrategy) repo: ISearchStrategy,
+    @inject(ISearchStrategyFallback) fallbackRepo: ISearchStrategy,
+    @inject(ILogger) protected readonly logger: ILogger,
+    @inject(ISourceMapFactory) private readonly sourceMapFactory: ISourceMapFactory,
+    @inject(ISourcePathResolver)
+    private readonly sourcePathResolver: ISourcePathResolver | undefined,
+    @inject(BreakpointPredictorCachedState)
+    private readonly state: BreakpointPredictorCachedState<unknown>,
+  ) {
+    this.repo =
+      'enableTurboSourcemaps' in config && config.enableTurboSourcemaps === false
+        ? fallbackRepo
+        : repo;
+  }
+
+  public abstract getMetadataForPaths(
+    sourcePaths: readonly string[],
+  ): Promise<(Set<DiscoveredMetadata> | undefined)[]>;
+
+  protected async createMapping(
+    opts?: Partial<
+      ISourcemapStreamOptions<{ discovered: DiscoveredMetadata[]; compiledPath: string }, void>
+    >,
+  ): Promise<MetadataMap> {
+    if (this.outFiles.empty) {
+      return new Map();
+    }
+
+    const sourcePathToCompiled: MetadataMap = urlUtils.caseNormalizedMap();
+    const cachedState = await this.state.load();
+
+    try {
+      const { state } = await this.repo.streamChildrenWithSourcemaps<
+        { discovered: DiscoveredMetadata[]; compiledPath: string },
+        void
+      >({
+        files: this.outFiles,
+        processMap: async metadata => {
+          const discovered: DiscoveredMetadata[] = [];
+          const map = await this.sourceMapFactory.load(metadata);
+          for (const url of map.sources) {
+            const resolvedPath = this.sourcePathResolver
+              ? await this.sourcePathResolver.urlToAbsolutePath({ url, map })
+              : urlUtils.fileUrlToAbsolutePath(url);
+
+            if (!resolvedPath) {
+              continue;
+            }
+
+            discovered.push({
+              ...metadata,
+              sourceMapUrl: urlUtils.isDataUri(metadata.sourceMapUrl)
+                ? { [InlineSourceMapUrl]: metadata.sourceMapUrl }
+                : metadata.sourceMapUrl,
+              resolvedPath,
+              sourceUrl: url,
+            });
+          }
+
+          return { discovered, compiledPath: fixDriveLetterAndSlashes(metadata.compiledPath) };
+        },
+        onProcessedMap: ({ discovered }) => {
+          for (const discovery of discovered) {
+            let set = sourcePathToCompiled.get(discovery.resolvedPath);
+            if (!set) {
+              set = new Set();
+              sourcePathToCompiled.set(discovery.resolvedPath, set);
+            }
+
+            set.add(discovery);
+          }
+        },
+        lastState: cachedState,
+        ...opts,
+      });
+
+      // don't await, we can return early
+      if (state) {
+        this.state
+          .store(state)
+          .catch(e =>
+            this.logger.warn(LogTag.RuntimeException, 'Error saving sourcemap cache', { error: e }),
+          );
+      }
+    } catch (error) {
+      this.logger.warn(LogTag.RuntimeException, 'Error reading sourcemaps from disk', { error });
+    }
+
+    return sourcePathToCompiled;
+  }
+}
+
+@injectable()
+export class GlobalBreakpointSearch extends BreakpointSearch {
+  private sourcePathToCompiled?: Promise<MetadataMap>;
+
+  /**
+   * @inheritdoc
+   */
+  public override async getMetadataForPaths(sourcePaths: readonly string[]) {
+    if (!this.sourcePathToCompiled) {
+      this.sourcePathToCompiled = this.createInitialMapping();
+    }
+
+    const sourcePathToCompiled = await this.sourcePathToCompiled;
+    return sourcePaths.map(p => sourcePathToCompiled.get(p));
+  }
+
+  private async createInitialMapping(): Promise<MetadataMap> {
+    return logPerf(this.logger, `BreakpointsPredictor.createInitialMapping`, () =>
+      this.createMapping(),
+    );
+  }
+}
+
+/**
+ * Breakpoint search that only
+ */
+@injectable()
+export class TargetedBreakpointSearch extends BreakpointSearch {
+  private readonly sourcePathToCompiled = new Map<string, Promise<MetadataMap>>();
+
+  /**
+   * @inheritdoc
+   */
+  public override async getMetadataForPaths(sourcePaths: readonly string[]) {
+    const existing = sourcePaths.map(sp => this.sourcePathToCompiled.get(sp));
+    const toFind = sourcePaths.map((_, i) => i).filter(i => !existing[i]);
+
+    // if some paths have not been found yet, do one operation to find all of them
+    if (toFind.length) {
+      const spSet = new Set(toFind.map(i => forceForwardSlashes(sourcePaths[i])));
+      const entry = this.createMapping({
+        filter: (_, meta) =>
+          !meta || meta.discovered.some(d => spSet.has(forceForwardSlashes(d.resolvedPath))),
+      });
+      for (const i of toFind) {
+        this.sourcePathToCompiled.set(sourcePaths[i], entry);
+        existing[i] = entry;
+      }
+    }
+
+    const r = await Promise.all(
+      existing.map(async (entry, i) => {
+        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+        const map: MetadataMap = await entry!;
+        return map.get(sourcePaths[i]);
+      }),
+    );
+
+    return r;
+  }
+}
 
 export const IBreakpointsPredictor = Symbol('IBreakpointsPredictor');
 
@@ -49,11 +257,6 @@ export interface IBreakpointsPredictor {
   getPredictionForSource(sourceFile: string): Promise<ReadonlySet<DiscoveredMetadata> | undefined>;
 
   /**
-   * Returns a promise that resolves once maps in the root are predicted.
-   */
-  prepareToPredict(): Promise<void>;
-
-  /**
    * Returns a promise that resolves when breakpoints for the given location
    * are predicted.
    */
@@ -65,103 +268,17 @@ export interface IBreakpointsPredictor {
   predictedResolvedLocations(location: IWorkspaceLocation): IWorkspaceLocation[];
 }
 
-/**
- * Wrapper around a breakpoint predictor which allows its implementation to
- * be replaced. This is used to implement a heuristic used when dealing with
- * hot-reloading tools like Nodemon or Nest.js development: when a child
- * session terminates, the next child of the parent session will
- * rerun prediction.
- */
-export class BreakpointPredictorDelegate implements IBreakpointsPredictor, IDisposable {
-  private childImplementation: IBreakpointsPredictor;
-
-  /**
-   * @inheritdoc
-   */
-  public get onLongParse() {
-    return this.implementation.onLongParse;
-  }
-
-  constructor(
-    private readonly sourceMapFactory: ISourceMapFactory,
-    private readonly factory: () => IBreakpointsPredictor,
-    private implementation = factory(),
-    private readonly parent?: BreakpointPredictorDelegate,
-  ) {
-    if (implementation instanceof BreakpointPredictorDelegate) {
-      this.implementation = implementation.implementation;
-    }
-
-    this.childImplementation = this.implementation;
-  }
-
-  /**
-   * Invalidates the internal predictor, such that the next child will get
-   * a new instance of the breakpoint predictor. This is used to deal with
-   * hot-reloading scripts like Nodemon.
-   */
-  private invalidateNextChild() {
-    if (this.sourceMapFactory instanceof CachingSourceMapFactory) {
-      this.sourceMapFactory.invalidateCache();
-    }
-
-    this.childImplementation = this.factory();
-  }
-
-  /**
-   * Gets a breakpoint predictor for the child.
-   */
-  getChild() {
-    return new BreakpointPredictorDelegate(
-      this.sourceMapFactory,
-      this.factory,
-      this.childImplementation,
-      this,
-    );
-  }
-
-  /**
-   * @inheritdoc
-   */
-  getPredictionForSource(sourceFile: string) {
-    return this.implementation.getPredictionForSource(sourceFile);
-  }
-
-  /**
-   * @inheritdoc
-   */
-  prepareToPredict() {
-    return this.implementation.prepareToPredict();
-  }
-
-  /**
-   * @inheritdoc
-   */
-  predictBreakpoints(params: Dap.SetBreakpointsParams) {
-    return this.implementation.predictBreakpoints(params);
-  }
-
-  /**
-   * @inheritdoc
-   */
-  predictedResolvedLocations(location: IWorkspaceLocation) {
-    return this.implementation.predictedResolvedLocations(location);
-  }
-
-  /**
-   * @inheritdoc
-   */
-  dispose() {
-    this.parent?.invalidateNextChild();
-  }
-}
-
 @injectable()
 export class BreakpointsPredictor implements IBreakpointsPredictor {
   private readonly predictedLocations = new Map<string, IWorkspaceLocation[]>();
   private readonly longParseEmitter = new EventEmitter<void>();
-  private sourcePathToCompiled?: Promise<MetadataMap>;
-  private cache?: CorrelatedCache<number, { sourceUrl: string; resolvedPath: string }[]>;
+
+  /**
+   * If set, when asked for breakpoints for a path, the breakpoint predictor
+   * will not re-scan all files, but only look at new files or files where
+   * it's known a given source correlated to.
+   */
+  public targetedMode = false;
 
   /**
    * Event that fires if it takes a long time to predict sourcemaps.
@@ -169,130 +286,11 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
   public readonly onLongParse = this.longParseEmitter.event;
 
   constructor(
-    @inject(AnyLaunchConfiguration) launchConfig: AnyLaunchConfiguration,
+    @inject(BreakpointSearch) private readonly bpSearch: BreakpointSearch,
     @inject(OutFiles) private readonly outFiles: OutFiles,
-    @inject(ISearchStrategy) private readonly repo: ISearchStrategy,
     @inject(ILogger) private readonly logger: ILogger,
     @inject(ISourceMapFactory) private readonly sourceMapFactory: ISourceMapFactory,
-    @inject(ISourcePathResolver)
-    private readonly sourcePathResolver: ISourcePathResolver | undefined,
-  ) {
-    if (launchConfig.__workspaceCachePath) {
-      this.cache = new CorrelatedCache(
-        path.join(launchConfig.__workspaceCachePath, 'bp-predict.json'),
-      );
-    }
-  }
-
-  private async createInitialMapping(): Promise<MetadataMap> {
-    return logPerf(this.logger, `BreakpointsPredictor.createInitialMapping`, () =>
-      this.createInitialMappingInner(),
-    );
-  }
-
-  private async createInitialMappingInner(): Promise<MetadataMap> {
-    if (this.outFiles.empty) {
-      return new Map();
-    }
-
-    const sourcePathToCompiled: MetadataMap = urlUtils.caseNormalizedMap();
-    const addDiscovery = (discovery: DiscoveredMetadata) => {
-      let set = sourcePathToCompiled.get(discovery.resolvedPath);
-      if (!set) {
-        set = new Set();
-        sourcePathToCompiled.set(discovery.resolvedPath, set);
-      }
-
-      set.add(discovery);
-    };
-
-    const warnLongRuntime = setTimeout(() => {
-      this.longParseEmitter.fire();
-      this.logger.warn(LogTag.RuntimeSourceMap, 'Long breakpoint predictor runtime', {
-        type: this.repo.constructor.name,
-        longPredictionWarning,
-        patterns: this.outFiles.patterns,
-      });
-    }, longPredictionWarning);
-
-    // Maps of source names to the latest metadata we got for them. This is
-    // used to get around an issue with the CodeSearchStrategy, which discovers
-    // _all_ sourcemap declarations for a given file, even though we only want
-    // to follow the last one. (Webpack re-bundling compiled code can result in
-    // multiple sourcemap comments per file, for example.)
-    const latestForCompiled = new Map<string, { i: number; discovered: DiscoveredMetadata[] }>();
-    let counter = 0;
-
-    try {
-      await this.repo.streamChildrenWithSourcemaps(this.outFiles, async metadata => {
-        const i = counter++;
-        const discovered: DiscoveredMetadata[] = [];
-        const nowInvalid = latestForCompiled.get(metadata.compiledPath);
-        if (nowInvalid) {
-          for (const discovery of nowInvalid.discovered) {
-            sourcePathToCompiled.get(discovery.resolvedPath)?.delete(discovery);
-          }
-        }
-        latestForCompiled.set(metadata.compiledPath, { i, discovered });
-
-        const cached = await this.cache?.lookup(metadata.compiledPath, metadata.cacheKey);
-        if (cached) {
-          discovered.push(...cached.map(c => ({ ...c, ...metadata })));
-        } else {
-          let map: SourceMap;
-          try {
-            map = await this.sourceMapFactory.load(metadata);
-          } catch {
-            return;
-          }
-
-          for (const url of map.sources) {
-            const resolvedPath = this.sourcePathResolver
-              ? await this.sourcePathResolver.urlToAbsolutePath({ url, map })
-              : urlUtils.fileUrlToAbsolutePath(url);
-
-            if (!resolvedPath) {
-              continue;
-            }
-
-            discovered.push({ ...metadata, resolvedPath, sourceUrl: url });
-          }
-        }
-
-        // Double check that this is still the latest sourcemap we got for this
-        // file before finalizing the discoveries.
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        if (latestForCompiled.get(metadata.compiledPath)!.i !== i) {
-          return;
-        }
-
-        discovered.forEach(addDiscovery);
-
-        this.cache?.store(
-          metadata.compiledPath,
-          metadata.cacheKey,
-          discovered.map(d => ({ resolvedPath: d.resolvedPath, sourceUrl: d.sourceUrl })),
-        );
-      });
-    } catch (error) {
-      this.logger.warn(LogTag.RuntimeException, 'Error reading sourcemaps from disk', { error });
-    }
-
-    clearTimeout(warnLongRuntime);
-    return sourcePathToCompiled;
-  }
-
-  /**
-   * @inheritdoc
-   */
-  public async prepareToPredict(): Promise<void> {
-    if (!this.sourcePathToCompiled) {
-      this.sourcePathToCompiled = this.createInitialMapping();
-    }
-
-    await this.sourcePathToCompiled;
-  }
-
+  ) {}
   /**
    * Returns a promise that resolves when breakpoints for the given location
    * are predicted.
@@ -302,12 +300,7 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
       return;
     }
 
-    if (!this.sourcePathToCompiled) {
-      this.sourcePathToCompiled = this.createInitialMapping();
-    }
-
-    const sourcePathToCompiled = await this.sourcePathToCompiled;
-    const topLevel = sourcePathToCompiled.get(params.source.path);
+    const topLevel = await this.getMetadataForPaths([params.source.path]).then(m => m[0]);
     if (!topLevel) {
       return;
     }
@@ -317,7 +310,18 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
       col: number,
       metadata: DiscoveredMetadata,
     ): Promise<IWorkspaceLocation[]> => {
-      const map = await this.sourceMapFactory.load(metadata);
+      const sourceMapUrl =
+        typeof metadata.sourceMapUrl === 'string'
+          ? metadata.sourceMapUrl
+          : metadata.sourceMapUrl.hasOwnProperty(InlineSourceMapUrl)
+          ? metadata.sourceMapUrl[InlineSourceMapUrl]
+          : await fs.readFile(metadata.compiledPath, 'utf8').then(parseSourceMappingUrl);
+
+      if (!sourceMapUrl) {
+        return [];
+      }
+
+      const map = await this.sourceMapFactory.load({ ...metadata, sourceMapUrl });
       const entry = this.sourceMapFactory.guardSourceMapFn(
         map,
         () =>
@@ -336,7 +340,7 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
         return [];
       }
 
-      const nested = sourcePathToCompiled.get(metadata.compiledPath);
+      const nested = await this.getMetadataForPaths([metadata.compiledPath]).then(m => m[0]);
       if (nested) {
         const n = await Promise.all(
           // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -373,12 +377,23 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
    * @inheritdoc
    */
   public async getPredictionForSource(sourcePath: string) {
-    if (!this.sourcePathToCompiled) {
-      this.sourcePathToCompiled = this.createInitialMapping();
-    }
+    return this.getMetadataForPaths([sourcePath]).then(m => m[0]);
+  }
 
-    const sourcePathToCompiled = await this.sourcePathToCompiled;
-    return sourcePathToCompiled.get(sourcePath);
+  private async getMetadataForPaths(sourcePaths: readonly string[]) {
+    const warnLongRuntime = setTimeout(() => {
+      this.longParseEmitter.fire();
+      this.logger.warn(LogTag.RuntimeSourceMap, 'Long breakpoint predictor runtime', {
+        longPredictionWarning,
+        patterns: [...this.outFiles.explode()].join(', '),
+      });
+    }, longPredictionWarning);
+
+    const result = await this.bpSearch.getMetadataForPaths(sourcePaths);
+
+    clearTimeout(warnLongRuntime);
+
+    return result;
   }
 
   /**

@@ -35,6 +35,7 @@ export namespace Cdp {
     CSS: CSSApi;
     Database: DatabaseApi;
     Debugger: DebuggerApi;
+    DeviceAccess: DeviceAccessApi;
     DeviceOrientation: DeviceOrientationApi;
     DOM: DOMApi;
     DOMDebugger: DOMDebuggerApi;
@@ -43,6 +44,7 @@ export namespace Cdp {
     DotnetDebugger: DotnetDebuggerApi;
     Emulation: EmulationApi;
     EventBreakpoints: EventBreakpointsApi;
+    FedCm: FedCmApi;
     Fetch: FetchApi;
     HeadlessExperimental: HeadlessExperimentalApi;
     HeapProfiler: HeapProfilerApi;
@@ -63,6 +65,7 @@ export namespace Cdp {
     Page: PageApi;
     Performance: PerformanceApi;
     PerformanceTimeline: PerformanceTimelineApi;
+    Preload: PreloadApi;
     Profiler: ProfilerApi;
     Runtime: RuntimeApi;
     Schema: SchemaApi;
@@ -203,7 +206,7 @@ export namespace Cdp {
       objectId?: Runtime.RemoteObjectId;
 
       /**
-       * Whether to fetch this nodes ancestors, siblings and children. Defaults to true.
+       * Whether to fetch this node's ancestors, siblings and children. Defaults to true.
        */
       fetchRelatives?: boolean;
     }
@@ -1535,7 +1538,6 @@ export namespace Cdp {
 
     export type AttributionReportingIssueType =
       | 'PermissionPolicyDisabled'
-      | 'PermissionPolicyNotDelegated'
       | 'UntrustworthyReportingOrigin'
       | 'InsecureContext'
       | 'InvalidHeader'
@@ -1544,7 +1546,12 @@ export namespace Cdp {
       | 'TooManyConcurrentRequests'
       | 'SourceAndTriggerHeaders'
       | 'SourceIgnored'
-      | 'TriggerIgnored';
+      | 'TriggerIgnored'
+      | 'OsSourceIgnored'
+      | 'OsTriggerIgnored'
+      | 'InvalidRegisterOsSourceHeader'
+      | 'InvalidRegisterOsTriggerHeader'
+      | 'WebAndOsHeaders';
 
     /**
      * Details for issues around "Attribution Reporting API" usage.
@@ -1586,7 +1593,18 @@ export namespace Cdp {
       location?: SourceCodeLocation;
     }
 
-    export type GenericIssueErrorType = 'CrossOriginPortalPostMessageError';
+    export type GenericIssueErrorType =
+      | 'CrossOriginPortalPostMessageError'
+      | 'FormLabelForNameError'
+      | 'FormDuplicateIdForInputError'
+      | 'FormInputWithNoLabelError'
+      | 'FormAutocompleteAttributeEmptyError'
+      | 'FormEmptyIdAndNameAttributesForInputError'
+      | 'FormAriaLabelledByToNonExistingId'
+      | 'FormInputAssignedAutocompleteValueToIdOrNameAttributeError'
+      | 'FormLabelHasNeitherForNorNestedInput'
+      | 'FormLabelForMatchesNonExistingIdError'
+      | 'FormInputHasWrongButWellIntendedAutocompleteValueError';
 
     /**
      * Depending on the concrete errorType, different properties are set.
@@ -1598,64 +1616,9 @@ export namespace Cdp {
       errorType: GenericIssueErrorType;
 
       frameId?: Page.FrameId;
-    }
 
-    export type DeprecationIssueType =
-      | 'AuthorizationCoveredByWildcard'
-      | 'CanRequestURLHTTPContainingNewline'
-      | 'ChromeLoadTimesConnectionInfo'
-      | 'ChromeLoadTimesFirstPaintAfterLoadTime'
-      | 'ChromeLoadTimesWasAlternateProtocolAvailable'
-      | 'CookieWithTruncatingChar'
-      | 'CrossOriginAccessBasedOnDocumentDomain'
-      | 'CrossOriginWindowAlert'
-      | 'CrossOriginWindowConfirm'
-      | 'CSSSelectorInternalMediaControlsOverlayCastButton'
-      | 'DeprecationExample'
-      | 'DocumentDomainSettingWithoutOriginAgentClusterHeader'
-      | 'EventPath'
-      | 'ExpectCTHeader'
-      | 'GeolocationInsecureOrigin'
-      | 'GeolocationInsecureOriginDeprecatedNotRemoved'
-      | 'GetUserMediaInsecureOrigin'
-      | 'HostCandidateAttributeGetter'
-      | 'IdentityInCanMakePaymentEvent'
-      | 'InsecurePrivateNetworkSubresourceRequest'
-      | 'LocalCSSFileExtensionRejected'
-      | 'MediaSourceAbortRemove'
-      | 'MediaSourceDurationTruncatingBuffered'
-      | 'NoSysexWebMIDIWithoutPermission'
-      | 'NotificationInsecureOrigin'
-      | 'NotificationPermissionRequestedIframe'
-      | 'ObsoleteWebRtcCipherSuite'
-      | 'OpenWebDatabaseInsecureContext'
-      | 'OverflowVisibleOnReplacedElement'
-      | 'PaymentInstruments'
-      | 'PaymentRequestCSPViolation'
-      | 'PersistentQuotaType'
-      | 'PictureSourceSrc'
-      | 'PrefixedCancelAnimationFrame'
-      | 'PrefixedRequestAnimationFrame'
-      | 'PrefixedStorageInfo'
-      | 'PrefixedVideoDisplayingFullscreen'
-      | 'PrefixedVideoEnterFullscreen'
-      | 'PrefixedVideoEnterFullScreen'
-      | 'PrefixedVideoExitFullscreen'
-      | 'PrefixedVideoExitFullScreen'
-      | 'PrefixedVideoSupportsFullscreen'
-      | 'RangeExpand'
-      | 'RequestedSubresourceWithEmbeddedCredentials'
-      | 'RTCConstraintEnableDtlsSrtpFalse'
-      | 'RTCConstraintEnableDtlsSrtpTrue'
-      | 'RTCPeerConnectionComplexPlanBSdpUsingDefaultSdpSemantics'
-      | 'RTCPeerConnectionSdpSemanticsPlanB'
-      | 'RtcpMuxPolicyNegotiate'
-      | 'SharedArrayBufferConstructedWithoutIsolation'
-      | 'TextToSpeech_DisallowedByAutoplay'
-      | 'V8SharedArrayBufferConstructedInExtensionWithoutIsolation'
-      | 'XHRJSONEncodingDetection'
-      | 'XMLHttpRequestSynchronousInNonWorkerOutsideBeforeUnload'
-      | 'XRSupportsSession';
+      violatingNodeId?: DOM.BackendNodeId;
+    }
 
     /**
      * This issue tracks information needed to print a deprecation message.
@@ -1666,7 +1629,10 @@ export namespace Cdp {
 
       sourceCodeLocation: SourceCodeLocation;
 
-      type: DeprecationIssueType;
+      /**
+       * One of the deprecation names from third_party/blink/renderer/core/frame/deprecation/deprecation.json5
+       */
+      type: string;
     }
 
     export type ClientHintIssueReason = 'MetaTagAllowListInvalidOrigin' | 'MetaTagModifiedHTML';
@@ -1687,6 +1653,7 @@ export namespace Cdp {
       | 'WellKnownHttpNotFound'
       | 'WellKnownNoResponse'
       | 'WellKnownInvalidResponse'
+      | 'WellKnownListEmpty'
       | 'ConfigNotInWellKnown'
       | 'WellKnownTooBig'
       | 'ConfigHttpNotFound'
@@ -1701,6 +1668,7 @@ export namespace Cdp {
       | 'AccountsHttpNotFound'
       | 'AccountsNoResponse'
       | 'AccountsInvalidResponse'
+      | 'AccountsListEmpty'
       | 'IdTokenHttpNotFound'
       | 'IdTokenNoResponse'
       | 'IdTokenInvalidResponse'
@@ -2337,7 +2305,7 @@ export namespace Cdp {
       query?: string;
 
       /**
-       * If true, retrieve delta since last call.
+       * If true, retrieve delta since last delta call.
        */
       delta?: boolean;
     }
@@ -2362,7 +2330,7 @@ export namespace Cdp {
       name: string;
 
       /**
-       * If true, retrieve delta since last call.
+       * If true, retrieve delta since last delta call.
        */
       delta?: boolean;
     }
@@ -2585,6 +2553,7 @@ export namespace Cdp {
       | 'protectedMediaIdentifier'
       | 'sensors'
       | 'storageAccess'
+      | 'topLevelStorageAccess'
       | 'videoCapture'
       | 'videoCapturePanTiltZoom'
       | 'wakeLockScreen'
@@ -3417,7 +3386,7 @@ export namespace Cdp {
 
     /**
      * Stop tracking rule usage and return the list of rules that were used since last call to
-     * `takeCoverageDelta` (or since start of coverage instrumentation)
+     * `takeCoverageDelta` (or since start of coverage instrumentation).
      */
     stopRuleUsageTracking(
       params: CSS.StopRuleUsageTrackingParams,
@@ -3425,7 +3394,7 @@ export namespace Cdp {
 
     /**
      * Obtain list of rules that became used since last call to this method (or since start of coverage
-     * instrumentation)
+     * instrumentation).
      */
     takeCoverageDelta(
       params: CSS.TakeCoverageDeltaParams,
@@ -3440,7 +3409,7 @@ export namespace Cdp {
 
     /**
      * Fires whenever a web font is updated.  A non-empty font parameter indicates a successfully loaded
-     * web font
+     * web font.
      */
     on(event: 'fontsUpdated', listener: (event: CSS.FontsUpdatedEvent) => void): IDisposable;
 
@@ -3794,7 +3763,7 @@ export namespace Cdp {
      */
     export interface TakeComputedStyleUpdatesResult {
       /**
-       * The list of node Ids that have their tracked computed styles updated
+       * The list of node Ids that have their tracked computed styles updated.
        */
       nodeIds: DOM.NodeId[];
     }
@@ -4286,6 +4255,11 @@ export namespace Cdp {
        * Rule selector data.
        */
       selectorList: SelectorList;
+
+      /**
+       * Array of selectors from ancestor style rules, sorted by distance from the current rule.
+       */
+      nestingSelectors?: string[];
 
       /**
        * Parent stylesheet's origin.
@@ -5958,7 +5932,12 @@ export namespace Cdp {
        * successful live edit while the other enum variants denote why
        * the live edit failed.
        */
-      status: 'Ok' | 'CompileError' | 'BlockedByActiveGenerator' | 'BlockedByActiveFunction';
+      status:
+        | 'Ok'
+        | 'CompileError'
+        | 'BlockedByActiveGenerator'
+        | 'BlockedByActiveFunction'
+        | 'BlockedByTopLevelEsModuleChange';
 
       /**
        * Exception details if any. Only present when `status` is `CompileError`.
@@ -6534,6 +6513,126 @@ export namespace Cdp {
   }
 
   /**
+   * Methods and events of the 'DeviceAccess' domain.
+   */
+  export interface DeviceAccessApi {
+    /**
+     * Enable events in this domain.
+     */
+    enable(params: DeviceAccess.EnableParams): Promise<DeviceAccess.EnableResult | undefined>;
+
+    /**
+     * Disable events in this domain.
+     */
+    disable(params: DeviceAccess.DisableParams): Promise<DeviceAccess.DisableResult | undefined>;
+
+    /**
+     * Select a device in response to a DeviceAccess.deviceRequestPrompted event.
+     */
+    selectPrompt(
+      params: DeviceAccess.SelectPromptParams,
+    ): Promise<DeviceAccess.SelectPromptResult | undefined>;
+
+    /**
+     * Cancel a prompt in response to a DeviceAccess.deviceRequestPrompted event.
+     */
+    cancelPrompt(
+      params: DeviceAccess.CancelPromptParams,
+    ): Promise<DeviceAccess.CancelPromptResult | undefined>;
+
+    /**
+     * A device request opened a user prompt to select a device. Respond with the
+     * selectPrompt or cancelPrompt command.
+     */
+    on(
+      event: 'deviceRequestPrompted',
+      listener: (event: DeviceAccess.DeviceRequestPromptedEvent) => void,
+    ): IDisposable;
+  }
+
+  /**
+   * Types of the 'DeviceAccess' domain.
+   */
+  export namespace DeviceAccess {
+    /**
+     * Parameters of the 'DeviceAccess.enable' method.
+     */
+    export interface EnableParams {}
+
+    /**
+     * Return value of the 'DeviceAccess.enable' method.
+     */
+    export interface EnableResult {}
+
+    /**
+     * Parameters of the 'DeviceAccess.disable' method.
+     */
+    export interface DisableParams {}
+
+    /**
+     * Return value of the 'DeviceAccess.disable' method.
+     */
+    export interface DisableResult {}
+
+    /**
+     * Parameters of the 'DeviceAccess.selectPrompt' method.
+     */
+    export interface SelectPromptParams {
+      id: RequestId;
+
+      deviceId: DeviceId;
+    }
+
+    /**
+     * Return value of the 'DeviceAccess.selectPrompt' method.
+     */
+    export interface SelectPromptResult {}
+
+    /**
+     * Parameters of the 'DeviceAccess.cancelPrompt' method.
+     */
+    export interface CancelPromptParams {
+      id: RequestId;
+    }
+
+    /**
+     * Return value of the 'DeviceAccess.cancelPrompt' method.
+     */
+    export interface CancelPromptResult {}
+
+    /**
+     * Parameters of the 'DeviceAccess.deviceRequestPrompted' event.
+     */
+    export interface DeviceRequestPromptedEvent {
+      id: RequestId;
+
+      devices: PromptDevice[];
+    }
+
+    /**
+     * Device request id.
+     */
+    export type RequestId = string;
+
+    /**
+     * A device id.
+     */
+    export type DeviceId = string;
+
+    /**
+     * Device information displayed in a user prompt to select a device.
+     */
+    export interface PromptDevice {
+      id: DeviceId;
+
+      /**
+       * Display name as it appears in a device request user prompt.
+       */
+      name: string;
+    }
+  }
+
+  /**
    * Methods and events of the 'DeviceOrientation' domain.
    */
   export interface DeviceOrientationApi {
@@ -6667,6 +6766,7 @@ export namespace Cdp {
 
     /**
      * Returns the root DOM node (and optionally the subtree) to the caller.
+     * Implicitly enables the DOM domain events for the current target.
      */
     getDocument(params: DOM.GetDocumentParams): Promise<DOM.GetDocumentResult | undefined>;
 
@@ -9939,6 +10039,20 @@ export namespace Cdp {
     setDebuggerProperty(
       params: DotnetDebugger.SetDebuggerPropertyParams,
     ): Promise<DotnetDebugger.SetDebuggerPropertyResult | undefined>;
+
+    /**
+     * Set options for evaluation
+     */
+    setEvaluationOptions(
+      params: DotnetDebugger.SetEvaluationOptionsParams,
+    ): Promise<DotnetDebugger.SetEvaluationOptionsResult | undefined>;
+
+    /**
+     * Sets options for locating symbols.
+     */
+    setSymbolOptions(
+      params: DotnetDebugger.SetSymbolOptionsParams,
+    ): Promise<DotnetDebugger.SetSymbolOptionsResult | undefined>;
   }
 
   /**
@@ -9958,9 +10072,47 @@ export namespace Cdp {
     export interface SetDebuggerPropertyResult {}
 
     /**
+     * Parameters of the 'DotnetDebugger.setEvaluationOptions' method.
+     */
+    export interface SetEvaluationOptionsParams {
+      options: EvaluationOptions;
+
+      type: string;
+    }
+
+    /**
+     * Return value of the 'DotnetDebugger.setEvaluationOptions' method.
+     */
+    export interface SetEvaluationOptionsResult {}
+
+    /**
+     * Parameters of the 'DotnetDebugger.setSymbolOptions' method.
+     */
+    export interface SetSymbolOptionsParams {}
+
+    /**
+     * Return value of the 'DotnetDebugger.setSymbolOptions' method.
+     */
+    export interface SetSymbolOptionsResult {}
+
+    /**
      * Arguments for "setDebuggerProperty" request. Properties are determined by debugger.
      */
     export interface SetDebuggerPropertyParams {
+      [key: string]: any;
+    }
+
+    /**
+     * Options that will be used to evaluate or to get variables.
+     */
+    export interface EvaluationOptions {
+      [key: string]: any;
+    }
+
+    /**
+     * Arguments for "setSymbolOptions" request. Properties are determined by debugger.
+     */
+    export interface SetSymbolOptionsParams {
       [key: string]: any;
     }
   }
@@ -10437,12 +10589,14 @@ export namespace Cdp {
      */
     export interface SetEmulatedVisionDeficiencyParams {
       /**
-       * Vision deficiency to emulate.
+       * Vision deficiency to emulate. Order: best-effort emulations come first, followed by any
+       * physiologically accurate emulations for medically recognized color vision deficiencies.
        */
       type:
         | 'none'
-        | 'achromatopsia'
         | 'blurredVision'
+        | 'reducedContrast'
+        | 'achromatopsia'
         | 'deuteranopia'
         | 'protanopia'
         | 'tritanopia';
@@ -10802,8 +10956,14 @@ export namespace Cdp {
      * Missing optional values will be filled in by the target with what it would normally use.
      */
     export interface UserAgentMetadata {
+      /**
+       * Brands appearing in Sec-CH-UA.
+       */
       brands?: UserAgentBrandVersion[];
 
+      /**
+       * Brands appearing in Sec-CH-UA-Full-Version-List.
+       */
       fullVersionList?: UserAgentBrandVersion[];
 
       /**
@@ -10885,6 +11045,126 @@ export namespace Cdp {
      * Return value of the 'EventBreakpoints.removeInstrumentationBreakpoint' method.
      */
     export interface RemoveInstrumentationBreakpointResult {}
+  }
+
+  /**
+   * Methods and events of the 'FedCm' domain.
+   */
+  export interface FedCmApi {
+    enable(params: FedCm.EnableParams): Promise<FedCm.EnableResult | undefined>;
+
+    disable(params: FedCm.DisableParams): Promise<FedCm.DisableResult | undefined>;
+
+    selectAccount(
+      params: FedCm.SelectAccountParams,
+    ): Promise<FedCm.SelectAccountResult | undefined>;
+
+    dismissDialog(
+      params: FedCm.DismissDialogParams,
+    ): Promise<FedCm.DismissDialogResult | undefined>;
+
+    on(event: 'dialogShown', listener: (event: FedCm.DialogShownEvent) => void): IDisposable;
+  }
+
+  /**
+   * Types of the 'FedCm' domain.
+   */
+  export namespace FedCm {
+    /**
+     * Parameters of the 'FedCm.enable' method.
+     */
+    export interface EnableParams {
+      /**
+       * Allows callers to disable the promise rejection delay that would
+       * normally happen, if this is unimportant to what's being tested.
+       * (step 4 of https://fedidcg.github.io/FedCM/#browser-api-rp-sign-in)
+       */
+      disableRejectionDelay?: boolean;
+    }
+
+    /**
+     * Return value of the 'FedCm.enable' method.
+     */
+    export interface EnableResult {}
+
+    /**
+     * Parameters of the 'FedCm.disable' method.
+     */
+    export interface DisableParams {}
+
+    /**
+     * Return value of the 'FedCm.disable' method.
+     */
+    export interface DisableResult {}
+
+    /**
+     * Parameters of the 'FedCm.selectAccount' method.
+     */
+    export interface SelectAccountParams {
+      dialogId: string;
+
+      accountIndex: integer;
+    }
+
+    /**
+     * Return value of the 'FedCm.selectAccount' method.
+     */
+    export interface SelectAccountResult {}
+
+    /**
+     * Parameters of the 'FedCm.dismissDialog' method.
+     */
+    export interface DismissDialogParams {
+      dialogId: string;
+    }
+
+    /**
+     * Return value of the 'FedCm.dismissDialog' method.
+     */
+    export interface DismissDialogResult {}
+
+    /**
+     * Parameters of the 'FedCm.dialogShown' event.
+     */
+    export interface DialogShownEvent {
+      dialogId: string;
+
+      accounts: Account[];
+    }
+
+    /**
+     * Whether this is a sign-up or sign-in action for this account, i.e.
+     * whether this account has ever been used to sign in to this RP before.
+     */
+    export type LoginState = 'SignIn' | 'SignUp';
+
+    /**
+     * Corresponds to IdentityRequestAccount
+     */
+    export interface Account {
+      accountId: string;
+
+      email: string;
+
+      name: string;
+
+      givenName: string;
+
+      pictureUrl: string;
+
+      idpConfigUrl: string;
+
+      idpSigninUrl: string;
+
+      loginState: LoginState;
+
+      /**
+       * These two are only set if the loginState is signUp
+       */
+      termsOfServiceUrl?: string;
+
+      privacyPolicyUrl?: string;
+    }
   }
 
   /**
@@ -11995,7 +12275,7 @@ export namespace Cdp {
     ): Promise<IndexedDB.RequestDataResult | undefined>;
 
     /**
-     * Gets metadata of an object store
+     * Gets metadata of an object store.
      */
     getMetadata(
       params: IndexedDB.GetMetadataParams,
@@ -14646,6 +14926,8 @@ export namespace Cdp {
     /**
      * Returns all browser cookies. Depending on the backend support, will return detailed cookie
      * information in the `cookies` field.
+     * Deprecated. Use Storage.getCookies instead.
+     * @deprecated
      */
     getAllCookies(
       params: Network.GetAllCookiesParams,
@@ -16372,6 +16654,17 @@ export namespace Cdp {
        * available, such as in the case of HTTP/2 or QUIC.
        */
       headersText?: string;
+
+      /**
+       * The cookie partition key that will be used to store partitioned cookies set in this response.
+       * Only sent when partitioned cookies are enabled.
+       */
+      cookiePartitionKey?: string;
+
+      /**
+       * True if partitioned cookies are enabled, but the partition key is not serializeable to string.
+       */
+      cookiePartitionKeyOpaque?: boolean;
     }
 
     /**
@@ -16391,6 +16684,7 @@ export namespace Cdp {
         | 'ResourceExhausted'
         | 'AlreadyExists'
         | 'Unavailable'
+        | 'Unauthorized'
         | 'BadResponse'
         | 'InternalError'
         | 'UnknownError'
@@ -17022,10 +17316,10 @@ export namespace Cdp {
      * are specified in third_party/blink/renderer/core/fetch/trust_token.idl.
      */
     export interface TrustTokenParams {
-      type: TrustTokenOperationType;
+      operation: TrustTokenOperationType;
 
       /**
-       * Only set for "token-redemption" type and determine whether
+       * Only set for "token-redemption" operation and determine whether
        * to request a fresh SRR or use a still valid cached SRR.
        */
       refreshPolicy: 'UseCached' | 'Refresh';
@@ -19595,6 +19889,10 @@ export namespace Cdp {
       params: Page.GetInstallabilityErrorsParams,
     ): Promise<Page.GetInstallabilityErrorsResult | undefined>;
 
+    /**
+     * Deprecated because it's not guaranteed that the returned icon is in fact the one used for PWA installation.
+     * @deprecated
+     */
     getManifestIcons(
       params: Page.GetManifestIconsParams,
     ): Promise<Page.GetManifestIconsResult | undefined>;
@@ -19882,6 +20180,14 @@ export namespace Cdp {
     ): Promise<Page.SetSPCTransactionModeResult | undefined>;
 
     /**
+     * Extensions for Custom Handlers API:
+     * https://html.spec.whatwg.org/multipage/system-state.html#rph-automation
+     */
+    setRPHRegistrationMode(
+      params: Page.SetRPHRegistrationModeParams,
+    ): Promise<Page.SetRPHRegistrationModeResult | undefined>;
+
+    /**
      * Generates a report for testing.
      */
     generateTestReport(
@@ -20050,14 +20356,6 @@ export namespace Cdp {
     on(
       event: 'backForwardCacheNotUsed',
       listener: (event: Page.BackForwardCacheNotUsedEvent) => void,
-    ): IDisposable;
-
-    /**
-     * Fired when a prerender attempt is completed.
-     */
-    on(
-      event: 'prerenderAttemptCompleted',
-      listener: (event: Page.PrerenderAttemptCompletedEvent) => void,
     ): IDisposable;
 
     on(event: 'loadEventFired', listener: (event: Page.LoadEventFiredEvent) => void): IDisposable;
@@ -21284,13 +21582,25 @@ export namespace Cdp {
      * Parameters of the 'Page.setSPCTransactionMode' method.
      */
     export interface SetSPCTransactionModeParams {
-      mode: 'none' | 'autoAccept' | 'autoReject' | 'autoOptOut';
+      mode: AutoResponseMode;
     }
 
     /**
      * Return value of the 'Page.setSPCTransactionMode' method.
      */
     export interface SetSPCTransactionModeResult {}
+
+    /**
+     * Parameters of the 'Page.setRPHRegistrationMode' method.
+     */
+    export interface SetRPHRegistrationModeParams {
+      mode: AutoResponseMode;
+    }
+
+    /**
+     * Return value of the 'Page.setRPHRegistrationMode' method.
+     */
+    export interface SetRPHRegistrationModeResult {}
 
     /**
      * Parameters of the 'Page.generateTestReport' method.
@@ -21653,26 +21963,6 @@ export namespace Cdp {
     }
 
     /**
-     * Parameters of the 'Page.prerenderAttemptCompleted' event.
-     */
-    export interface PrerenderAttemptCompletedEvent {
-      /**
-       * The frame id of the frame initiating prerendering.
-       */
-      initiatingFrameId: FrameId;
-
-      prerenderingUrl: string;
-
-      finalStatus: PrerenderFinalStatus;
-
-      /**
-       * This is used to give users more information about the name of the API call
-       * that is incompatible with prerender and has caused the cancellation of the attempt
-       */
-      disallowedApiMethod?: string;
-    }
-
-    /**
      * Parameters of the 'Page.loadEventFired' event.
      */
     export interface LoadEventFiredEvent {
@@ -21886,12 +22176,14 @@ export namespace Cdp {
       | 'otp-credentials'
       | 'payment'
       | 'picture-in-picture'
+      | 'private-aggregation'
       | 'publickey-credentials-get'
       | 'run-ad-auction'
       | 'screen-wake-lock'
       | 'serial'
       | 'shared-autofill'
       | 'shared-storage'
+      | 'shared-storage-select-url'
       | 'smart-card'
       | 'storage-access'
       | 'sync-xhr'
@@ -21900,6 +22192,7 @@ export namespace Cdp {
       | 'usb'
       | 'vertical-scroll'
       | 'web-share'
+      | 'window-management'
       | 'window-placement'
       | 'xr-spatial-tracking';
 
@@ -22514,6 +22807,11 @@ export namespace Cdp {
     }
 
     /**
+     * Enum of possible auto-reponse for permisison / prompt dialogs.
+     */
+    export type AutoResponseMode = 'none' | 'autoAccept' | 'autoReject' | 'autoOptOut';
+
+    /**
      * The type of a frameNavigated event.
      */
     export type NavigationType = 'Navigation' | 'BackForwardCacheRestore';
@@ -22618,6 +22916,7 @@ export namespace Cdp {
       | 'InjectedJavascript'
       | 'InjectedStyleSheet'
       | 'KeepaliveRequest'
+      | 'IndexedDBEvent'
       | 'Dummy'
       | 'AuthorizationHeader'
       | 'ContentSecurityHandler'
@@ -22689,57 +22988,6 @@ export namespace Cdp {
        */
       children: BackForwardCacheNotRestoredExplanationTree[];
     }
-
-    /**
-     * List of FinalStatus reasons for Prerender2.
-     */
-    export type PrerenderFinalStatus =
-      | 'Activated'
-      | 'Destroyed'
-      | 'LowEndDevice'
-      | 'InvalidSchemeRedirect'
-      | 'InvalidSchemeNavigation'
-      | 'InProgressNavigation'
-      | 'NavigationRequestBlockedByCsp'
-      | 'MainFrameNavigation'
-      | 'MojoBinderPolicy'
-      | 'RendererProcessCrashed'
-      | 'RendererProcessKilled'
-      | 'Download'
-      | 'TriggerDestroyed'
-      | 'NavigationNotCommitted'
-      | 'NavigationBadHttpStatus'
-      | 'ClientCertRequested'
-      | 'NavigationRequestNetworkError'
-      | 'MaxNumOfRunningPrerendersExceeded'
-      | 'CancelAllHostsForTesting'
-      | 'DidFailLoad'
-      | 'Stop'
-      | 'SslCertificateError'
-      | 'LoginAuthRequested'
-      | 'UaChangeRequiresReload'
-      | 'BlockedByClient'
-      | 'AudioOutputDeviceRequested'
-      | 'MixedContent'
-      | 'TriggerBackgrounded'
-      | 'EmbedderTriggeredAndCrossOriginRedirected'
-      | 'MemoryLimitExceeded'
-      | 'FailToGetMemoryUsage'
-      | 'DataSaverEnabled'
-      | 'HasEffectiveUrl'
-      | 'ActivatedBeforeStarted'
-      | 'InactivePageRestriction'
-      | 'StartFailed'
-      | 'TimeoutBackgrounded'
-      | 'CrossSiteRedirect'
-      | 'CrossSiteNavigation'
-      | 'SameSiteCrossOriginRedirect'
-      | 'SameSiteCrossOriginNavigation'
-      | 'SameSiteCrossOriginRedirectNotOptIn'
-      | 'SameSiteCrossOriginNavigationNotOptIn'
-      | 'ActivationNavigationParameterMismatch'
-      | 'ActivatedInBackground'
-      | 'EmbedderHostDisallowed';
   }
 
   /**
@@ -23001,6 +23249,311 @@ export namespace Cdp {
 
       layoutShiftDetails?: LayoutShift;
     }
+  }
+
+  /**
+   * Methods and events of the 'Preload' domain.
+   */
+  export interface PreloadApi {
+    enable(params: Preload.EnableParams): Promise<Preload.EnableResult | undefined>;
+
+    disable(params: Preload.DisableParams): Promise<Preload.DisableResult | undefined>;
+
+    /**
+     * Upsert. Currently, it is only emitted when a rule set added.
+     */
+    on(
+      event: 'ruleSetUpdated',
+      listener: (event: Preload.RuleSetUpdatedEvent) => void,
+    ): IDisposable;
+
+    on(
+      event: 'ruleSetRemoved',
+      listener: (event: Preload.RuleSetRemovedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when a prerender attempt is completed.
+     */
+    on(
+      event: 'prerenderAttemptCompleted',
+      listener: (event: Preload.PrerenderAttemptCompletedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when a prefetch attempt is updated.
+     */
+    on(
+      event: 'prefetchStatusUpdated',
+      listener: (event: Preload.PrefetchStatusUpdatedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when a prerender attempt is updated.
+     */
+    on(
+      event: 'prerenderStatusUpdated',
+      listener: (event: Preload.PrerenderStatusUpdatedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Send a list of sources for all preloading attempts in a document.
+     */
+    on(
+      event: 'preloadingAttemptSourcesUpdated',
+      listener: (event: Preload.PreloadingAttemptSourcesUpdatedEvent) => void,
+    ): IDisposable;
+  }
+
+  /**
+   * Types of the 'Preload' domain.
+   */
+  export namespace Preload {
+    /**
+     * Parameters of the 'Preload.enable' method.
+     */
+    export interface EnableParams {}
+
+    /**
+     * Return value of the 'Preload.enable' method.
+     */
+    export interface EnableResult {}
+
+    /**
+     * Parameters of the 'Preload.disable' method.
+     */
+    export interface DisableParams {}
+
+    /**
+     * Return value of the 'Preload.disable' method.
+     */
+    export interface DisableResult {}
+
+    /**
+     * Parameters of the 'Preload.ruleSetUpdated' event.
+     */
+    export interface RuleSetUpdatedEvent {
+      ruleSet: RuleSet;
+    }
+
+    /**
+     * Parameters of the 'Preload.ruleSetRemoved' event.
+     */
+    export interface RuleSetRemovedEvent {
+      id: RuleSetId;
+    }
+
+    /**
+     * Parameters of the 'Preload.prerenderAttemptCompleted' event.
+     */
+    export interface PrerenderAttemptCompletedEvent {
+      key: PreloadingAttemptKey;
+
+      /**
+       * The frame id of the frame initiating prerendering.
+       */
+      initiatingFrameId: Page.FrameId;
+
+      prerenderingUrl: string;
+
+      finalStatus: PrerenderFinalStatus;
+
+      /**
+       * This is used to give users more information about the name of the API call
+       * that is incompatible with prerender and has caused the cancellation of the attempt
+       */
+      disallowedApiMethod?: string;
+    }
+
+    /**
+     * Parameters of the 'Preload.prefetchStatusUpdated' event.
+     */
+    export interface PrefetchStatusUpdatedEvent {
+      key: PreloadingAttemptKey;
+
+      /**
+       * The frame id of the frame initiating prefetch.
+       */
+      initiatingFrameId: Page.FrameId;
+
+      prefetchUrl: string;
+
+      status: PreloadingStatus;
+    }
+
+    /**
+     * Parameters of the 'Preload.prerenderStatusUpdated' event.
+     */
+    export interface PrerenderStatusUpdatedEvent {
+      key: PreloadingAttemptKey;
+
+      /**
+       * The frame id of the frame initiating prerender.
+       */
+      initiatingFrameId: Page.FrameId;
+
+      prerenderingUrl: string;
+
+      status: PreloadingStatus;
+    }
+
+    /**
+     * Parameters of the 'Preload.preloadingAttemptSourcesUpdated' event.
+     */
+    export interface PreloadingAttemptSourcesUpdatedEvent {
+      loaderId: Network.LoaderId;
+
+      preloadingAttemptSources: PreloadingAttemptSource[];
+    }
+
+    /**
+     * Unique id
+     */
+    export type RuleSetId = string;
+
+    /**
+     * Corresponds to SpeculationRuleSet
+     */
+    export interface RuleSet {
+      id: RuleSetId;
+
+      /**
+       * Identifies a document which the rule set is associated with.
+       */
+      loaderId: Network.LoaderId;
+
+      /**
+       * Source text of JSON representing the rule set. If it comes from
+       * <script> tag, it is the textContent of the node. Note that it is
+       * a JSON for valid case.
+       *
+       * See also:
+       * - https://wicg.github.io/nav-speculation/speculation-rules.html
+       * - https://github.com/WICG/nav-speculation/blob/main/triggers.md
+       */
+      sourceText: string;
+    }
+
+    /**
+     * The type of preloading attempted. It corresponds to
+     * mojom::SpeculationAction (although PrefetchWithSubresources is omitted as it
+     * isn't being used by clients).
+     */
+    export type SpeculationAction = 'Prefetch' | 'Prerender';
+
+    /**
+     * Corresponds to mojom::SpeculationTargetHint.
+     * See https://github.com/WICG/nav-speculation/blob/main/triggers.md#window-name-targeting-hints
+     */
+    export type SpeculationTargetHint = 'Blank' | 'Self';
+
+    /**
+     * A key that identifies a preloading attempt.
+     *
+     * The url used is the url specified by the trigger (i.e. the initial URL), and
+     * not the final url that is navigated to. For example, prerendering allows
+     * same-origin main frame navigations during the attempt, but the attempt is
+     * still keyed with the initial URL.
+     */
+    export interface PreloadingAttemptKey {
+      loaderId: Network.LoaderId;
+
+      action: SpeculationAction;
+
+      url: string;
+
+      targetHint?: SpeculationTargetHint;
+    }
+
+    /**
+     * Lists sources for a preloading attempt, specifically the ids of rule sets
+     * that had a speculation rule that triggered the attempt, and the
+     * BackendNodeIds of <a href> or <area href> elements that triggered the
+     * attempt (in the case of attempts triggered by a document rule). It is
+     * possible for mulitple rule sets and links to trigger a single attempt.
+     */
+    export interface PreloadingAttemptSource {
+      key: PreloadingAttemptKey;
+
+      ruleSetIds: RuleSetId[];
+
+      nodeIds: DOM.BackendNodeId[];
+    }
+
+    /**
+     * List of FinalStatus reasons for Prerender2.
+     */
+    export type PrerenderFinalStatus =
+      | 'Activated'
+      | 'Destroyed'
+      | 'LowEndDevice'
+      | 'InvalidSchemeRedirect'
+      | 'InvalidSchemeNavigation'
+      | 'InProgressNavigation'
+      | 'NavigationRequestBlockedByCsp'
+      | 'MainFrameNavigation'
+      | 'MojoBinderPolicy'
+      | 'RendererProcessCrashed'
+      | 'RendererProcessKilled'
+      | 'Download'
+      | 'TriggerDestroyed'
+      | 'NavigationNotCommitted'
+      | 'NavigationBadHttpStatus'
+      | 'ClientCertRequested'
+      | 'NavigationRequestNetworkError'
+      | 'MaxNumOfRunningPrerendersExceeded'
+      | 'CancelAllHostsForTesting'
+      | 'DidFailLoad'
+      | 'Stop'
+      | 'SslCertificateError'
+      | 'LoginAuthRequested'
+      | 'UaChangeRequiresReload'
+      | 'BlockedByClient'
+      | 'AudioOutputDeviceRequested'
+      | 'MixedContent'
+      | 'TriggerBackgrounded'
+      | 'EmbedderTriggeredAndCrossOriginRedirected'
+      | 'MemoryLimitExceeded'
+      | 'FailToGetMemoryUsage'
+      | 'DataSaverEnabled'
+      | 'HasEffectiveUrl'
+      | 'ActivatedBeforeStarted'
+      | 'InactivePageRestriction'
+      | 'StartFailed'
+      | 'TimeoutBackgrounded'
+      | 'CrossSiteRedirectInInitialNavigation'
+      | 'CrossSiteNavigationInInitialNavigation'
+      | 'SameSiteCrossOriginRedirectNotOptInInInitialNavigation'
+      | 'SameSiteCrossOriginNavigationNotOptInInInitialNavigation'
+      | 'ActivationNavigationParameterMismatch'
+      | 'ActivatedInBackground'
+      | 'EmbedderHostDisallowed'
+      | 'ActivationNavigationDestroyedBeforeSuccess'
+      | 'TabClosedByUserGesture'
+      | 'TabClosedWithoutUserGesture'
+      | 'PrimaryMainFrameRendererProcessCrashed'
+      | 'PrimaryMainFrameRendererProcessKilled'
+      | 'ActivationFramePolicyNotCompatible'
+      | 'PreloadingDisabled'
+      | 'BatterySaverEnabled'
+      | 'ActivatedDuringMainFrameNavigation'
+      | 'PreloadingUnsupportedByWebContents'
+      | 'CrossSiteRedirectInMainFrameNavigation'
+      | 'CrossSiteNavigationInMainFrameNavigation'
+      | 'SameSiteCrossOriginRedirectNotOptInInMainFrameNavigation'
+      | 'SameSiteCrossOriginNavigationNotOptInInMainFrameNavigation';
+
+    /**
+     * Preloading status values, see also PreloadingTriggeringOutcome. This
+     * status is shared by prefetchStatusUpdated and prerenderStatusUpdated.
+     */
+    export type PreloadingStatus =
+      | 'Pending'
+      | 'Running'
+      | 'Ready'
+      | 'Success'
+      | 'Failure'
+      | 'NotSupported';
   }
 
   /**
@@ -23748,6 +24301,16 @@ export namespace Cdp {
       throwOnSideEffect?: boolean;
 
       /**
+       * An alternative way to specify the execution context to call function on.
+       * Compared to contextId that may be reused across processes, this is guaranteed to be
+       * system-unique, so it can be used to prevent accidental function call
+       * in context different than intended (e.g. as a result of navigation across process
+       * boundaries).
+       * This is mutually exclusive with `executionContextId`.
+       */
+      uniqueContextId?: string;
+
+      /**
        * Whether the result should contain `webDriverValue`, serialized according to
        * https://w3c.github.io/webdriver-bidi. This is mutually exclusive with `returnByValue`, but
        * resulting `objectId` is still provided.
@@ -24421,8 +24984,14 @@ export namespace Cdp {
     export interface ExecutionContextDestroyedEvent {
       /**
        * Id of the destroyed context
+       * @deprecated
        */
       executionContextId: ExecutionContextId;
+
+      /**
+       * Unique Id of the destroyed context
+       */
+      executionContextUniqueId: string;
     }
 
     /**
@@ -26023,6 +26592,13 @@ export namespace Cdp {
     ): Promise<Storage.ClearSharedStorageEntriesResult | undefined>;
 
     /**
+     * Resets the budget for `ownerOrigin` by clearing all budget withdrawals.
+     */
+    resetSharedStorageBudget(
+      params: Storage.ResetSharedStorageBudgetParams,
+    ): Promise<Storage.ResetSharedStorageBudgetResult | undefined>;
+
+    /**
      * Enables/disables issuing of sharedStorageAccessed events.
      */
     setSharedStorageTracking(
@@ -26505,6 +27081,18 @@ export namespace Cdp {
      * Return value of the 'Storage.clearSharedStorageEntries' method.
      */
     export interface ClearSharedStorageEntriesResult {}
+
+    /**
+     * Parameters of the 'Storage.resetSharedStorageBudget' method.
+     */
+    export interface ResetSharedStorageBudgetParams {
+      ownerOrigin: string;
+    }
+
+    /**
+     * Return value of the 'Storage.resetSharedStorageBudget' method.
+     */
+    export interface ResetSharedStorageBudgetResult {}
 
     /**
      * Parameters of the 'Storage.setSharedStorageTracking' method.
@@ -27519,6 +28107,11 @@ export namespace Cdp {
        * false by default).
        */
       background?: boolean;
+
+      /**
+       * Whether to create the target of type "tab".
+       */
+      forTab?: boolean;
     }
 
     /**
@@ -29072,6 +29665,13 @@ export namespace Cdp {
        * Defaults to false.
        */
       hasMinPinLength?: boolean;
+
+      /**
+       * If set to true, the authenticator will support the prf extension.
+       * https://w3c.github.io/webauthn/#prf-extension
+       * Defaults to false.
+       */
+      hasPrf?: boolean;
 
       /**
        * If set to true, tests of user presence will succeed immediately.

@@ -1,48 +1,64 @@
 Evaluating: 'console.log(map2.keys())'
+stdout> MapIterator {41, {foo: 1}}
 stdout> > MapIterator {41, {foo: 1}}
 
 Evaluating: 'console.log([map2.keys()])'
+stdout> (1) [MapIterator]
 stdout> > (1) [MapIterator]
 
 Evaluating: 'console.log(map2.values())'
+stdout> MapIterator {42, {foo: 2}}
 stdout> > MapIterator {42, {foo: 2}}
 
 Evaluating: 'console.log([map2.values()])'
+stdout> (1) [MapIterator]
 stdout> > (1) [MapIterator]
 
 Evaluating: 'console.log(map2.entries())'
+stdout> MapIterator {41 => 42, {foo: 1} => {foo: 2}}
 stdout> > MapIterator {41 => 42, {foo: 1} => {foo: 2}}
 
 Evaluating: 'console.log([map2.entries()])'
+stdout> (1) [MapIterator]
 stdout> > (1) [MapIterator]
 
 Evaluating: 'console.log(set2.keys())'
+stdout> SetIterator {41, {foo: 1}}
 stdout> > SetIterator {41, {foo: 1}}
 
 Evaluating: 'console.log([set2.keys()])'
+stdout> (1) [SetIterator]
 stdout> > (1) [SetIterator]
 
 Evaluating: 'console.log(set2.values())'
+stdout> SetIterator {41, {foo: 1}}
 stdout> > SetIterator {41, {foo: 1}}
 
 Evaluating: 'console.log([set2.values()])'
+stdout> (1) [SetIterator]
 stdout> > (1) [SetIterator]
 
 Evaluating: 'console.log(set2.entries())'
+stdout> SetIterator {41 => 41, {foo: 1} => {foo: 1}}
 stdout> > SetIterator {41 => 41, {foo: 1} => {foo: 1}}
 
 Evaluating: 'console.log([set2.entries()])'
+stdout> (1) [SetIterator]
 stdout> > (1) [SetIterator]
 
 Evaluating: 'console.log(iter1)'
+stdout> MapIterator {{foo: 2}}
 stdout> > MapIterator {{foo: 2}}
 
 Evaluating: 'console.log([iter1])'
+stdout> (1) [MapIterator]
 stdout> > (1) [MapIterator]
 
 Evaluating: 'console.log(iter2)'
+stdout> SetIterator {{foo: 1}}
 stdout> > SetIterator {{foo: 1}}
 
 Evaluating: 'console.log([iter2])'
+stdout> (1) [SetIterator]
 stdout> > (1) [SetIterator]
 

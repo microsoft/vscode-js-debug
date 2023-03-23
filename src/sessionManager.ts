@@ -255,7 +255,11 @@ export class SessionManager<TSessionImpl extends IDebugSessionLike>
   /**
    * @inheritdoc
    */
-  public initAdapter(_debugAdapter: DebugAdapter, _target: ITarget, _launcher: ILauncher): Promise<boolean> {
+  public initAdapter(
+    _debugAdapter: DebugAdapter,
+    _target: ITarget,
+    _launcher: ILauncher,
+  ): Promise<boolean> {
     return Promise.resolve(false);
   }
 

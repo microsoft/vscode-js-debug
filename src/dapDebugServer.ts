@@ -2,13 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import * as fs from 'fs';
 import { Container } from 'inversify';
 import * as net from 'net';
 import * as os from 'os';
 import * as path from 'path';
 import 'reflect-metadata';
-import * as nls from 'vscode-nls';
 import { DebugAdapter } from './adapter/debugAdapter';
 import { Binder, IBinderDelegate } from './binder';
 import { IDisposable } from './common/disposable';
@@ -24,7 +24,9 @@ import { IInitializeParams } from './ioc-extras';
 import { TargetOrigin } from './targets/targetOrigin';
 import { ITarget } from './targets/targets';
 
-const localize = nls.loadMessageBundle();
+if (process.env.L10N_FSPATH_TO_BUNDLE) {
+  l10n.config({ fsPath: process.env.L10N_FSPATH_TO_BUNDLE });
+}
 
 const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-js-debug-'));
 
@@ -59,7 +61,7 @@ function collectInitialize(dap: Dap.Api) {
     const breakpoints = ids.map(id => ({
       id,
       verified: false,
-      message: localize('breakpoint.provisionalBreakpoint', `Unbound breakpoint`),
+      message: l10n.t('breakpoint.provisionalBreakpoint', `Unbound breakpoint`),
     })); // TODO: Put a useful message here
     return { breakpoints };
   });

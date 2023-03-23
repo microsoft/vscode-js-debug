@@ -2,19 +2,18 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import * as nls from 'vscode-nls';
+import * as l10n from '@vscode/l10n';
 import Cdp from '../cdp/api';
 import { once, posInt32Counter } from '../common/objUtils';
 import { Base0Position } from '../common/positions';
+import { SourceConstants } from '../common/sourceUtils';
 import Dap from '../dap/api';
 import { asyncScopesNotAvailable } from '../dap/errors';
 import { ProtocolError } from '../dap/protocolError';
 import { shouldStepOverStackFrame, StackFrameStepOverReason } from './smartStepping';
-import { IPreferredUiLocation, SourceConstants } from './sources';
+import { IPreferredUiLocation } from './sources';
 import { RawLocation, Thread } from './threads';
 import { IExtraProperty, IScopeRef, IVariableContainer } from './variableStore';
-
-const localize = nls.loadMessageBundle();
 
 export interface IFrameElement {
   /** DAP stack frame ID */
@@ -101,7 +100,7 @@ export class StackTrace {
     this._lastFrameThread = thread;
   }
 
-  async loadFrames(limit: number): Promise<FrameElement[]> {
+  async loadFrames(limit: number, noFuncEval?: boolean): Promise<FrameElement[]> {
     while (this.frames.length < limit && this._asyncStackTraceId) {
       if (this._asyncStackTraceId.debuggerId)
         this._lastFrameThread = Thread.threadForDebuggerId(this._asyncStackTraceId.debuggerId);
@@ -109,6 +108,11 @@ export class StackTrace {
         this._asyncStackTraceId = undefined;
         break;
       }
+      if (noFuncEval)
+        this._lastFrameThread
+          .cdp()
+          .DotnetDebugger.setEvaluationOptions({ options: { noFuncEval }, type: 'stackFrame' });
+
       const response = await this._lastFrameThread
         .cdp()
         .Debugger.getStackTrace({ stackTraceId: this._asyncStackTraceId });
@@ -176,10 +180,10 @@ export class StackTrace {
     return (await Promise.all(promises)).join('\n') + '\n';
   }
 
-  async toDap(params: Dap.StackTraceParams): Promise<Dap.StackTraceResult> {
+  async toDap(params: Dap.StackTraceParamsExtended): Promise<Dap.StackTraceResult> {
     const from = params.startFrame || 0;
     let to = (params.levels || 50) + from;
-    const frames = await this.loadFrames(to);
+    const frames = await this.loadFrames(to, params.noFuncEval);
     to = Math.min(frames.length, params.levels ? to : frames.length);
 
     const result: Promise<Dap.StackFrame>[] = [];
@@ -311,36 +315,36 @@ export class StackFrame implements IFrameElement {
       let presentationHint: 'arguments' | 'locals' | 'registers' | undefined;
       switch (scope.type) {
         case 'global':
-          name = localize('scope.global', 'Global');
+          name = l10n.t('Global');
           break;
         case 'local':
-          name = localize('scope.local', 'Local');
+          name = l10n.t('Local');
           presentationHint = 'locals';
           break;
         case 'with':
-          name = localize('scope.with', 'With Block');
+          name = l10n.t('With Block');
           presentationHint = 'locals';
           break;
         case 'closure':
-          name = localize('scope.closure', 'Closure');
+          name = l10n.t('Closure');
           presentationHint = 'arguments';
           break;
         case 'catch':
-          name = localize('scope.catch', 'Catch Block');
+          name = l10n.t('Catch Block');
           presentationHint = 'locals';
           break;
         case 'block':
-          name = localize('scope.block', 'Block');
+          name = l10n.t('Block');
           presentationHint = 'locals';
           break;
         case 'script':
-          name = localize('scope.script', 'Script');
+          name = l10n.t('Script');
           break;
         case 'eval':
-          name = localize('scope.eval', 'Eval');
+          name = l10n.t('Eval');
           break;
         case 'module':
-          name = localize('scope.module', 'Module');
+          name = l10n.t('Module');
           break;
         default:
           // fallback for custom scope types from other runtimes (#651)
@@ -348,7 +352,7 @@ export class StackFrame implements IFrameElement {
           break;
       }
       if (scope.name && scope.type === 'closure') {
-        name = localize('scope.closureNamed', 'Closure ({0})', scope.name);
+        name = l10n.t('Closure ({0})', scope.name);
       } else if (scope.name) {
         name = `${name}: ${scope.name}`;
       }
@@ -388,8 +392,8 @@ export class StackFrame implements IFrameElement {
     if (isSmartStepped && source) {
       source.origin =
         isSmartStepped === StackFrameStepOverReason.SmartStep
-          ? localize('smartStepSkipLabel', 'Skipped by smartStep')
-          : localize('source.skipFiles', 'Skipped by skipFiles');
+          ? l10n.t('Skipped by smartStep')
+          : l10n.t('Skipped by skipFiles');
     }
 
     const line = (uiLocation || this._rawLocation).lineNumber;
@@ -424,7 +428,9 @@ export class StackFrame implements IFrameElement {
   async formatAsNative(): Promise<string> {
     const uiLocation = await this.uiLocation();
     const url =
-      (await uiLocation?.source.existingAbsolutePath()) || (await uiLocation?.source.prettyName());
+      (await uiLocation?.source.existingAbsolutePath()) ||
+      (await uiLocation?.source.prettyName()) ||
+      this.callFrame.url;
     const { lineNumber, columnNumber } = uiLocation || this._rawLocation;
     return `    at ${this._name} (${url}:${lineNumber}:${columnNumber})`;
   }
@@ -456,7 +462,7 @@ export class StackFrame implements IFrameElement {
       if (scope.thisObject) extraProperties.push({ name: 'this', value: scope.thisObject });
       if (scope.returnValue)
         extraProperties.push({
-          name: localize('scope.returnValue', 'Return value'),
+          name: l10n.t('Return value'),
           value: scope.returnValue,
         });
     }

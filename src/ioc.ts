@@ -13,9 +13,12 @@ import { Container, interfaces } from 'inversify';
 import 'reflect-metadata';
 import * as vscode from 'vscode';
 import {
-  BreakpointPredictorDelegate,
+  BreakpointPredictorCachedState,
+  BreakpointSearch,
   BreakpointsPredictor,
+  GlobalBreakpointSearch,
   IBreakpointsPredictor,
+  TargetedBreakpointSearch,
 } from './adapter/breakpointPredictor';
 import { BreakpointManager } from './adapter/breakpoints';
 import {
@@ -39,7 +42,6 @@ import { BasicCpuProfiler } from './adapter/profiling/basicCpuProfiler';
 import { BasicHeapProfiler } from './adapter/profiling/basicHeapProfiler';
 import { HeapDumpProfiler } from './adapter/profiling/heapDumpProfiler';
 import { IResourceProvider } from './adapter/resourceProvider';
-import { IRequestOptionsProvider } from './adapter/resourceProvider/requestOptionsProvider';
 import { ResourceProviderState } from './adapter/resourceProvider/resourceProviderState';
 import { StatefulResourceProvider } from './adapter/resourceProvider/statefulResourceProvider';
 import { ScriptSkipper } from './adapter/scriptSkipper/implementation';
@@ -59,7 +61,8 @@ import { createMutableLaunchConfig, MutableLaunchConfig } from './common/mutable
 import { CodeSearchStrategy } from './common/sourceMaps/codeSearchStrategy';
 import { IRenameProvider, RenameProvider } from './common/sourceMaps/renameProvider';
 import { CachingSourceMapFactory, ISourceMapFactory } from './common/sourceMaps/sourceMapFactory';
-import { ISearchStrategy } from './common/sourceMaps/sourceMapRepository';
+import { ISearchStrategy, ISearchStrategyFallback } from './common/sourceMaps/sourceMapRepository';
+import { TurboSearchStrategy } from './common/sourceMaps/turboSearchStrategy';
 import { ISourcePathResolver } from './common/sourcePathResolver';
 import { AnyLaunchConfiguration } from './configuration';
 import Dap from './dap/api';
@@ -76,7 +79,6 @@ import {
   SessionSubStates,
   StoragePath,
   trackDispose,
-  VSCodeApi,
 } from './ioc-extras';
 import { BrowserAttacher } from './targets/browser/browserAttacher';
 import { ChromeLauncher } from './targets/browser/chromeLauncher';
@@ -114,6 +116,7 @@ import { NullExperimentationService } from './telemetry/nullExperimentationServi
 import { NullTelemetryReporter } from './telemetry/nullTelemetryReporter';
 import { ITelemetryReporter } from './telemetry/telemetryReporter';
 import { IShutdownParticipants, ShutdownParticipants } from './ui/shutdownParticipants';
+import { registerTopLevelSessionComponents, registerUiComponents } from './ui/ui-ioc';
 
 /**
  * Contains IOC container factories for the extension. We use Inverisfy, which
@@ -162,13 +165,11 @@ export const createTargetContainer = (
     .toDynamicValue(ctx => ctx.container.get(PerformanceProviderFactory).create())
     .inSingletonScope();
 
-  container.bind(BreakpointPredictorDelegate).toSelf().inSingletonScope();
-
-  container
-    .bind(IBreakpointsPredictor)
-    .toDynamicValue(() => parent.get<BreakpointPredictorDelegate>(IBreakpointsPredictor).getChild())
-    .inSingletonScope()
-    .onActivation(trackDispose);
+  // nested children only run targeted search
+  if (target.parent()) {
+    container.bind(IBreakpointsPredictor).to(BreakpointsPredictor).inSingletonScope();
+    container.bind(BreakpointSearch).to(TargetedBreakpointSearch).inSingletonScope();
+  }
 
   container
     .bind(ITelemetryReporter)
@@ -230,9 +231,10 @@ export const createTopLevelSessionContainer = (parent: Container) => {
   container.bind(VueComponentPaths).to(VueComponentPaths).inSingletonScope();
   container.bind(IVueFileMapper).to(VueFileMapper).inSingletonScope();
   container
-    .bind(ISearchStrategy)
+    .bind(ISearchStrategyFallback)
     .toDynamicValue(ctx => CodeSearchStrategy.createOrFallback(ctx.container.get<ILogger>(ILogger)))
     .inSingletonScope();
+  container.bind(ISearchStrategy).to(TurboSearchStrategy).inSingletonScope();
 
   container.bind(INodeBinaryProvider).to(InteractiveNodeBinaryProvider);
   container.bind(RemoteBrowserHelper).toSelf().inSingletonScope().onActivation(trackDispose);
@@ -247,24 +249,7 @@ export const createTopLevelSessionContainer = (parent: Container) => {
   container.bind(IProgramLauncher).to(TerminalProgramLauncher);
   container.bind(IPackageJsonProvider).to(PackageJsonProvider).inSingletonScope();
 
-  if (parent.get(IsVSCode)) {
-    // dynamic require to not break the debug server
-    container
-      .bind(ILauncher)
-      .to(require('./targets/node/terminalNodeLauncher').TerminalNodeLauncher)
-      .onActivation(trackDispose);
-
-    // request options:
-    container
-      .bind(IRequestOptionsProvider)
-      .to(require('./ui/settingRequestOptionsProvider').SettingRequestOptionsProvider)
-      .inSingletonScope();
-
-    container
-      .bind(IExperimentationService)
-      .to(require('./telemetry/vscodeExperimentationService').VSCodeExperimentationService)
-      .inSingletonScope();
-  }
+  registerTopLevelSessionComponents(container);
 
   container.bind(ILauncher).to(NodeAttacher).onActivation(trackDispose);
 
@@ -335,13 +320,7 @@ export const createGlobalContainer = (options: {
     container.bind(ExtensionContext).toConstantValue(options.context);
   }
 
-  // Dependency that pull from the vscode global--aren't safe to require at
-  // a top level (e.g. in the debug server)
-  if (options.isVsCode) {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    container.bind(VSCodeApi).toConstantValue(require('vscode'));
-    require('./ui/ui-ioc').registerUiComponents(container);
-  }
+  registerUiComponents(container);
 
   return container;
 };
@@ -378,14 +357,8 @@ export const provideLaunchParams = (
   container.bind(IRenameProvider).to(RenameProvider).inSingletonScope();
   container.bind(DiagnosticToolSuggester).toSelf().inSingletonScope().onActivation(trackDispose);
 
-  container.bind(BreakpointsPredictor).toSelf();
-  container
-    .bind(IBreakpointsPredictor)
-    .toDynamicValue(
-      ctx =>
-        new BreakpointPredictorDelegate(ctx.container.get(ISourceMapFactory), () =>
-          ctx.container.get(BreakpointsPredictor),
-        ),
-    )
-    .inSingletonScope();
+  // BP predictor:
+  container.bind(BreakpointPredictorCachedState).toSelf().inSingletonScope();
+  container.bind(IBreakpointsPredictor).to(BreakpointsPredictor).inSingletonScope();
+  container.bind(BreakpointSearch).to(GlobalBreakpointSearch).inSingletonScope();
 };

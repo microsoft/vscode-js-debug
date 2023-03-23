@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import { expect } from 'chai';
-import { delay } from '../../common/promiseUtil';
+import { delay, getDeferred } from '../../common/promiseUtil';
 import { ReservationQueue } from './reservationQueue';
 
 describe('ReservationQueue', () => {
@@ -28,9 +28,22 @@ describe('ReservationQueue', () => {
   });
 
   it('enqueues async with order', async () => {
-    queue.enqueue(delay(6).then(() => 1));
-    queue.enqueue(delay(2).then(() => 2));
-    queue.enqueue(delay(4).then(() => 3));
+    const gate1 = getDeferred<void>();
+    const gate2 = getDeferred<void>();
+
+    queue.enqueue(gate2.promise.then(() => 1));
+    queue.enqueue(
+      delay(1).then(() => {
+        gate1.resolve();
+        return 2;
+      }),
+    );
+    queue.enqueue(
+      gate1.promise.then(() => {
+        gate2.resolve();
+        return 3;
+      }),
+    );
     await delay(10);
     expect(sunk).to.deep.equal([[1, 2, 3]]);
   });

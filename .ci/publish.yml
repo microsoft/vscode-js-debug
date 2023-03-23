@@ -31,9 +31,11 @@ extends:
     ${{ if eq(parameters.publishGhRelease, true) }}:
       ghCreateRelease: true
       ghReleaseAddChangeLog: true
-    l10nShouldProcess: false
+    l10nShouldOnlyPush: true
+    l10nPackageNlsPath: ../package.nls.json
+    l10nSourcePaths: ../src
     buildSteps:
-      - script: npm install
+      - script: npm install --legacy-peer-deps
         displayName: Install dependencies
 
       - script: npm run compile -- package:prepare

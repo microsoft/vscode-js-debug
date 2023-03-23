@@ -299,9 +299,22 @@ export function fileUrlToNetworkPath(urlOrPath: string): string {
   return urlOrPath;
 }
 
-// TODO: this does not escape/unescape special characters, but it should.
+// TODO: this does not escape/unescape special characters
+/** @deprecated consider absolutePathToFileUrlWithDetection instead */
 export function absolutePathToFileUrl(absolutePath: string): string {
   if (platform === 'win32') {
+    return 'file:///' + platformPathToUrlPath(absolutePath);
+  }
+  return 'file://' + platformPathToUrlPath(absolutePath);
+}
+
+/**
+ * Absolte path former that detects the platform based on the absolutePath
+ * itself, rather than the platform where the debugger is running. This is
+ * different from {@link absolutePathToFileUrl}, but should be more correct.
+ */
+export function absolutePathToFileUrlWithDetection(absolutePath: string): string {
+  if (!absolutePath.startsWith('/')) {
     return 'file:///' + platformPathToUrlPath(absolutePath);
   }
   return 'file://' + platformPathToUrlPath(absolutePath);

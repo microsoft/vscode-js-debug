@@ -50,6 +50,7 @@ describe('node runtime', () => {
   }
 
   describe('skipFiles', () => {
+    console.log('described skipFiles');
     itIntegrates('skipFiles skip node internals', async ({ r }) => {
       await r.initialize;
       const cwd = join(testWorkspace, 'simpleNode');
@@ -152,11 +153,13 @@ describe('node runtime', () => {
   if (process.env.ONLY_MINSPEC !== 'true') {
     // not available on node 8
     itIntegrates('debugs worker threads', async ({ r }) => {
+      // note: __filename is broken up in the below script to
+      // avoid the esbuild plugin that replaces them in tests 🙈
       createFileTree(testFixturesDir, {
         'test.js': [
           'const { Worker, isMainThread, workerData } = require("worker_threads");',
           'if (isMainThread) {',
-          '  new Worker(__filename, { workerData: { greet: "world" } });',
+          '  new Worker(__f' + 'ilename, { workerData: { greet: "world" } });',
           '} else {',
           '  setInterval(() => {',
           '    console.log("hello " + workerData.greet);',
@@ -366,7 +369,7 @@ describe('node runtime', () => {
       createFileTree(testFixturesDir, {
         'test.js': `
           const { spawn } = require('child_process');
-          setInterval(() => spawn('node', ['child'], { cwd: __dirname }), 500);
+          setInterval(() => spawn('node', ['child'], { cwd: __dir${''}name }), 500);
         `,
         'child.js': '(function foo() { debugger; })();',
       });
@@ -456,7 +459,7 @@ describe('node runtime', () => {
         'test.js': `
         const cp = require('child_process');
         const path = require('path');
-        cp.fork(path.join(__dirname, 'child.js'));
+        cp.fork(path.join(__dir${''}name, 'child.js'));
       `,
         'child.js': `
         const foo = 'It works!';

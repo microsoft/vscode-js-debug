@@ -8,6 +8,7 @@ import { join } from 'path';
 import * as vscode from 'vscode';
 import { DebugType } from '../../common/contributionUtils';
 import {
+  applyNodeishDefaults,
   extensionHostConfigDefaults,
   IExtensionHostLaunchConfiguration,
   resolveVariableInConfig,
@@ -38,6 +39,8 @@ export class ExtensionHostConfigurationResolver
     if (config.debugWebWorkerHost) {
       config.outFiles = []; // will have a runtime script offset which invalidates any predictions
     }
+
+    applyNodeishDefaults(config);
 
     return Promise.resolve({
       ...extensionHostConfigDefaults,

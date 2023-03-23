@@ -2,8 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 import { hash, shaHash } from '@c4312/chromehash';
+import { promises as fs } from 'fs';
 import { MessagePort, parentPort } from 'worker_threads';
-import { readFileRaw } from '../fsUtils';
 
 export const enum MessageType {
   HashFile,
@@ -112,7 +112,7 @@ async function handle(message: HashRequest): Promise<HashResponse<HashRequest>> 
   switch (message.type) {
     case MessageType.HashFile:
       try {
-        const data = await readFileRaw(message.file);
+        const data = await fs.readFile(message.file);
         return {
           id: message.id,
           hash: message.mode === HashMode.Chromehash ? hash(data) : shaHash(data),
@@ -128,7 +128,7 @@ async function handle(message: HashRequest): Promise<HashResponse<HashRequest>> 
       }
     case MessageType.VerifyFile:
       try {
-        const data = await readFileRaw(message.file);
+        const data = await fs.readFile(message.file);
         return { id: message.id, matches: verifyBytes(data, message.expected, message.checkNode) };
       } catch (e) {
         return { id: message.id, matches: false };

@@ -2,12 +2,12 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { inject, injectable } from 'inversify';
 import { xxHash32 } from 'js-xxhash';
 import { relative } from 'path';
 import { NullableMappedPosition, SourceMapConsumer } from 'source-map';
 import { URL } from 'url';
-import * as nls from 'vscode-nls';
 import Cdp from '../cdp/api';
 import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
 import { EventEmitter } from '../common/events';
@@ -17,7 +17,7 @@ import { forceForwardSlashes, isSubdirectoryOf, properResolve } from '../common/
 import { delay, getDeferred } from '../common/promiseUtil';
 import { ISourceMapMetadata, SourceMap } from '../common/sourceMaps/sourceMap';
 import { CachingSourceMapFactory, ISourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
-import { InlineScriptOffset, ISourcePathResolver } from '../common/sourcePathResolver';
+import { ISourcePathResolver, InlineScriptOffset } from '../common/sourcePathResolver';
 import * as sourceUtils from '../common/sourceUtils';
 import { prettyPrintAsSourceMap } from '../common/sourceUtils';
 import * as utils from '../common/urlUtils';
@@ -32,8 +32,6 @@ import { IResourceProvider } from './resourceProvider';
 import { ScriptSkipper } from './scriptSkipper/implementation';
 import { IScriptSkipper } from './scriptSkipper/scriptSkipper';
 import { Script } from './threads';
-
-const localize = nls.loadMessageBundle();
 
 // This is a ui location which corresponds to a position in the document user can see (Source, Dap.Source).
 export interface IUiLocation {
@@ -63,22 +61,6 @@ type ContentGetter = () => Promise<string | undefined>;
 
 // Each source map has a number of compiled sources referncing it.
 type SourceMapData = { compiled: Set<ISourceWithMap>; map?: SourceMap; loaded: Promise<void> };
-
-export const enum SourceConstants {
-  /**
-   * Extension of evaluated sources internal to the debugger. Sources with
-   * this suffix will be ignored when displaying sources or stacktracees.
-   */
-  InternalExtension = '.cdp',
-
-  /**
-   * Extension of evaluated REPL source. Stack traces which include frames
-   * from this suffix will be truncated to keep only frames from code called
-   * by the REPL.
-   */
-  ReplExtension = '.repl',
-}
-
 export type SourceMapTimeouts = {
   // This is a source map loading delay used for testing.
   load: number;
@@ -112,6 +94,12 @@ const defaultTimeouts: SourceMapTimeouts = {
   output: 1000,
   sourceMapCumulativePause: 10000,
 };
+
+export interface ISourceScript {
+  executionContextId: Cdp.Runtime.ExecutionContextId;
+  scriptId: Cdp.Runtime.ScriptId;
+  url: string;
+}
 
 // Represents a text source visible to the user.
 //
@@ -152,7 +140,7 @@ export class Source {
   // This is the same as |_absolutePath|, but additionally checks that file exists to
   // avoid errors when page refers to non-existing paths/urls.
   private readonly _existingAbsolutePath: Promise<string | undefined>;
-  private readonly _scriptIds: Cdp.Runtime.ScriptId[] = [];
+  private _scripts: ISourceScript[] = [];
 
   /**
    * @param inlineScriptOffset Offset of the start location of the script in
@@ -175,7 +163,7 @@ export class Source {
     sourceMapUrl?: string,
     public readonly inlineScriptOffset?: InlineScriptOffset,
     public readonly runtimeScriptOffset?: InlineScriptOffset,
-    contentHash?: string,
+    public readonly contentHash?: string,
   ) {
     this.sourceReference = container.getSourceReference(url);
     this._contentGetter = once(contentGetter);
@@ -209,12 +197,37 @@ export class Source {
     };
   }
 
-  addScriptId(scriptId: Cdp.Runtime.ScriptId): void {
-    this._scriptIds.push(scriptId);
+  /**
+   * Associated a script with this source. This is only valid for a source
+   * from the runtime, not a {@link SourceFromMap}.
+   */
+  addScript(script: ISourceScript): void {
+    this._scripts.push(script);
   }
 
-  scriptIds(): Cdp.Runtime.ScriptId[] {
-    return this._scriptIds;
+  /**
+   * Filters scripts from a source, done when an execution context is removed.
+   */
+  filterScripts(fn: (s: ISourceScript) => boolean): void {
+    this._scripts = this._scripts.filter(fn);
+  }
+
+  /**
+   * Gets scripts associated with this source.
+   */
+  get scripts(): ReadonlyArray<ISourceScript> {
+    return this._scripts;
+  }
+
+  /**
+   * Gets a suggested mimetype for the source.
+   */
+  get getSuggestedMimeType(): string | undefined {
+    // only return an explicit mimetype if the file has no extension (such as
+    // with node internals.) Otherwise, let the editor guess.
+    if (!/\.[^/]+$/.test(this.url)) {
+      return 'text/javascript';
+    }
   }
 
   async content(): Promise<string | undefined> {
@@ -227,10 +240,6 @@ export class Source {
     }
 
     return content;
-  }
-
-  mimeType(): string {
-    return 'text/javascript';
   }
 
   /**
@@ -296,7 +305,7 @@ export class Source {
       path: this._fqname,
       sourceReference: this.sourceReference,
       presentationHint: this.blackboxed() ? 'deemphasize' : undefined,
-      origin: this.blackboxed() ? localize('source.skipFiles', 'Skipped by skipFiles') : undefined,
+      origin: this.blackboxed() ? l10n.t('Skipped by skipFiles') : undefined,
     };
 
     if (existingAbsolutePath) {
@@ -342,7 +351,7 @@ export class Source {
       return '<eval>/VM' + this.sourceReference;
     }
 
-    if (this.url.endsWith(SourceConstants.ReplExtension)) {
+    if (this.url.endsWith(sourceUtils.SourceConstants.ReplExtension)) {
       return 'repl';
     }
 
@@ -906,7 +915,7 @@ export class SourceContainer {
         : undefined,
       inlineSourceRange,
       runtimeScriptOffset,
-      this.launchConfig.enableContentValidation ? contentHash : undefined,
+      contentHash,
     );
 
     this._addSource(source);
@@ -914,6 +923,9 @@ export class SourceContainer {
   }
 
   private async _addSource(source: Source) {
+    // todo: we should allow the same source at multiple uri's if their scripts
+    // have different executionContextId. We only really need the overwrite
+    // behavior in Node for tools that transpile sources inline.
     const existingByUrl = source.url && this._sourceByOriginalUrl.get(source.url);
     if (existingByUrl && !isOriginalSourceOf(existingByUrl, source)) {
       this.removeSource(existingByUrl, true);
@@ -1034,6 +1046,12 @@ export class SourceContainer {
       'Expected source to be the same as the existing reference',
     );
     this._sourceByReference.delete(source.sourceReference);
+
+    // check for overwrites:
+    if (this._sourceByOriginalUrl.get(source.url) === source) {
+      this._sourceByOriginalUrl.delete(source.url);
+    }
+
     if (source instanceof SourceFromMap) {
       this._sourceMapSourcesByUrl.delete(source.url);
       for (const [compiled, key] of source.compiledToSourceUrl) {
@@ -1133,6 +1151,17 @@ export class SourceContainer {
             );
           } else {
             sourceMapUrl = rawSmUri;
+          }
+        }
+
+        if (absolutePath && sourceMapUrl) {
+          const smMetadata: ISourceMapMetadata = {
+            sourceMapUrl,
+            compiledPath: absolutePath,
+          };
+
+          if (!this.sourcePathResolver.shouldResolveSourceMap(smMetadata)) {
+            sourceMapUrl = undefined;
           }
         }
       }

@@ -2,6 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 import { JSONSchema6 } from 'json-schema';
+import type strings from '../../package.nls.json';
 import {
   allCommands,
   allDebugTypes,
@@ -9,7 +10,6 @@ import {
   Commands,
   Configuration,
   ContextKey,
-  Contributions,
   CustomViews,
   DebugType,
   IConfigurationTypes,
@@ -45,7 +45,6 @@ import {
   ResolvingConfiguration,
   terminalBaseDefaults,
 } from '../configuration';
-import strings from './strings';
 
 const appInsightsKey = '0c6ae279ed8443289764825290e4f9e2-1a736e7c-1324-4338-be46-fc2a58ae4d14-7255';
 
@@ -105,8 +104,8 @@ const forNodeDebugType = (contextKey: string, andExpr?: string) =>
  */
 type MappedReferenceString = { __opaque: true } & string;
 
-// eslint-disable-next-line
-const refString = (str: keyof typeof strings): MappedReferenceString => `%${str}%` as any;
+const refString = (str: keyof typeof strings & string): MappedReferenceString =>
+  `%${str}%` as unknown as MappedReferenceString;
 
 /**
  * Type definition for a debugger section. VSCode doesn't publish these types,
@@ -354,6 +353,11 @@ const nodeBaseConfigurationAttributes: ConfigurationAttributes<INodeBaseConfigur
     minimum: 8,
     description: refString('node.versionHint.description'),
     default: 12,
+  },
+  enableTurboSourcemaps: {
+    type: 'boolean',
+    default: true,
+    description: refString('node.enableTurboSourcemaps.description'),
   },
 };
 
@@ -1318,7 +1322,7 @@ const menus: Menus = {
     {
       command: Commands.PrettyPrint,
       title: refString('pretty.print.script'),
-      when: forAnyDebugType('debugType', 'inDebugMode'),
+      when: forAnyDebugType('debugType', 'debugState == stopped'),
     },
     {
       command: Commands.StartProfile,
@@ -1496,7 +1500,7 @@ const menus: Menus = {
     {
       command: Commands.PrettyPrint,
       group: 'navigation',
-      when: `resource in ${ContextKey.CanPrettyPrint}`,
+      when: `debugState == stopped && resource in ${ContextKey.CanPrettyPrint}`,
     },
   ],
 };
@@ -1547,6 +1551,20 @@ const views = {
   ],
 };
 
+const activationEvents = new Set([
+  'onDebugDynamicConfigurations',
+  'onDebugInitialConfigurations',
+  ...[...debuggers.map(dbg => dbg.type), ...preferredDebugTypes.values()].map(
+    t => `onDebugResolve:${t}`,
+  ),
+  ...[...allCommands].map(cmd => `onCommand:${cmd}`),
+]);
+
+// remove implicit commands:
+for (const { command } of commands) {
+  activationEvents.delete(`onCommand:${command}`);
+}
+
 if (require.main === module) {
   process.stdout.write(
     JSON.stringify({
@@ -1557,16 +1575,7 @@ if (require.main === module) {
           description: refString('workspaceTrust.description'),
         },
       },
-      activationEvents: Array.from(
-        new Set([
-          ...[...allCommands].map(cmd => `onCommand:${cmd}`),
-          ...[...debuggers.map(dbg => dbg.type), ...preferredDebugTypes.values()].map(
-            t => `onDebugResolve:${t}`,
-          ),
-          ...views.debug.map(v => `onView:${v.id}`),
-          `onWebviewPanel:${Contributions.DiagnosticsView}`,
-        ]),
-      ),
+      activationEvents: [...activationEvents],
       contributes: {
         menus,
         breakpoints: breakpointLanguages.map(language => ({ language })),
