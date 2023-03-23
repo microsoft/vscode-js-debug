@@ -38,5 +38,14 @@ extends:
       - script: npm install --legacy-peer-deps
         displayName: Install dependencies
 
+      - script: npm run compile -- dapDebugServer
+        displayName: Compile DAP Debug Server Bundle
+
+      - script: node src/build/archiveDapBundle $(Build.ArtifactStagingDirectory)/dap-server
+        displayName: Package DAP Debug Server Bundle
+
+      - publish: $(Build.ArtifactStagingDirectory)/dap-server
+        artifact: Publish DAP Debug Server Bundle
+
       - script: npm run compile -- package:prepare
         displayName: Package Stable

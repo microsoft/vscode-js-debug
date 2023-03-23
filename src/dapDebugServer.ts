@@ -11,7 +11,6 @@ import * as path from 'path';
 import 'reflect-metadata';
 import { DebugAdapter } from './adapter/debugAdapter';
 import { Binder, IBinderDelegate } from './binder';
-import { IDisposable } from './common/disposable';
 import { ILogger } from './common/logging';
 import { ProxyLogger } from './common/logging/proxyLogger';
 import { getDeferred, IDeferred } from './common/promiseUtil';
@@ -52,6 +51,7 @@ function collectInitialize(dap: Dap.Api) {
   let setExceptionBreakpointsParams: Dap.SetExceptionBreakpointsParams | undefined;
   const setBreakpointsParams: { params: Dap.SetBreakpointsParams; ids: number[] }[] = [];
   const customBreakpoints = new Set<string>();
+  const configurationDone = getDeferred<void>();
   let lastBreakpointId = 0;
   let initializeParams: Dap.InitializeParams;
 
@@ -82,6 +82,7 @@ function collectInitialize(dap: Dap.Api) {
   });
 
   dap.on('configurationDone', async () => {
+    configurationDone.resolve();
     return {};
   });
 
@@ -100,9 +101,14 @@ function collectInitialize(dap: Dap.Api) {
   });
 
   return new Promise<IInitializationCollection>(resolve => {
-    const handle = (
+    const handle = async (
       launchParams: Dap.LaunchParams | Dap.AttachParams,
     ): Promise<Dap.LaunchResult | Dap.AttachResult> => {
+      // By spec, clients should not call launch until after ConfigurationDone...
+      // but VS Code doesn't actually do this, and breakpoints aren't sent
+      // until ConfigurationDone happens, so make sure to wait on it.
+      await configurationDone.promise;
+
       const deferred = getDeferred<Dap.LaunchResult | Dap.AttachResult>();
       if (!initializeParams) {
         throw new Error(`cannot call launch/attach before initialize`);
@@ -184,7 +190,6 @@ class DapSessionManager implements IBinderDelegate {
     for (const { params, ids } of init.setBreakpointsParams)
       await adapter.breakpointManager.setBreakpoints(params, ids);
     await adapter.enableCustomBreakpoints({ ids: Array.from(init.customBreakpoints) });
-    await adapter.configurationDone();
     await adapter.onInitialize(init.initializeParams);
 
     await adapter.launchBlocker();
@@ -219,61 +224,71 @@ class DapSessionManager implements IBinderDelegate {
   }
 }
 
-function startDebugServer(port: number, host?: string): Promise<IDisposable> {
+function startDebugServer(options: net.ListenOptions) {
   const services = createGlobalContainer({ storagePath, isVsCode: false });
   const managers = new Set<DapSessionManager>();
 
-  return new Promise((resolve, reject) => {
-    const server = net
-      .createServer(async socket => {
-        try {
-          const logger = new ProxyLogger();
-          const transport = new StreamDapTransport(socket, socket, logger);
-          const connection = new DapConnection(transport, logger);
-          const dap = await connection.dap();
+  const server = net
+    .createServer(async socket => {
+      try {
+        const logger = new ProxyLogger();
+        const transport = new StreamDapTransport(socket, socket, logger);
+        const connection = new DapConnection(transport, logger);
+        const dap = await connection.dap();
 
-          const initialized = await collectInitialize(dap);
-          if ('__pendingTargetId' in initialized.launchParams) {
-            const ptId = initialized.launchParams.__pendingTargetId;
-            const manager = ptId && [...managers].find(m => m.hasPendingTarget(ptId));
-            if (!manager) {
-              throw new Error(`Cannot find pending target for ${ptId}`);
-            }
-            logger.connectTo(manager.services.get(ILogger));
-            manager.handleConnection({ ...initialized, connection });
-          } else {
-            const sessionServices = createTopLevelSessionContainer(services);
-            const manager = new DapSessionManager(dap, sessionServices);
-            managers.add(manager);
-            sessionServices.bind(IInitializeParams).toConstantValue(initialized.initializeParams);
-            logger.connectTo(sessionServices.get(ILogger));
-            const binder = new Binder(
-              manager,
-              connection,
-              sessionServices,
-              new TargetOrigin('targetOrigin'),
-            );
-            transport.closed(() => {
-              binder.dispose();
-              managers.delete(manager);
-            });
-            initialized.deferred.resolve(await binder.boot(initialized.launchParams, dap));
+        const initialized = await collectInitialize(dap);
+        if ('__pendingTargetId' in initialized.launchParams) {
+          const ptId = initialized.launchParams.__pendingTargetId;
+          const manager = ptId && [...managers].find(m => m.hasPendingTarget(ptId));
+          if (!manager) {
+            throw new Error(`Cannot find pending target for ${ptId}`);
           }
-        } catch (e) {
-          console.error(e);
-          return socket.destroy();
+          logger.connectTo(manager.services.get(ILogger));
+          manager.handleConnection({ ...initialized, connection });
+        } else {
+          const sessionServices = createTopLevelSessionContainer(services);
+          const manager = new DapSessionManager(dap, sessionServices);
+          managers.add(manager);
+          sessionServices.bind(IInitializeParams).toConstantValue(initialized.initializeParams);
+          logger.connectTo(sessionServices.get(ILogger));
+          const binder = new Binder(
+            manager,
+            connection,
+            sessionServices,
+            new TargetOrigin('targetOrigin'),
+          );
+          transport.closed(() => {
+            binder.dispose();
+            managers.delete(manager);
+          });
+          initialized.deferred.resolve(await binder.boot(initialized.launchParams, dap));
         }
-      })
-      .on('error', reject)
-      .listen({ port, host }, () => {
-        console.log(`Debug server listening at ${(server.address() as net.AddressInfo).port}`);
-        resolve({
-          dispose: () => {
-            server.close();
-          },
-        });
-      });
-  });
+      } catch (e) {
+        console.error(e);
+        return socket.destroy();
+      }
+    })
+    .on('error', err => {
+      console.error(err);
+      process.exit(1);
+    })
+    .listen(options, () => {
+      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+      const addr = server.address()!;
+      console.log(
+        `Debug server listening at ${
+          typeof addr === 'string' ? addr : `${addr.address}:${addr.port}`
+        }`,
+      );
+    });
 }
 
-startDebugServer(8123);
+const [, argv1, portOrSocket = '8123', host = 'localhost'] = process.argv;
+
+if (process.argv.includes('--help')) {
+  console.log(`Usage: ${path.basename(argv1)} [port|socket path=8123] [host=localhost]`);
+} else if (!isNaN(Number(portOrSocket))) {
+  startDebugServer({ port: Number(portOrSocket), host });
+} else {
+  startDebugServer({ path: portOrSocket });
+}

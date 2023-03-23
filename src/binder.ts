@@ -400,18 +400,22 @@ export class Binder implements IDisposable {
       threadData.resolve({ thread, debugAdapter });
       return {};
     };
+
+    // default disconnect/terminate/restart handlers that can be overridden
+    // by the delegate in initAdapter()
+    dap.on('disconnect', () => this.detachTarget(target, container));
+    dap.on('terminate', () => this.stopTarget(target, container));
+    dap.on('restart', async () => {
+      if (target.canRestart()) target.restart();
+      else await this._restart();
+      return {};
+    });
+
     if (await this._delegate.initAdapter(debugAdapter, target, launcher)) {
       startThread();
     } else {
       dap.on('attach', startThread);
       dap.on('launch', startThread);
-      dap.on('disconnect', () => this.detachTarget(target, container));
-      dap.on('terminate', () => this.stopTarget(target, container));
-      dap.on('restart', async () => {
-        if (target.canRestart()) target.restart();
-        else await this._restart();
-        return {};
-      });
     }
 
     await target.afterBind();

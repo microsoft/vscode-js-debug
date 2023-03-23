@@ -52,25 +52,18 @@
       // "preLaunchTask": "npm: watch"
     },
     {
-      "name": "Extension",
-      "type": "pwa-extensionHost",
+      "type": "node",
       "request": "launch",
+      "name": "Debug Server (DAP)",
+      "trace": true,
+      "program": "${workspaceFolder}/dist/src/dapDebugServer.js",
       "skipFiles": [
-        "<node_internals>/**"
-      ],
-      "args": [
-        "--enable-proposed-api=ms-vscode.js-debug",
-        "--extensionDevelopmentPath=${workspaceFolder}/dist",
-        "--extensionDevelopmentPath=${workspaceFolder}/../vscode-hexeditor",
-      ],
-      "outFiles": [
-        "${workspaceFolder}/dist/**/*.js",
-        "${workspaceFolder}/../vscode/extensions/debug-auto-launch/out/**/*.js"
+        "<node_internals>/**/*.js"
       ]
       // "preLaunchTask": "npm: watch"
     },
     {
-      "name": "Extension (packaged)",
+      "name": "Extension",
       "type": "extensionHost",
       "request": "launch",
       "skipFiles": [
@@ -78,10 +71,29 @@
       ],
       "args": [
         "--enable-proposed-api=ms-vscode.js-debug",
-        "--extensionDevelopmentPath=${workspaceFolder}/dist"
+        "--extensionDevelopmentPath=${workspaceFolder}/dist",
       ],
       "outFiles": [
-        "${workspaceFolder}/dist/**/*.js"
+        "${workspaceFolder}/dist/**/*.js",
+      ]
+      // "preLaunchTask": "npm: watch"
+    },
+    {
+      "name": "Extension With Local DAP",
+      "type": "extensionHost",
+      "request": "launch",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "args": [
+        "--enable-proposed-api=ms-vscode.js-debug",
+        "--extensionDevelopmentPath=${workspaceFolder}/dist",
+      ],
+      "env": {
+        "JS_DEBUG_USE_LOCAL_DAP_PORT": "8123"
+      },
+      "outFiles": [
+        "${workspaceFolder}/dist/**/*.js",
       ]
       // "preLaunchTask": "npm: watch"
     },
