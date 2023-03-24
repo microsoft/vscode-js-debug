@@ -4,7 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
-Nothing (yet)
+- feat: support ETX in stdio console endings ([vscode#175763](https://github.com/microsoft/vscode/issues/175763))
 
 ## v1.77 (March 2023)
 
