@@ -2,9 +2,9 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { format, Options as PrettierOptions } from 'prettier';
-import * as path from 'path';
 import { promises as fs } from 'fs';
+import * as path from 'path';
+import { format, Options as PrettierOptions } from 'prettier';
 import { prettier as defaultPrettierOpts } from '../../package.json';
 
 export function writeCodeToFile(
@@ -12,7 +12,7 @@ export function writeCodeToFile(
   relativeFilePath: string,
   prettierOpts: PrettierOptions = {},
 ) {
-  const fileName = path.join(__dirname, '..', '..', '..', relativeFilePath);
+  const fileName = path.join(__dirname, '..', '..', relativeFilePath);
   return fs.writeFile(
     fileName,
     format(code, {

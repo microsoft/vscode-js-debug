@@ -133,7 +133,7 @@ gulp.task('compile:build-scripts', () =>
 );
 
 gulp.task('compile:dynamic', async () => {
-  const [contributions, strings] = await Promise.all([
+  const [contributions] = await Promise.all([
     runBuildScript('generate-contributions'),
     runBuildScript('documentReadme'),
   ]);
@@ -149,10 +149,7 @@ gulp.task('compile:dynamic', async () => {
 
   packageJson = deepmerge(packageJson, contributions);
 
-  return Promise.all([
-    writeFile(`${buildDir}/package.json`, JSON.stringify(packageJson)),
-    writeFile(`${buildDir}/package.nls.json`, JSON.stringify(strings)),
-  ]);
+  await writeFile(`${buildDir}/package.json`, JSON.stringify(packageJson));
 });
 
 gulp.task('compile:static', () =>
@@ -222,6 +219,11 @@ async function compileTs({
   }
 
   await Promise.all(todo);
+
+  await fs.promises.appendFile(
+    path.resolve(buildSrcDir, 'bootloader.js'),
+    '\n//# sourceURL=bootloader.bundle.cdp',
+  );
 }
 
 /** Run webpack to bundle the extension output files */
@@ -246,18 +248,19 @@ gulp.task(
 /** Run webpack to bundle into the flat session launcher (for VS or standalone debug server)  */
 gulp.task('flatSessionBundle:webpack-bundle', async () => {
   const packages = [{ entry: `${srcDir}/flatSessionLauncher.ts`, library: true }];
-  return compileTs({ packages, sourcemap: true });
+  return compileTs({ packages, sourcemap: isWatch });
 });
 
-gulp.task('package:bootloader-as-cdp', done => {
-  const bootloaderFilePath = path.resolve(buildSrcDir, 'bootloader.js');
-  fs.appendFile(bootloaderFilePath, '\n//# sourceURL=bootloader.bundle.cdp', done);
+/** Run webpack to bundle into the standard DAP debug server */
+gulp.task('dapDebugServer:webpack-bundle', async () => {
+  const packages = [{ entry: `${srcDir}/dapDebugServer.ts`, library: false }];
+  return compileTs({ packages, sourcemap: isWatch });
 });
 
 /** Run webpack to bundle into the VS debug server */
 gulp.task('vsDebugServerBundle:webpack-bundle', async () => {
   const packages = [{ entry: `${srcDir}/vsDebugServer.ts`, library: true }];
-  return compileTs({ packages, sourcemap: true });
+  return compileTs({ packages, sourcemap: isWatch });
 });
 
 const vsceUrls = {
@@ -284,19 +287,19 @@ gulp.task(
     'compile:build-scripts',
     'compile:dynamic',
     'compile:extension',
-    'package:bootloader-as-cdp',
     'package:createVSIX',
   ),
 );
 
 gulp.task('package', gulp.series('package:prepare', 'package:createVSIX'));
 
+gulp.task('flatSessionBundle', gulp.series('clean', 'compile', 'flatSessionBundle:webpack-bundle'));
+
 gulp.task(
-  'flatSessionBundle',
-  gulp.series('clean', 'compile', 'flatSessionBundle:webpack-bundle', 'package:bootloader-as-cdp'),
+  'dapDebugServer',
+  gulp.series('clean', 'compile:static', 'dapDebugServer:webpack-bundle'),
 );
 
-// for now, this task will build both flat session and debug server until we no longer need flat session
 gulp.task(
   'vsDebugServerBundle',
   gulp.series(
@@ -304,7 +307,6 @@ gulp.task(
     'compile',
     'vsDebugServerBundle:webpack-bundle',
     'flatSessionBundle:webpack-bundle',
-    'package:bootloader-as-cdp',
   ),
 );
 
