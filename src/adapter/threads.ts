@@ -531,7 +531,7 @@ export class Thread implements IVariableStoreLocationProvider {
     }
 
     const variable = await variableStore
-      .createFloatingVariable(response.result)
+      .createFloatingVariable(params.expression, response.result)
       .toDap(args.context as PreviewContextType, args.format);
 
     return {
@@ -575,7 +575,7 @@ export class Thread implements IVariableStoreLocationProvider {
         ? `\x1b[33m[${this.target.executionContextName(this._selectedContext.description)}] `
         : '';
     const resultVar = await this.replVariables
-      .createFloatingVariable(response.result)
+      .createFloatingVariable(originalCall.expression, response.result)
       .toDap(PreviewContextType.Repl, format);
 
     const budget = getContextForType(PreviewContextType.Repl).budget;
@@ -853,6 +853,14 @@ export class Thread implements IVariableStoreLocationProvider {
         )
       ) {
         // Check if there are any user-defined breakpoints on this line
+      } else if (
+        this._expectedPauseReason?.reason === 'step' &&
+        this._expectedPauseReason.direction === StepDirection.Over
+      ) {
+        // Check if we're in the middle of a step over, e.g. stepping over a
+        // function compilation. Stepping in should still remain paused,
+        // and an instrumentation pause in step out should not be possible.
+        return this._cdp.Debugger.stepOut({});
       } else {
         // If none of this above, it's pure instrumentation.
         return this.resume();

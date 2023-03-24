@@ -76,6 +76,10 @@ interface ICDPOperationClassification {
   'debugger.scriptparsed': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!debugger.scriptparsed.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
 
+  // Domain: DeviceAccess
+  'deviceaccess.devicerequestprompted': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!deviceaccess.devicerequestprompted.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+
   // Domain: DeviceOrientation
 
   // Domain: DOM
@@ -131,6 +135,10 @@ interface ICDPOperationClassification {
   '!emulation.virtualtimebudgetexpired.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
 
   // Domain: EventBreakpoints
+
+  // Domain: FedCm
+  'fedcm.dialogshown': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!fedcm.dialogshown.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
 
   // Domain: Fetch
   'fetch.requestpaused': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
@@ -325,8 +333,6 @@ interface ICDPOperationClassification {
   '!page.lifecycleevent.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   'page.backforwardcachenotused': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!page.backforwardcachenotused.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
-  'page.prerenderattemptcompleted': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!page.prerenderattemptcompleted.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   'page.loadeventfired': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!page.loadeventfired.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   'page.navigatedwithindocument': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
@@ -347,6 +353,20 @@ interface ICDPOperationClassification {
   // Domain: PerformanceTimeline
   'performancetimeline.timelineeventadded': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!performancetimeline.timelineeventadded.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+
+  // Domain: Preload
+  'preload.rulesetupdated': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!preload.rulesetupdated.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  'preload.rulesetremoved': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!preload.rulesetremoved.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  'preload.prerenderattemptcompleted': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!preload.prerenderattemptcompleted.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  'preload.prefetchstatusupdated': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!preload.prefetchstatusupdated.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  'preload.prerenderstatusupdated': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!preload.prerenderstatusupdated.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  'preload.preloadingattemptsourcesupdated': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!preload.preloadingattemptsourcesupdated.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
 
   // Domain: Profiler
   'profiler.consoleprofilefinished': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };

@@ -1,7 +1,7 @@
 {
   "name": "js-debug",
   "displayName": "JavaScript Debugger",
-  "version": "1.76.0",
+  "version": "1.77.0",
   "publisher": "ms-vscode",
   "author": {
     "name": "Microsoft Corporation"
@@ -41,7 +41,7 @@
     "precommit": "npm-run-all --parallel test:lint test:types",
     "updatetypes": "cd src/typings && npx vscode-dts dev && npx vscode-dts master",
     "updatenodeapi": "python src/build/getNodePdl.py && prettier --write src/build/nodeCustom.ts",
-    "generateapis": "node dist/src/build/generateDap.js && node dist/src/build/generateCdp.js",
+    "generateapis": "tsx src/build/generateDap.ts && tsx src/build/generateCdp.ts",
     "test": "gulp && npm-run-all --parallel test:unit test:types test:golden test:lint",
     "test:types": "tsc --noEmit",
     "test:unit": "tsx node_modules/mocha/bin/mocha.js --config .mocharc.unit.js",

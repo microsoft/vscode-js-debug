@@ -75,7 +75,7 @@ class VsDebugServer implements ISessionLauncher<VSDebugSession> {
     }
   }
 
-  launchRootFromExisting(
+  private launchRootFromExisting(
     deferredConnection: IDeferred<DapConnection>,
     session: VSDebugSession,
     inputStream: Readable,
@@ -95,7 +95,7 @@ class VsDebugServer implements ISessionLauncher<VSDebugSession> {
     console.log((result.server.address() as net.AddressInfo).port.toString());
   }
 
-  launch(
+  public launch(
     parentSession: Session<VSDebugSession>,
     target: ITarget,
     config: IPseudoAttachConfiguration,

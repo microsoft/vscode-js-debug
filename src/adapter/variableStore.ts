@@ -1066,9 +1066,9 @@ export class VariableStore {
   }
 
   /** Creates a variable not attached to any specific scope. */
-  public createFloatingVariable(value: Cdp.Runtime.RemoteObject): IVariable {
+  public createFloatingVariable(expression: string, value: Cdp.Runtime.RemoteObject): IVariable {
     const ctx = this.createFloatingContext();
-    return ctx.createVariableByType({ name: '' }, value);
+    return ctx.createVariableByType({ name: expression }, value);
   }
 
   /**

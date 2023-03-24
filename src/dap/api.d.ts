@@ -3999,7 +3999,7 @@ export namespace Dap {
     endColumn?: integer;
 
     /**
-     * Indicates whether this frame can be restarted with the `restart` request. Clients should only use this if the debug adapter supports the `restart` request and the corresponding capability `supportsRestartRequest` is true.
+     * Indicates whether this frame can be restarted with the `restart` request. Clients should only use this if the debug adapter supports the `restart` request and the corresponding capability `supportsRestartRequest` is true. If a debug adapter has this capability, then `canRestart` defaults to `true` if the property is absent.
      */
     canRestart?: boolean;
 
@@ -4230,6 +4230,7 @@ export namespace Dap {
      * The expression that controls how many hits of the breakpoint are ignored.
      * The debug adapter is expected to interpret the expression as needed.
      * The attribute is only honored by a debug adapter if the corresponding capability `supportsHitConditionalBreakpoints` is true.
+     * If both this property and `condition` are specified, `hitCondition` should be evaluated only if the `condition` is met, and the debug adapter should stop only if both conditions are met.
      */
     hitCondition?: string;
 
@@ -4237,6 +4238,7 @@ export namespace Dap {
      * If this attribute exists and is non-empty, the debug adapter must not 'break' (stop)
      * but log the message instead. Expressions within `{}` are interpolated.
      * The attribute is only honored by a debug adapter if the corresponding capability `supportsLogPoints` is true.
+     * If either `hitCondition` or `condition` is specified, then the message should only be logged if those conditions are met.
      */
     logMessage?: string;
   }
