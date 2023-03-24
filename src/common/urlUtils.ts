@@ -519,7 +519,7 @@ export const createTargetFilterForConfig = (
   config: AnyChromiumConfiguration,
   additonalMatches: ReadonlyArray<string> = [],
 ): ((t: { url: string }) => boolean) => {
-  const filter = config.urlFilter || config.url || ('file' in config && config.file);
+  const filter = config.urlFilter || ('file' in config && config.file) || config.url;
   if (!filter) {
     return () => true;
   }

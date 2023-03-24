@@ -224,7 +224,7 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
 
     // Make "index" paths optional since some servers, like vercel's serve,
     // allow omitting them.
-    let endRegexEscape = absolutePath.length;
+    let endRegexEscape = url.length;
     if (url.endsWith(Suffix.Index)) {
       endRegexEscape = url.length - Suffix.Index.length - 1;
       url = url.slice(0, endRegexEscape) + `\\/?($|index(\\.html)?)`;
