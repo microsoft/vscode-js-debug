@@ -4,6 +4,7 @@
 
 import { Container } from 'inversify';
 import { DebugConfiguration } from 'vscode';
+import { DebugAdapter } from './adapter/debugAdapter';
 import { Binder, IBinderDelegate } from './binder';
 import { DebugType } from './common/contributionUtils';
 import { DisposableList } from './common/disposable';
@@ -15,7 +16,7 @@ import { IDapTransport } from './dap/transport';
 import { createTopLevelSessionContainer } from './ioc';
 import { SessionSubStates } from './ioc-extras';
 import { TargetOrigin } from './targets/targetOrigin';
-import { ITarget } from './targets/targets';
+import { ILauncher, ITarget } from './targets/targets';
 import { ITelemetryReporter } from './telemetry/telemetryReporter';
 
 /**
@@ -45,13 +46,17 @@ export class Session<TSessionImpl extends IDebugSessionLike> implements IDisposa
 
   constructor(
     public readonly debugSession: TSessionImpl,
-    transport: IDapTransport,
+    transport: IDapTransport | DapConnection,
     public readonly logger: ILogger,
     public readonly sessionStates: SessionSubStates,
     private readonly parent?: Session<TSessionImpl>,
   ) {
-    transport.setLogger(logger);
-    this.connection = new DapConnection(transport, this.logger);
+    if (transport instanceof DapConnection) {
+      this.connection = transport;
+    } else {
+      transport.setLogger(logger);
+      this.connection = new DapConnection(transport, this.logger);
+    }
   }
 
   listenToTarget(target: ITarget) {
@@ -88,11 +93,16 @@ export class RootSession<TSessionImpl extends IDebugSessionLike> extends Session
 
   constructor(
     public readonly debugSession: TSessionImpl,
-    transport: IDapTransport,
+    transport: IDapTransport | DapConnection,
     private readonly services: Container,
   ) {
     super(debugSession, transport, services.get(ILogger), services.get(SessionSubStates));
     this.connection.attachTelemetry(services.get(ITelemetryReporter));
+  }
+
+  get binder() {
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    return this._binder!;
   }
 
   createBinder(delegate: IBinderDelegate) {
@@ -134,7 +144,17 @@ export class SessionManager<TSessionImpl extends IDebugSessionLike>
     if (session) session.dispose();
   }
 
-  public createNewRootSession(debugSession: TSessionImpl, transport: IDapTransport) {
+  /**
+   * Gets whether the pending target ID exists.
+   */
+  public hasPendingTargetId(targetId: string) {
+    return this._pendingTarget.has(targetId);
+  }
+
+  public createNewRootSession(
+    debugSession: TSessionImpl,
+    transport: IDapTransport | DapConnection,
+  ) {
     const root = new RootSession(
       debugSession,
       transport,
@@ -151,7 +171,7 @@ export class SessionManager<TSessionImpl extends IDebugSessionLike>
   public createNewChildSession(
     debugSession: TSessionImpl,
     pendingTargetId: string,
-    transport: IDapTransport,
+    transport: IDapTransport | DapConnection,
   ): Session<TSessionImpl> {
     const pending = this._pendingTarget.get(pendingTargetId);
     if (!pending) {
@@ -235,7 +255,11 @@ export class SessionManager<TSessionImpl extends IDebugSessionLike>
   /**
    * @inheritdoc
    */
-  public initAdapter(): Promise<boolean> {
+  public initAdapter(
+    _debugAdapter: DebugAdapter,
+    _target: ITarget,
+    _launcher: ILauncher,
+  ): Promise<boolean> {
     return Promise.resolve(false);
   }
 
