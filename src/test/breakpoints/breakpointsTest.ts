@@ -7,6 +7,7 @@ import del from 'del';
 import { join } from 'path';
 import { readfile } from '../../common/fsUtils';
 import { forceForwardSlashes } from '../../common/pathUtils';
+import { absolutePathToFileUrlWithDetection } from '../../common/urlUtils';
 import Dap from '../../dap/api';
 import { createFileTree } from '../createFileTree';
 import { removeNodeInternalsStackLines } from '../goldenText';
@@ -1172,6 +1173,21 @@ describe('breakpoints', () => {
 
     // steps in demapped code when enabled
     await p.dap.stepIn({ threadId });
+    await waitForPause(p);
+    p.assertLog();
+  });
+
+  itIntegrates('prefers file uris to url (#1598)', async ({ r }) => {
+    const file = join(testWorkspace, 'web/script.html');
+    const p = await r.launchUrl('script.html', { file });
+    r._launchUrl = absolutePathToFileUrlWithDetection(file); // fix so navigation is right
+
+    const source: Dap.Source = {
+      path: p.workspacePath('web/script.js'),
+    };
+    await p.dap.setBreakpoints({ source, breakpoints: [{ line: 9, column: 0 }] });
+    p.load();
+    await waitForPause(p);
     await waitForPause(p);
     p.assertLog();
   });
