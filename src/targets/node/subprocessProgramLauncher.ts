@@ -4,6 +4,8 @@
 
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
 import { inject, injectable } from 'inversify';
+import split from 'split2';
+import { Transform } from 'stream';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { ILogger } from '../../common/logging';
 import * as urlUtils from '../../common/urlUtils';
@@ -61,10 +63,14 @@ export class SubprocessProgramLauncher implements IProgramLauncher {
    * Called for a child process when the stdio should be written over DAP.
    */
   private captureStdio(dap: Dap.Api, child: ChildProcessWithoutNullStreams) {
-    child.stdout.on('data', data => dap.output({ category: 'stdout', output: data.toString() }));
-    child.stderr.on('data', data => dap.output({ category: 'stderr', output: data.toString() }));
-    child.stdout.resume();
-    child.stderr.resume();
+    child.stdout
+      .pipe(EtxSplitter.stream())
+      .on('data', output => dap.output({ category: 'stdout', output }))
+      .resume();
+    child.stderr
+      .pipe(EtxSplitter.stream())
+      .on('data', output => dap.output({ category: 'stderr', output }))
+      .resume();
   }
 
   /**
@@ -150,3 +156,33 @@ const formatArguments = (executable: string, args: ReadonlyArray<string>, cwd: s
 
   return { executable, args, shell: false, cwd };
 };
+
+const enum Char {
+  ETX = '\u0003',
+  LF = '\n',
+}
+
+/**
+ * The ETX character is used to signal the end of a record.
+ *
+ * This EtxSplitter will look out for ETX characters in the stream. If it
+ * finds any, it will switch from splitting the stream on newlines to
+ * splitting on ETX characters.
+ */
+export class EtxSplitter {
+  private etxSpotted = false;
+
+  public static stream(): Transform {
+    // needs https://github.com/mcollina/split2/pull/59 and DT update
+    // to be done without workarounds
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (split as any)(new EtxSplitter(), undefined, undefined);
+  }
+
+  [Symbol.split](str: string) {
+    this.etxSpotted ||= str.includes(Char.ETX);
+    const split = str.split(this.etxSpotted ? Char.ETX : Char.LF);
+    // restore or add new lines between each record for proper debug console display
+    return split.length > 1 ? split.map((s, i) => (i < split.length - 1 ? `${s}\n` : s)) : split;
+  }
+}
