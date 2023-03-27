@@ -58,7 +58,7 @@ describe('BlazorSourcePathResolver.absolutePathToUrlRegexp', () => {
       expect(regexp).to.equal(
         'file:\\/\\/\\/c\\/Users\\/digeff\\/source\\/repos\\/MyBlazorApp\\/MyBlazorApp\\/Pages\\/Counter\\.razor($|\\?)' +
           '|\\/c\\/Users\\/digeff\\/source\\/repos\\/MyBlazorApp\\/MyBlazorApp\\/Pages\\/Counter\\.razor($|\\?)' +
-          '|http:\\/\\/localhost:1234\\/\\.\\.\\/\\.\\.\\/\\.\\.\\/\\.\\.\\/\\.\\.\\/\\.\\.\\/\\.\\.\\/c\\/Users\\/digeff\\/source\\/repos\\/MyBlazorApp\\/MyBlazorApp\\/Pages\\/Counter.razor($|\\?)',
+          '|http:\\/\\/localhost:1234\\/\\.\\.\\/\\.\\.\\/\\.\\.\\/\\.\\.\\/\\.\\.\\/\\.\\.\\/\\.\\.\\/c\\/Users\\/digeff\\/source\\/repos\\/MyBlazorApp\\/MyBlazorApp\\/Pages\\/Counter\\.razor($|\\?)',
       );
     } else {
       // This regexp was generated from running the real scenario, verifying that the breakpoint with this regexp works, and then copying it here
