@@ -2,6 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { tmpdir } from 'os';
 import * as vscode from 'vscode';
 import {
@@ -31,6 +32,10 @@ import { toggleSkippingFile } from './ui/toggleSkippingFile';
 import { VSCodeSessionManager } from './ui/vsCodeSessionManager';
 
 export function activate(context: vscode.ExtensionContext) {
+  if (vscode.l10n.bundle) {
+    l10n.config({ contents: vscode.l10n.bundle });
+  }
+
   const services = createGlobalContainer({
     // On Windows, use the os.tmpdir() since the extension storage path is too long. See:
     // https://github.com/microsoft/vscode-js-debug/issues/342
