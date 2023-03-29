@@ -16,7 +16,7 @@ import { DisposableList } from './common/disposable';
 import { EventEmitter, IDisposable } from './common/events';
 import { ILogger, LogTag, resolveLoggerOptions } from './common/logging';
 import { MutableLaunchConfig } from './common/mutableLaunchConfig';
-import { mapValues, once } from './common/objUtils';
+import { mapValues, once, truthy } from './common/objUtils';
 import { getDeferred } from './common/promiseUtil';
 import * as urlUtils from './common/urlUtils';
 import {
@@ -31,7 +31,7 @@ import DapConnection from './dap/connection';
 import { createTargetContainer, provideLaunchParams } from './ioc';
 import { disposeContainer, ExtensionLocation, IInitializeParams, IsVSCode } from './ioc-extras';
 import { ITargetOrigin } from './targets/targetOrigin';
-import { ILauncher, ILaunchResult, ITarget } from './targets/targets';
+import { ILauncher, ILaunchResult, IStopMetadata, ITarget } from './targets/targets';
 import { ITelemetryReporter } from './telemetry/telemetryReporter';
 import {
   filterErrorsReportedToTelemetry,
@@ -239,11 +239,14 @@ export class Binder implements IDisposable {
     if (params.rootPath) params.rootPath = urlUtils.platformPathToPreferredCase(params.rootPath);
     this._launchParams = params;
 
-    try {
-      await Promise.all([...this.getLaunchers()].map(l => this._launch(l, params, cts.token)));
-    } catch (e) {
-      throw e;
-    }
+    const boots = await Promise.all(
+      [...this.getLaunchers()].map(l => this._launch(l, params, cts.token)),
+    );
+
+    Promise.all(boots.map(b => b.terminated)).then(allMetadata => {
+      const metadata = allMetadata.find(truthy);
+      this._markTargetAsTerminated(this._root, { restart: !!metadata?.restart });
+    });
 
     return {};
   }
@@ -305,18 +308,22 @@ export class Binder implements IDisposable {
     launcher: ILauncher,
     params: AnyLaunchConfiguration,
     cancellationToken: CancellationToken,
-  ): Promise<void> {
+  ) {
     const result = await this.captureLaunch(launcher, params, cancellationToken);
     if (!result.blockSessionTermination) {
-      return;
+      return { terminated: Promise.resolve(undefined) };
     }
 
-    const listener = this._disposables.push(
-      launcher.onTerminated(result => {
-        listener.dispose();
-        this._markTargetAsTerminated(this._root, { restart: result.restart });
+    return {
+      terminated: new Promise<IStopMetadata>(resolve => {
+        const listener = this._disposables.push(
+          launcher.onTerminated(result => {
+            listener.dispose();
+            resolve(result);
+          }),
+        );
       }),
-    );
+    };
   }
 
   /**
