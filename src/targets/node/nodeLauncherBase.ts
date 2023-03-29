@@ -178,13 +178,6 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
   }
 
   /**
-   * @inheritdoc
-   */
-  public async disconnect(): Promise<void> {
-    await this.terminate();
-  }
-
-  /**
    * Restarts the ongoing program.
    */
   public async restart(newParams: AnyLaunchConfiguration): Promise<void> {

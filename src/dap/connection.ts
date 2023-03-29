@@ -33,7 +33,7 @@ export default class Connection {
   private _pendingRequests = new Map<number, (result: string | object) => void>();
   private _requestHandlers = new Map<string, (params: object) => Promise<object>>();
   private _eventListeners = new Map<string, Set<(params: object) => void>>();
-  private _dap: Promise<Dap.Api>;
+  private _dap: Dap.Api;
   private disposables: IDisposable[] = [];
 
   private _initialized = getDeferred<Connection>();
@@ -52,15 +52,15 @@ export default class Connection {
     this.disposables.push(
       this.transport.messageReceived(event => this._onMessage(event.message, event.receivedTime)),
     );
-    this._dap = Promise.resolve(this._createApi());
+    this._dap = this._createApi();
   }
 
   public attachTelemetry(telemetryReporter: ITelemetryReporter) {
     this.telemetryReporter = telemetryReporter;
-    this._dap.then(dap => telemetryReporter.attachDap(dap));
+    telemetryReporter.attachDap(this._dap);
   }
 
-  public dap(): Promise<Dap.Api> {
+  public dap(): Dap.Api {
     return this._dap;
   }
 
