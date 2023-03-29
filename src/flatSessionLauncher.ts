@@ -45,10 +45,7 @@ class VSDebugSession implements IDebugSessionLike {
     this._name = newName;
     this.childConnection
       .then(conn => conn.initializedBlocker)
-      .then(conn => conn.dap())
-      .then(dap => {
-        dap.process({ name: newName });
-      });
+      .then(conn => conn.dap().process({ name: newName }));
   }
   get name() {
     return this._name;

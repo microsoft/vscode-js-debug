@@ -25,9 +25,9 @@ class Configurator {
   private _customBreakpoints = new Set<string>();
   private lastBreakpointId = 0;
 
-  constructor(dapPromise: Promise<Dap.Api>) {
+  constructor(dap: Dap.Api) {
     this._setBreakpointsParams = [];
-    dapPromise.then(dap => this._listen(dap));
+    this._listen(dap);
   }
 
   _listen(dap: Dap.Api) {

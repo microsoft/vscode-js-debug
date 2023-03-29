@@ -140,11 +140,6 @@ export interface ILauncher extends IDisposable {
   terminate(): Promise<void>;
 
   /**
-   * Disconnects from the debugged process. This should be idempotent.
-   */
-  disconnect(): Promise<void>;
-
-  /**
    * Attempts to restart the debugged process. This may no-op for certain
    * debug types, like attach.
    */

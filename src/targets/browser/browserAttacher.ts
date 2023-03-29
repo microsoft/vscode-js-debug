@@ -274,10 +274,6 @@ export class BrowserAttacher<
     this._connection?.close();
   }
 
-  public disconnect(): Promise<void> {
-    return this.terminate();
-  }
-
   async restart(): Promise<void> {
     if (!this._targetManager) {
       return;

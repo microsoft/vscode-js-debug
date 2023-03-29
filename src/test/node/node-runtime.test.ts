@@ -446,6 +446,7 @@ describe('node runtime', () => {
 
       const handle = await r.attachNode(0, { port, restart: true });
       await handle.dap.once('stopped');
+      await handle.dap.disconnect({});
       await r.rootDap().disconnect({});
 
       await delay(1000);

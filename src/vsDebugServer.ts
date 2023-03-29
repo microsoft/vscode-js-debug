@@ -15,7 +15,7 @@ import 'reflect-metadata';
 import { Readable, Writable } from 'stream';
 import { DebugConfiguration } from 'vscode';
 import { DebugType } from './common/contributionUtils';
-import { getDeferred, IDeferred } from './common/promiseUtil';
+import { IDeferred, getDeferred } from './common/promiseUtil';
 import { IPseudoAttachConfiguration } from './configuration';
 import DapConnection from './dap/connection';
 import { createGlobalContainer } from './ioc';
@@ -44,10 +44,7 @@ class VSDebugSession implements IDebugSessionLike {
     this._name = newName;
     this.childConnection
       .then(conn => conn.initializedBlocker)
-      .then(conn => conn.dap())
-      .then(dap => {
-        dap.process({ name: newName });
-      });
+      .then(conn => conn.dap().process({ name: newName }));
   }
   get name() {
     return this._name;

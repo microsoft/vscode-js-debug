@@ -134,13 +134,6 @@ export class DelegateLauncher implements ILauncher {
   /**
    * @inheritdoc
    */
-  public disconnect(): Promise<void> {
-    return this.terminate();
-  }
-
-  /**
-   * @inheritdoc
-   */
   public restart(): Promise<void> {
     for (const session of this.targets.value()) {
       session.restart();

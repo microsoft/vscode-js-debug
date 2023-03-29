@@ -103,7 +103,6 @@ class Session {
   }
 
   async _init(): Promise<Dap.InitializeResult> {
-    await this.adapterConnection.dap();
     const [r] = await Promise.all([
       this.dap.initialize({
         clientID: 'pwa-test',
@@ -372,14 +371,13 @@ export class TestRoot {
 
     this.logger = services.get(ILogger);
     this._root = new Session(this.logger);
-    this._root.adapterConnection.dap().then(dap => {
-      dap.on('initialize', async () => {
-        dap.initialized({});
-        return DebugAdapter.capabilities();
-      });
-      dap.on('configurationDone', async () => {
-        return {};
-      });
+    const dap = this._root.adapterConnection.dap();
+    dap.on('initialize', async () => {
+      dap.initialized({});
+      return DebugAdapter.capabilities();
+    });
+    dap.on('configurationDone', async () => {
+      return {};
     });
 
     this.binder = new Binder(this, this._root.adapterConnection, services, new TargetOrigin('0'));
@@ -558,7 +556,8 @@ export class TestRoot {
       __workspaceFolder: this._workspaceRoot,
       ...options,
     } as INodeAttachConfiguration);
-    const result = await new Promise(f => (this._launchCallback = f));
+    const result = await new Promise<ITestHandle>(f => (this._launchCallback = f));
+    await result.load();
     return result as NodeTestHandle;
   }
 

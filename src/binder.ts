@@ -12,11 +12,12 @@ import { DiagnosticToolSuggester } from './adapter/diagnosticToolSuggester';
 import { SelfProfile } from './adapter/selfProfile';
 import { Thread } from './adapter/threads';
 import { CancellationTokenSource } from './common/cancellation';
+import { DisposableList } from './common/disposable';
 import { EventEmitter, IDisposable } from './common/events';
 import { ILogger, LogTag, resolveLoggerOptions } from './common/logging';
 import { MutableLaunchConfig } from './common/mutableLaunchConfig';
-import { mapValues } from './common/objUtils';
-import { delay, getDeferred, IDeferred } from './common/promiseUtil';
+import { mapValues, once } from './common/objUtils';
+import { getDeferred } from './common/promiseUtil';
 import * as urlUtils from './common/urlUtils';
 import {
   AnyLaunchConfiguration,
@@ -38,165 +39,182 @@ import {
 } from './telemetry/unhandledErrorReporter';
 
 export interface IBinderDelegate {
+  /**
+   * Returns a promise that resolves to the DAP connection for the new target.
+   * Generally this involves calling back to the client to initialize the
+   * session, and then resolving once the client has provided a connection
+   * to return.
+   */
   acquireDap(target: ITarget): Promise<DapConnection>;
-  // Returns whether we should disable child session treatment.
+
+  /**
+   * Handles launching of the session, returning `true` if the delegate
+   * handled it. If `false` is returned, the binder will wait for a launch/attach
+   * request on the target's DAP connection.
+   */
   initAdapter(debugAdapter: DebugAdapter, target: ITarget, launcher: ILauncher): Promise<boolean>;
+
+  /**
+   * Called after a session is disconnected.
+   */
   releaseDap(target: ITarget): void;
 }
 
-type ThreadData = { thread: Thread; debugAdapter: DebugAdapter };
-
+/**
+ * The Binder handles the lifecycle of a set of debug sessions. It's initialized
+ * with the root DAP, and can then handle new child sessions via calls of
+ * the `.boot()` method or launch/attach calls on the DAP connection.
+ *
+ * The provided delegate is responsible
+ *
+ * It manages a tree of sessions under the `_root`, which represents the top
+ * level "virtual" session. In some cases, more than one debug session can be
+ * created under the top level session, but more commonly there's a single
+ * session to debug a Node program or browser, for example. Under this, there
+ * may be other sessions.
+ *
+ * The binder makes an effort to ensure load and unload order is correct, such
+ * that parent sessions only send `terminated` or respond to the 'disconnect'
+ * request after all their child sessions have also entered the desired state.
+ *
+ * @see https://microsoft.github.io/debug-adapter-protocol/overview for control flows
+ */
 export class Binder implements IDisposable {
-  private _delegate: IBinderDelegate;
-  private _disposables: IDisposable[];
-  private _threads = new Map<ITarget, IDeferred<ThreadData>>();
-  private _terminationCount = 0;
-  private _onTargetListChangedEmitter = new EventEmitter<void>();
-  readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
-  private _dap: Promise<Dap.Api>;
+  private readonly _disposables = new DisposableList();
+  private _dap: Dap.Api;
   private _targetOrigin: ITargetOrigin;
   private _launchParams?: AnyLaunchConfiguration;
   private _asyncStackPolicy?: IAsyncStackPolicy;
   private _serviceTree = new WeakMap<ITarget, Container>();
-  private _launchers?: ReadonlySet<ILauncher>;
+
+  /** Root of the session tree. Undefined until a launch/attach request is received. */
+  private _root = new TreeNode(undefined);
 
   constructor(
-    delegate: IBinderDelegate,
+    private readonly _delegate: IBinderDelegate,
     connection: DapConnection,
     private readonly _rootServices: Container,
     targetOrigin: ITargetOrigin,
   ) {
-    this._delegate = delegate;
     this._dap = connection.dap();
     this._targetOrigin = targetOrigin;
-    this._disposables = [
-      this._onTargetListChangedEmitter,
+    this._disposables.callback(() => disposeContainer(_rootServices));
+    this._disposables.push(
       installUnhandledErrorReporter(
         _rootServices.get(ILogger),
         _rootServices.get(ITelemetryReporter),
         _rootServices.get(IsVSCode),
       ),
-    ];
+    );
 
     connection.attachTelemetry(_rootServices.get(ITelemetryReporter));
 
-    this._dap.then(dap => {
-      let lastBreakpointId = 0;
-      let selfProfile: SelfProfile | undefined;
+    const dap = this._dap;
+    let lastBreakpointId = 0;
+    let selfProfile: SelfProfile | undefined;
 
-      dap.on('initialize', async clientCapabilities => {
-        this._rootServices.bind(IInitializeParams).toConstantValue(clientCapabilities);
-        const capabilities = DebugAdapter.capabilities();
-        if (clientCapabilities.clientID === 'vscode') {
-          filterErrorsReportedToTelemetry();
-        }
+    dap.on('initialize', async clientCapabilities => {
+      this._rootServices.bind(IInitializeParams).toConstantValue(clientCapabilities);
+      const capabilities = DebugAdapter.capabilities();
+      if (clientCapabilities.clientID === 'vscode') {
+        filterErrorsReportedToTelemetry();
+      }
 
-        setTimeout(() => dap.initialized({}), 0);
-        return capabilities;
-      });
-      dap.on('setExceptionBreakpoints', async () => ({}));
-      dap.on('setBreakpoints', async params => {
-        if (params.breakpoints?.length) {
-          _rootServices.get(DiagnosticToolSuggester).notifyHadBreakpoint();
-        }
+      setTimeout(() => dap.initialized({}), 0);
+      return capabilities;
+    });
+    dap.on('setExceptionBreakpoints', async () => ({}));
+    dap.on('setBreakpoints', async params => {
+      if (params.breakpoints?.length) {
+        _rootServices.get(DiagnosticToolSuggester).notifyHadBreakpoint();
+      }
 
-        return {
-          breakpoints:
-            params.breakpoints?.map(() => ({
-              id: ++lastBreakpointId,
-              verified: false,
-              message: l10n.t('Unbound breakpoint'),
-            })) ?? [],
-        }; // TODO: Put a useful message here
-      });
-      dap.on('configurationDone', async () => ({}));
-      dap.on('threads', async () => ({ threads: [] }));
-      dap.on('loadedSources', async () => ({ sources: [] }));
-      dap.on('breakpointLocations', () => Promise.resolve({ breakpoints: [] }));
-      dap.on('attach', async params => {
-        await this.boot(params as AnyResolvingConfiguration, dap);
-        return {};
-      });
-      dap.on('launch', async params => {
-        await this.boot(params as AnyResolvingConfiguration, dap);
-        return {};
-      });
-      dap.on('pause', async () => {
-        return {};
-      });
-      dap.on('terminate', async () => {
-        await this._disconnect();
-        return {};
-      });
-      dap.on('disconnect', async () => {
-        await this._disconnect();
-        return {};
-      });
-      dap.on('restart', async ({ arguments: params }) => {
-        await this._restart(params as AnyResolvingConfiguration);
-        return {};
-      });
-      dap.on('startSelfProfile', async ({ file }) => {
-        selfProfile?.dispose();
-        selfProfile = new SelfProfile(file);
-        await selfProfile.start();
-        return {};
-      });
-      dap.on('stopSelfProfile', async () => {
-        if (selfProfile) {
-          await selfProfile.stop();
-          selfProfile.dispose();
-          selfProfile = undefined;
-        }
+      return {
+        breakpoints:
+          params.breakpoints?.map(() => ({
+            id: ++lastBreakpointId,
+            verified: false,
+            message: l10n.t('Unbound breakpoint'),
+          })) ?? [],
+      };
+    });
+    dap.on('configurationDone', async () => ({}));
+    dap.on('threads', async () => ({ threads: [] }));
+    dap.on('loadedSources', async () => ({ sources: [] }));
+    dap.on('breakpointLocations', () => Promise.resolve({ breakpoints: [] }));
+    dap.on('attach', async params => {
+      await this.boot(params as AnyResolvingConfiguration, dap);
+      return {};
+    });
+    dap.on('launch', async params => {
+      await this.boot(params as AnyResolvingConfiguration, dap);
+      return {};
+    });
+    dap.on('pause', async () => {
+      return {};
+    });
+    dap.on('terminate', () => this._terminateRoot());
+    dap.on('disconnect', () => this._disconnectRoot());
+    dap.on('restart', async ({ arguments: params }) => {
+      await this._restart(params as AnyResolvingConfiguration);
+      return {};
+    });
+    dap.on('startSelfProfile', async ({ file }) => {
+      selfProfile?.dispose();
+      selfProfile = new SelfProfile(file);
+      await selfProfile.start();
+      return {};
+    });
+    dap.on('stopSelfProfile', async () => {
+      if (selfProfile) {
+        await selfProfile.stop();
+        selfProfile.dispose();
+        selfProfile = undefined;
+      }
 
-        return {};
-      });
+      return {};
     });
   }
 
-  private getLaunchers() {
-    if (!this._launchers) {
-      this._launchers = new Set(this._rootServices.getAll(ILauncher));
+  private readonly getLaunchers = once(() => {
+    const launchers = new Set<ILauncher>(this._rootServices.getAll(ILauncher));
 
-      for (const launcher of this._launchers) {
-        launcher.onTargetListChanged(
-          () => {
-            const targets = this.targetList();
-            this._attachToNewTargets(targets, launcher);
-            this._detachOrphanThreads(targets);
-            this._onTargetListChangedEmitter.fire();
-          },
-          undefined,
-          this._disposables,
-        );
-      }
+    for (const launcher of launchers) {
+      this._disposables.push(
+        launcher.onTargetListChanged(() => {
+          const targets = this.targetList();
+          this._attachToNewTargets(targets, launcher);
+          this._terminateOrphanThreads(targets);
+        }),
+      );
     }
 
-    return this._launchers;
+    return launchers as ReadonlySet<ILauncher>;
+  });
+
+  /**
+   * Terminates all running targets. Resolves when all have terminated.
+   */
+  private async _terminateRoot() {
+    this._root.state = TargetState.Terminating;
+    await Promise.all([...this.getLaunchers()].map(l => l.terminate()));
+    await this._root.waitUntilChildrenAre(TargetState.Terminated);
+    this._root.state = TargetState.Terminated;
+    return {};
   }
 
-  private async _disconnect() {
-    if (!this._launchers) {
-      return;
+  /**
+   * Disconnects all running targets. Resolves when all have disconnected.
+   */
+  private async _disconnectRoot() {
+    if (this._root.state < TargetState.Terminating) {
+      await this._terminateRoot();
     }
 
     this._rootServices.get<ITelemetryReporter>(ITelemetryReporter).flush();
-    await Promise.all([...this._launchers].map(l => l.disconnect()));
-
-    const didTerminate = () => !this.targetList.length && this._terminationCount === 0;
-    if (didTerminate()) {
-      return;
-    }
-
-    await new Promise<void>(resolve =>
-      this.onTargetListChanged(() => {
-        if (didTerminate()) {
-          resolve();
-        }
-      }),
-    );
-
-    await delay(0); // next task so that we're sure terminated() sent
+    await this._root.waitUntilChildrenAre(TargetState.Disconnected);
+    this._root.state = TargetState.Disconnected;
+    return {};
   }
 
   /**
@@ -293,19 +311,12 @@ export class Binder implements IDisposable {
       return;
     }
 
-    ++this._terminationCount;
-
-    const listener = launcher.onTerminated(result => {
-      listener.dispose();
-      const detach = this._detachOrphanThreads(this.targetList(), { restart: result.restart });
-      --this._terminationCount;
-      this._onTargetListChangedEmitter.fire();
-      if (!this._terminationCount) {
-        detach.then(() => this._dap).then(dap => dap.terminated({ restart: result.restart }));
-      }
-    });
-
-    this._disposables.push(listener);
+    const listener = this._disposables.push(
+      launcher.onTerminated(result => {
+        listener.dispose();
+        this._markTargetAsTerminated(this._root, { restart: result.restart });
+      }),
+    );
   }
 
   /**
@@ -326,7 +337,7 @@ export class Binder implements IDisposable {
         telemetryReporter: this._rootServices.get(ITelemetryReporter),
         cancellationToken,
         targetOrigin: this._targetOrigin,
-        dap: await this._dap,
+        dap: this._dap,
       });
     } catch (e) {
       this._rootServices.get<ILogger>(ILogger).warn(LogTag.RuntimeLaunch, 'Launch returned error', {
@@ -348,10 +359,8 @@ export class Binder implements IDisposable {
   }
 
   dispose() {
-    for (const disposable of this._disposables) disposable.dispose();
-    this._disposables = [];
-    disposeContainer(this._rootServices);
-    this._detachOrphanThreads([]);
+    this._disposables.dispose();
+    this._terminateOrphanThreads([]);
   }
 
   targetList(): ITarget[] {
@@ -363,11 +372,12 @@ export class Binder implements IDisposable {
     return result;
   }
 
-  public async attach(target: ITarget, threadData: IDeferred<ThreadData>, launcher: ILauncher) {
+  private async attach(node: TargetTreeNode, launcher: ILauncher) {
     if (!this._launchParams) {
       throw new Error('Cannot launch before params have been set');
     }
 
+    const target = node.value;
     if (!target.canAttach()) {
       return;
     }
@@ -376,7 +386,7 @@ export class Binder implements IDisposable {
       return;
     }
     const connection = await this._delegate.acquireDap(target);
-    const dap = await connection.dap();
+    const dap = connection.dap();
     const launchParams = this._launchParams;
 
     if (!this._asyncStackPolicy) {
@@ -390,25 +400,28 @@ export class Binder implements IDisposable {
     connection.attachTelemetry(container.get(ITelemetryReporter));
     this._serviceTree.set(target, parentContainer);
 
-    // todo: move scriptskipper into services collection
     const debugAdapter = new DebugAdapter(dap, this._asyncStackPolicy, launchParams, container);
     const thread = debugAdapter.createThread(cdp, target);
 
     const startThread = async () => {
       await debugAdapter.launchBlocker();
       target.runIfWaitingForDebugger();
-      threadData.resolve({ thread, debugAdapter });
+      node.threadData.resolve({ thread, debugAdapter });
       return {};
     };
 
     // default disconnect/terminate/restart handlers that can be overridden
     // by the delegate in initAdapter()
-    dap.on('disconnect', () => this.detachTarget(target, container));
-    dap.on('terminate', () => this.stopTarget(target, container));
+    dap.on('disconnect', args => this._disconnectTarget(node, args));
+    dap.on('terminate', () => this._terminateTarget(node));
     dap.on('restart', async () => {
-      if (target.canRestart()) target.restart();
-      else await this._restart();
-      return {};
+      if (target.canRestart()) {
+        target.restart();
+      } else {
+        await this._restart();
+      }
+
+      return Promise.resolve({});
     });
 
     if (await this._delegate.initAdapter(debugAdapter, target, launcher)) {
@@ -421,79 +434,117 @@ export class Binder implements IDisposable {
     await target.afterBind();
   }
 
-  /**
-   * Called when we get a disconnect for a target. We stop the
-   * specific target if we can, otherwise we just tear down the session.
-   */
-  private async detachTarget(target: ITarget, container: Container) {
-    container.get<ITelemetryReporter>(ITelemetryReporter).flush();
-    if (!this.targetList().includes(target)) {
-      return {};
-    }
-
-    if (target.canDetach()) {
-      await target.detach();
-      this._releaseTarget(target);
-    } else {
-      this._disconnect();
-    }
-
-    return {};
-  }
-
-  /**
-   * Called when we get a terminate for a target. We stop the
-   * specific target if we can, otherwise we just tear down the session.
-   */
-  private stopTarget(target: ITarget, container: Container) {
-    container.get<ITelemetryReporter>(ITelemetryReporter).flush();
-    if (!this.targetList().includes(target)) {
-      return Promise.resolve({});
-    }
-
-    if (target.canStop()) {
-      target.stop();
-    } else {
-      this._disconnect();
-    }
-
-    return Promise.resolve({});
-  }
-
   private _attachToNewTargets(targets: ITarget[], launcher: ILauncher) {
     for (const target of targets.values()) {
       if (!target.waitingForDebugger()) {
         continue;
       }
 
-      if (!this._threads.has(target)) {
-        const threadData = getDeferred<ThreadData>();
-        this._threads.set(target, threadData);
-        this.attach(target, threadData, launcher);
+      if (TreeNode.targetNodes.has(target)) {
+        continue;
       }
+
+      const parentTarget = target.parent();
+      const parent = parentTarget ? TreeNode.targetNodes.get(parentTarget) : this._root;
+      if (!parent) {
+        throw new Error(`Got target with unknown parent: ${target.name()}`);
+      }
+
+      const node = new TreeNode(target) as TargetTreeNode;
+      parent.add(node);
+      this.attach(node, launcher);
     }
   }
 
-  private async _detachOrphanThreads(
+  /**
+   * Terminates all targets in the tree that aren't in the `targets` list.
+   */
+  private async _terminateOrphanThreads(
     targets: ITarget[],
     terminateArgs?: Dap.TerminatedEventParams,
   ) {
-    await Promise.all(
-      [...this._threads.keys()]
-        .filter(target => !targets.includes(target))
-        .map(target => this._releaseTarget(target, terminateArgs)),
-    );
+    const toRelease = [...this._root.all()].filter(n => !targets.includes(n.value));
+    return Promise.all(toRelease.map(n => this._markTargetAsTerminated(n, terminateArgs)));
   }
 
-  async _releaseTarget(target: ITarget, terminateArgs: Dap.TerminatedEventParams = {}) {
-    const data = this._threads.get(target);
-    if (!data) return;
-    this._threads.delete(target);
-    const threadData = await data.promise;
-    await threadData.thread.dispose();
-    threadData.debugAdapter.dap.terminated(terminateArgs);
-    threadData.debugAdapter.dispose();
-    this._delegate.releaseDap(target);
+  /**
+   * Marks the target as terminated, called when the target lists change.
+   */
+  private async _markTargetAsTerminated(
+    node: TreeNode,
+    terminateArgs: Dap.TerminatedEventParams = {},
+  ) {
+    if (node.state >= TargetState.Terminating) {
+      await node.waitUntil(TargetState.Terminated);
+      return {};
+    }
+
+    node.state = TargetState.Terminating;
+    if (isTargetTreeNode(node)) {
+      const threadData = await node.threadData.promise;
+      await threadData.thread.dispose();
+      threadData.debugAdapter.dap.terminated(terminateArgs);
+      threadData.debugAdapter.dispose();
+    } else {
+      this._dap.terminated(terminateArgs);
+    }
+
+    await node.waitUntilChildrenAre(TargetState.Terminated);
+    node.state = TargetState.Terminated;
+    return {};
+  }
+
+  /**
+   * DAP method call to terminate a target. Resolves once the target and
+   * all of its children have terminated.
+   *
+   * This doesn't actually mark a node as terminated; that's done when the
+   * target is removed from the targets list as `_markTargetAsTerminated` is called.
+   */
+  private async _terminateTarget(node: TargetTreeNode) {
+    if (node.state >= TargetState.Disconnected) {
+      return {};
+    }
+
+    if (node.value.canStop()) {
+      node.value.stop();
+    } else {
+      this._terminateRoot();
+    }
+
+    await node.waitUntil(TargetState.Terminated);
+    return {};
+  }
+
+  /**
+   * DAP method call to disconnect a target. Resolves once the target and
+   * all of its children have disconnected.
+   */
+  private async _disconnectTarget(node: TargetTreeNode, args: Dap.DisconnectParams) {
+    if (node.state >= TargetState.Disconnected) {
+      return {};
+    }
+
+    if (node.state < TargetState.Terminating) {
+      if (args.terminateDebuggee === false && node.value.canDetach()) {
+        await node.value.detach();
+      } else if (node.value.canStop()) {
+        node.value.stop();
+      } else {
+        this._terminateRoot();
+      }
+    }
+
+    await node.waitUntil(TargetState.Terminated);
+    await node.waitUntilChildrenAre(TargetState.Disconnected);
+    node.state = TargetState.Disconnected;
+    queueMicrotask(() => this._delegate.releaseDap(node.value));
+
+    const parentTarget = node.value.parent();
+    const parentNode = parentTarget ? TreeNode.targetNodes.get(parentTarget) : this._root;
+    parentNode?.remove(node);
+
+    return {};
   }
 }
 
@@ -503,5 +554,103 @@ function warnNightly(dap: Dap.Api): void {
       category: 'console',
       output: `Note: Using the "preview" debug extension\n`,
     });
+  }
+}
+
+const enum TargetState {
+  Running,
+  Terminating,
+  Terminated,
+  Disconnected,
+}
+
+type ThreadData = { thread: Thread; debugAdapter: DebugAdapter };
+
+type TargetTreeNode = TreeNode & { value: ITarget };
+
+export const isTargetTreeNode = (node: TreeNode): node is TargetTreeNode => !!node.value;
+
+/**
+ * Node in the tree that manages the collective state of shutdowns, so that
+ * terminations and disconnections happen gracefully in-order.
+ */
+class TreeNode {
+  public static targetNodes = new WeakMap<ITarget, TreeNode>();
+  public readonly threadData = getDeferred<ThreadData>();
+
+  private _state = TargetState.Running;
+  private readonly _children = new Set<TreeNode>();
+  private readonly _stateChangeEmitter = new EventEmitter<TargetState>();
+
+  public get state() {
+    return this._state;
+  }
+
+  public set state(state: TargetState) {
+    if (state > this._state) {
+      this._state = state;
+      this._stateChangeEmitter.fire(state);
+    }
+  }
+
+  /** Value is only undefined for the root node */
+  constructor(public readonly value: ITarget | undefined) {
+    if (value) {
+      TreeNode.targetNodes.set(value, this);
+    }
+  }
+
+  /**
+   * Adds a new child to the target tree.
+   */
+  public add(child: TreeNode) {
+    this._children.add(child);
+  }
+
+  /**
+   * Removes a child to the target tree.
+   */
+  public remove(child: TreeNode) {
+    this._children.delete(child);
+  }
+
+  /**
+   * Returns a promise that resolves when this node has reached at least the
+   * given state in the lifecycle.
+   */
+  public async waitUntil(state: TargetState) {
+    if (this._state >= state) {
+      return Promise.resolve();
+    }
+
+    return new Promise<void>(resolve => {
+      const l = this._stateChangeEmitter.event(s => {
+        if (s >= state) {
+          l.dispose();
+          resolve();
+        }
+      });
+    });
+  }
+
+  /**
+   * Returns a promise that resolves when all children this node have reached
+   * at least the given state.
+   */
+  public async waitUntilChildrenAre(state: TargetState) {
+    await Promise.all([...this._children].map(c => c.waitUntil(state)));
+  }
+
+  /**
+   * Returns an iterator that lists all targets in the tree.
+   */
+  public *all(): IterableIterator<TargetTreeNode> {
+    if (isTargetTreeNode(this)) {
+      yield this;
+    }
+
+    for (const child of this._children) {
+      yield* child.all();
+    }
   }
 }

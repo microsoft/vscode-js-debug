@@ -265,17 +265,6 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
    * @inheritdoc
    */
   public async terminate(): Promise<void> {
-    for (const target of this.targetList() as BrowserTarget[]) {
-      if (target.type() === BrowserTargetType.Page) {
-        await target.cdp().Page.close({});
-      }
-    }
-  }
-
-  /**
-   * @inheritdoc
-   */
-  public async disconnect(): Promise<void> {
     await this._targetManager?.closeBrowser();
   }
 

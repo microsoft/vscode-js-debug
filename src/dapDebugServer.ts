@@ -13,7 +13,7 @@ import { DebugAdapter } from './adapter/debugAdapter';
 import { Binder, IBinderDelegate } from './binder';
 import { ILogger } from './common/logging';
 import { ProxyLogger } from './common/logging/proxyLogger';
-import { getDeferred, IDeferred } from './common/promiseUtil';
+import { IDeferred, getDeferred } from './common/promiseUtil';
 import { AnyResolvingConfiguration } from './configuration';
 import Dap from './dap/api';
 import DapConnection from './dap/connection';
@@ -154,7 +154,7 @@ class DapSessionManager implements IBinderDelegate {
       if (!parentCnx) {
         throw new Error('Expected parent session to have a settled value');
       }
-      dap = await parentCnx.connection.dap();
+      dap = parentCnx.connection.dap();
     } else {
       dap = this.dapRoot;
     }
@@ -234,7 +234,7 @@ function startDebugServer(options: net.ListenOptions) {
         const logger = new ProxyLogger();
         const transport = new StreamDapTransport(socket, socket, logger);
         const connection = new DapConnection(transport, logger);
-        const dap = await connection.dap();
+        const dap = connection.dap();
 
         const initialized = await collectInitialize(dap);
         if ('__pendingTargetId' in initialized.launchParams) {
