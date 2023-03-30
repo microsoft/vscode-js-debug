@@ -17,6 +17,11 @@ const util = require('util');
 const deepmerge = require('deepmerge');
 const esbuild = require('esbuild');
 const esbuildPlugins = require('./src/build/esbuildPlugins');
+const got = require('got').default;
+const jszip = require('jszip');
+const stream = require('stream');
+
+const pipelineAsync = util.promisify(stream.pipeline);
 
 const dirname = 'js-debug';
 const sources = ['src/**/*.{ts,tsx}'];
@@ -278,6 +283,21 @@ gulp.task('package:createVSIX', () =>
   }),
 );
 
+gulp.task('l10n:bundle-download', async () => {
+  const res = await got('https://github.com/microsoft/vscode-loc/archive/main.zip').buffer();
+  const content = await jszip.loadAsync(res);
+
+  for (const fileName of Object.keys(content.files)) {
+    const match = /vscode-language-pack-(.*?)\/.+ms-vscode\.js-debug.*?\.i18n\.json$/.exec(fileName);
+    if (match) {
+      const locale = match[1];
+      const file = content.files[fileName];
+      const extractPath = path.join(buildDir, `nls.bundle.${locale}.json`);
+      await pipelineAsync(file.nodeStream(), fs.createWriteStream(extractPath));
+    }
+  }
+});
+
 /** Clean, compile, bundle, and create vsix for the extension */
 gulp.task(
   'package:prepare',
@@ -306,7 +326,7 @@ gulp.task(
     'clean',
     'compile',
     'vsDebugServerBundle:webpack-bundle',
-    'flatSessionBundle:webpack-bundle',
+    'l10n:bundle-download'
   ),
 );
 
