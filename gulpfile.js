@@ -17,10 +17,11 @@ const util = require('util');
 const deepmerge = require('deepmerge');
 const esbuild = require('esbuild');
 const esbuildPlugins = require('./src/build/esbuildPlugins');
-const signale = require('signale');
 const got = require('got').default;
-const unzipper = require('unzipper');
-const streamBuffers = require('stream-buffers');
+const jszip = require('jszip');
+const stream = require('stream');
+
+const pipelineAsync = util.promisify(stream.pipeline);
 
 const dirname = 'js-debug';
 const sources = ['src/**/*.{ts,tsx}'];
@@ -30,9 +31,6 @@ const srcDir = 'src';
 const buildDir = 'dist';
 const buildSrcDir = `${buildDir}/src`;
 const nodeTargetsDir = `targets/node`;
-
-const distDir = 'dist';
-const distSrcDir = `${distDir}/src`;
 
 const isWatch = process.argv.includes('watch') || process.argv.includes('--watch');
 
@@ -286,37 +284,18 @@ gulp.task('package:createVSIX', () =>
 );
 
 gulp.task('l10n:bundle-download', async () => {
-  const res = await got.stream('https://github.com/microsoft/vscode-loc/archive/main.zip');
-  await new Promise((resolve, reject) =>
-    res
-      .pipe(unzipper.Parse())
-      .on('entry', entry => {
-        const match = /vscode-language-pack-(.*?)\/.+ms-vscode\.js-debug.*?\.i18n\.json$/.exec(
-          entry.path,
-        );
-        if (!match) {
-          return entry.autodrain();
-        }
+  const res = await got('https://github.com/microsoft/vscode-loc/archive/main.zip').buffer();
+  const content = await jszip.loadAsync(res);
 
-        const buffer = new streamBuffers.WritableStreamBuffer();
-        const locale = match[1];
-        entry.pipe(buffer).on('finish', () => {
-          try {
-            const strings = JSON.parse(buffer.getContentsAsString('utf-8'));
-            fs.writeFileSync(
-              path.join(distDir, `nls.bundle.${locale}.json`),
-              JSON.stringify(strings.contents.bundle),
-            );
-            signale.info(`Added strings for ${locale}`);
-          } catch (e) {
-            reject(`Error parsing ${entry.path}: ${e}`);
-          }
-        });
-      })
-      .on('end', resolve)
-      .on('error', reject)
-      .resume(),
-  );
+  for (const fileName of Object.keys(content.files)) {
+    const match = /vscode-language-pack-(.*?)\/.+ms-vscode\.js-debug.*?\.i18n\.json$/.exec(fileName);
+    if (match) {
+      const locale = match[1];
+      const file = content.files[fileName];
+      const extractPath = path.join(buildDir, `nls.bundle.${locale}.json`);
+      await pipelineAsync(file.nodeStream(), fs.createWriteStream(extractPath));
+    }
+  }
 });
 
 /** Clean, compile, bundle, and create vsix for the extension */
