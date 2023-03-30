@@ -32,6 +32,9 @@ const buildDir = 'dist';
 const buildSrcDir = `${buildDir}/src`;
 const nodeTargetsDir = `targets/node`;
 
+const distDir = 'dist';
+const distSrcDir = `${distDir}/src`;
+
 const isWatch = process.argv.includes('watch') || process.argv.includes('--watch');
 
 /**
