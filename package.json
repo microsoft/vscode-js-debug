@@ -145,6 +145,7 @@
     "gulp-rename": "^2.0.0",
     "gulp-util": "^3.0.8",
     "husky": "^7.0.4",
+    "jszip": "^3.10.1",
     "marked": "^4.0.12",
     "merge2": "^1.4.1",
     "minimist": "^1.2.6",
