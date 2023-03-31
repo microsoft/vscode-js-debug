@@ -6,6 +6,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 - fix: debugger failing on Node <=12 ([#1624](https://github.com/microsoft/vscode-js-debug/issues/1624))
 - fix: sourcemap lookups on ipv6 localhost addresses ([vscode#167353](https://github.com/microsoft/vscode/issues/167353))
+- fix: browser debugging in remotes not working ([#1628](https://github.com/microsoft/vscode-js-debug/issues/1628))
 - feat: support ETX in stdio console endings ([vscode#175763](https://github.com/microsoft/vscode/issues/175763))
 
 ## v1.77 (March 2023)
