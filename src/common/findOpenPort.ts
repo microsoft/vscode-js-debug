@@ -111,7 +111,10 @@ export const makeAcquireTcpServer =
 export const makeAcquireWebSocketServer =
   (options?: WebSocket.ServerOptions): PortTesterFn<WebSocket.Server> =>
   (port, ct) =>
-    waitForServerToListen(new WebSocket.Server({ host: '127.0.0.1', ...options, port }), ct);
+    waitForServerToListen(
+      new WebSocket.WebSocketServer({ host: '127.0.0.1', ...options, port }),
+      ct,
+    );
 
 interface IServerLike {
   on(event: 'error', handler: (err: Error) => void): void;
