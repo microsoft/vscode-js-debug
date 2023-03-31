@@ -47,7 +47,10 @@ describe('browser launch', () => {
 
   itIntegrates('connects to rewritten websocket when using inspectUri parameter', async ({ r }) => {
     const pagePort = 5935;
-    const wsServer = new WebSocket.Server({ port: pagePort, path: '/_framework/debug/ws-proxy' });
+    const wsServer = new WebSocket.WebSocketServer({
+      port: pagePort,
+      path: '/_framework/debug/ws-proxy',
+    });
 
     try {
       const receivedMessage = new Promise(resolve => {
