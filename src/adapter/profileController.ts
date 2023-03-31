@@ -15,7 +15,7 @@ import { ProtocolError } from '../dap/protocolError';
 import { IShutdownParticipants, ShutdownOrder } from '../ui/shutdownParticipants';
 import { BreakpointEnableFilter, BreakpointManager } from './breakpoints';
 import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
-import { getDefaultProfileName, IProfile, IProfilerFactory } from './profiling';
+import { IProfile, IProfilerFactory, getDefaultProfileName } from './profiling';
 import { BasicCpuProfiler } from './profiling/basicCpuProfiler';
 import { Thread } from './threads';
 
@@ -39,6 +39,7 @@ interface IRunningProfile {
 @injectable()
 export class ProfileController implements IProfileController {
   private profile?: Promise<IRunningProfile>;
+  private seenConsoleProfileNames = Object.create(null);
 
   constructor(
     @inject(ICdpApi) private readonly cdp: Cdp.Api,
@@ -93,12 +94,23 @@ export class ProfileController implements IProfileController {
   }
 
   private async saveConsoleProfile(dap: Dap.Api, evt: Cdp.Profiler.ConsoleProfileFinishedEvent) {
-    const basename = evt.title?.replace(/[\/\\]/g, '-') || getDefaultProfileName();
-    const withExt = basename + BasicCpuProfiler.extension;
-    await this.basicCpuProfiler.save(evt.profile, withExt);
+    let basename: string;
+    if (evt.title) {
+      basename = evt.title?.replace(/[\/\\]/g, '-');
+      const nth = this.seenConsoleProfileNames[evt.title] || 0;
+      this.seenConsoleProfileNames[evt.title] = nth + 1;
+      if (nth > 0) {
+        basename += `-${nth}`;
+      }
+    } else {
+      basename = getDefaultProfileName();
+    }
+
+    basename += BasicCpuProfiler.extension;
+    await this.basicCpuProfiler.save(evt.profile, basename);
 
     dap.output({
-      output: l10n.t('CPU profile saved as "{0}" in your workspace folder', withExt) + '\n',
+      output: l10n.t('CPU profile saved as "{0}" in your workspace folder', basename) + '\n',
       category: 'console',
     });
   }
