@@ -11,6 +11,7 @@ import { URL } from 'url';
 import Cdp from '../cdp/api';
 import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
 import { EventEmitter } from '../common/events';
+import { checkContentHash } from '../common/hash/checkContentHash';
 import { ILogger, LogTag } from '../common/logging';
 import { once } from '../common/objUtils';
 import { forceForwardSlashes, isSubdirectoryOf, properResolve } from '../common/pathUtils';
@@ -173,7 +174,7 @@ export class Source {
     this._name = this._humanName();
     this.setSourceMapUrl(sourceMapUrl);
 
-    this._existingAbsolutePath = sourceUtils.checkContentHash(
+    this._existingAbsolutePath = checkContentHash(
       this.absolutePath,
       // Inline scripts will never match content of the html file. We skip the content check.
       inlineScriptOffset || runtimeScriptOffset ? undefined : contentHash,
