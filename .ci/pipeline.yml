@@ -26,7 +26,7 @@ jobs:
   steps:
   - template: common-validation.yml
   variables:
-    node_version: 10.24.1
+    node_version: 16.14.2
     only_minspec: true
 
 - job: Windows
