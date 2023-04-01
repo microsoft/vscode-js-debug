@@ -770,6 +770,44 @@ describe('breakpoints', () => {
       handle.assertLog({ substring: true });
     });
 
+    itIntegrates('avoids double pathmapping (#1617)', async ({ r }) => {
+      // specifically check that the pathmapping is not used multiple times
+      // if the source path is an apparent child of the remote path. Requires
+      // the file in the sourcemap to be relative.
+      createFileTree(testFixturesDir, {
+        src: {
+          'double.js': "console.log('hello world');",
+        },
+        'double.js': [
+          "/*'Object.<anonymous>':function(module,exports,require,__dzrname,__fzlename,jest*/console.log('hello world');",
+          '//# sourceMappingURL=data:application/json;charset=utf-8;base64,' +
+            Buffer.from(
+              JSON.stringify({
+                version: 3,
+                names: ['console', 'log'],
+                sources: ['double.js'],
+                sourcesContent: ["console.log('hello world');\n"],
+                mappings: 'AAAAA,OAAO,CAACC,GAAG,CAAC,aAAa,CAAC',
+              }),
+            ).toString('base64'),
+        ],
+      });
+
+      const handle = await r.runScript('double.js', {
+        localRoot: join(testFixturesDir, 'src'),
+        remoteRoot: testFixturesDir,
+      });
+
+      await handle.dap.setBreakpoints({
+        source: { path: join(testFixturesDir, 'src', 'double.js') },
+        breakpoints: [{ line: 1, column: 1 }],
+      });
+
+      handle.load();
+      await waitForPause(handle);
+      r.assertLog({ substring: true });
+    });
+
     itIntegrates('does not adjust already correct', async ({ r }) => {
       await r.initialize;
 
