@@ -2,7 +2,6 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import pkg from '../package.json';
 import { SourceMapTimeouts } from './adapter/sources';
 import { DebugType } from './common/contributionUtils';
 import { assertNever, filterValues } from './common/objUtils';
@@ -1151,8 +1150,12 @@ export const breakpointLanguages: ReadonlyArray<string> = [
   'html',
 ];
 
-export const packageName: string = pkg.name;
-export const packageVersion: string = pkg.version;
-export const packagePublisher: string = pkg.publisher;
+declare const EXTENSION_NAME: string;
+declare const EXTENSION_VERSION: string;
+declare const EXTENSION_PUBLISHER: string;
+
+export const packageName = EXTENSION_NAME;
+export const packageVersion = EXTENSION_VERSION;
+export const packagePublisher = EXTENSION_PUBLISHER;
 export const isNightly = packageName.includes('nightly');
 export const extensionId = `${packagePublisher}.${packageName}`;

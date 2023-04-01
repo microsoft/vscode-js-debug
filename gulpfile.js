@@ -125,13 +125,14 @@ const incrementalEsbuild = async (/** @type {esbuild.BuildOptions} */ options) =
   await ctx.rebuild();
 };
 
-gulp.task('compile:build-scripts', () =>
+gulp.task('compile:build-scripts', async () =>
   incrementalEsbuild({
     entryPoints: fs
       .readdirSync('src/build')
       .filter(f => f.endsWith('.ts'))
       .map(f => `src/build/${f}`),
     outdir: `${buildDir}/src/build`,
+    define: await getConstantDefines(),
     bundle: true,
     platform: 'node',
   }),
@@ -180,6 +181,15 @@ gulp.task('compile:static', () =>
 
 const resolveDefaultExts = ['.tsx', '.ts', '.jsx', '.js', '.css', '.json'];
 
+async function getConstantDefines() {
+  const packageJson = await readJson('package.json');
+  return {
+    EXTENSION_NAME: JSON.stringify(extensionName),
+    EXTENSION_VERSION: JSON.stringify(isNightly ? getVersionNumber() : packageJson.version),
+    EXTENSION_PUBLISHER: JSON.stringify(packageJson.publisher),
+  };
+}
+
 async function compileTs({
   packages = [],
   sourcemap = false,
@@ -195,6 +205,8 @@ async function compileTs({
     { entry: `${srcDir}/targets/node/watchdog.ts`, library: false },
     { entry: `${srcDir}/diagnosticTool/diagnosticTool.tsx`, library: false, target: 'browser' },
   ];
+
+  const define = await getConstantDefines();
 
   let todo = [];
   for (const { entry, target = 'node', library, isInVsCode, nodePackages } of packages) {
@@ -212,6 +224,7 @@ async function compileTs({
         sourcesContent: false,
         packages: nodePackages,
         minify,
+        define,
         alias: target === 'node' ? {} : { path: 'path-browserify' },
         plugins: [
           esbuildPlugins.nativeNodeModulesPlugin(),
@@ -288,7 +301,9 @@ gulp.task('l10n:bundle-download', async () => {
   const content = await jszip.loadAsync(res);
 
   for (const fileName of Object.keys(content.files)) {
-    const match = /vscode-language-pack-(.*?)\/.+ms-vscode\.js-debug.*?\.i18n\.json$/.exec(fileName);
+    const match = /vscode-language-pack-(.*?)\/.+ms-vscode\.js-debug.*?\.i18n\.json$/.exec(
+      fileName,
+    );
     if (match) {
       const locale = match[1];
       const file = content.files[fileName];
@@ -322,12 +337,7 @@ gulp.task(
 
 gulp.task(
   'vsDebugServerBundle',
-  gulp.series(
-    'clean',
-    'compile',
-    'vsDebugServerBundle:webpack-bundle',
-    'l10n:bundle-download'
-  ),
+  gulp.series('clean', 'compile', 'vsDebugServerBundle:webpack-bundle', 'l10n:bundle-download'),
 );
 
 /** Publishes the build extension to the marketplace */
