@@ -1154,8 +1154,10 @@ declare const EXTENSION_NAME: string;
 declare const EXTENSION_VERSION: string;
 declare const EXTENSION_PUBLISHER: string;
 
-export const packageName = EXTENSION_NAME;
-export const packageVersion = EXTENSION_VERSION;
-export const packagePublisher = EXTENSION_PUBLISHER;
+export const packageName = typeof EXTENSION_NAME !== 'undefined' ? EXTENSION_NAME : 'js-debug';
+export const packageVersion =
+  typeof EXTENSION_VERSION !== 'undefined' ? EXTENSION_VERSION : '0.0.0';
+export const packagePublisher =
+  typeof EXTENSION_PUBLISHER !== 'undefined' ? EXTENSION_PUBLISHER : 'vscode-samples';
 export const isNightly = packageName.includes('nightly');
 export const extensionId = `${packagePublisher}.${packageName}`;

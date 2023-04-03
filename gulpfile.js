@@ -201,19 +201,31 @@ async function compileTs({
   packages = [
     ...packages,
     { entry: `${srcDir}/common/hash/hash.ts`, library: false },
-    { entry: `${srcDir}/targets/node/bootloader.ts`, library: false },
-    { entry: `${srcDir}/targets/node/watchdog.ts`, library: false },
-    { entry: `${srcDir}/diagnosticTool/diagnosticTool.tsx`, library: false, target: 'browser' },
+    { entry: `${srcDir}/targets/node/bootloader.ts`, library: false, target: 'node10' },
+    { entry: `${srcDir}/targets/node/watchdog.ts`, library: false, target: 'node10' },
+    {
+      entry: `${srcDir}/diagnosticTool/diagnosticTool.tsx`,
+      library: false,
+      target: 'chrome102',
+      platform: 'browser',
+    },
   ];
 
   const define = await getConstantDefines();
 
   let todo = [];
-  for (const { entry, target = 'node', library, isInVsCode, nodePackages } of packages) {
+  for (const {
+    entry,
+    platform = 'node',
+    library,
+    isInVsCode,
+    nodePackages,
+    target = 'node16',
+  } of packages) {
     todo.push(
       incrementalEsbuild({
         entryPoints: [entry],
-        platform: target,
+        platform,
         bundle: true,
         outdir: buildSrcDir,
         resolveExtensions: isInVsCode
@@ -225,7 +237,8 @@ async function compileTs({
         packages: nodePackages,
         minify,
         define,
-        alias: target === 'node' ? {} : { path: 'path-browserify' },
+        target,
+        alias: platform === 'node' ? {} : { path: 'path-browserify' },
         plugins: [
           esbuildPlugins.nativeNodeModulesPlugin(),
           esbuildPlugins.importGlobLazy(),
