@@ -125,6 +125,7 @@
     "@types/ws": "^8.5.3",
     "@typescript-eslint/eslint-plugin": "^5.17.0",
     "@typescript-eslint/parser": "^5.17.0",
+    "@vscode/telemetry-extractor": "^1.9.10",
     "@vscode/test-electron": "^2.2.3",
     "chai": "^4.3.6",
     "chai-as-promised": "^7.1.1",
