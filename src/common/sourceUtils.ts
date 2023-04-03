@@ -14,12 +14,8 @@ import {
   Program,
   Statement,
 } from 'estree';
-import { promises as fsPromises } from 'fs';
 import { NullablePosition, Position, SourceMapConsumer, SourceMapGenerator } from 'source-map';
 import { LineColumn } from '../adapter/breakpoints/breakpointBase';
-import { LocalFsUtils } from './fsUtils';
-import { Hasher } from './hash';
-import { isWithinAsar } from './pathUtils';
 import { acornOptions, parseProgram } from './sourceCodeManipulations';
 import { SourceMap } from './sourceMaps/sourceMap';
 
@@ -246,34 +242,6 @@ export function parseSourceMappingUrl(content: string): string | undefined {
   const newLine = sourceMapUrl.indexOf('\n');
   if (newLine !== -1) sourceMapUrl = sourceMapUrl.substring(0, newLine);
   return sourceMapUrl.trim();
-}
-
-const hasher = new Hasher();
-
-export async function checkContentHash(
-  absolutePath: string,
-  contentHash?: string,
-  contentOverride?: string,
-): Promise<string | undefined> {
-  if (!absolutePath) {
-    return undefined;
-  }
-
-  if (isWithinAsar(absolutePath)) {
-    return undefined;
-  }
-
-  if (!contentHash) {
-    const exists = await new LocalFsUtils(fsPromises).exists(absolutePath);
-    return exists ? absolutePath : undefined;
-  }
-
-  const result =
-    typeof contentOverride === 'string'
-      ? await hasher.verifyBytes(contentOverride, contentHash, true)
-      : await hasher.verifyFile(absolutePath, contentHash, true);
-
-  return result ? absolutePath : undefined;
 }
 
 interface INotNullRange {
