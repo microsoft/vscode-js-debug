@@ -4,13 +4,13 @@
 
 import * as l10n from '@vscode/l10n';
 import Cdp from '../cdp/api';
-import { once, posInt32Counter } from '../common/objUtils';
+import { once, posInt32Counter, truthy } from '../common/objUtils';
 import { Base0Position } from '../common/positions';
 import { SourceConstants } from '../common/sourceUtils';
 import Dap from '../dap/api';
 import { asyncScopesNotAvailable } from '../dap/errors';
 import { ProtocolError } from '../dap/protocolError';
-import { shouldStepOverStackFrame, StackFrameStepOverReason } from './smartStepping';
+import { StackFrameStepOverReason, shouldStepOverStackFrame } from './smartStepping';
 import { IPreferredUiLocation } from './sources';
 import { RawLocation, Thread } from './threads';
 import { IExtraProperty, IScopeRef, IVariableContainer } from './variableStore';
@@ -303,84 +303,88 @@ export class StackFrame implements IFrameElement {
   }
 
   async scopes(): Promise<Dap.ScopesResult> {
-    if (!this._scope) {
+    const currentScope = this._scope;
+    if (!currentScope) {
       throw new ProtocolError(asyncScopesNotAvailable());
     }
 
-    const scopes: Dap.Scope[] = [];
-    for (let scopeNumber = 0; scopeNumber < this._scope.chain.length; scopeNumber++) {
-      const scope: Cdp.Debugger.Scope = this._scope.chain[scopeNumber];
-
-      let name = '';
-      let presentationHint: 'arguments' | 'locals' | 'registers' | undefined;
-      switch (scope.type) {
-        case 'global':
-          name = l10n.t('Global');
-          break;
-        case 'local':
-          name = l10n.t('Local');
-          presentationHint = 'locals';
-          break;
-        case 'with':
-          name = l10n.t('With Block');
-          presentationHint = 'locals';
-          break;
-        case 'closure':
-          name = l10n.t('Closure');
-          presentationHint = 'arguments';
-          break;
-        case 'catch':
-          name = l10n.t('Catch Block');
-          presentationHint = 'locals';
-          break;
-        case 'block':
-          name = l10n.t('Block');
-          presentationHint = 'locals';
-          break;
-        case 'script':
-          name = l10n.t('Script');
-          break;
-        case 'eval':
-          name = l10n.t('Eval');
-          break;
-        case 'module':
-          name = l10n.t('Module');
-          break;
-        default:
-          // fallback for custom scope types from other runtimes (#651)
-          name = scope.type.substr(0, 1).toUpperCase() + scope.type.substr(1);
-          break;
-      }
-      if (scope.name && scope.type === 'closure') {
-        name = l10n.t('Closure ({0})', scope.name);
-      } else if (scope.name) {
-        name = `${name}: ${scope.name}`;
-      }
-
-      const variable = await this._scopeVariable(scopeNumber, this._scope);
-      const dap: Dap.Scope = {
-        name,
-        presentationHint,
-        expensive: scope.type === 'global',
-        variablesReference: variable.id,
-      };
-      if (scope.startLocation) {
-        const startRawLocation = this._thread.rawLocation(scope.startLocation);
-        const startUiLocation = await this._thread.rawLocationToUiLocation(startRawLocation);
-        dap.line = (startUiLocation || startRawLocation).lineNumber;
-        dap.column = (startUiLocation || startRawLocation).columnNumber;
-        if (startUiLocation) dap.source = await startUiLocation.source.toDap();
-        if (scope.endLocation) {
-          const endRawLocation = this._thread.rawLocation(scope.endLocation);
-          const endUiLocation = await this._thread.rawLocationToUiLocation(endRawLocation);
-          dap.endLine = (endUiLocation || endRawLocation).lineNumber;
-          dap.endColumn = (endUiLocation || endRawLocation).columnNumber;
+    const scopes = await Promise.all(
+      currentScope.chain.map(async (scope, scopeNumber) => {
+        let name = '';
+        let presentationHint: 'arguments' | 'locals' | 'registers' | undefined;
+        switch (scope.type) {
+          case 'global':
+            name = l10n.t('Global');
+            break;
+          case 'local':
+            name = l10n.t('Local');
+            presentationHint = 'locals';
+            break;
+          case 'with':
+            name = l10n.t('With Block');
+            presentationHint = 'locals';
+            break;
+          case 'closure':
+            name = l10n.t('Closure');
+            presentationHint = 'arguments';
+            break;
+          case 'catch':
+            name = l10n.t('Catch Block');
+            presentationHint = 'locals';
+            break;
+          case 'block':
+            name = l10n.t('Block');
+            presentationHint = 'locals';
+            break;
+          case 'script':
+            name = l10n.t('Script');
+            break;
+          case 'eval':
+            name = l10n.t('Eval');
+            break;
+          case 'module':
+            name = l10n.t('Module');
+            break;
+          default:
+            // fallback for custom scope types from other runtimes (#651)
+            name = scope.type.substr(0, 1).toUpperCase() + scope.type.substr(1);
+            break;
         }
-      }
-      scopes.push(dap);
-    }
+        if (scope.name && scope.type === 'closure') {
+          name = l10n.t('Closure ({0})', scope.name);
+        } else if (scope.name) {
+          name = `${name}: ${scope.name}`;
+        }
 
-    return { scopes };
+        const variable = this._scopeVariable(scopeNumber, currentScope);
+        if (!variable) {
+          return undefined;
+        }
+
+        const dap: Dap.Scope = {
+          name,
+          presentationHint,
+          expensive: scope.type === 'global',
+          variablesReference: variable.id,
+        };
+        if (scope.startLocation) {
+          const startRawLocation = this._thread.rawLocation(scope.startLocation);
+          const startUiLocation = await this._thread.rawLocationToUiLocation(startRawLocation);
+          dap.line = (startUiLocation || startRawLocation).lineNumber;
+          dap.column = (startUiLocation || startRawLocation).columnNumber;
+          if (startUiLocation) dap.source = await startUiLocation.source.toDap();
+          if (scope.endLocation) {
+            const endRawLocation = this._thread.rawLocation(scope.endLocation);
+            const endUiLocation = await this._thread.rawLocationToUiLocation(endRawLocation);
+            dap.endLine = (endUiLocation || endRawLocation).lineNumber;
+            dap.endColumn = (endUiLocation || endRawLocation).columnNumber;
+          }
+        }
+        return dap;
+      }),
+    );
+
+    return { scopes: scopes.filter(truthy) };
   }
 
   /** @inheritdoc */
@@ -445,7 +449,8 @@ export class StackFrame implements IFrameElement {
     return text;
   }
 
-  private async _scopeVariable(scopeNumber: number, scope: IScope): Promise<IVariableContainer> {
+  /** Gets the variable container for a scope. Returns undefined if the thread is not longer paused. */
+  private _scopeVariable(scopeNumber: number, scope: IScope): IVariableContainer | undefined {
     const existing = scope.variables[scopeNumber];
     if (existing) {
       return existing;
@@ -467,10 +472,12 @@ export class StackFrame implements IFrameElement {
         });
     }
 
-    // eslint-disable-next-line
-    const variable = this._thread
-      .pausedVariables()!
-      .createScope(scope.chain[scopeNumber].object, scopeRef, extraProperties);
+    const paused = this._thread.pausedVariables();
+    if (!paused) {
+      return undefined;
+    }
+
+    const variable = paused.createScope(scope.chain[scopeNumber].object, scopeRef, extraProperties);
     return (scope.variables[scopeNumber] = variable);
   }
 
@@ -483,13 +490,17 @@ export class StackFrame implements IFrameElement {
 
     const promises: Promise<Dap.CompletionItem[]>[] = [];
     for (let scopeNumber = 0; scopeNumber < this._scope.chain.length; scopeNumber++) {
+      const scopeVariable = this._scopeVariable(scopeNumber, this._scope);
+      if (!scopeVariable) {
+        continue;
+      }
+
       promises.push(
-        this._scopeVariable(scopeNumber, this._scope).then(async scopeVariable => {
-          const variables = await variableStore.getVariableNames({
+        variableStore
+          .getVariableNames({
             variablesReference: scopeVariable.id,
-          });
-          return variables.map(label => ({ label, type: 'property' }));
-        }),
+          })
+          .then(variables => variables.map(label => ({ label, type: 'property' }))),
       );
     }
     const completions = await Promise.all(promises);
