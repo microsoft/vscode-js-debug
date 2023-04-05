@@ -1407,6 +1407,17 @@ export class Thread implements IVariableStoreLocationProvider {
       event.url = this.target.scriptUrlToUrl(event.url);
     }
 
+    // Hack: Node 16 seems to not report its 0th context where it loads some
+    // initial scripts. Pretend these are actually loaded in the 2nd (main) context.
+    // https://github.com/nodejs/node/issues/47438
+    if (
+      this.launchConfig.type === DebugType.Node &&
+      event.executionContextId === 0 &&
+      !this._executionContexts.has(0)
+    ) {
+      event.executionContextId = 1;
+    }
+
     const executionContext = this._executionContexts.get(event.executionContextId);
     if (!executionContext) {
       return;
