@@ -294,6 +294,11 @@ gulp.task('vsDebugServerBundle:webpack-bundle', async () => {
   return compileTs({ packages, sourcemap: isWatch });
 });
 
+gulp.task('debugServerMain:webpack-bundle', async () => {
+  const packages = [{ entry: `${srcDir}/debugServerMain.ts`, library: true }];
+  return compileTs({ packages, sourcemap: isWatch });
+});
+
 const vsceUrls = {
   baseContentUrl: 'https://github.com/microsoft/vscode-js-debug/blob/main',
   baseImagesUrl: 'https://github.com/microsoft/vscode-js-debug/raw/main',

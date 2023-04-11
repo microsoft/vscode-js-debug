@@ -84,6 +84,7 @@ export class Binder implements IDisposable {
   private _dap: Dap.Api;
   private _targetOrigin: ITargetOrigin;
   private _launchParams?: AnyLaunchConfiguration;
+  private _dapInitializeParams?: Dap.InitializeParams;
   private _asyncStackPolicy?: IAsyncStackPolicy;
   private _serviceTree = new WeakMap<ITarget, Container>();
 
@@ -120,6 +121,7 @@ export class Binder implements IDisposable {
         filterErrorsReportedToTelemetry();
       }
 
+      this._dapInitializeParams = clientCapabilities;
       setTimeout(() => dap.initialized({}), 0);
       return capabilities;
     });
@@ -408,7 +410,7 @@ export class Binder implements IDisposable {
     this._serviceTree.set(target, parentContainer);
 
     const debugAdapter = new DebugAdapter(dap, this._asyncStackPolicy, launchParams, container);
-    const thread = debugAdapter.createThread(cdp, target);
+    const thread = debugAdapter.createThread(cdp, target, this._dapInitializeParams);
 
     const startThread = async () => {
       await debugAdapter.launchBlocker();
