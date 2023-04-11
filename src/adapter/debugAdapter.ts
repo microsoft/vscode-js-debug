@@ -431,7 +431,7 @@ export class DebugAdapter implements IDisposable {
     if (details) await this._thread.refreshStackTrace();
   }
 
-  createThread(cdp: Cdp.Api, target: ITarget): Thread {
+  createThread(cdp: Cdp.Api, target: ITarget, initializeParams?: Dap.InitializeParams): Thread {
     this._thread = new Thread(
       this.sourceContainer,
       cdp,
@@ -448,6 +448,14 @@ export class DebugAdapter implements IDisposable {
       this._services.get(SmartStepper),
       this._services.get(IShutdownParticipants),
     );
+
+    if (initializeParams) {
+      // We won't get notified of an initialize message:
+      // that was already caught by the caller.
+      setTimeout(() => {
+        this.onInitialize(initializeParams);
+      }, 0);
+    }
 
     const profile = this._services.get<IProfileController>(IProfileController);
     profile.connect(this.dap, this._thread);
