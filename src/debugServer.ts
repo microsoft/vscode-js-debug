@@ -113,7 +113,12 @@ export function startDebugServer(port: number, host?: string): Promise<IDisposab
       })
       .on('error', reject)
       .listen({ port, host }, () => {
-        console.log(`Debug server listening at ${(server.address() as net.AddressInfo).port}`);
+        // Instead of printing the port used to stdout,
+        // send it over FD 3.
+        const address = server.address() as net.AddressInfo;
+        const fd3 = fs.createWriteStream('', { fd: 3 });
+        fd3.write(`${address.port}`, () => fd3.close());
+
         resolve({
           dispose: () => {
             server.close();
