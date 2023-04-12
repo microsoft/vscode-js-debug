@@ -1411,7 +1411,8 @@ export class Thread implements IVariableStoreLocationProvider {
     // initial scripts. Pretend these are actually loaded in the 2nd (main) context.
     // https://github.com/nodejs/node/issues/47438
     if (
-      this.launchConfig.type === DebugType.Node &&
+      (this.launchConfig.type === DebugType.Node ||
+        this.launchConfig.type === DebugType.Terminal) &&
       event.executionContextId === 0 &&
       !this._executionContexts.has(0)
     ) {
