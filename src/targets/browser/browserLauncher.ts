@@ -98,17 +98,22 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
     // dir unless it's  explicitly requested.
     let resolvedDataDir: string | undefined;
     if (typeof userDataDir === 'string') {
-      resolvedDataDir = userDataDir;
+      resolvedDataDir = path.resolve(userDataDir);
     } else if (userDataDir) {
-      resolvedDataDir = path.join(
-        this.storagePath,
-        runtimeArgs?.includes('--headless') ? '.headless-profile' : '.profile',
+      resolvedDataDir = path.resolve(
+        path.join(
+          this.storagePath,
+          runtimeArgs?.includes('--headless') ? '.headless-profile' : '.profile',
+        ),
       );
     }
 
-    try {
-      fs.mkdirSync(this.storagePath);
-    } catch (e) {}
+    fs.mkdirSync(this.storagePath, { recursive: true });
+
+    if (resolvedDataDir) {
+      fs.mkdirSync(resolvedDataDir, { recursive: true });
+      resolvedDataDir = fs.realpathSync(resolvedDataDir);
+    }
 
     return await launcher.launch(
       dap,
