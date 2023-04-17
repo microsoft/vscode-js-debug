@@ -13,7 +13,7 @@ import { DebugAdapter } from './adapter/debugAdapter';
 import { Binder, IBinderDelegate } from './binder';
 import { ILogger } from './common/logging';
 import { ProxyLogger } from './common/logging/proxyLogger';
-import { IDeferred, getDeferred } from './common/promiseUtil';
+import { getDeferred, IDeferred } from './common/promiseUtil';
 import { AnyResolvingConfiguration } from './configuration';
 import Dap from './dap/api';
 import DapConnection from './dap/connection';
@@ -191,6 +191,7 @@ class DapSessionManager implements IBinderDelegate {
       await adapter.breakpointManager.setBreakpoints(params, ids);
     await adapter.enableCustomBreakpoints({ ids: Array.from(init.customBreakpoints) });
     await adapter.onInitialize(init.initializeParams);
+    await adapter.configurationDone();
 
     await adapter.launchBlocker();
     init.deferred.resolve({});
