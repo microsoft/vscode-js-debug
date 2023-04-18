@@ -86,6 +86,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
         ipcAddress: runData.serverAddress,
         scriptName: 'Remote Process',
         inspectorURL,
+        remoteHostHeader: runData.params.remoteHostHeader,
         waitForDebugger: true,
         dynamicAttach: true,
       });

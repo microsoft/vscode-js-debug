@@ -43,6 +43,13 @@ export interface IWatchdogInfo {
   inspectorURL: string;
 
   /**
+   * Explicit Host header to use when connecting to the websocket of inspector.
+   * If not set, the host header will be set to 'localhost'.
+   * This is useful when the inspector is running behind a proxy that only accept particular Host header.
+   */
+  remoteHostHeader?: string;
+
+  /**
    * Address on the debugging server to attach to.
    */
   ipcAddress: string;
@@ -190,7 +197,11 @@ export class WatchDog implements IDisposable {
 
   private async createTarget() {
     this.gracefulExit = false; // reset
-    const target = await WebSocketTransport.create(this.info.inspectorURL, this.cts.token);
+    const target = await WebSocketTransport.create(
+      this.info.inspectorURL,
+      this.cts.token,
+      this.info.remoteHostHeader,
+    );
     target.onMessage(([data]) => this.server.send(data));
     target.onEnd(() => {
       if (target) {

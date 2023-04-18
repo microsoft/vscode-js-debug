@@ -27,6 +27,7 @@ export class WebSocketTransport implements ITransport {
   static async create(
     url: string,
     cancellationToken: CancellationToken,
+    remoteHostHeader?: string,
   ): Promise<WebSocketTransport> {
     const isSecure = !url.startsWith('ws://');
     const targetAddressIsLoopback = await isLoopback(url);
@@ -35,7 +36,7 @@ export class WebSocketTransport implements ITransport {
       const dontRetryBefore = Date.now() + maxRetryInterval;
       try {
         const options = {
-          headers: { host: 'localhost' },
+          headers: { host: remoteHostHeader ?? 'localhost' },
           perMessageDeflate: false,
           maxPayload: 256 * 1024 * 1024, // 256Mb
           rejectUnauthorized: !(isSecure && targetAddressIsLoopback),
