@@ -427,6 +427,11 @@ const nodeAttachConfig: IDebugger<INodeAttachConfiguration> = {
       description: refString('node.websocket.address.description'),
       default: undefined,
     },
+    remoteHostHeader: {
+      type: 'string',
+      description: refString('node.remote.host.header.description'),
+      default: undefined,
+    },
     restart: {
       description: refString('node.attach.restart.description'),
       default: true,

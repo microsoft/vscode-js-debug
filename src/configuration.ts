@@ -524,6 +524,13 @@ export interface INodeAttachConfiguration extends INodeBaseConfiguration {
   websocketAddress?: string;
 
   /**
+   * Explicit Host header to use when connecting to the websocket of inspector.
+   * If not set, the host header will be set to 'localhost'.
+   * This is useful when the inspector is running behind a proxy that only accept particular Host header.
+   */
+  remoteHostHeader?: string;
+
+  /**
    * TCP/IP address of process to be debugged. Default is 'localhost'.
    */
   address: string;
