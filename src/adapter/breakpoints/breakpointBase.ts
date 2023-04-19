@@ -294,13 +294,14 @@ export abstract class Breakpoint {
     }
 
     // Find all locations for this breakpoint in the new script.
+    const scriptSource = await script.source;
     const uiLocations = this._manager._sourceContainer.currentSiblingUiLocations(
       {
         lineNumber: this.originalPosition.lineNumber,
         columnNumber: this.originalPosition.columnNumber,
         source,
       },
-      await script.source,
+      scriptSource,
     );
 
     if (!uiLocations.length) {
@@ -322,7 +323,7 @@ export abstract class Breakpoint {
         continue;
       }
 
-      if (!this.breakpointIsForSource(bp.args, source)) {
+      if (!this.breakpointIsForSource(bp.args, scriptSource)) {
         continue;
       }
 
