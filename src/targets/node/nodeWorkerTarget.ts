@@ -71,7 +71,10 @@ export class NodeWorkerTarget implements ITarget {
   }
 
   public async attach(): Promise<Cdp.Api | undefined> {
-    await Promise.all([this.cdp.Debugger.enable({}), this.cdp.Runtime.enable({})]);
+    // order matters! The runtime must be enabled first so we know what
+    // execution contexts scripts are in
+    await this.cdp.Runtime.enable({});
+    await this.cdp.Debugger.enable({});
     this.attached = true;
     return this.cdp;
   }
