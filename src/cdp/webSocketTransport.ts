@@ -56,7 +56,7 @@ export class WebSocketTransport implements ITransport {
                 return;
               }
 
-              this.create(redirectUrl, cancellationToken).then(resolve, reject);
+              this.create(redirectUrl, cancellationToken, remoteHostHeader).then(resolve, reject);
             });
           }),
           CancellationTokenSource.withTimeout(2000, cancellationToken).token,
