@@ -520,12 +520,8 @@ export const createTargetFilterForConfig = (
   additonalMatches: ReadonlyArray<string> = [],
 ): ((t: { url: string }) => boolean) => {
   const filter = config.urlFilter || ('file' in config && config.file) || config.url;
-  if (!filter) {
-    return () => true;
-  }
-
-  const tester = createTargetFilter(filter, ...additonalMatches);
-  return t => tester(t.url);
+  const tester = filter ? createTargetFilter(filter, ...additonalMatches) : undefined;
+  return t => !t.url.startsWith('devtools://') && tester?.(t.url) !== false;
 };
 
 /**
