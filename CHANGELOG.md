@@ -4,6 +4,12 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
+Nothing, yet.
+
+## v1.78 (April 2024)
+
+### v1.78.0 - 2023-04-26
+
 - fix: vite sources on posix not setting breakpoints correctly ([#1661](https://github.com/microsoft/vscode-js-debug/issues/1661))
 - fix: debugger failing on Node <=12 ([#1624](https://github.com/microsoft/vscode-js-debug/issues/1624))
 - fix: sourcemap lookups on ipv6 localhost addresses ([vscode#167353](https://github.com/microsoft/vscode/issues/167353))
