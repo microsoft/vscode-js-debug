@@ -4,7 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
-Nothing, yet.
+- fix: ECONNREFUSED when debugging from WSL (requires VS Code Insiders until release) ([#1603](https://github.com/microsoft/vscode-js-debug/issues/1603))
 
 ## v1.78 (April 2024)
 

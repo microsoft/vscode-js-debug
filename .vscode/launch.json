@@ -121,7 +121,7 @@
     },
     {
       "name": "Extension and Companion",
-      "type": "pwa-extensionHost",
+      "type": "extensionHost",
       "request": "launch",
       "skipFiles": [
         "<node_internals>/**"
