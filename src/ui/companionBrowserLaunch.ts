@@ -74,6 +74,11 @@ const launchCompanionBrowser = async (
 
     await vscode.commands.executeCommand('js-debug-companion.launchAndAttach', {
       proxyUri: tunnel ? `127.0.0.1:${tunnel.localAddress.port}` : `127.0.0.1:${args.serverPort}`,
+      wslInfo: process.env.WSL_DISTRO_NAME && {
+        execPath: process.execPath,
+        distro: process.env.WSL_DISTRO_NAME,
+        user: process.env.USER,
+      },
       ...args,
     });
   } catch (e) {
