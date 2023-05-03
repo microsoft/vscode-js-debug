@@ -991,6 +991,17 @@ describe('breakpoints', () => {
       });
     });
 
+    itIntegrates('implies equal (#1698)', async ({ r }) => {
+      await doTest(r, async (p, source) => {
+        r.log(
+          await p.dap.setBreakpoints({ source, breakpoints: [{ line: 4, hitCondition: '5' }] }),
+        );
+        const evaluate = p.evaluate('foo();');
+        await waitForHit(p);
+        await evaluate;
+      });
+    });
+
     itIntegrates('can change after set', async ({ r }) => {
       await doTest(r, async (p, source) => {
         r.log(
