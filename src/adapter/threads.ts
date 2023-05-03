@@ -1259,7 +1259,7 @@ export class Thread implements IVariableStoreLocationProvider {
           event,
           stackTrace,
           reason: 'exception',
-          description: l10n.t('Paused on {}', 'promise rejection'),
+          description: l10n.t('Paused on {0}', 'promise rejection'),
           exception: event.data as Cdp.Runtime.RemoteObject | undefined,
         };
       case 'instrumentation':
