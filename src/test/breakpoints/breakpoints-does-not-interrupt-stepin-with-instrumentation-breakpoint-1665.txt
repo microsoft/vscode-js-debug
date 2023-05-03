@@ -1,0 +1,26 @@
+Evaluating#1: test()
+{
+    allThreadsStopped : false
+    description : Paused on debugger statement
+    reason : pause
+    threadId : <number>
+}
+test @ <eval>/VM<xx>:4:13
+<anonymous> @ eval1.js:1:1
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+test @ <eval>/VM<xx>:5:13
+<anonymous> @ eval1.js:1:1
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+<anonymous> @ foo.js:2:15
+test @ <eval>/VM<xx>:5:15
+<anonymous> @ eval1.js:1:1

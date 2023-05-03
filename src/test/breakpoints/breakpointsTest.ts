@@ -1319,6 +1319,42 @@ describe('breakpoints', () => {
     },
   );
 
+  itIntegrates(
+    'does not interrupt stepIn with instrumentation breakpoint (#1665)',
+    async ({ r }) => {
+      const p = await r.launchAndLoad(`
+        <script>
+          function test() {
+            debugger;
+            f=eval(\`
+              (function (a, b) {
+                c = a + b;
+                return c;
+              });
+              //# sourceURL=foo.js
+              //# sourceMappingURL=foo.js.map
+            \`);
+            f(1, 2);
+          }
+        </script>`);
+
+      const evaluate = p.evaluate('test()');
+
+      const a = p.log(await p.dap.once('stopped')); // debugger statement
+      await p.logger.logStackTrace(a.threadId);
+      await p.dap.stepIn({ threadId: a.threadId });
+
+      const b = p.log(await p.dap.once('stopped')); // f=eval(...
+      await p.logger.logStackTrace(b.threadId);
+      await p.dap.stepIn({ threadId: b.threadId });
+
+      await waitForPause(p); // should now be on (function (a, b)
+
+      await evaluate;
+      p.assertLog();
+    },
+  );
+
   itIntegrates('deals with removed execution contexts (#1582)', async ({ r }) => {
     const p = await r.launchUrlAndLoad('iframe-1582/index.html');
 

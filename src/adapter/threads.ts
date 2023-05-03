@@ -836,6 +836,7 @@ export class Thread implements IVariableStoreLocationProvider {
         event.data.__rewriteAs = 'breakpoint';
       }
 
+      const expectedPauseReason = this._expectedPauseReason;
       if (scriptId && (await this._handleSourceMapPause(scriptId, location))) {
         // Pause if we just resolved a breakpoint that's on this
         // location; this won't have existed before now.
@@ -853,14 +854,15 @@ export class Thread implements IVariableStoreLocationProvider {
         )
       ) {
         // Check if there are any user-defined breakpoints on this line
-      } else if (
-        this._expectedPauseReason?.reason === 'step' &&
-        this._expectedPauseReason.direction === StepDirection.Over
-      ) {
-        // Check if we're in the middle of a step over, e.g. stepping over a
+      } else if (expectedPauseReason?.reason === 'step') {
+        // Check if we're in the middle of a step, e.g. stepping over a
         // function compilation. Stepping in should still remain paused,
         // and an instrumentation pause in step out should not be possible.
-        return this._cdp.Debugger.stepOut({});
+        if (expectedPauseReason.direction === StepDirection.In) {
+          // no-op
+        } else {
+          return this._cdp.Debugger.stepOut({});
+        }
       } else {
         // If none of this above, it's pure instrumentation.
         return this.resume();
