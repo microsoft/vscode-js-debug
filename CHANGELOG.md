@@ -5,6 +5,10 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 ## Nightly (only)
 
 - fix: ECONNREFUSED when debugging from WSL (requires VS Code Insiders until release) ([#1603](https://github.com/microsoft/vscode-js-debug/issues/1603))
+- fix: terminal launches sometimes sending commands too soon ([#1642](https://github.com/microsoft/vscode-js-debug/issues/1642))
+- fix: step into `eval` when `pauseForSourceMap` is true does not pause on next available line ([#1692](https://github.com/microsoft/vscode-js-debug/issues/1692))
+- fix: useWebview debug sessions getting stuck if program exits without attaching ([#1666](https://github.com/microsoft/vscode-js-debug/issues/1666))
+- fix: do not to translate "promise rejection" ([#1658](https://github.com/microsoft/vscode-js-debug/issues/1658))
 
 ## v1.78 (April 2024)
 

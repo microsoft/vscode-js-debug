@@ -142,6 +142,7 @@ export class TerminalNodeLauncher extends NodeLauncherBase<ITerminalLaunchConfig
     const program = (this.program = new VSCodeTerminalProcess(terminal));
 
     if (runData.params.command) {
+      await terminal.processId; // #1642
       terminal.sendText(runData.params.command, true);
     }
 
