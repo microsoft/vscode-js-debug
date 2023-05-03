@@ -7,11 +7,14 @@ import { promises as fsPromises } from 'fs';
 import { CancellationToken } from 'vscode';
 import CdpConnection from '../../cdp/connection';
 import { WebSocketTransport } from '../../cdp/webSocketTransport';
+import { IDisposable } from '../../common/disposable';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { canAccess } from '../../common/fsUtils';
 import { ILogger, LogTag } from '../../common/logging';
 import { delay } from '../../common/promiseUtil';
 import Dap from '../../dap/api';
+import { browserProcessExitedBeforePort } from '../../dap/errors';
+import { ProtocolError } from '../../dap/protocolError';
 import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
 import { BrowserArgs } from './browserArgs';
 import { IDapInitializeParamsWithExtensions } from './browserLauncher';
@@ -143,7 +146,16 @@ export async function launch(
 
   try {
     if (options.promisedPort) {
-      actualConnection = await options.promisedPort;
+      let listener: IDisposable;
+
+      actualConnection = await Promise.race([
+        options.promisedPort,
+        new Promise<never>((_resolve, reject) => {
+          listener = browserProcess.onExit(code => {
+            reject(new ProtocolError(browserProcessExitedBeforePort(code)));
+          });
+        }),
+      ]).finally(() => listener.dispose());
     }
 
     const transport = await browserProcess.transport(

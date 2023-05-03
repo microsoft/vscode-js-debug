@@ -235,3 +235,11 @@ export const isDapError = (value: unknown): value is Dap.Error =>
 
 export const isErrorOfType = (error: unknown, code: ErrorCodes): error is ProtocolError =>
   error instanceof ProtocolError && error.cause.id === code;
+
+export const browserProcessExitedBeforePort = (code: number) =>
+  createUserError(
+    l10n.t(
+      'The browser process exited with code {0} before connecting to the debug server. Make sure the `runtimeExecutable` is configured correctly and that it can run without errors.',
+      code,
+    ),
+  );
