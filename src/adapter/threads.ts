@@ -11,7 +11,7 @@ import { HrTime } from '../common/hrnow';
 import { ILogger, LogTag } from '../common/logging';
 import { isInstanceOf, truthy } from '../common/objUtils';
 import { Base1Position } from '../common/positions';
-import { IDeferred, delay, getDeferred } from '../common/promiseUtil';
+import { delay, getDeferred, IDeferred } from '../common/promiseUtil';
 import { IRenameProvider } from '../common/sourceMaps/renameProvider';
 import * as sourceUtils from '../common/sourceUtils';
 import { StackTraceParser } from '../common/stackTraceParser';
@@ -33,16 +33,16 @@ import { CustomBreakpointId, customBreakpoints } from './customBreakpoints';
 import { IEvaluator } from './evaluator';
 import { IExceptionPauseService } from './exceptionPauseService';
 import * as objectPreview from './objectPreview';
-import { PreviewContextType, getContextForType } from './objectPreview/contexts';
+import { getContextForType, PreviewContextType } from './objectPreview/contexts';
 import { SmartStepper } from './smartStepping';
 import {
+  base1To0,
   IPreferredUiLocation,
   ISourceWithMap,
   IUiLocation,
+  rawToUiOffset,
   Source,
   SourceContainer,
-  base1To0,
-  rawToUiOffset,
 } from './sources';
 import { StackFrame, StackTrace } from './stackTrace';
 import {
@@ -1259,7 +1259,7 @@ export class Thread implements IVariableStoreLocationProvider {
           event,
           stackTrace,
           reason: 'exception',
-          description: l10n.t('Paused on promise rejection'),
+          description: l10n.t('Paused on {}', 'promise rejection'),
           exception: event.data as Cdp.Runtime.RemoteObject | undefined,
         };
       case 'instrumentation':
