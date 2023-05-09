@@ -230,7 +230,7 @@ describe('sources', () => {
         '//# sourceMappingURL=data:application/json;charset=utf-8;base64,ZGV2cw==\n',
       );
       await p.logger.logOutput(await output);
-      p.assertLog({ substring: true });
+      p.assertLog();
     });
 
     itIntegrates('logs not found errors', async ({ r }) => {
