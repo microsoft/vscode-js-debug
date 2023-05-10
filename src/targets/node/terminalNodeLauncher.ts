@@ -11,6 +11,7 @@ import { IPortLeaseTracker } from '../../adapter/portLeaseTracker';
 import { DebugType } from '../../common/contributionUtils';
 import { EventEmitter } from '../../common/events';
 import { ILogger } from '../../common/logging';
+import { delay } from '../../common/promiseUtil';
 import { AnyLaunchConfiguration, ITerminalLaunchConfiguration } from '../../configuration';
 import { ErrorCodes } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
@@ -142,6 +143,9 @@ export class TerminalNodeLauncher extends NodeLauncherBase<ITerminalLaunchConfig
     const program = (this.program = new VSCodeTerminalProcess(terminal));
 
     if (runData.params.command) {
+      // Add wait for #1642
+      // "There's a known issue that processId can not resolve... to be safe could you have a race timeout"
+      await Promise.race([terminal.processId, delay(1000)]);
       terminal.sendText(runData.params.command, true);
     }
 
