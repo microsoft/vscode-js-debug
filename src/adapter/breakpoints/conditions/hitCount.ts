@@ -42,7 +42,7 @@ export class HitCondition implements IBreakpointCondition {
       throw new ProtocolError(invalidHitCondition(expression));
     }
 
-    const [, op, value] = parts;
+    const [, op = '=', value] = parts;
     const expr =
       op === '%'
         ? `return (numHits % ${value}) === 0;`

@@ -61,6 +61,9 @@ export function previewRemoteObject(
     context,
     valueFormat,
   );
+
+  if (object.preview?.subtype === 'regexp') return result;
+
   return context.postProcess?.(result) ?? result;
 }
 

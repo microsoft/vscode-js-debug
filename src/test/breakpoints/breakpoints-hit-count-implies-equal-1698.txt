@@ -1,0 +1,17 @@
+{
+    breakpoints : [
+        [0] : {
+            column : 13
+            id : <number>
+            line : 4
+            source : {
+                name : <eval>/VM<xx>
+                path : <eval>/VM<xx>
+                sourceReference : <number>
+            }
+            verified : true
+        }
+    ]
+}
+Evaluating#1: foo();
+result: 4

@@ -16,6 +16,12 @@ import { IRequestOptionsProvider } from './requestOptionsProvider';
 
 @injectable()
 export class BasicResourceProvider implements IResourceProvider {
+  /**
+   * Map of ports to fallback hosts that ended up working. Used to optimistically
+   * fallback (see #1694)
+   */
+  private autoLocalhostPortFallbacks: Record<number, string> = {};
+
   constructor(
     @inject(FS) private readonly fs: FsPromises,
     @optional() @inject(IRequestOptionsProvider) private readonly options?: IRequestOptionsProvider,
@@ -83,6 +89,7 @@ export class BasicResourceProvider implements IResourceProvider {
     const parsed = new URL(url);
 
     const isSecure = parsed.protocol !== 'http:';
+    const port = Number(parsed.port) ?? (isSecure ? 443 : 80);
     const options: OptionsOfTextResponseBody = { headers, followRedirect: true };
     if (isSecure && (await isLoopback(url))) {
       options.rejectUnauthorized = false;
@@ -90,12 +97,24 @@ export class BasicResourceProvider implements IResourceProvider {
 
     this.options?.provideOptions(options, url);
 
-    const response = await this.requestHttp(url, options, cancellationToken);
+    const isLocalhost = parsed.hostname === 'localhost';
+    const fallback = isLocalhost && this.autoLocalhostPortFallbacks[port];
+    if (fallback) {
+      const response = await this.requestHttp(parsed.toString(), options, cancellationToken);
+      if (response.statusCode !== 503) {
+        return response;
+      }
+
+      delete this.autoLocalhostPortFallbacks[port];
+      return this.requestHttp(url, options, cancellationToken);
+    }
+
+    let response = await this.requestHttp(url, options, cancellationToken);
 
     // Try the other net family if localhost fails,
     // see https://github.com/microsoft/vscode/issues/140536#issuecomment-1011281962
     // and later https://github.com/microsoft/vscode/issues/167353
-    if (response.statusCode === 503 && parsed.hostname === 'localhost') {
+    if (response.statusCode === 503 && isLocalhost) {
       let resolved: LookupAddress;
       try {
         resolved = await dns.lookup(parsed.hostname);
@@ -104,7 +123,10 @@ export class BasicResourceProvider implements IResourceProvider {
       }
 
       parsed.hostname = resolved.family === 6 ? '127.0.0.1' : '[::1]';
-      return this.requestHttp(parsed.toString(), options, cancellationToken);
+      response = await this.requestHttp(parsed.toString(), options, cancellationToken);
+      if (response.statusCode !== 503) {
+        this.autoLocalhostPortFallbacks[port] = parsed.hostname;
+      }
     }
 
     return response;
