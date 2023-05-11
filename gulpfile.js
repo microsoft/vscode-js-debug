@@ -14,7 +14,6 @@ const execSync = require('child_process').execSync;
 const fs = require('fs');
 const cp = require('child_process');
 const util = require('util');
-const deepmerge = require('deepmerge');
 const esbuild = require('esbuild');
 const esbuildPlugins = require('./src/build/esbuildPlugins');
 const got = require('got').default;
@@ -153,7 +152,7 @@ gulp.task('compile:dynamic', async () => {
     await fixNightlyReadme();
   }
 
-  packageJson = deepmerge(packageJson, contributions);
+  packageJson = Object.assign(packageJson, contributions);
 
   await writeFile(`${buildDir}/package.json`, JSON.stringify(packageJson));
 });
@@ -338,6 +337,21 @@ gulp.task(
     'package:createVSIX',
   ),
 );
+
+/** Prepares the package and then hoists it to the root directory. Destructive. */
+gulp.task('package:hoist', gulp.series('package:prepare', async () => {
+  const srcFiles = await fs.promises.readdir(buildDir);
+  const ignoredFiles = new Set(await fs.promises.readdir(__dirname));
+
+  ignoredFiles.delete('l10n-extract'); // special case: made in the pipeline
+
+  for (const file of srcFiles) {
+    ignoredFiles.delete(file);
+    await fs.promises.rm(path.join(__dirname, file), { force: true, recursive: true });
+    await fs.promises.rename(path.join(buildDir, file), path.join(__dirname, file));
+  }
+  await fs.promises.appendFile(path.join(__dirname, '.vscodeignore'), [...ignoredFiles].join('\n'));
+}));
 
 gulp.task('package', gulp.series('package:prepare', 'package:createVSIX'));
 

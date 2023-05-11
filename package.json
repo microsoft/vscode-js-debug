@@ -130,7 +130,6 @@
     "chai-as-promised": "^7.1.1",
     "chai-string": "^1.5.0",
     "chai-subset": "^1.6.0",
-    "deepmerge": "^4.2.2",
     "del": "^6.0.0",
     "diff": "^5.0.0",
     "esbuild": "^0.17.10",
@@ -174,16 +173,5 @@
   ],
   "extensionKind": [
     "workspace"
-  ],
-  "contributes": {
-    "terminal": {
-      "profiles": [
-        {
-          "id": "extension.js-debug.debugTerminal",
-          "title": "%debug.terminal.label%",
-          "icon": "$(debug)"
-        }
-      ]
-    }
-  }
+  ]
 }
