@@ -17,7 +17,6 @@ parameters:
 extends:
   template: azure-pipelines/extension/pre-release.yml@templates
   parameters:
-    workingDirectory: dist
     usePreReleaseChannel: false
     vscePackageArgs: --no-dependencies
     cgIgnoreDirectories: 'testdata,demos,.vscode-test'
@@ -26,8 +25,8 @@ extends:
       - script: npm install --legacy-peer-deps
         displayName: Install dependencies
 
-      - script: npm run compile -- package:prepare --nightly
-        displayName: Package
-
-      - script: npx -y @vscode/l10n-dev export --outDir ./dist/l10n-extract ./src
+      - script: npx -y @vscode/l10n-dev export --outDir ./l10n-extract ./src
         displayName: Extract localization
+
+      - script: npm run compile -- package:hoist --nightly
+        displayName: Package

@@ -24,7 +24,6 @@ parameters:
 extends:
   template: azure-pipelines/extension/stable.yml@templates
   parameters:
-    workingDirectory: dist
     publishExtension: ${{ parameters.publishExtension }}
     vscePackageArgs: --no-dependencies
     cgIgnoreDirectories: 'testdata,demos,.vscode-test'
@@ -32,8 +31,8 @@ extends:
       ghCreateRelease: true
       ghReleaseAddChangeLog: true
     l10nShouldOnlyPush: true
-    l10nPackageNlsPath: ../package.nls.json
-    l10nSourcePaths: ../src
+    l10nPackageNlsPath: package.nls.json
+    l10nSourcePaths: src
     buildSteps:
       - script: npm install --legacy-peer-deps
         displayName: Install dependencies
@@ -47,5 +46,5 @@ extends:
       - publish: $(Build.ArtifactStagingDirectory)/dap-server
         artifact: Publish DAP Debug Server Bundle
 
-      - script: npm run compile -- package:prepare
+      - script: npm run compile -- package:hoist
         displayName: Package Stable

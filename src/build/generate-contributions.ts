@@ -1591,6 +1591,15 @@ if (require.main === module) {
           title: 'JavaScript Debugger',
           properties: configurationSchema,
         },
+        terminal: {
+          profiles: [
+            {
+              id: 'extension.js-debug.debugTerminal',
+              title: refString('debug.terminal.label'),
+              icon: '$(debug)',
+            },
+          ],
+        },
         views,
         viewsWelcome,
       },
