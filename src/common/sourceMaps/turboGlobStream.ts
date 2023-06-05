@@ -214,12 +214,7 @@ export class TurboGlobStream<E> {
       return true;
     }
 
-    if (!this.filter(path)) {
-      return true;
-    }
-
     const data = child.data?.type === CachedType.File ? child.data.extracted : undefined;
-    this.alreadyProcessedFiles.add(child);
     CacheTree.touch(child);
 
     return this.filter(path, data);
@@ -243,7 +238,7 @@ export class TurboGlobStream<E> {
       return;
     }
 
-    // note: intentionally making the child before the filder check, so it
+    // note: intentionally making the child before the filter check, so it
     // exists in the tree even if this current glob filters it out
     const nextChild = CacheTree.getOrMakeChild(cache, dirent.name);
     if (dirent.type === CachedType.File && !this.applyFilterToFile(dirent.name, nextPath, cache)) {
