@@ -195,4 +195,17 @@ describe('TurboGlobStream', () => {
 
     expect(fileProcessor.callCount).to.equal(2);
   });
+
+  it('applies filters currectly', async () => {
+    const fileProcessor = spy(upperCaseContents);
+    await doTests({
+      expected: ['A1'],
+      opts: {
+        filter: fpath => fpath.endsWith('1.js'),
+        pattern: 'a/*.js',
+        ignore: [],
+        fileProcessor,
+      },
+    });
+  });
 });
