@@ -1412,18 +1412,19 @@ export class Thread implements IVariableStoreLocationProvider {
     // Hack: Node 16 seems to not report its 0th context where it loads some
     // initial scripts. Pretend these are actually loaded in the 2nd (main) context.
     // https://github.com/nodejs/node/issues/47438
-    if (
-      (this.launchConfig.type === DebugType.Node ||
-        this.launchConfig.type === DebugType.Terminal) &&
-      event.executionContextId === 0 &&
-      !this._executionContexts.has(0)
-    ) {
-      event.executionContextId = 1;
-    }
-
-    const executionContext = this._executionContexts.get(event.executionContextId);
+    // Hack: Blazor misreports its execution context IDs too
+    // https://github.com/dotnet/runtime/issues/86754
+    // So just make execution context ID's if they're missing.
+    let executionContext = this._executionContexts.get(event.executionContextId);
     if (!executionContext) {
-      return;
+      this.logger.info(LogTag.Internal, 'Creating missing execution context id', event);
+      executionContext = new ExecutionContext({
+        id: event.executionContextId,
+        name: '<autofilled>',
+        origin: '',
+        uniqueId: String(event.executionContextId),
+      });
+      this._executionContexts.set(event.executionContextId, executionContext);
     }
 
     const createSource = async () => {
