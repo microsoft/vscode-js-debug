@@ -13,6 +13,20 @@
     reason : changed
 }
 {
+    breakpoint : {
+        column : 1
+        id : <number>
+        line : 9
+        source : {
+            name : localhost꞉8001/pretty/ugly.js
+            path : ${workspaceFolder}/web/pretty/ugly.js
+            sourceReference : <number>
+        }
+        verified : true
+    }
+    reason : changed
+}
+{
     allThreadsStopped : false
     description : Paused on breakpoint
     reason : breakpoint
