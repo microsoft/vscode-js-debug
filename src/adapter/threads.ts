@@ -164,6 +164,33 @@ interface IInstrumentationPauseAuxData {
   sourceMapURL: string;
 }
 
+/**
+ * Queue used to avoid getting into a bad state if the user runs multiple
+ * state-changing commands concurrently. Some things can cause V8 to block
+ * and take a while responding to requests. Mutliple requests of the same
+ * operation type get coalesced, while other operation types are
+ * run sequentially.
+ */
+class StateQueue {
+  private queue?: { operation: string; result: Promise<unknown> };
+
+  public enqueue<T>(operation: string, fn: () => Promise<T>) {
+    if (!this.queue || this.queue.operation !== operation) {
+      const promise = this.queue?.result.then(fn, fn) ?? fn();
+      const queued = (this.queue = {
+        operation,
+        result: promise.finally(() => {
+          if (this.queue === queued) {
+            this.queue = undefined;
+          }
+        }),
+      });
+    }
+
+    return this.queue.result as Promise<T>;
+  }
+}
+
 export class Thread implements IVariableStoreLocationProvider {
   private static _lastThreadId = 0;
   public readonly id: number;
@@ -181,6 +208,7 @@ export class Thread implements IVariableStoreLocationProvider {
   private _sourceMapDisabler?: SourceMapDisabler;
   private _expectedPauseReason?: ExpectedPauseReason;
   private _excludedCallers: readonly Dap.ExcludedCaller[] = [];
+  private readonly stateQueue = new StateQueue();
   private readonly _onPausedEmitter = new EventEmitter<IPausedDetails>();
   private readonly _dap: DeferredContainer<Dap.Api>;
   private disposed = false;
@@ -252,66 +280,76 @@ export class Thread implements IVariableStoreLocationProvider {
     }
   }
 
-  public async resume(): Promise<Dap.ContinueResult | Dap.Error> {
-    this._sourceContainer.clearDisabledSourceMaps();
-    if (!(await this._cdp.Debugger.resume({}))) {
-      // We don't report the failure if the target wasn't paused. VS relies on this behavior.
-      if (this._pausedDetails !== undefined) {
-        return errors.createSilentError(l10n.t('Unable to resume'));
+  public resume(): Promise<Dap.ContinueResult | Dap.Error> {
+    return this.stateQueue.enqueue('resume', async () => {
+      this._sourceContainer.clearDisabledSourceMaps();
+      if (!(await this._cdp.Debugger.resume({}))) {
+        // We don't report the failure if the target wasn't paused. VS relies on this behavior.
+        if (this._pausedDetails !== undefined) {
+          return errors.createSilentError(l10n.t('Unable to resume'));
+        }
       }
-    }
-    return { allThreadsContinued: false };
+      return { allThreadsContinued: false };
+    });
   }
 
-  public async pause(): Promise<Dap.PauseResult | Dap.Error> {
-    this._expectedPauseReason = { reason: 'pause' };
+  public pause(): Promise<Dap.PauseResult | Dap.Error> {
+    return this.stateQueue.enqueue('pause', async () => {
+      this._expectedPauseReason = { reason: 'pause' };
 
-    if (await this._cdp.Debugger.pause({})) {
-      return {};
-    }
-
-    return errors.createSilentError(l10n.t('Unable to pause'));
-  }
-
-  async stepOver(): Promise<Dap.NextResult | Dap.Error> {
-    this._expectedPauseReason = { reason: 'step', direction: StepDirection.Over };
-    if (await this._cdp.Debugger.stepOver({})) {
-      return {};
-    }
-
-    return errors.createSilentError(l10n.t('Unable to step next'));
-  }
-
-  async stepInto(targetId?: number): Promise<Dap.StepInResult | Dap.Error> {
-    this._waitingForStepIn = { lastDetails: this._pausedDetails };
-    this._expectedPauseReason = { reason: 'step', direction: StepDirection.In };
-
-    const stepInTarget = this._pausedDetails?.stepInTargets?.[targetId as number];
-    if (stepInTarget) {
-      const breakpoint = await this._cdp.Debugger.setBreakpoint({
-        location: stepInTarget.breakLocation,
-      });
-      this._waitingForStepIn.intoTargetBreakpoint = breakpoint?.breakpointId;
-      if (await this._cdp.Debugger.resume({})) {
+      if (await this._cdp.Debugger.pause({})) {
         return {};
       }
-    } else {
-      if (await this._cdp.Debugger.stepInto({ breakOnAsyncCall: true })) {
-        return {};
-      }
-    }
 
-    return errors.createSilentError(l10n.t('Unable to step in'));
+      return errors.createSilentError(l10n.t('Unable to pause'));
+    });
   }
 
-  async stepOut(): Promise<Dap.StepOutResult | Dap.Error> {
-    this._expectedPauseReason = { reason: 'step', direction: StepDirection.Out };
+  public stepOver(): Promise<Dap.NextResult | Dap.Error> {
+    return this.stateQueue.enqueue('stepOver', async () => {
+      this._expectedPauseReason = { reason: 'step', direction: StepDirection.Over };
+      if (await this._cdp.Debugger.stepOver({})) {
+        return {};
+      }
 
-    if (await this._cdp.Debugger.stepOut({})) {
-      return {};
-    }
+      return errors.createSilentError(l10n.t('Unable to step next'));
+    });
+  }
 
-    return errors.createSilentError(l10n.t('Unable to step out'));
+  public stepInto(targetId?: number): Promise<Dap.StepInResult | Dap.Error> {
+    return this.stateQueue.enqueue('stepInto', async () => {
+      this._waitingForStepIn = { lastDetails: this._pausedDetails };
+      this._expectedPauseReason = { reason: 'step', direction: StepDirection.In };
+
+      const stepInTarget = this._pausedDetails?.stepInTargets?.[targetId as number];
+      if (stepInTarget) {
+        const breakpoint = await this._cdp.Debugger.setBreakpoint({
+          location: stepInTarget.breakLocation,
+        });
+        this._waitingForStepIn.intoTargetBreakpoint = breakpoint?.breakpointId;
+        if (await this._cdp.Debugger.resume({})) {
+          return {};
+        }
+      } else {
+        if (await this._cdp.Debugger.stepInto({ breakOnAsyncCall: true })) {
+          return {};
+        }
+      }
+
+      return errors.createSilentError(l10n.t('Unable to step in'));
+    });
+  }
+
+  public stepOut(): Promise<Dap.StepOutResult | Dap.Error> {
+    return this.stateQueue.enqueue('stepOut', async () => {
+      this._expectedPauseReason = { reason: 'step', direction: StepDirection.Out };
+
+      if (await this._cdp.Debugger.stepOut({})) {
+        return {};
+      }
+
+      return errors.createSilentError(l10n.t('Unable to step out'));
+    });
   }
 
   _stackFrameNotFoundError(): Dap.Error {
@@ -1664,6 +1702,12 @@ export class Thread implements IVariableStoreLocationProvider {
         ),
       ]);
     }
+
+    // slight hack: it's possible for the debugee to respond very quickly to
+    // a "continue" or "step" request and before the response to that is
+    // sent. Add a 0ms delay so all micotasks have a chance to process
+    // before we send the stopped() event.
+    await delay(0);
 
     this._dap.with(dap =>
       dap.stopped({
