@@ -12,6 +12,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: breakpoints not hitting early on in nested sourcemapped programs ([#1704](https://github.com/microsoft/vscode-js-debug/issues/1704))
 - fix: increase smart step backout threshold for better stepping ([#1700](https://github.com/microsoft/vscode-js-debug/issues/1700))
 - fix: Blazor sources sometimes being missing ([dotnet/runtime#86754](https://github.com/dotnet/runtime/issues/86754))
+- fix: possible bad state when resuming multiple times with a slow client
 
 ## v1.78 (April 2024)
 
