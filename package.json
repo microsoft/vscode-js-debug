@@ -167,7 +167,6 @@
   "main": "./src/extension.js",
   "enabledApiProposals": [
     "portsAttributes",
-    "findTextInFiles",
     "workspaceTrust",
     "tunnels"
   ],

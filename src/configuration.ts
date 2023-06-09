@@ -312,12 +312,6 @@ export interface INodeBaseConfiguration extends IBaseConfiguration, IConfigurati
    * with `--inpect-brk`.
    */
   continueOnAttach?: boolean;
-
-  /**
-   * Configures whether to use a new, faster mechanism for sourcemap discovery.
-   * Defaults to `true`.
-   */
-  enableTurboSourcemaps: boolean;
 }
 
 export interface IConfigurationWithEnv {
@@ -841,7 +835,6 @@ const nodeBaseDefaults: INodeBaseConfiguration = {
   autoAttachChildProcesses: true,
   runtimeSourcemapPausePatterns: [],
   skipFiles: ['<node_internals>/**'],
-  enableTurboSourcemaps: true,
 };
 
 export const terminalBaseDefaults: ITerminalLaunchConfiguration = {

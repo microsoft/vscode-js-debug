@@ -2,12 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { injectable } from 'inversify';
+import globStream from 'glob-stream';
+import { inject, injectable } from 'inversify';
 import { FileGlobList, IExplodedGlob } from '../fileGlobList';
-import { LogTag } from '../logging';
+import { ILogger, LogTag } from '../logging';
 import { truthy } from '../objUtils';
+import { fixDriveLetterAndSlashes } from '../pathUtils';
 import { CacheTree } from './cacheTree';
-import { NodeSearchStrategy } from './nodeSearchStrategy';
 import {
   createMetadataForFile,
   ISearchStrategy,
@@ -21,7 +22,9 @@ type CachedType<T> = CacheTree<IGlobCached<T>>;
  * A search strategy that leverages knowledge about the cache to avoid
  */
 @injectable()
-export class TurboSearchStrategy extends NodeSearchStrategy implements ISearchStrategy {
+export class TurboSearchStrategy implements ISearchStrategy {
+  constructor(@inject(ILogger) protected readonly logger: ILogger) {}
+
   /**
    * @inheritdoc
    */
@@ -29,7 +32,15 @@ export class TurboSearchStrategy extends NodeSearchStrategy implements ISearchSt
     files: FileGlobList,
     onChild: (child: string) => T | Promise<T>,
   ): Promise<T[]> {
-    return super.streamAllChildren(files, onChild);
+    const todo: (T | Promise<T>)[] = [];
+
+    await this.globForFiles(files, value =>
+      todo.push(onChild(fixDriveLetterAndSlashes(value.path))),
+    );
+
+    // Type annotation is necessary for https://github.com/microsoft/TypeScript/issues/47144
+    const results: (T | void)[] = await Promise.all(todo);
+    return results.filter((t): t is T => t !== undefined);
   }
 
   /**
@@ -84,5 +95,32 @@ export class TurboSearchStrategy extends NodeSearchStrategy implements ISearchSt
     tgs.onFile(t => t && results.push(opts.onProcessedMap(t)));
 
     await tgs.done;
+  }
+
+  protected async globForFiles(files: FileGlobList, onFile: (file: globStream.Entry) => void) {
+    await Promise.all(
+      [...files.explode()].map(
+        glob =>
+          new Promise((resolve, reject) =>
+            globStream(
+              [
+                glob.pattern,
+                // Avoid reading asar files: electron patches in support for them, but
+                // if we see an invalid one then it throws a synchronous error that
+                // breaks glob. We don't care about asar's here, so just skip that:
+                '!**/*.asar/**',
+              ],
+              {
+                ignore: glob.negations,
+                matchBase: true,
+                cwd: glob.cwd,
+              },
+            )
+              .on('data', onFile)
+              .on('finish', resolve)
+              .on('error', reject),
+          ),
+      ),
+    );
   }
 }

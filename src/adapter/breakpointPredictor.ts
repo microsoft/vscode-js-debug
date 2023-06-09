@@ -12,11 +12,7 @@ import { ILogger, LogTag } from '../common/logging';
 import { fixDriveLetterAndSlashes } from '../common/pathUtils';
 import { ISourceMapMetadata } from '../common/sourceMaps/sourceMap';
 import { ISourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
-import {
-  ISearchStrategy,
-  ISearchStrategyFallback,
-  ISourcemapStreamOptions,
-} from '../common/sourceMaps/sourceMapRepository';
+import { ISearchStrategy, ISourcemapStreamOptions } from '../common/sourceMaps/sourceMapRepository';
 import { ISourcePathResolver } from '../common/sourcePathResolver';
 import { getOptimalCompiledPosition, parseSourceMappingUrl } from '../common/sourceUtils';
 import * as urlUtils from '../common/urlUtils';
@@ -80,25 +76,16 @@ export class BreakpointPredictorCachedState<T> {
 
 @injectable()
 export abstract class BreakpointSearch {
-  private readonly repo: ISearchStrategy;
-
   constructor(
-    @inject(AnyLaunchConfiguration) config: AnyLaunchConfiguration,
     @inject(OutFiles) private readonly outFiles: OutFiles,
-    @inject(ISearchStrategy) repo: ISearchStrategy,
-    @inject(ISearchStrategyFallback) fallbackRepo: ISearchStrategy,
+    @inject(ISearchStrategy) private readonly repo: ISearchStrategy,
     @inject(ILogger) protected readonly logger: ILogger,
     @inject(ISourceMapFactory) private readonly sourceMapFactory: ISourceMapFactory,
     @inject(ISourcePathResolver)
     private readonly sourcePathResolver: ISourcePathResolver | undefined,
     @inject(BreakpointPredictorCachedState)
     private readonly state: BreakpointPredictorCachedState<unknown>,
-  ) {
-    this.repo =
-      'enableTurboSourcemaps' in config && config.enableTurboSourcemaps === false
-        ? fallbackRepo
-        : repo;
-  }
+  ) {}
 
   public abstract getMetadataForPaths(
     sourcePaths: readonly string[],
