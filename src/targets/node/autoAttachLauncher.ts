@@ -2,6 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { inject, injectable } from 'inversify';
 import * as path from 'path';
 import * as vscode from 'vscode';
@@ -143,6 +144,13 @@ export class AutoAttachLauncher
     const bootloaderEnv = debugVars.defined() as unknown as IBootloaderEnvironment;
 
     variables.persistent = true;
+    variables.description = new vscode.MarkdownString(
+      l10n.t({
+        message: 'Enables Node.js [auto attach]({0}) debugging',
+        comment: "{Locked='[auto attach]({0})'}",
+        args: ['https://code.visualstudio.com/docs/nodejs/nodejs-debugging#_auto-attach'],
+      }),
+    );
     variables.prepend('NODE_OPTIONS', bootloaderEnv.NODE_OPTIONS + ' ');
     variables.append(
       'VSCODE_INSPECTOR_OPTIONS',
