@@ -7,7 +7,7 @@ import { generate } from 'astring';
 import { inject, injectable } from 'inversify';
 import Cdp from '../cdp/api';
 import { ICdpApi } from '../cdp/connection';
-import { flatten, isInstanceOf } from '../common/objUtils';
+import { flatten, isInstanceOf, once } from '../common/objUtils';
 import { parseSource, statementsToFunction } from '../common/sourceCodeManipulations';
 import { IRenameProvider } from '../common/sourceMaps/renameProvider';
 import { AnyLaunchConfiguration } from '../configuration';
@@ -16,6 +16,7 @@ import { IDapApi } from '../dap/connection';
 import * as errors from '../dap/errors';
 import { ProtocolError } from '../dap/protocolError';
 import * as objectPreview from './objectPreview';
+import { MapPreview, SetPreview } from './objectPreview/betterTypes';
 import { PreviewContextType } from './objectPreview/contexts';
 import { StackFrame, StackTrace } from './stackTrace';
 import { getSourceSuffix, RemoteException, RemoteObjectId } from './templates';
@@ -254,8 +255,12 @@ class VariableContext {
       return this.createVariable(ArrayVariable, ctx, object);
     }
 
-    if (object.objectId && !objectPreview.subtypesWithoutPreview.has(object.subtype)) {
-      return this.createVariable(ObjectVariable, ctx, object, customStringRepr);
+    if (object.objectId) {
+      if (object.subtype === 'map' || object.subtype === 'set') {
+        return this.createVariable(SetOrMapVariable, ctx, object, customStringRepr);
+      } else if (!objectPreview.subtypesWithoutPreview.has(object.subtype)) {
+        return this.createVariable(ObjectVariable, ctx, object, customStringRepr);
+      }
     }
 
     return this.createVariable(Variable, ctx, object);
@@ -493,6 +498,8 @@ class VariableContext {
   }
 }
 
+const isNumberOrNumeric = (s: string | number) => typeof s === 'number' || /^[0-9]+$/.test(s);
+
 class Variable implements IVariable {
   public id = getVariableId();
 
@@ -524,7 +531,19 @@ class Variable implements IVariable {
       return parent.accessor;
     }
 
-    if (typeof name === 'number' || /^[0-9]+$/.test(name)) {
+    // Maps and sets:
+    const grandparent = parent.context.parent;
+    if (grandparent instanceof Variable) {
+      if ((this.remoteObject.subtype as string) === 'internal#entry') {
+        return `[...${grandparent.accessor}.entries()][${+name}]`;
+      }
+
+      if ((parent.remoteObject.subtype as string) === 'internal#entry') {
+        return `${parent.accessor}[${this.name === 'key' ? 0 : 1}]`;
+      }
+    }
+
+    if (isNumberOrNumeric(name)) {
       return `${parent.accessor}[${name}]`;
     }
 
@@ -789,6 +808,43 @@ class ObjectVariable extends Variable implements IMemoryReadable {
 
   public override getChildren(_params: Dap.VariablesParamsExtended) {
     return this.context.createObjectPropertyVars(this.remoteObject, _params.evaluationOptions);
+  }
+}
+
+const entriesVariableName = '[[Entries]]';
+
+class SetOrMapVariable extends ObjectVariable {
+  private readonly size?: number;
+  public readonly isMap: boolean;
+  private readonly baseChildren = once(() => super.getChildren({ variablesReference: this.id }));
+
+  constructor(context: VariableContext, remoteObject: Cdp.Runtime.RemoteObject) {
+    super(context, remoteObject, NoCustomStringRepr);
+    const cast = remoteObject.preview as MapPreview | SetPreview;
+    this.isMap = cast.subtype === 'map';
+    this.size = Number(cast.properties.find(p => p.name === 'size')?.value) ?? undefined;
+  }
+
+  public override async toDap(previewContext: PreviewContextType): Promise<Dap.Variable> {
+    const dap = await super.toDap(previewContext);
+    if (this.size && this.size > 100) {
+      dap.indexedVariables = this.size;
+    }
+
+    return dap;
+  }
+
+  public override async getChildren(params: Dap.VariablesParams): Promise<Variable[]> {
+    const baseChildren = await this.baseChildren();
+    const entryChildren = await baseChildren
+      .find(c => c.name === entriesVariableName)
+      ?.getChildren(params);
+
+    return [
+      // filter to only show the actualy entries, not the array prototype/length
+      ...(entryChildren || []).filter(v => v.sortOrder === SortOrder.Default),
+      ...baseChildren.filter(c => c.name !== entriesVariableName),
+    ];
   }
 }
 

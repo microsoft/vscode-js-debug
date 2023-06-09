@@ -8,6 +8,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: terminal launches sometimes sending commands too soon ([#1642](https://github.com/microsoft/vscode-js-debug/issues/1642))
 - fix: step into `eval` when `pauseForSourceMap` is true does not pause on next available line ([#1692](https://github.com/microsoft/vscode-js-debug/issues/1692))
 - fix: useWebview debug sessions getting stuck if program exits without attaching ([#1666](https://github.com/microsoft/vscode-js-debug/issues/1666))
+- fix: improve the display of map and set entries
 - fix: do not to translate "promise rejection" ([#1658](https://github.com/microsoft/vscode-js-debug/issues/1658))
 - fix: breakpoints not hitting early on in nested sourcemapped programs ([#1704](https://github.com/microsoft/vscode-js-debug/issues/1704))
 - fix: sourcemap predictor not filtering nested session on windows ([#1719](https://github.com/microsoft/vscode-js-debug/issues/1719))

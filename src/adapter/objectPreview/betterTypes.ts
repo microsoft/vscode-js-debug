@@ -27,7 +27,14 @@ export type TFunction = {
   // defined in V8, undefined in Hermes
   description?: string;
 };
-export type FunctionPreview = { type: 'function'; subtype: undefined; description: string };
+export type FunctionPreview = {
+  type: 'function';
+  subtype: undefined;
+  description: string;
+  entries?: undefined;
+  properties?: undefined;
+  overflow?: undefined;
+};
 export type FunctionObj = TFunction;
 
 export type TNode = {
@@ -37,6 +44,32 @@ export type TNode = {
 };
 export type NodePreview = TNode & ObjectPreview;
 export type NodeObj = TNode & { preview: NodePreview };
+
+export type TSet = {
+  type: 'object';
+  subtype: 'set';
+  className: string;
+  description: string;
+};
+export type SetPreview = TSet & {
+  entries: { key?: undefined; value: AnyPreview }[];
+  properties: PropertyPreview[];
+  overflow: boolean;
+};
+export type SetObj = TSet & { preview: SetPreview };
+
+export type TMap = {
+  type: 'object';
+  subtype: 'map';
+  className: string;
+  description: string;
+};
+export type MapPreview = TMap & {
+  entries: { key: AnyPreview; value: AnyPreview }[];
+  properties: PropertyPreview[];
+  overflow: boolean;
+};
+export type MapObj = TMap & { preview: MapPreview };
 
 export type TString = {
   type: 'string';
@@ -110,6 +143,8 @@ export type AnyObject =
   | ObjectObj
   | NodeObj
   | ArrayObj
+  | SetObj
+  | MapObj
   | ErrorObj
   | RegExpObj
   | FunctionObj
@@ -120,6 +155,8 @@ export type AnyObject =
   | NullObj;
 export type AnyPreview =
   | ObjectPreview
+  | SetPreview
+  | MapPreview
   | NodePreview
   | ArrayPreview
   | ErrorPreview
@@ -130,7 +167,12 @@ export type AnyPreview =
   | UndefinedPreview
   | NullPreview;
 
-export type PreviewAsObjectType = NodePreview | FunctionPreview | ObjectPreview;
+export type PreviewAsObjectType =
+  | NodePreview
+  | FunctionPreview
+  | ObjectPreview
+  | MapPreview
+  | SetPreview;
 export type Numeric = NumberPreview | BigintPreview | TSpecialNumber;
 export type Primitive =
   | NullPreview
