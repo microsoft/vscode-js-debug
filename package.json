@@ -39,7 +39,7 @@
     "package": "gulp package",
     "publish": "gulp publish",
     "precommit": "npm-run-all --parallel test:lint test:types",
-    "updatetypes": "cd src/typings && npx vscode-dts dev && npx vscode-dts master",
+    "updatetypes": "cd src/typings && npx -y @vscode/dts dev && npx -y @vscode/dts master",
     "updatenodeapi": "python src/build/getNodePdl.py && prettier --write src/build/nodeCustom.ts",
     "generateapis": "tsx src/build/generateDap.ts && tsx src/build/generateCdp.ts",
     "test": "gulp && npm-run-all --parallel test:unit test:types test:golden test:lint",
