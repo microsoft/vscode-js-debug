@@ -9,7 +9,7 @@ import { Event } from 'vscode';
 import { EventEmitter } from '../common/events';
 import { OutFiles } from '../common/fileGlobList';
 import { ILogger, LogTag } from '../common/logging';
-import { fixDriveLetterAndSlashes, forceForwardSlashes } from '../common/pathUtils';
+import { fixDriveLetterAndSlashes } from '../common/pathUtils';
 import { ISourceMapMetadata } from '../common/sourceMaps/sourceMap';
 import { ISourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
 import {
@@ -216,10 +216,9 @@ export class TargetedBreakpointSearch extends BreakpointSearch {
 
     // if some paths have not been found yet, do one operation to find all of them
     if (toFind.length) {
-      const spSet = new Set(toFind.map(i => forceForwardSlashes(sourcePaths[i])));
+      const spSet = new Set(toFind.map(i => fixDriveLetterAndSlashes(sourcePaths[i])));
       const entry = this.createMapping({
-        filter: (_, meta) =>
-          !meta || meta.discovered.some(d => spSet.has(forceForwardSlashes(d.resolvedPath))),
+        filter: (_, meta) => !meta || meta.discovered.some(d => spSet.has(d.resolvedPath)),
       });
       for (const i of toFind) {
         this.sourcePathToCompiled.set(sourcePaths[i], entry);

@@ -70,8 +70,11 @@ describe('pretty print sources', () => {
     });
     p.load();
 
-    p.log(await p.dap.once('breakpoint'));
-    const { threadId } = p.log(await p.dap.once('stopped'));
+    const stopped = p.dap.once('stopped');
+    for (let i = 0; i < 2; i++) {
+      p.log(await p.dap.once('breakpoint'));
+    }
+    const { threadId } = p.log(await stopped);
     p.dap.prettyPrintSource({ source });
     const pretty = p.dap.once('loadedSource');
 

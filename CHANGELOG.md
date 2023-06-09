@@ -10,6 +10,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: useWebview debug sessions getting stuck if program exits without attaching ([#1666](https://github.com/microsoft/vscode-js-debug/issues/1666))
 - fix: do not to translate "promise rejection" ([#1658](https://github.com/microsoft/vscode-js-debug/issues/1658))
 - fix: breakpoints not hitting early on in nested sourcemapped programs ([#1704](https://github.com/microsoft/vscode-js-debug/issues/1704))
+- fix: sourcemap predictor not filtering nested session on windows ([#1719](https://github.com/microsoft/vscode-js-debug/issues/1719))
 - fix: increase smart step backout threshold for better stepping ([#1700](https://github.com/microsoft/vscode-js-debug/issues/1700))
 - fix: Blazor sources sometimes being missing ([dotnet/runtime#86754](https://github.com/dotnet/runtime/issues/86754))
 
