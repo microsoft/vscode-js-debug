@@ -25,8 +25,8 @@ result: 1234567890n
 
 
 > result: Map(1) {size: 1, hello => ƒ ()}
+    > 0: {"hello" => function() { return 'world' }}
     size: 1
-    > [[Entries]]: Array(1)
     > [[Prototype]]: Map
 
 result: 42

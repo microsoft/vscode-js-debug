@@ -1,4 +1,5 @@
 > result: Map(2) {size: 2, 1n => one, 2n => two}
+    > 0: {1n => "one"}
+    > 1: {2n => "two"}
     size: 2
-    > [[Entries]]: Array(2)
     > [[Prototype]]: Map

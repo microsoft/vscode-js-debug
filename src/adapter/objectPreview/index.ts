@@ -169,7 +169,7 @@ function renderArrayPreview(preview: ObjectPreview.ArrayPreview, characterBudget
 }
 
 function renderObjectPreview(
-  preview: ObjectPreview.ObjectPreview | ObjectPreview.NodePreview,
+  preview: ObjectPreview.PreviewAsObjectType,
   characterBudget: number,
   format: Dap.ValueFormat | undefined,
 ): string {
