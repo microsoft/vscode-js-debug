@@ -76,7 +76,9 @@ const jsDebugRegisteredToken = '$jsDebugIsRegistered';
     }
   } catch (e) {
     console.error(
-      `Error in the js-debug bootloader, please report to https://aka.ms/js-dbg-issue: ${e.stack}`,
+      `Error in the js-debug bootloader, please report to https://aka.ms/js-dbg-issue: ${
+        e.stack || e.message || e
+      }`,
     );
   }
 })();
