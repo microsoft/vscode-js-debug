@@ -49,6 +49,10 @@ export class NvmResolver implements INvmResolver {
   ) {}
 
   public async resolveNvmVersionPath(version: string) {
+    let directory: string | undefined = undefined;
+    const versionManagers: string[] = [];
+    const versionData = this.parseVersionString(version);
+
     let nvsHome = this.env[Vars.NvsHome];
     if (!nvsHome) {
       // NVS_HOME is not always set. Probe for 'nvs' directory instead
@@ -61,9 +65,6 @@ export class NvmResolver implements INvmResolver {
       }
     }
 
-    let directory: string | undefined = undefined;
-    const versionManagers: string[] = [];
-    const versionData = this.parseVersionString(version);
     if (versionData.nvsFormat || nvsHome) {
       directory = await this.resolveNvs(nvsHome, versionData);
       if (!directory && versionData.nvsFormat) {
