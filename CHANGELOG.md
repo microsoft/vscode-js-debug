@@ -4,6 +4,10 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
+Nothing (yet)
+
+## v1.80 (June 2023)
+
 - fix: ECONNREFUSED when debugging from WSL (requires VS Code Insiders until release) ([#1603](https://github.com/microsoft/vscode-js-debug/issues/1603))
 - fix: terminal launches sometimes sending commands too soon ([#1642](https://github.com/microsoft/vscode-js-debug/issues/1642))
 - fix: step into `eval` when `pauseForSourceMap` is true does not pause on next available line ([#1692](https://github.com/microsoft/vscode-js-debug/issues/1692))
@@ -16,7 +20,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: Blazor sources sometimes being missing ([dotnet/runtime#86754](https://github.com/dotnet/runtime/issues/86754))
 - fix: possible bad state when resuming multiple times with a slow client
 
-## v1.78 (April 2024)
+## v1.78 (April 2023)
 
 ### v1.78.0 - 2023-04-26
 
