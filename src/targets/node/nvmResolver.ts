@@ -36,7 +36,7 @@ const enum Vars {
   NvsHome = 'NVS_HOME',
   WindowsNvmHome = 'NVM_HOME',
   UnixNvmHome = 'NVM_DIR',
-  UnixFnmHome = 'FNM_DIR',
+  FnmHome = 'FNM_DIR',
 }
 
 @injectable()
@@ -92,8 +92,8 @@ export class NvmResolver implements INvmResolver {
     if (!directory) {
       const fnmDir =
         this.platform === 'win32'
-          ? path.join(this.env['APPDATA'] || '', 'fnm')
-          : this.env[Vars.UnixFnmHome] || path.join(this.homedir, '.fnm');
+          ? this.env[Vars.FnmHome] || path.join(this.env['APPDATA'] || '', 'fnm')
+          : this.env[Vars.FnmHome] || path.join(this.homedir, '.fnm');
       if (await this.fsUtils.exists(fnmDir)) {
         directory = await this.resolveFnm(version, fnmDir);
         versionManagers.push('fnm');
@@ -164,15 +164,6 @@ export class NvmResolver implements INvmResolver {
     return directory ? path.join(directory, 'bin') : undefined;
   }
 
-  private async resolveFnm(version: string, fnmHome: string) {
-    const directory = this.findBinFolderForVersion(
-      path.join(fnmHome, 'node-versions'),
-      `v${version}`,
-    );
-
-    return directory ? path.join(directory, 'installation', 'bin') : undefined;
-  }
-
   private async resolveWindowsNvm(version: string) {
     const nvmHome = this.env[Vars.WindowsNvmHome];
     if (!nvmHome) {
@@ -180,6 +171,19 @@ export class NvmResolver implements INvmResolver {
     }
 
     return this.findBinFolderForVersion(nvmHome, `v${version}`);
+  }
+
+  private async resolveFnm(version: string, fnmHome: string) {
+    const directory = this.findBinFolderForVersion(
+      path.join(fnmHome, 'node-versions'),
+      `v${version}`,
+    );
+
+    if (!directory) return;
+
+    return this.platform === 'win32'
+      ? path.join(directory, 'installation')
+      : path.join(directory, 'installation', 'bin');
   }
 
   private findBinFolderForVersion(
