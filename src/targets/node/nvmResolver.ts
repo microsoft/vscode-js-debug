@@ -36,6 +36,7 @@ const enum Vars {
   NvsHome = 'NVS_HOME',
   WindowsNvmHome = 'NVM_HOME',
   UnixNvmHome = 'NVM_DIR',
+  FnmHome = 'FNM_DIR',
 }
 
 @injectable()
@@ -49,6 +50,10 @@ export class NvmResolver implements INvmResolver {
   ) {}
 
   public async resolveNvmVersionPath(version: string) {
+    let directory: string | undefined = undefined;
+    const versionManagers: string[] = [];
+    const versionData = this.parseVersionString(version);
+
     let nvsHome = this.env[Vars.NvsHome];
     if (!nvsHome) {
       // NVS_HOME is not always set. Probe for 'nvs' directory instead
@@ -61,9 +66,6 @@ export class NvmResolver implements INvmResolver {
       }
     }
 
-    let directory: string | undefined = undefined;
-    const versionManagers: string[] = [];
-    const versionData = this.parseVersionString(version);
     if (versionData.nvsFormat || nvsHome) {
       directory = await this.resolveNvs(nvsHome, versionData);
       if (!directory && versionData.nvsFormat) {
@@ -84,6 +86,17 @@ export class NvmResolver implements INvmResolver {
           directory = await this.resolveUnixNvm(version);
           versionManagers.push('nvm');
         }
+      }
+    }
+
+    if (!directory) {
+      const fnmDir =
+        this.platform === 'win32'
+          ? this.env[Vars.FnmHome] || path.join(this.env['APPDATA'] || '', 'fnm')
+          : this.env[Vars.FnmHome] || path.join(this.homedir, '.fnm');
+      if (await this.fsUtils.exists(fnmDir)) {
+        directory = await this.resolveFnm(version, fnmDir);
+        versionManagers.push('fnm');
       }
     }
 
@@ -158,6 +171,19 @@ export class NvmResolver implements INvmResolver {
     }
 
     return this.findBinFolderForVersion(nvmHome, `v${version}`);
+  }
+
+  private async resolveFnm(version: string, fnmHome: string) {
+    const directory = this.findBinFolderForVersion(
+      path.join(fnmHome, 'node-versions'),
+      `v${version}`,
+    );
+
+    if (!directory) return;
+
+    return this.platform === 'win32'
+      ? path.join(directory, 'installation')
+      : path.join(directory, 'installation', 'bin');
   }
 
   private findBinFolderForVersion(

@@ -65,7 +65,7 @@ export function createUserError(text: string, code = ErrorCodes.UserError): Dap.
 export const nvmNotFound = () =>
   createUserError(
     l10n.t(
-      "Attribute 'runtimeVersion' requires Node.js version manager 'nvs' or 'nvm' to be installed.",
+      "Attribute 'runtimeVersion' requires Node.js version manager 'nvs', 'nvm' or 'fnm' to be installed.",
     ),
     ErrorCodes.NvmOrNvsNotFound,
   );
