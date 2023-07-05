@@ -32,6 +32,7 @@ const buildSrcDir = `${buildDir}/src`;
 const nodeTargetsDir = `targets/node`;
 
 const isWatch = process.argv.includes('watch') || process.argv.includes('--watch');
+const isDebug = process.argv.includes('--debug');
 
 /**
  * Whether we're running a nightly build.
@@ -290,7 +291,7 @@ gulp.task('dapDebugServer:webpack-bundle', async () => {
 /** Run webpack to bundle into the VS debug server */
 gulp.task('vsDebugServerBundle:webpack-bundle', async () => {
   const packages = [{ entry: `${srcDir}/vsDebugServer.ts`, library: true }];
-  return compileTs({ packages, sourcemap: isWatch });
+  return compileTs({ packages, sourcemap: isDebug, minify: !isDebug });
 });
 
 const vsceUrls = {
