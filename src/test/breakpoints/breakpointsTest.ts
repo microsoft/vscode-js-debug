@@ -1390,4 +1390,24 @@ describe('breakpoints', () => {
     await waitForPause(p);
     p.assertLog();
   });
+
+  itIntegrates('sets file uri breakpoints predictably (#1748)', async ({ r }) => {
+    createFileTree(testFixturesDir, {
+      'pages/main.html': '<script src="../scripts/hello.js"></script>',
+      'scripts/hello.js': 'console.log(42)',
+    });
+
+    const mainFile = join(testFixturesDir, 'pages/main.html');
+    const p = await r.launchUrl(absolutePathToFileUrlWithDetection(mainFile), {
+      url: undefined,
+      file: mainFile,
+    });
+
+    const source: Dap.Source = { path: join(testFixturesDir, 'scripts/hello.js') };
+    await p.dap.setBreakpoints({ source, breakpoints: [{ line: 1 }] });
+    p.load();
+
+    await waitForPause(p);
+    p.assertLog();
+  });
 });

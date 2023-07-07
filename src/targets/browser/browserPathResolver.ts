@@ -67,6 +67,10 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
       return { url: utils.absolutePathToFileUrl(absolutePath), needsWildcard: false };
     }
 
+    if (baseUrl && utils.isFileUrl(baseUrl)) {
+      return { url: utils.absolutePathToFileUrlWithDetection(absolutePath), needsWildcard: false };
+    }
+
     let urlPath = utils.platformPathToUrlPath(path.relative(bestMatch[1], absolutePath));
     const urlPrefix = bestMatch[0].replace(/\/$|^\//g, '');
     if (urlPrefix) {
