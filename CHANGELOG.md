@@ -5,6 +5,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 ## Nightly (only)
 
 - fix: set breakpoints predictably when launching with files ([#1748](https://github.com/microsoft/vscode-js-debug/issues/1748))
+- fix: don't overwrite custom NODE_OPTIONS ([#1746](https://github.com/microsoft/vscode-js-debug/issues/1746))
 
 ## v1.80 (June 2023)
 
