@@ -26,7 +26,6 @@ import {
   BootloaderEnvironment,
   IAutoAttachInfo,
   IBootloaderEnvironment,
-  variableDelimiter,
 } from './bootloader/environment';
 import { bootloaderDefaultPath, watchdogPath } from './bundlePaths';
 import { Capability, INodeBinaryProvider, NodeBinary } from './nodeBinaryProvider';
@@ -154,11 +153,8 @@ export class AutoAttachLauncher
         ],
       }),
     );
-    variables.prepend('NODE_OPTIONS', bootloaderEnv.NODE_OPTIONS + ' ');
-    variables.append(
-      'VSCODE_INSPECTOR_OPTIONS',
-      variableDelimiter + bootloaderEnv.VSCODE_INSPECTOR_OPTIONS,
-    );
+    variables.prepend('NODE_OPTIONS', bootloaderEnv.NODE_OPTIONS);
+    variables.append('VSCODE_INSPECTOR_OPTIONS', bootloaderEnv.VSCODE_INSPECTOR_OPTIONS);
   }
 
   private readSmartPatterns() {

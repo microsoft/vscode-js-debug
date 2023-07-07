@@ -5,7 +5,6 @@
 import * as l10n from '@vscode/l10n';
 import { inject, injectable } from 'inversify';
 import { IPortLeaseTracker } from '../../adapter/portLeaseTracker';
-import { getSourceSuffix } from '../../adapter/templates';
 import Cdp from '../../cdp/api';
 import { CancellationTokenSource } from '../../common/cancellation';
 import { DebugType } from '../../common/contributionUtils';
@@ -217,27 +216,6 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
     }
 
     const vars = await this.resolveEnvironment(run, binary, { requireLease: leasePath, openerId });
-    for (let retries = 0; retries < 5; retries++) {
-      const result = await cdp.Runtime.evaluate({
-        contextId: 1,
-        returnByValue: true,
-        expression:
-          `typeof process === 'undefined' || process.pid === undefined ? 'process not defined' : Object.assign(process.env, ${JSON.stringify(
-            vars.defined(),
-          )})` + getSourceSuffix(),
-      });
-
-      if (!result) {
-        this.logger.error(LogTag.RuntimeTarget, 'Undefined result setting child environment vars');
-        return;
-      }
-
-      if (!result.exceptionDetails && result.result.value !== 'process not defined') {
-        return;
-      }
-
-      this.logger.error(LogTag.RuntimeTarget, 'Error setting child environment vars', result);
-      await delay(50);
-    }
+    return this.appendEnvironmentVariables(cdp, vars);
   }
 }
