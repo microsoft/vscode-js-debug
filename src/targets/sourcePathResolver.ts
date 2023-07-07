@@ -107,6 +107,11 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
       return false;
     }
 
+    // Empty URL modules present in Electron (found looking at #1741)
+    if (compiledPath === '') {
+      return false;
+    }
+
     if (!this.resolvePatterns || this.resolvePatterns.length === 0) {
       return true;
     }
