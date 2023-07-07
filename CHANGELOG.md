@@ -4,6 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
+- fix: child process tree not terminating on all Linux distros ([#1747](https://github.com/microsoft/vscode-js-debug/issues/1747))
 - fix: set breakpoints predictably when launching with files ([#1748](https://github.com/microsoft/vscode-js-debug/issues/1748))
 
 ## v1.80 (June 2023)
