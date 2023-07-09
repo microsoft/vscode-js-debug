@@ -35,7 +35,7 @@ export async function findInPath(
     const windir = env['WINDIR'] || 'C:\\Windows';
     locator = path.join(windir, 'System32', 'where.exe');
   } else {
-    locator = '/usr/bin/which';
+    locator = 'which';
   }
 
   try {
