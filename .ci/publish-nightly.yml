@@ -21,6 +21,7 @@ extends:
     vscePackageArgs: --no-dependencies
     cgIgnoreDirectories: 'testdata,demos,.vscode-test'
     l10nShouldProcess: false
+    ghCreateTag: false
     buildSteps:
       - script: npm install --legacy-peer-deps
         displayName: Install dependencies
