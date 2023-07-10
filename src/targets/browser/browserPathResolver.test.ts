@@ -257,7 +257,7 @@ describe('BrowserPathResolver', () => {
       const url = 'webpack:///src/app/app.component.html';
       const absolutePath = await resolver.urlToAbsolutePath({
         url,
-        map: upcastPartial<SourceMap>({ metadata: { sourceMapUrl: '', compiledPath: '' } }),
+        map: upcastPartial<SourceMap>({ metadata: { sourceMapUrl: '', compiledPath: 'x' } }),
       });
 
       expect(absolutePath).to.equal(
