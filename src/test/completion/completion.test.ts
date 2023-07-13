@@ -36,6 +36,17 @@ describe('completion', () => {
         },
       ],
     ],
+    [
+      'arr.len|',
+      [
+        {
+          label: 'length',
+          detail: '3',
+          sortText: '~~length',
+          type: 'property',
+        },
+      ],
+    ],
     ['arr[|', []],
     [
       'arr[0].|',
