@@ -40,6 +40,16 @@ describe('completion', () => {
       'arr.len|',
       [
         {
+          label: '[index]',
+          text: '[index]',
+          type: 'property',
+          sortText: '~~[',
+          length: 1,
+          selectionLength: 5,
+          selectionStart: 1,
+          start: 3,
+        },
+        {
           label: 'length',
           detail: '3',
           sortText: '~~length',
