@@ -151,7 +151,10 @@ export class Completions {
         if (asAcorn.start < offset && offset <= asAcorn.end) {
           if (
             node.type === 'MemberExpression' ||
-            (node.type === 'Identifier' && parent?.type === 'MemberExpression')
+            (node.type === 'Identifier' &&
+              parent?.type === 'MemberExpression' &&
+              !parent.computed &&
+              parent.object !== node)
           ) {
             const memberExpression =
               node.type === 'MemberExpression' ? node : (parent as MemberExpression);

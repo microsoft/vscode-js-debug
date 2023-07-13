@@ -9,6 +9,7 @@ import { itIntegrates } from '../testIntegrationUtils';
 describe('completion', () => {
   const tcases: [string, Dap.CompletionItem[]][] = [
     ['ar|', [{ label: 'arr', sortText: '~~arr', type: 'variable', detail: 'Array' }]],
+    ['ar|.length', [{ label: 'arr', sortText: '~~arr', type: 'variable', detail: 'Array' }]],
     [
       'arr.|',
       [
@@ -190,7 +191,7 @@ describe('completion', () => {
   ];
 
   itIntegrates('completion', async ({ r }) => {
-    const p = await r.launchAndLoad(`
+    const p = await r.launchAndLoad(/* html */ `
       <script>
         var arr = ['', {}, null];
         var obj = { foo: '', bar: 42, baz() {} };
