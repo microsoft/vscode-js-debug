@@ -9,6 +9,7 @@ import { itIntegrates } from '../testIntegrationUtils';
 describe('completion', () => {
   const tcases: [string, Dap.CompletionItem[]][] = [
     ['ar|', [{ label: 'arr', sortText: '~~arr', type: 'variable', detail: 'Array' }]],
+    ['ar|.length', [{ label: 'arr', sortText: '~~arr', type: 'variable', detail: 'Array' }]],
     [
       'arr.|',
       [
@@ -33,6 +34,27 @@ describe('completion', () => {
           detail: 'fn(?)',
           sortText: '~~~at',
           type: 'method',
+        },
+      ],
+    ],
+    [
+      'arr.len|',
+      [
+        {
+          label: '[index]',
+          text: '[index]',
+          type: 'property',
+          sortText: '~~[',
+          length: 1,
+          selectionLength: 5,
+          selectionStart: 1,
+          start: 3,
+        },
+        {
+          label: 'length',
+          detail: '3',
+          sortText: '~~length',
+          type: 'property',
         },
       ],
     ],

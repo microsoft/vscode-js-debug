@@ -145,16 +145,25 @@ export class Completions {
     let candidate: () => Promise<ICompletionWithSort[]> = () => Promise.resolve([]);
 
     traverse(source, {
-      enter: node => {
+      enter: (node, parent) => {
         const asAcorn = node as AcornNode;
         if (asAcorn.start < offset && offset <= asAcorn.end) {
-          if (node.type === 'Identifier') {
+          if (
+            node.type === 'MemberExpression' ||
+            (node.type === 'Identifier' &&
+              parent?.type === 'MemberExpression' &&
+              !parent.computed &&
+              parent.object !== node)
+          ) {
+            const memberExpression =
+              node.type === 'MemberExpression' ? node : (parent as MemberExpression);
+            candidate = memberExpression.computed
+              ? () => this.elementAccessCompleter(options, memberExpression, offset)
+              : () => this.propertyAccessCompleter(options, memberExpression, offset);
+          } else if (node.type === 'Identifier') {
             candidate = () => this.identifierCompleter(options, source, node, offset);
-          } else if (node.type === 'MemberExpression') {
-            candidate = node.computed
-              ? () => this.elementAccessCompleter(options, node, offset)
-              : () => this.propertyAccessCompleter(options, node, offset);
           }
+          parent = node;
         }
       },
     });
