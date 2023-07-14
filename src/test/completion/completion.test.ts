@@ -191,7 +191,7 @@ describe('completion', () => {
   ];
 
   itIntegrates('completion', async ({ r }) => {
-    const p = await r.launchAndLoad(/* html */ `
+    const p = await r.launchAndLoad(`
       <script>
         var arr = ['', {}, null];
         var obj = { foo: '', bar: 42, baz() {} };
