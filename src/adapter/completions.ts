@@ -143,10 +143,9 @@ export class Completions {
     const source = parseProgram(options.expression);
     const offset = new PositionToOffset(options.expression).convert(options.position);
     let candidate: () => Promise<ICompletionWithSort[]> = () => Promise.resolve([]);
-    let parent: Node | undefined = undefined;
 
     traverse(source, {
-      enter: node => {
+      enter: (node, parent) => {
         const asAcorn = node as AcornNode;
         if (asAcorn.start < offset && offset <= asAcorn.end) {
           if (
