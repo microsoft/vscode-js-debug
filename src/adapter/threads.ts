@@ -626,7 +626,7 @@ export class Thread implements IVariableStoreLocationProvider {
             output: l10n.t(
               'Output has been truncated to the first {0} characters. Run `{1}` to copy the full output.',
               budget,
-              `copy(${originalCall.expression.trim()}))`,
+              `copy(${originalCall.expression.trim()})`,
             ),
             category: 'stdout',
           }),
