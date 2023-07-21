@@ -146,9 +146,12 @@ export class AutoAttachLauncher
     variables.persistent = true;
     variables.description = new vscode.MarkdownString(
       l10n.t({
-        message: 'Enables Node.js [auto attach]({0}) debugging',
-        comment: "{Locked='[auto attach]({0})'}",
-        args: ['https://code.visualstudio.com/docs/nodejs/nodejs-debugging#_auto-attach'],
+        message: 'Enables Node.js [auto attach]({0}) debugging in "{1}" mode',
+        comment: ["{Locked='[auto attach]({0})'}", 'the 2nd placeholder is the setting value'],
+        args: [
+          'https://code.visualstudio.com/docs/nodejs/nodejs-debugging#_auto-attach',
+          autoAttachMode,
+        ],
       }),
     );
     variables.prepend('NODE_OPTIONS', bootloaderEnv.NODE_OPTIONS + ' ');
