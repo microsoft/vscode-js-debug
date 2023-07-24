@@ -2,7 +2,7 @@
 
 This changelog records changes to stable releases since 1.50.2. "TBA" changes here may be available in the [nightly release](https://github.com/microsoft/vscode-js-debug/#nightly-extension) before they're in stable. Note that the minor version (`v1.X.0`) corresponds to the VS Code version js-debug is shipped in, but the patch version (`v1.50.X`) is not meaningful.
 
-## Nightly (only)
+## v1.81 (July 2023)
 
 - fix: child process tree not terminating on all Linux distros ([#1747](https://github.com/microsoft/vscode-js-debug/issues/1747))
 - fix: set breakpoints predictably when launching with files ([#1748](https://github.com/microsoft/vscode-js-debug/issues/1748))
