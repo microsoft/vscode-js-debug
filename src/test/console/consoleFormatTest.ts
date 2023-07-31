@@ -2,6 +2,9 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { OutputSource } from '../../configuration';
+import { createFileTree } from '../createFileTree';
+import { testFixturesDir } from '../test';
 import { itIntegrates } from '../testIntegrationUtils';
 
 describe('console format', () => {
@@ -453,6 +456,41 @@ describe('console format', () => {
     const output = await handle.dap.once('output');
     await evaluation;
     handle.log(`logged ${output.output} at ${output.source?.name}:${output.line}:${output.column}`);
+    handle.assertLog();
+  });
+
+  itIntegrates('EXT handling', async ({ r }) => {
+    createFileTree(testFixturesDir, {
+      'test.js': [
+        `
+          process.stdout.write('hello');
+          debugger;
+          process.stdout.write('world');
+          debugger;
+          process.stdout.write('new line\\r\\nasdf');
+          debugger;
+          process.stdout.write('now ext\\u0003this should be bulked');
+          debugger;
+          process.stdout.write('with this!\\u0003trailing');
+        `,
+      ],
+    });
+    const handle = await r.runScript('test.js', { outputCapture: OutputSource.Stdio });
+    let todo = Promise.resolve();
+    r.rootDap().on('output', o => {
+      todo = todo.then(() => handle.log(JSON.stringify(o)));
+    });
+
+    // use debugger statements to sync chunks of output
+    handle.dap.on('stopped', ev => {
+      todo = todo.then(() => {
+        handle.dap.continue({ threadId: ev.threadId! });
+      });
+    });
+
+    await handle.load();
+    await r.rootDap().once('terminated');
+    await todo;
     handle.assertLog();
   });
 });

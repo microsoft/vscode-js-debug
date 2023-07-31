@@ -159,7 +159,6 @@ const formatArguments = (executable: string, args: ReadonlyArray<string>, cwd: s
 
 const enum Char {
   ETX = '\u0003',
-  LF = '\n',
 }
 
 /**
@@ -173,15 +172,17 @@ export class EtxSplitter {
   private etxSpotted = false;
 
   public static stream(): Transform {
-    // needs https://github.com/mcollina/split2/pull/59 and DT update
-    // to be done without workarounds
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    return (split as any)(new EtxSplitter(), undefined, undefined);
+    return split(new EtxSplitter());
   }
 
   [Symbol.split](str: string) {
     this.etxSpotted ||= str.includes(Char.ETX);
-    const split = str.split(this.etxSpotted ? Char.ETX : Char.LF);
+    if (!this.etxSpotted) {
+      return [str, ''];
+    }
+
+    const split = str.split(Char.ETX);
+
     // restore or add new lines between each record for proper debug console display
     return split.length > 1 ? split.map((s, i) => (i < split.length - 1 ? `${s}\n` : s)) : split;
   }

@@ -75,7 +75,7 @@
     "signale": "^1.4.0",
     "source-map": "0.8.0-beta.0",
     "source-map-support": "^0.5.21",
-    "split2": "^4.1.0",
+    "split2": "^4.2.0",
     "to-absolute-glob": "^2.0.2",
     "vscode-tas-client": "^0.1.42",
     "ws": "^8.5.0"
@@ -118,7 +118,7 @@
     "@types/prettier": "^2.4.4",
     "@types/signale": "^1.4.4",
     "@types/sinon": "^10.0.11",
-    "@types/split2": "^3.2.1",
+    "@types/split2": "^4.2.0",
     "@types/stream-buffers": "^3.0.4",
     "@types/tmp": "^0.2.3",
     "@types/to-absolute-glob": "^2.0.1",
