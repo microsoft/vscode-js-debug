@@ -1,0 +1,7 @@
+{"category":"stdout","output":"hello"}
+{"category":"stdout","output":"world"}
+{"category":"stdout","output":"new line\nasdf"}
+{"category":"stdout","output":"now ext\n"}
+{"category":"stdout","output":"this should be bulkedwith this!\n"}
+{"category":"stderr","output":"Waiting for the debugger to disconnect...\n"}
+{"category":"stdout","output":"trailing"}
