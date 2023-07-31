@@ -143,11 +143,13 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostAttach
       return;
     }
 
-    const vars = await this.resolveEnvironment(
+    let vars = await this.resolveEnvironment(
       run,
       new NodeBinary('node', Semver.parse(process.versions.node)),
       { openerId: targetId },
     );
+
+    vars = vars.update('ELECTRON_RUN_AS_NODE', null);
 
     for (let retries = 0; retries < 200; retries++) {
       const result = await cdp.Runtime.evaluate({
