@@ -5,6 +5,8 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 ## Nightly (only)
 
 - fix: child processes from extension host not getting spawned during debug
+- fix: immediately log stdout/err unless EXT is encountered ([vscode#181785](https://github.com/microsoft/vscode/issues/181785))
+- fix: hint content type for sources with query strings ([vscode#181746](https://github.com/microsoft/vscode/issues/181746))
 
 ## v1.81 (July 2023)
 

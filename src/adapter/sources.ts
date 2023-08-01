@@ -18,7 +18,7 @@ import { forceForwardSlashes, isSubdirectoryOf, properResolve } from '../common/
 import { delay, getDeferred } from '../common/promiseUtil';
 import { ISourceMapMetadata, SourceMap } from '../common/sourceMaps/sourceMap';
 import { CachingSourceMapFactory, ISourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
-import { ISourcePathResolver, InlineScriptOffset } from '../common/sourcePathResolver';
+import { InlineScriptOffset, ISourcePathResolver } from '../common/sourcePathResolver';
 import * as sourceUtils from '../common/sourceUtils';
 import { prettyPrintAsSourceMap } from '../common/sourceUtils';
 import * as utils from '../common/urlUtils';
@@ -225,8 +225,8 @@ export class Source {
    */
   get getSuggestedMimeType(): string | undefined {
     // only return an explicit mimetype if the file has no extension (such as
-    // with node internals.) Otherwise, let the editor guess.
-    if (!/\.[^/]+$/.test(this.url)) {
+    // with node internals) or a query path. Otherwise, let the editor guess.
+    if (!/\.[^/]+$/.test(this.url) || this.url.includes('?')) {
       return 'text/javascript';
     }
   }
