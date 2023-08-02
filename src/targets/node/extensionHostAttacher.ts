@@ -3,11 +3,9 @@
  *--------------------------------------------------------*/
 
 import { injectable } from 'inversify';
-import { getSourceSuffix } from '../../adapter/templates';
 import Cdp from '../../cdp/api';
 import { DebugType } from '../../common/contributionUtils';
-import { ILogger, LogTag } from '../../common/logging';
-import { delay } from '../../common/promiseUtil';
+import { ILogger } from '../../common/logging';
 import { Semver } from '../../common/semver';
 import {
   AnyLaunchConfiguration,
@@ -143,35 +141,12 @@ export class ExtensionHostAttacher extends NodeAttacherBase<IExtensionHostAttach
       return;
     }
 
-    let vars = await this.resolveEnvironment(
+    const vars = await this.resolveEnvironment(
       run,
       new NodeBinary('node', Semver.parse(process.versions.node)),
       { openerId: targetId },
     );
 
-    vars = vars.update('ELECTRON_RUN_AS_NODE', null);
-
-    for (let retries = 0; retries < 200; retries++) {
-      const result = await cdp.Runtime.evaluate({
-        contextId: 1,
-        returnByValue: true,
-        expression:
-          `Object.assign(process.env, ${JSON.stringify(vars.defined())})` + getSourceSuffix(),
-      });
-
-      if (!result) {
-        this.logger.error(LogTag.RuntimeTarget, 'Undefined result setting child environment vars');
-      } else if (result.exceptionDetails) {
-        this.logger.error(
-          LogTag.RuntimeTarget,
-          'Error setting child environment vars',
-          result.exceptionDetails,
-        );
-      } else {
-        return;
-      }
-
-      await delay(50);
-    }
+    return this.appendEnvironmentVariables(cdp, vars.update('ELECTRON_RUN_AS_NODE', null));
   }
 }

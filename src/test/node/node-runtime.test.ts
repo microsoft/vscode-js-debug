@@ -657,7 +657,7 @@ describe('node runtime', () => {
       const worker = await r.worker();
       const optionsOut = worker.dap.once('output', o => o.output.includes('NODE_OPTIONS'));
       handle.logger.logOutput(await optionsOut);
-      handle.assertLog({ customAssert: l => expect(l).to.contain('NODE_OPTIONS= --require') });
+      handle.assertLog({ customAssert: l => expect(l).to.contain('NODE_OPTIONS=  --require') });
     });
 
     itIntegrates('allows simple port attachment', async ({ r }) => {

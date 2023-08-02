@@ -36,7 +36,11 @@ import {
 } from '../../targets/targets';
 import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
 import { ISourcePathResolverFactory } from '../sourcePathResolverFactory';
-import { IBootloaderEnvironment, IBootloaderInfo } from './bootloader/environment';
+import {
+  IBootloaderEnvironment,
+  IBootloaderInfo,
+  variableDelimiter,
+} from './bootloader/environment';
 import { bootloaderDefaultPath } from './bundlePaths';
 import { Capability, INodeBinaryProvider, NodeBinary } from './nodeBinaryProvider';
 import { NodeSourcePathResolver } from './nodeSourcePathResolver';
@@ -312,8 +316,8 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
     const env = {
       // Require our bootloader first, to run it before any other bootloader
       // we could have injected in the parent process.
-      NODE_OPTIONS: `--require ${bootloader.interpolatedPath}`,
-      VSCODE_INSPECTOR_OPTIONS: JSON.stringify(bootloaderInfo),
+      NODE_OPTIONS: ` --require ${bootloader.interpolatedPath} `,
+      VSCODE_INSPECTOR_OPTIONS: variableDelimiter + JSON.stringify(bootloaderInfo),
       ELECTRON_RUN_AS_NODE: null,
     } as IBootloaderEnvironment;
 
