@@ -26,9 +26,9 @@ import { ISourceMapMetadata, SourceMap } from './sourceMap';
 export const ISourceMapFactory = Symbol('ISourceMapFactory');
 
 /**
- * Factory that loads source maps.
+ * Factory that loads source maps injected per-session..
  */
-export interface ISourceMapFactory extends IDisposable {
+export interface ISourceMapFactory {
   /**
    * Loads the provided source map.
    * @throws a {@link ProtocolError} if it cannot be parsed
@@ -41,6 +41,35 @@ export interface ISourceMapFactory extends IDisposable {
    * @see https://github.com/microsoft/vscode-js-debug/issues/483
    */
   guardSourceMapFn<T>(sourceMap: SourceMap, fn: () => T, defaultValue: () => T): T;
+}
+
+export const IRootSourceMapFactory = Symbol('IRootSourceMapFactory');
+
+/**
+ * Version of the {@link ISourceMapFactory} that's global for the session tree.
+ * It caches data smartly but requires some session-specific services to be injected.
+ */
+export interface IRootSourceMapFactory extends IDisposable {
+  load(resourceProvider: IResourceProvider, metadata: ISourceMapMetadata): Promise<SourceMap>;
+  guardSourceMapFn<T>(sourceMap: SourceMap, fn: () => T, defaultValue: () => T): T;
+}
+
+@injectable()
+export class SourceMapFactory implements ISourceMapFactory {
+  constructor(
+    @inject(IRootSourceMapFactory) private readonly root: IRootSourceMapFactory,
+    @inject(IResourceProvider) private readonly resourceProvider: IResourceProvider,
+  ) {}
+
+  /** @inheritdoc */
+  load(metadata: ISourceMapMetadata): Promise<SourceMap> {
+    return this.root.load(this.resourceProvider, metadata);
+  }
+
+  /** @inheritdoc */
+  guardSourceMapFn<T>(sourceMap: SourceMap, fn: () => T, defaultValue: () => T): T {
+    return this.root.guardSourceMapFn(sourceMap, fn, defaultValue);
+  }
 }
 
 interface RawExternalSection {
@@ -61,16 +90,16 @@ export interface RawIndexMapUnresolved extends StartOfSourceMap {
  * Base implementation of the ISourceMapFactory.
  */
 @injectable()
-export class SourceMapFactory implements ISourceMapFactory {
+export class RootSourceMapFactory implements IRootSourceMapFactory {
   /**
    * A set of sourcemaps that we warned about failing to parse.
    * @see ISourceMapFactory#guardSourceMapFn
    */
+
   private hasWarnedAboutMaps = new WeakSet<SourceMap>();
 
   constructor(
     @inject(ISourcePathResolver) private readonly pathResolve: ISourcePathResolver,
-    @inject(IResourceProvider) private readonly resourceProvider: IResourceProvider,
     @inject(IRootDapApi) protected readonly dap: Dap.Api,
     @inject(ILogger) private readonly logger: ILogger,
   ) {}
@@ -78,8 +107,11 @@ export class SourceMapFactory implements ISourceMapFactory {
   /**
    * @inheritdoc
    */
-  public async load(metadata: ISourceMapMetadata): Promise<SourceMap> {
-    const basic = await this.parseSourceMap(metadata.sourceMapUrl);
+  public async load(
+    resourceProvider: IResourceProvider,
+    metadata: ISourceMapMetadata,
+  ): Promise<SourceMap> {
+    const basic = await this.parseSourceMap(resourceProvider, metadata.sourceMapUrl);
 
     // The source-map library is destructive with its sources parsing. If the
     // source root is '/', it'll "helpfully" resolve a source like `../foo.ts`
@@ -118,12 +150,15 @@ export class SourceMapFactory implements ISourceMapFactory {
     );
   }
 
-  private async parseSourceMap(sourceMapUrl: string): Promise<RawSourceMap | RawIndexMap> {
+  private async parseSourceMap(
+    resourceProvider: IResourceProvider,
+    sourceMapUrl: string,
+  ): Promise<RawSourceMap | RawIndexMap> {
     let sm: RawSourceMap | RawIndexMapUnresolved | undefined;
     try {
-      sm = await this.parseSourceMapDirect(sourceMapUrl);
+      sm = await this.parseSourceMapDirect(resourceProvider, sourceMapUrl);
     } catch (e) {
-      sm = await this.parsePathMappedSourceMap(sourceMapUrl);
+      sm = await this.parsePathMappedSourceMap(resourceProvider, sourceMapUrl);
       if (!sm) {
         throw e;
       }
@@ -133,7 +168,7 @@ export class SourceMapFactory implements ISourceMapFactory {
       const resolved = await Promise.all(
         sm.sections.map((s, i) =>
           'url' in s
-            ? this.parseSourceMap(s.url)
+            ? this.parseSourceMap(resourceProvider, s.url)
                 .then(map => ({ offset: s.offset, map: map as RawSourceMap }))
                 .catch(e => {
                   this.logger.warn(LogTag.SourceMapParsing, `Error parsing nested map ${i}: ${e}`);
@@ -149,7 +184,7 @@ export class SourceMapFactory implements ISourceMapFactory {
     return sm as RawSourceMap | RawIndexMap;
   }
 
-  public async parsePathMappedSourceMap(url: string) {
+  private async parsePathMappedSourceMap(resourceProvider: IResourceProvider, url: string) {
     if (isDataUri(url)) {
       return;
     }
@@ -158,7 +193,7 @@ export class SourceMapFactory implements ISourceMapFactory {
     if (!localSourceMapUrl) return;
 
     try {
-      return this.parseSourceMapDirect(localSourceMapUrl);
+      return this.parseSourceMapDirect(resourceProvider, localSourceMapUrl);
     } catch (error) {
       this.logger.info(LogTag.SourceMapParsing, 'Parsing path mapped source map failed.', error);
     }
@@ -196,6 +231,7 @@ export class SourceMapFactory implements ISourceMapFactory {
   }
 
   private async parseSourceMapDirect(
+    resourceProvider: IResourceProvider,
     sourceMapUrl: string,
   ): Promise<RawSourceMap | RawIndexMapUnresolved> {
     let absolutePath = fileUrlToAbsolutePath(sourceMapUrl);
@@ -203,7 +239,7 @@ export class SourceMapFactory implements ISourceMapFactory {
       absolutePath = this.pathResolve.rebaseRemoteToLocal(absolutePath);
     }
 
-    const content = await this.resourceProvider.fetch(absolutePath || sourceMapUrl);
+    const content = await resourceProvider.fetch(absolutePath || sourceMapUrl);
     if (!content.ok) {
       throw content.error;
     }
@@ -222,7 +258,7 @@ export class SourceMapFactory implements ISourceMapFactory {
  * duplicate loading.
  */
 @injectable()
-export class CachingSourceMapFactory extends SourceMapFactory {
+export class CachingSourceMapFactory extends RootSourceMapFactory {
   private readonly knownMaps = new MapUsingProjection<
     string,
     {
@@ -242,10 +278,13 @@ export class CachingSourceMapFactory extends SourceMapFactory {
   /**
    * @inheritdoc
    */
-  public load(metadata: ISourceMapMetadata): Promise<SourceMap> {
+  public load(
+    resourceProvider: IResourceProvider,
+    metadata: ISourceMapMetadata,
+  ): Promise<SourceMap> {
     const existing = this.knownMaps.get(metadata.sourceMapUrl);
     if (!existing) {
-      return this.loadNewSourceMap(metadata);
+      return this.loadNewSourceMap(resourceProvider, metadata);
     }
 
     const curKey = metadata.cacheKey;
@@ -254,7 +293,7 @@ export class CachingSourceMapFactory extends SourceMapFactory {
     if (existing.reloadIfNoMtime) {
       if (!(curKey && prevKey && curKey === prevKey)) {
         this.overwrittenSourceMaps.push(existing.prom);
-        return this.loadNewSourceMap(metadata);
+        return this.loadNewSourceMap(resourceProvider, metadata);
       } else {
         existing.reloadIfNoMtime = false;
         return existing.prom;
@@ -264,14 +303,14 @@ export class CachingSourceMapFactory extends SourceMapFactory {
     // Otherwise, only reload if times are present and the map definitely changed.
     if (prevKey && curKey && curKey !== prevKey) {
       this.overwrittenSourceMaps.push(existing.prom);
-      return this.loadNewSourceMap(metadata);
+      return this.loadNewSourceMap(resourceProvider, metadata);
     }
 
     return existing.prom;
   }
 
-  private loadNewSourceMap(metadata: ISourceMapMetadata) {
-    const created = super.load(metadata);
+  private loadNewSourceMap(resourceProvider: IResourceProvider, metadata: ISourceMapMetadata) {
+    const created = super.load(resourceProvider, metadata);
     this.knownMaps.set(metadata.sourceMapUrl, { metadata, reloadIfNoMtime: false, prom: created });
     return created;
   }

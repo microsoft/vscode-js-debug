@@ -9,10 +9,11 @@ import { Response } from '.';
 import Cdp from '../../cdp/api';
 import { ICdpApi } from '../../cdp/connection';
 import { DisposableList, IDisposable } from '../../common/disposable';
+import { ILogger, LogTag } from '../../common/logging';
 import { FS, FsPromises } from '../../ioc-extras';
+import { ITarget } from '../../targets/targets';
 import { BasicResourceProvider } from './basicResourceProvider';
 import { IRequestOptionsProvider } from './requestOptionsProvider';
-import { ResourceProviderState } from './resourceProviderState';
 
 @injectable()
 export class StatefulResourceProvider extends BasicResourceProvider implements IDisposable {
@@ -20,14 +21,12 @@ export class StatefulResourceProvider extends BasicResourceProvider implements I
 
   constructor(
     @inject(FS) fs: FsPromises,
-    @inject(ResourceProviderState) private readonly state: ResourceProviderState,
-    @optional() @inject(ICdpApi) cdp?: Cdp.Api,
+    @inject(ILogger) private readonly logger: ILogger,
+    @optional() @inject(ITarget) private readonly target?: ITarget,
+    @optional() @inject(ICdpApi) private readonly cdp?: Cdp.Api,
     @optional() @inject(IRequestOptionsProvider) options?: IRequestOptionsProvider,
   ) {
     super(fs, options);
-    if (cdp) {
-      this.disposables.push(this.state.attach(cdp));
-    }
   }
 
   /**
@@ -44,12 +43,68 @@ export class StatefulResourceProvider extends BasicResourceProvider implements I
   ): Promise<Response<string>> {
     const res = await super.fetchHttp(url, cancellationToken, headers);
     if (!res.ok) {
-      const updated = await this.state.apply(url, headers);
-      if (updated !== headers) {
-        return await super.fetchHttp(url, cancellationToken, updated);
-      }
+      this.logger.info(LogTag.Runtime, 'Network load failed, falling back to CDP', { url, res });
+      return this.fetchOverBrowserNetwork(url, res);
     }
 
     return res;
+  }
+
+  private async fetchOverBrowserNetwork(
+    url: string,
+    original: Response<string>,
+  ): Promise<Response<string>> {
+    if (!this.cdp) {
+      return original;
+    }
+
+    const res = await this.cdp.Network.loadNetworkResource({
+      // Browser targets use the frame ID as their target ID.
+      frameId: this.target?.targetInfo.targetId,
+      url,
+      options: {
+        includeCredentials: true,
+        disableCache: true,
+      },
+    });
+
+    if (!res) {
+      return original;
+    }
+
+    if (
+      !res.resource.success ||
+      !res.resource.httpStatusCode ||
+      res.resource.httpStatusCode >= 400 ||
+      !res.resource.stream
+    ) {
+      return original;
+    }
+
+    const result: string[] = [];
+    let offset = 0;
+    while (true) {
+      const chunkRes = await this.cdp.IO.read({ handle: res.resource.stream, offset });
+      if (!chunkRes) {
+        this.logger.info(LogTag.Runtime, 'Stream error encountered in middle, falling back', {
+          url,
+        });
+        return original;
+      }
+
+      const chunk = chunkRes.base64Encoded ? Buffer.from(chunkRes.data, 'base64') : chunkRes.data;
+      offset += chunk.length;
+      result.push(chunk.toString());
+      if (chunkRes.eof) {
+        break;
+      }
+    }
+
+    return {
+      ok: true,
+      body: result.join(''),
+      statusCode: res.resource.httpStatusCode,
+      url,
+    };
   }
 }
