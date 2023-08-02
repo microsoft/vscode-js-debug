@@ -81,6 +81,13 @@ export class StatefulResourceProvider extends BasicResourceProvider implements I
       return original;
     }
 
+    // Small optimization: normally we'd need a trailing `IO.read` request to
+    // get an EOF, but if the response headers have a length then we can avoid that!
+    let maxOffset = Number(res.resource.headers?.['Content-Length']);
+    if (isNaN(maxOffset)) {
+      maxOffset = Infinity;
+    }
+
     const result: string[] = [];
     let offset = 0;
     while (true) {
@@ -95,6 +102,11 @@ export class StatefulResourceProvider extends BasicResourceProvider implements I
       const chunk = chunkRes.base64Encoded ? Buffer.from(chunkRes.data, 'base64') : chunkRes.data;
       offset += chunk.length;
       result.push(chunk.toString());
+      if (offset >= maxOffset) {
+        this.cdp.IO.close({ handle: res.resource.stream }); // no await: do this in the background
+        break;
+      }
+
       if (chunkRes.eof) {
         break;
       }
