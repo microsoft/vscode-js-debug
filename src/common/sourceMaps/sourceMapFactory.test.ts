@@ -55,7 +55,7 @@ describe('SourceMapFactory', () => {
           ok: true,
           body: dataUriToBuffer(url).toString('utf8'),
           url: url,
-          statusCode: 500,
+          statusCode: 200,
         });
       },
       fetchJson<T>() {
