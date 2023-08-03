@@ -4,6 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
+- feat: add `Symbol.for("debug.description")` as a way to generate object descriptions ([vscode#102181](https://github.com/microsoft/vscode/issues/102181))
 - fix: child processes from extension host not getting spawned during debug
 - fix: support vite HMR source replacements ([#1761](https://github.com/microsoft/vscode-js-debug/issues/1761))
 - fix: immediately log stdout/err unless EXT is encountered ([vscode#181785](https://github.com/microsoft/vscode/issues/181785))
