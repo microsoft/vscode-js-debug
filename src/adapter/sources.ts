@@ -85,8 +85,10 @@ export type SourceMapTimeouts = {
   output: number;
 };
 
+const viteHMRPattern = /\?t=[0-9]+$/;
+
 /** Gets whether the URL is a compiled source containing a webpack HMR */
-const isWebpackHMR = (url: string) => url.endsWith('.hot-update.js');
+const isHMR = (url: string) => url.endsWith('.hot-update.js') || viteHMRPattern.test(url);
 
 const defaultTimeouts: SourceMapTimeouts = {
   load: 0,
@@ -1115,9 +1117,8 @@ export class SourceContainer {
       }
 
       if (existing) {
-        // In the case of a Webpack HMR, remove the old source entirely and
-        // replace it with the new one.
-        if (isWebpackHMR(compiled.url)) {
+        // In the case of an HMR, remove the old source entirely and replace it with the new one.
+        if (isHMR(compiled.url)) {
           this.removeSource(existing);
         } else {
           existing.compiledToSourceUrl.set(compiled, url);
