@@ -42,7 +42,6 @@ import { BasicCpuProfiler } from './adapter/profiling/basicCpuProfiler';
 import { BasicHeapProfiler } from './adapter/profiling/basicHeapProfiler';
 import { HeapDumpProfiler } from './adapter/profiling/heapDumpProfiler';
 import { IResourceProvider } from './adapter/resourceProvider';
-import { ResourceProviderState } from './adapter/resourceProvider/resourceProviderState';
 import { StatefulResourceProvider } from './adapter/resourceProvider/statefulResourceProvider';
 import { ScriptSkipper } from './adapter/scriptSkipper/implementation';
 import { IScriptSkipper } from './adapter/scriptSkipper/scriptSkipper';
@@ -59,7 +58,12 @@ import { ILogger } from './common/logging';
 import { Logger } from './common/logging/logger';
 import { createMutableLaunchConfig, MutableLaunchConfig } from './common/mutableLaunchConfig';
 import { IRenameProvider, RenameProvider } from './common/sourceMaps/renameProvider';
-import { CachingSourceMapFactory, ISourceMapFactory } from './common/sourceMaps/sourceMapFactory';
+import {
+  CachingSourceMapFactory,
+  IRootSourceMapFactory,
+  ISourceMapFactory,
+  SourceMapFactory,
+} from './common/sourceMaps/sourceMapFactory';
 import { ISearchStrategy } from './common/sourceMaps/sourceMapRepository';
 import { TurboSearchStrategy } from './common/sourceMaps/turboSearchStrategy';
 import { ISourcePathResolver } from './common/sourcePathResolver';
@@ -151,6 +155,7 @@ export const createTargetContainer = (
   container.bind(ITarget).toConstantValue(target);
   container.bind(ITargetOrigin).toConstantValue(target.targetOrigin());
   container.bind(IResourceProvider).to(StatefulResourceProvider).inSingletonScope();
+  container.bind(ISourceMapFactory).to(SourceMapFactory).inSingletonScope();
   container.bind(IBreakpointConditionFactory).to(BreakpointConditionFactory).inSingletonScope();
   container.bind(LogPointCompiler).toSelf().inSingletonScope();
 
@@ -218,7 +223,6 @@ export const createTopLevelSessionContainer = (parent: Container) => {
 
   // Core services:
   container.bind(ILogger).to(Logger).inSingletonScope().onActivation(trackDispose);
-  container.bind(ResourceProviderState).toSelf().inSingletonScope();
   container.bind(IResourceProvider).to(StatefulResourceProvider).inSingletonScope();
   container
     .bind(ITelemetryReporter)
@@ -345,12 +349,13 @@ export const provideLaunchParams = (
 
   // Source handling:
   container
-    .bind(ISourceMapFactory)
+    .bind(IRootSourceMapFactory)
     .to(CachingSourceMapFactory)
     .inSingletonScope()
     .onActivation(trackDispose);
   container.bind(IRenameProvider).to(RenameProvider).inSingletonScope();
   container.bind(DiagnosticToolSuggester).toSelf().inSingletonScope().onActivation(trackDispose);
+  container.bind(ISourceMapFactory).to(SourceMapFactory).inSingletonScope();
 
   // BP predictor:
   container.bind(BreakpointPredictorCachedState).toSelf().inSingletonScope();
