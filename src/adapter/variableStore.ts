@@ -22,7 +22,11 @@ import { StackFrame, StackTrace } from './stackTrace';
 import { getSourceSuffix, RemoteException, RemoteObjectId } from './templates';
 import { getArrayProperties } from './templates/getArrayProperties';
 import { getArraySlots } from './templates/getArraySlots';
-import { getStringyProps, getToStringIfCustom } from './templates/getStringyProps';
+import {
+  getDescriptionSymbols,
+  getStringyProps,
+  getToStringIfCustom,
+} from './templates/getStringyProps';
 import { invokeGetter } from './templates/invokeGetter';
 import { readMemory } from './templates/readMemory';
 import { writeMemory } from './templates/writeMemory';
@@ -170,6 +174,7 @@ interface IContextInit {
 interface IContextSettings {
   customDescriptionGenerator?: string;
   customPropertiesGenerator?: string;
+  descriptionSymbols?: Promise<Cdp.Runtime.CallArgument>;
 }
 
 class VariableContext {
@@ -267,6 +272,23 @@ class VariableContext {
   }
 
   /**
+   * Ensures symbols for custom descriptions are available, must be used
+   * before getStringProps/getToStringIfCustom
+   */
+  public async getDescriptionSymbols(objectId: string): Promise<Cdp.Runtime.CallArgument> {
+    this.settings.descriptionSymbols ??= getDescriptionSymbols({
+      cdp: this.cdp,
+      args: [],
+      objectId,
+    }).then(
+      r => ({ objectId: r.objectId }),
+      () => ({ value: [] }),
+    );
+
+    return await this.settings.descriptionSymbols;
+  }
+
+  /**
    * Creates Variables for each property on the RemoteObject.
    */
   public async createObjectPropertyVars(
@@ -323,6 +345,7 @@ class VariableContext {
           `${customStringReprMaxLength}`,
           this.settings.customDescriptionGenerator || 'null',
         ),
+        arguments: [await this.getDescriptionSymbols(object.objectId)],
         objectId: object.objectId,
         throwOnSideEffect: true,
         returnByValue: true,
@@ -757,13 +780,18 @@ class ObjectVariable extends Variable implements IMemoryReadable {
     }
 
     // for the first level of evaluations, toString it on-demand
-    if (!this.context.parent && this.customStringRepr !== NoCustomStringRepr) {
+    if (
+      !this.context.parent &&
+      this.remoteObject.objectId &&
+      this.customStringRepr !== NoCustomStringRepr
+    ) {
       try {
         const ret = await this.context.cdp.Runtime.callFunctionOn({
           functionDeclaration: getToStringIfCustom.decl(
             `${customStringReprMaxLength}`,
             this.context.customDescriptionGenerator || 'null',
           ),
+          arguments: [await this.context.getDescriptionSymbols(this.remoteObject.objectId)],
           objectId: this.remoteObject.objectId,
           returnByValue: true,
         });

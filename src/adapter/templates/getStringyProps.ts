@@ -2,7 +2,25 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { templateFunction } from '.';
+import { remoteFunction, templateFunction } from '.';
+
+const enum DescriptionSymbols {
+  // Our generic symbol
+  Generic = 'debug.description',
+  // Node.js-specific symbol that is used for some Node types https://nodejs.org/api/util.html#utilinspectcustom
+  Node = 'nodejs.util.inspect.custom',
+}
+
+/**
+ * Separate function that initializes description symbols. V8 considers
+ * Symbol.for as having a "side effect" and would throw if we tried to first
+ * use them inside the description functions.
+ */
+export const getDescriptionSymbols = remoteFunction(function () {
+  return [Symbol.for(DescriptionSymbols.Generic), Symbol.for(DescriptionSymbols.Node)];
+});
+
+declare const runtimeArgs: [symbol[]];
 
 /**
  * Gets a mapping of property names with a custom `.toString()` method
@@ -33,11 +51,23 @@ export const getStringyProps = templateFunction(function (
       }
     }
 
-    if (typeof value === 'object' && value && !String(value.toString).includes('[native code]')) {
-      const str = String(value);
-      if (!str.startsWith('[object ')) {
+    if (typeof value === 'object' && value) {
+      let str: string | undefined;
+      for (const sym of runtimeArgs[0]) {
+        try {
+          str = value[sym]();
+          break;
+        } catch {
+          // ignored
+        }
+      }
+
+      if (!str && !String(value.toString).includes('[native code]')) {
+        str = String(value);
+      }
+
+      if (str && !str.startsWith('[object ')) {
         out[key] = str.length >= maxLength ? str.slice(0, maxLength) + '…' : str;
-        continue;
       }
     }
   }
@@ -62,9 +92,22 @@ export const getToStringIfCustom = templateFunction(function (
     }
   }
 
-  if (typeof this === 'object' && this && !String(this.toString).includes('[native code]')) {
-    const str = String(this);
-    if (!str.startsWith('[object ')) {
+  if (typeof this === 'object' && this) {
+    let str: string | undefined;
+    for (const sym of runtimeArgs[0]) {
+      try {
+        str = (this as Record<symbol, () => string>)[sym]();
+        break;
+      } catch {
+        // ignored
+      }
+    }
+
+    if (!str && !String(this.toString).includes('[native code]')) {
+      str = String(this);
+    }
+
+    if (str && !str.startsWith('[object ')) {
       return str.length >= maxLength ? str.slice(0, maxLength) + '…' : str;
     }
   }

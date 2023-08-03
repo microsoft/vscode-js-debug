@@ -87,7 +87,7 @@ function templateFunctionStr<Args extends string[]>(stringified: string): Templa
   `;
   return {
     expr: (...args: Args) => `(()=>{${inner(args)}})();\n${getSourceSuffix()}`,
-    decl: (...args: Args) => `function(){${inner(args)};\n${getSourceSuffix()}}`,
+    decl: (...args: Args) => `function(...runtimeArgs){${inner(args)};\n${getSourceSuffix()}}`,
   };
 }
 

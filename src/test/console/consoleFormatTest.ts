@@ -134,6 +134,8 @@ describe('console format', () => {
       'new Set([1, 2, 3, 4, 5, 6, 7, 8])',
       'new class { toString() { return "custom to string" } }',
       'new class { toString() { return "long custom to string".repeat(500) } }',
+      'new class { [Symbol.for("debug.description")]() { return "some custom repr" } }',
+      'new class { [Symbol.for("nodejs.util.inspect.custom")]() { return "some node repr" } }',
     ];
     const expressions = variables.map(v => [`console.log(${v})`, `console.log([${v}])`]);
     await p.logger.evaluateAndLog(([] as string[]).concat(...expressions), { depth: 0 });
@@ -148,6 +150,19 @@ describe('console format', () => {
           toString() { return "hello b" }
         }
         toString() { return "hello a" }
+      }
+    `);
+    p.assertLog();
+  });
+
+  itIntegrates('custom symbol', async ({ r }) => {
+    const p = await r.launchAndLoad('blank');
+    await p.logger.evaluateAndLog(`
+      new class A {
+        prop = new class B {
+          [Symbol.for("debug.description")]() { return "hello b" }
+        };
+        [Symbol.for("debug.description")]() { return "hello a" }
       }
     `);
     p.assertLog();

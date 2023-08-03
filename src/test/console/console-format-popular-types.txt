@@ -358,3 +358,19 @@ Evaluating: 'console.log([new class { toString() { return "long custom to string
 stdout> (1) [{…}]
 stdout> > (1) [{…}]
 
+Evaluating: 'console.log(new class { [Symbol.for("debug.description")]() { return "some custom repr" } })'
+stdout> {}
+stdout> > some custom repr
+
+Evaluating: 'console.log([new class { [Symbol.for("debug.description")]() { return "some custom repr" } }])'
+stdout> (1) [{…}]
+stdout> > (1) [{…}]
+
+Evaluating: 'console.log(new class { [Symbol.for("nodejs.util.inspect.custom")]() { return "some node repr" } })'
+stdout> {}
+stdout> > some node repr
+
+Evaluating: 'console.log([new class { [Symbol.for("nodejs.util.inspect.custom")]() { return "some node repr" } }])'
+stdout> (1) [{…}]
+stdout> > (1) [{…}]
+
