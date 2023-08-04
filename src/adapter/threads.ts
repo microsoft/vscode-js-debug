@@ -1813,6 +1813,10 @@ export class Thread implements IVariableStoreLocationProvider {
   }
 
   private _shouldEnablePerScriptSms(event: Cdp.Debugger.PausedEvent) {
+    if (event.data?.url.includes('@vite/client')) {
+      return true;
+    }
+
     if (event.reason !== 'instrumentation' || !urlUtils.isDataUri(event.data?.sourceMapURL)) {
       return false;
     }
