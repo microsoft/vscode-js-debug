@@ -25,7 +25,7 @@
             supportsCondition : true
         }
     ]
-    supportTerminateDebuggee : false
+    supportTerminateDebuggee : true
     supportedChecksumAlgorithms : [
     ]
     supportsBreakpointLocationsRequest : true

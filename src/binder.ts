@@ -153,8 +153,8 @@ export class Binder implements IDisposable {
     dap.on('pause', async () => {
       return {};
     });
-    dap.on('terminate', () => this._terminateRoot());
-    dap.on('disconnect', () => this._disconnectRoot());
+    dap.on('terminate', () => this._terminateRoot(true));
+    dap.on('disconnect', args => this._disconnectRoot(args));
     dap.on('restart', async ({ arguments: params }) => {
       await this._restart(params as AnyResolvingConfiguration);
       return {};
@@ -195,9 +195,9 @@ export class Binder implements IDisposable {
   /**
    * Terminates all running targets. Resolves when all have terminated.
    */
-  private async _terminateRoot() {
+  private async _terminateRoot(terminateDebuggee?: boolean) {
     this._root.state = TargetState.Terminating;
-    await Promise.all([...this.getLaunchers()].map(l => l.terminate()));
+    await Promise.all([...this.getLaunchers()].map(l => l.terminate(terminateDebuggee)));
     await this._root.waitUntilChildrenAre(TargetState.Terminated);
     this._root.state = TargetState.Terminated;
     return {};
@@ -206,9 +206,9 @@ export class Binder implements IDisposable {
   /**
    * Disconnects all running targets. Resolves when all have disconnected.
    */
-  private async _disconnectRoot() {
+  private async _disconnectRoot(args: Dap.DisconnectParams) {
     if (this._root.state < TargetState.Terminating) {
-      await this._terminateRoot();
+      await this._terminateRoot(args.terminateDebuggee);
     }
 
     this._rootServices.get<ITelemetryReporter>(ITelemetryReporter).flush();
@@ -516,7 +516,7 @@ export class Binder implements IDisposable {
     if (node.value.canStop()) {
       node.value.stop();
     } else {
-      this._terminateRoot();
+      this._terminateRoot(true);
     }
 
     await node.waitUntil(TargetState.Terminated);
@@ -533,12 +533,12 @@ export class Binder implements IDisposable {
     }
 
     if (node.state < TargetState.Terminating) {
-      if (args.terminateDebuggee === false && node.value.canDetach()) {
+      if (args.terminateDebuggee !== true && node.value.canDetach()) {
         await node.value.detach();
       } else if (node.value.canStop()) {
         node.value.stop();
       } else {
-        this._terminateRoot();
+        this._terminateRoot(args.terminateDebuggee);
       }
     }
 
