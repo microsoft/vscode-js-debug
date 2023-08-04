@@ -15,11 +15,12 @@ import { AnyLaunchConfiguration, INodeAttachConfiguration } from '../../configur
 import { retryGetNodeEndpoint } from '../browser/spawn/endpoints';
 import { ISourcePathResolverFactory } from '../sourcePathResolverFactory';
 import { IStopMetadata } from '../targets';
+import { killTree } from './killTree';
 import { LeaseFile } from './lease-file';
 import { NodeAttacherBase } from './nodeAttacherBase';
 import { watchAllChildren } from './nodeAttacherCluster';
 import { INodeBinaryProvider, NodeBinary } from './nodeBinaryProvider';
-import { IRunData } from './nodeLauncherBase';
+import { IProcessTelemetry, IRunData } from './nodeLauncherBase';
 import { IProgram, StubProgram, WatchDogProgram } from './program';
 import { IRestartPolicy, RestartPolicyFactory } from './restartPolicy';
 import { WatchDog } from './watchdogSpawn';
@@ -33,6 +34,8 @@ import { WatchDog } from './watchdogSpawn';
  */
 @injectable()
 export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
+  private telemetry?: IProcessTelemetry;
+
   constructor(
     @inject(INodeBinaryProvider) pathProvider: INodeBinaryProvider,
     @inject(ILogger) logger: ILogger,
@@ -136,10 +139,18 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
     return doLaunch(this.restarters.create(runData.params.restart));
   }
 
+  public override async terminate(terminateDebuggee?: boolean): Promise<void> {
+    await super.terminate();
+
+    if (terminateDebuggee && this.telemetry) {
+      killTree(this.telemetry.processId, this.logger);
+    }
+  }
+
   /**
    * @override
    */
-  protected createLifecycle(
+  protected override createLifecycle(
     cdp: Cdp.Api,
     run: IRunData<INodeAttachConfiguration>,
     target: Cdp.Target.TargetInfo,
@@ -177,11 +188,20 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
     const leaseFile = new LeaseFile();
     await leaseFile.startTouchLoop();
 
-    const binary = await this.resolveNodePath(run.params);
+    let binary = new NodeBinary('node', undefined);
+    try {
+      binary = await this.resolveNodePath(run.params);
+    } catch {
+      // ignored -- not really a big deal, just used to find capabilities for
+      // attach params, but all Node versions post-12 will have the same behavior.
+    }
+
     const [telemetry] = await Promise.all([
       this.gatherTelemetryFromCdp(cdp, run),
       this.setEnvironmentVariables(cdp, run, leaseFile.path, parentInfo.targetId, binary),
     ]);
+
+    this.telemetry = telemetry;
 
     if (telemetry && run.params.attachExistingChildren) {
       watchAllChildren(

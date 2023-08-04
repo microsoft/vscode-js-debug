@@ -518,7 +518,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
   protected async gatherTelemetryFromCdp(
     cdp: Cdp.Api,
     run: IRunData<T>,
-  ): Promise<IProcessTelemetry | void> {
+  ): Promise<IProcessTelemetry | undefined> {
     for (let retries = 0; retries < 8; retries++) {
       const telemetry = await cdp.Runtime.evaluate({
         contextId: 1,
