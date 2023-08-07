@@ -8,6 +8,7 @@ import { IFsUtils, readfile, stat } from '../fsUtils';
 import { parseSourceMappingUrl } from '../sourceUtils';
 import { absolutePathToFileUrl, completeUrl, fileUrlToAbsolutePath, isDataUri } from '../urlUtils';
 import { ISourceMapMetadata } from './sourceMap';
+
 /**
  * A copy of vscode.RelativePattern, but we can't to import 'vscode' here.
  */
