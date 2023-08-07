@@ -4,11 +4,10 @@
 
 import { xxHash32 } from 'js-xxhash';
 import { FileGlobList } from '../fileGlobList';
-import { readfile, stat } from '../fsUtils';
+import { IFsUtils, readfile, stat } from '../fsUtils';
 import { parseSourceMappingUrl } from '../sourceUtils';
 import { absolutePathToFileUrl, completeUrl, fileUrlToAbsolutePath, isDataUri } from '../urlUtils';
 import { ISourceMapMetadata } from './sourceMap';
-
 /**
  * A copy of vscode.RelativePattern, but we can't to import 'vscode' here.
  */
@@ -66,14 +65,20 @@ export interface ISearchStrategy {
  * @param fileContents -- Read contents of the file
  */
 export const createMetadataForFile = async (
+  fsUtils: IFsUtils,
   compiledPath: string,
   fileContents?: string,
 ): Promise<Required<ISourceMapMetadata> | undefined> => {
-  if (typeof fileContents === 'undefined') {
-    fileContents = await readfile(compiledPath);
+  let sourceMapUrl;
+  const possibleSourceMapURL = `${compiledPath}.map`;
+  if (await fsUtils.exists(possibleSourceMapURL)) {
+    sourceMapUrl = possibleSourceMapURL;
+  } else {
+    if (typeof fileContents === 'undefined') {
+      fileContents = await readfile(compiledPath);
+    }
+    sourceMapUrl = parseSourceMappingUrl(fileContents);
   }
-
-  let sourceMapUrl = parseSourceMappingUrl(fileContents);
   if (!sourceMapUrl) {
     return;
   }
