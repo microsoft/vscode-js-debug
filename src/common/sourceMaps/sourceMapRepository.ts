@@ -2,7 +2,6 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { Dirent } from 'fs';
 import { xxHash32 } from 'js-xxhash';
 import { basename } from 'path';
 import { FileGlobList } from '../fileGlobList';
@@ -69,16 +68,14 @@ export interface ISearchStrategy {
  */
 export const createMetadataForFile = async (
   compiledPath: string,
-  siblings: Dirent[],
+  siblings: readonly string[],
   fileContents?: string,
 ): Promise<Required<ISourceMapMetadata> | undefined> => {
   let sourceMapUrl;
   const compiledFileName = basename(compiledPath);
-  for (const sibling of siblings) {
-    if (sibling.isFile() && sibling.name === `${compiledFileName}.map`) {
-      sourceMapUrl = sibling.name;
-      break;
-    }
+  const maybeSibling = `${compiledFileName}.map`;
+  if (siblings.includes(maybeSibling)) {
+    sourceMapUrl = maybeSibling;
   }
   if (!sourceMapUrl) {
     if (typeof fileContents === 'undefined') {

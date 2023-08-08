@@ -80,7 +80,7 @@ describe('TurboGlobStream', () => {
       },
     });
 
-    expect(fileProcessor.callCount).to.equal(1);
+    expect(fileProcessor.args).to.deep.equal([[join(dir, 'a', 'a1.js'), ['a1.js', 'a2.js']]]);
   });
 
   it('uses platform preferred path', async () => {
@@ -109,7 +109,10 @@ describe('TurboGlobStream', () => {
       },
     });
 
-    expect(fileProcessor.callCount).to.equal(2);
+    expect(fileProcessor.args.slice().sort((a, b) => a[0].localeCompare(b[0]))).to.deep.equal([
+      [join(dir, 'a', 'a1.js'), ['a1.js', 'a2.js']],
+      [join(dir, 'a', 'a2.js'), ['a1.js', 'a2.js']],
+    ]);
   });
 
   it('globs for files recursively', async () => {
@@ -123,7 +126,13 @@ describe('TurboGlobStream', () => {
       },
     });
 
-    expect(fileProcessor.callCount).to.equal(5);
+    expect(fileProcessor.args.slice().sort((a, b) => a[0].localeCompare(b[0]))).to.deep.equal([
+      [join(dir, 'a', 'a1.js'), ['a1.js', 'a2.js']],
+      [join(dir, 'a', 'a2.js'), ['a1.js', 'a2.js']],
+      [join(dir, 'b', 'b1.js'), ['b1.js', 'b2.js']],
+      [join(dir, 'b', 'b2.js'), ['b1.js', 'b2.js']],
+      [join(dir, 'c', 'nested', 'a', 'c1.js'), ['c1.js']],
+    ]);
   });
 
   it('globs star dirname', async () => {
