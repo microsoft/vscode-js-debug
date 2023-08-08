@@ -2,9 +2,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { Dirent } from 'fs';
 import { xxHash32 } from 'js-xxhash';
+import { basename } from 'path';
 import { FileGlobList } from '../fileGlobList';
-import { IFsUtils, readfile, stat } from '../fsUtils';
+import { readfile, stat } from '../fsUtils';
 import { parseSourceMappingUrl } from '../sourceUtils';
 import { absolutePathToFileUrl, completeUrl, fileUrlToAbsolutePath, isDataUri } from '../urlUtils';
 import { ISourceMapMetadata } from './sourceMap';
@@ -66,15 +68,19 @@ export interface ISearchStrategy {
  * @param fileContents -- Read contents of the file
  */
 export const createMetadataForFile = async (
-  fsUtils: IFsUtils,
   compiledPath: string,
+  siblings: Dirent[],
   fileContents?: string,
 ): Promise<Required<ISourceMapMetadata> | undefined> => {
   let sourceMapUrl;
-  const possibleSourceMapURL = `${compiledPath}.map`;
-  if (await fsUtils.exists(possibleSourceMapURL)) {
-    sourceMapUrl = possibleSourceMapURL;
-  } else {
+  const compiledFileName = basename(compiledPath);
+  for (const sibling of siblings) {
+    if (sibling.isFile() && sibling.name === `${compiledFileName}.map`) {
+      sourceMapUrl = sibling.name;
+      break;
+    }
+  }
+  if (!sourceMapUrl) {
     if (typeof fileContents === 'undefined') {
       fileContents = await readfile(compiledPath);
     }

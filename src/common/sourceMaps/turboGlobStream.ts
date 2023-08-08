@@ -41,7 +41,7 @@ export interface ITurboGlobStreamOptions<E> {
   /** Cache state, will be updated. */
   cache: CacheTree<IGlobCached<E>>;
   /** File to transform a path into extracted data emitted on onFile */
-  fileProcessor: (path: string) => Promise<E>;
+  fileProcessor: (path: string, siblings: Dirent[]) => Promise<E>;
 }
 
 const forwardSlashRe = /\//g;
@@ -60,7 +60,7 @@ export class TurboGlobStream<E> {
 
   private readonly filter?: (path: string, previousData?: E) => boolean;
   private readonly ignore: ((path: string) => boolean)[];
-  private readonly processor: (path: string) => Promise<E>;
+  private readonly processor: (path: string, siblings: Dirent[]) => Promise<E>;
   private readonly fileEmitter = new EventEmitter<E>();
   public readonly onFile = this.fileEmitter.event;
   private readonly errorEmitter = new EventEmitter<{ path: string; error: Error }>();
@@ -299,7 +299,9 @@ export class TurboGlobStream<E> {
     const platformPath = sep === '/' ? path : path.replace(forwardSlashRe, sep);
     let extracted: E;
     try {
-      extracted = await this.processor(platformPath);
+      const dirPath = platformPath.substring(0, platformPath.lastIndexOf(sep));
+      const siblings = await this.readdir(dirPath);
+      extracted = await this.processor(platformPath, siblings);
     } catch (error) {
       this.errorEmitter.fire({ path: platformPath, error });
       return;
