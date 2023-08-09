@@ -20,6 +20,7 @@ export namespace CacheTree {
    * separated with forward slashes.
    */
   export function getPath<T>(node: CacheTree<T>, directory: string) {
+    node[touched] = 1;
     return _getDir(node, splitDir(directory), 0);
   }
 
