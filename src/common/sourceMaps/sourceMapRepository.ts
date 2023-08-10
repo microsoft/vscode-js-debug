@@ -2,12 +2,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { xxHash32 } from 'js-xxhash';
 import { basename } from 'path';
 import { FileGlobList } from '../fileGlobList';
-import { readfile, stat } from '../fsUtils';
+import { readfile } from '../fsUtils';
 import { parseSourceMappingUrl } from '../sourceUtils';
-import { absolutePathToFileUrl, completeUrl, fileUrlToAbsolutePath, isDataUri } from '../urlUtils';
+import { absolutePathToFileUrl, completeUrl, isDataUri } from '../urlUtils';
 import { ISourceMapMetadata } from './sourceMap';
 
 /**
@@ -68,13 +67,13 @@ export interface ISearchStrategy {
  */
 export const createMetadataForFile = async (
   compiledPath: string,
-  siblings: readonly string[],
+  metadata: { siblings: readonly string[]; mtime: number },
   fileContents?: string,
 ): Promise<Required<ISourceMapMetadata> | undefined> => {
   let sourceMapUrl;
   const compiledFileName = basename(compiledPath);
   const maybeSibling = `${compiledFileName}.map`;
-  if (siblings.includes(maybeSibling)) {
+  if (metadata.siblings.includes(maybeSibling)) {
     sourceMapUrl = maybeSibling;
   }
   if (!sourceMapUrl) {
@@ -100,20 +99,9 @@ export const createMetadataForFile = async (
     return;
   }
 
-  let cacheKey: number;
-  if (smIsDataUri) {
-    cacheKey = xxHash32(sourceMapUrl);
-  } else {
-    const stats = await stat(fileUrlToAbsolutePath(sourceMapUrl) || compiledPath);
-    if (!stats) {
-      return; // ENOENT, usually
-    }
-    cacheKey = stats.mtimeMs;
-  }
-
   return {
     compiledPath,
     sourceMapUrl,
-    cacheKey,
+    cacheKey: metadata.mtime,
   };
 };

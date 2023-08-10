@@ -82,8 +82,8 @@ export class TurboSearchStrategy implements ISearchStrategy {
       cwd: glob.cwd,
       cache,
       filter: opts.filter,
-      fileProcessor: (file, siblings) =>
-        createMetadataForFile(file, siblings).then(m => m && opts.processMap(m)),
+      fileProcessor: (file, metadata) =>
+        createMetadataForFile(file, metadata).then(m => m && opts.processMap(m)),
     });
 
     tgs.onError(({ path, error }) => {
