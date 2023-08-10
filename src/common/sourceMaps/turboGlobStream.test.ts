@@ -31,7 +31,15 @@ describe('TurboGlobStream', () => {
     for (let i = 0; i < 2; i++) {
       await new Promise((resolve, reject) => {
         const matches: T[] = [];
-        const tgs = new TurboGlobStream({ cwd: dir, ...opts, cache });
+        const tgs = new TurboGlobStream({
+          cwd: dir,
+          ...opts,
+          cache,
+          fileProcessor: (fname, meta) => {
+            delete (meta as Record<string, unknown>).mtime; // delete this since it'll change for every test
+            return opts.fileProcessor(fname, meta);
+          },
+        });
         tgs.onError(reject);
         tgs.onFile(result => matches.push(result));
         tgs.done
@@ -80,7 +88,9 @@ describe('TurboGlobStream', () => {
       },
     });
 
-    expect(fileProcessor.args).to.deep.equal([[join(dir, 'a', 'a1.js'), ['a1.js', 'a2.js']]]);
+    expect(fileProcessor.args).to.deep.equal([
+      [join(dir, 'a', 'a1.js'), { siblings: ['a1.js', 'a2.js'] }],
+    ]);
   });
 
   it('uses platform preferred path', async () => {
@@ -110,8 +120,8 @@ describe('TurboGlobStream', () => {
     });
 
     expect(fileProcessor.args.slice().sort((a, b) => a[0].localeCompare(b[0]))).to.deep.equal([
-      [join(dir, 'a', 'a1.js'), ['a1.js', 'a2.js']],
-      [join(dir, 'a', 'a2.js'), ['a1.js', 'a2.js']],
+      [join(dir, 'a', 'a1.js'), { siblings: ['a1.js', 'a2.js'] }],
+      [join(dir, 'a', 'a2.js'), { siblings: ['a1.js', 'a2.js'] }],
     ]);
   });
 
@@ -127,11 +137,11 @@ describe('TurboGlobStream', () => {
     });
 
     expect(fileProcessor.args.slice().sort((a, b) => a[0].localeCompare(b[0]))).to.deep.equal([
-      [join(dir, 'a', 'a1.js'), ['a1.js', 'a2.js']],
-      [join(dir, 'a', 'a2.js'), ['a1.js', 'a2.js']],
-      [join(dir, 'b', 'b1.js'), ['b1.js', 'b2.js']],
-      [join(dir, 'b', 'b2.js'), ['b1.js', 'b2.js']],
-      [join(dir, 'c', 'nested', 'a', 'c1.js'), ['c1.js']],
+      [join(dir, 'a', 'a1.js'), { siblings: ['a1.js', 'a2.js'] }],
+      [join(dir, 'a', 'a2.js'), { siblings: ['a1.js', 'a2.js'] }],
+      [join(dir, 'b', 'b1.js'), { siblings: ['b1.js', 'b2.js'] }],
+      [join(dir, 'b', 'b2.js'), { siblings: ['b1.js', 'b2.js'] }],
+      [join(dir, 'c', 'nested', 'a', 'c1.js'), { siblings: ['c1.js'] }],
     ]);
   });
 
