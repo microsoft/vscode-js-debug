@@ -29,6 +29,11 @@ interface ITokensContext {
   seen: Set<string>;
 }
 
+export type FileProcessorFn<T> = (
+  path: string,
+  metadata: { siblings: readonly string[]; mtime: number },
+) => Promise<T>;
+
 export interface ITurboGlobStreamOptions<E> {
   /** Glob patterns */
   pattern: string;
@@ -41,7 +46,7 @@ export interface ITurboGlobStreamOptions<E> {
   /** Cache state, will be updated. */
   cache: CacheTree<IGlobCached<E>>;
   /** File to transform a path into extracted data emitted on onFile */
-  fileProcessor: (path: string) => Promise<E>;
+  fileProcessor: FileProcessorFn<E>;
 }
 
 const forwardSlashRe = /\//g;
@@ -60,7 +65,7 @@ export class TurboGlobStream<E> {
 
   private readonly filter?: (path: string, previousData?: E) => boolean;
   private readonly ignore: ((path: string) => boolean)[];
-  private readonly processor: (path: string) => Promise<E>;
+  private readonly processor: FileProcessorFn<E>;
   private readonly fileEmitter = new EventEmitter<E>();
   public readonly onFile = this.fileEmitter.event;
   private readonly errorEmitter = new EventEmitter<{ path: string; error: Error }>();
@@ -121,7 +126,7 @@ export class TurboGlobStream<E> {
         const depths = tokens[0] === '**' ? [0, 1] : [0];
         const cacheEntry = CacheTree.getPath(opts.cache, opts.cwd);
         const ctx = { elements: tokens, seen: new Set<string>() };
-        return Promise.all(depths.map(d => this.readSomething(ctx, d, opts.cwd, cacheEntry)));
+        return Promise.all(depths.map(d => this.readSomething(ctx, d, opts.cwd, [], cacheEntry)));
       }),
     ).then(() => undefined);
   }
@@ -134,6 +139,7 @@ export class TurboGlobStream<E> {
     ctx: ITokensContext,
     ti: number,
     path: string,
+    siblings: readonly string[],
     cache: CacheTree<IGlobCached<E>>,
   ) {
     // Skip already processed files, since we might see them twice during glob stars.
@@ -168,12 +174,24 @@ export class TurboGlobStream<E> {
       // children added or removed.
       if (cd.type === CachedType.Directory) {
         const todo: unknown[] = [];
+        const entries = Object.entries(cache.children);
+        const siblings = entries
+          .filter(([, e]) => e.data?.type !== CachedType.Directory)
+          .map(([n]) => n);
+
         for (const [name, child] of Object.entries(cache.children)) {
           // for cached objects with a type, recurse normally. For ones without,
           // try to stat them first (may have been interrupted before they were finished)
           todo.push(
             child.data !== undefined
-              ? this.handleDirectoryEntry(ctx, ti, path, { name, type: child.data.type }, cache)
+              ? this.handleDirectoryEntry(
+                  ctx,
+                  ti,
+                  path,
+                  { name, type: child.data.type },
+                  siblings,
+                  cache,
+                )
               : this.stat(path).then(
                   stat =>
                     this.handleDirectoryEntry(
@@ -181,6 +199,7 @@ export class TurboGlobStream<E> {
                       ti,
                       path,
                       { name, type: stat.isFile() ? CachedType.File : CachedType.Directory },
+                      siblings,
                       cache,
                     ),
                   () => undefined,
@@ -200,7 +219,7 @@ export class TurboGlobStream<E> {
       await this.handleDir(ctx, ti, stat.mtimeMs, path, cache);
     } else {
       this.alreadyProcessedFiles.add(cache);
-      await this.handleFile(stat.mtimeMs, path, cache);
+      await this.handleFile(stat.mtimeMs, path, siblings, cache);
     }
   }
 
@@ -230,6 +249,7 @@ export class TurboGlobStream<E> {
     ti: number,
     path: string,
     dirent: { name: string; type: CachedType },
+    siblings: readonly string[],
     cache: CacheTree<IGlobCached<E>>,
   ): unknown {
     const nextPath = path + '/' + dirent.name;
@@ -246,9 +266,11 @@ export class TurboGlobStream<E> {
     }
 
     if (typeof descends === 'number') {
-      return this.readSomething(ctx, ti + descends, nextPath, nextChild);
+      return this.readSomething(ctx, ti + descends, nextPath, siblings, nextChild);
     } else {
-      return Promise.all(descends.map(d => this.readSomething(ctx, ti + d, nextPath, nextChild)));
+      return Promise.all(
+        descends.map(d => this.readSomething(ctx, ti + d, nextPath, siblings, nextChild)),
+      );
     }
   }
 
@@ -295,11 +317,16 @@ export class TurboGlobStream<E> {
     }
   }
 
-  private async handleFile(mtime: number, path: string, cache: CacheTree<IGlobCached<E>>) {
+  private async handleFile(
+    mtime: number,
+    path: string,
+    siblings: readonly string[],
+    cache: CacheTree<IGlobCached<E>>,
+  ) {
     const platformPath = sep === '/' ? path : path.replace(forwardSlashRe, sep);
     let extracted: E;
     try {
-      extracted = await this.processor(platformPath);
+      extracted = await this.processor(platformPath, { siblings, mtime });
     } catch (error) {
       this.errorEmitter.fire({ path: platformPath, error });
       return;
@@ -325,6 +352,7 @@ export class TurboGlobStream<E> {
     }
 
     const todo: unknown[] = [];
+    const siblings = files.filter(f => f.isFile()).map(f => f.name);
     for (const file of files) {
       if (file.name.startsWith('.')) {
         continue;
@@ -339,7 +367,9 @@ export class TurboGlobStream<E> {
         continue;
       }
 
-      todo.push(this.handleDirectoryEntry(ctx, ti, path, { name: file.name, type }, cache));
+      todo.push(
+        this.handleDirectoryEntry(ctx, ti, path, { name: file.name, type }, siblings, cache),
+      );
     }
 
     await Promise.all(todo);

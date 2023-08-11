@@ -10,9 +10,9 @@ import { truthy } from '../objUtils';
 import { fixDriveLetterAndSlashes } from '../pathUtils';
 import { CacheTree } from './cacheTree';
 import {
-  createMetadataForFile,
   ISearchStrategy,
   ISourcemapStreamOptions,
+  createMetadataForFile,
 } from './sourceMapRepository';
 import { IGlobCached, TurboGlobStream } from './turboGlobStream';
 
@@ -82,7 +82,8 @@ export class TurboSearchStrategy implements ISearchStrategy {
       cwd: glob.cwd,
       cache,
       filter: opts.filter,
-      fileProcessor: file => createMetadataForFile(file).then(m => m && opts.processMap(m)),
+      fileProcessor: (file, metadata) =>
+        createMetadataForFile(file, metadata).then(m => m && opts.processMap(m)),
     });
 
     tgs.onError(({ path, error }) => {
