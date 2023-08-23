@@ -163,6 +163,7 @@ function inspectOrQueue(env: IBootloaderInfo, ownId: string): boolean {
           NODE_SKIP_PLATFORM_CHECK: process.env.NODE_SKIP_PLATFORM_CHECK,
           NODE_INSPECTOR_INFO: JSON.stringify(info),
           NODE_INSPECTOR_IPC: env.inspectorIpc,
+          ELECTRON_RUN_AS_NODE: '1',
         },
       },
     );
@@ -280,6 +281,7 @@ function spawnWatchdog(execPath: string, watchdogInfo: IWatchdogInfo) {
     env: {
       NODE_INSPECTOR_INFO: JSON.stringify(watchdogInfo),
       NODE_SKIP_PLATFORM_CHECK: process.env.NODE_SKIP_PLATFORM_CHECK,
+      ELECTRON_RUN_AS_NODE: '1',
     },
     stdio: 'ignore',
     detached: true,
