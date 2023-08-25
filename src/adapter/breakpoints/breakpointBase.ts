@@ -7,14 +7,7 @@ import { LogTag } from '../../common/logging';
 import { absolutePathToFileUrl, urlToRegex } from '../../common/urlUtils';
 import Dap from '../../dap/api';
 import { BreakpointManager } from '../breakpoints';
-import {
-  base1To0,
-  ISourceScript,
-  IUiLocation,
-  Source,
-  SourceFromMap,
-  uiToRawOffset,
-} from '../sources';
+import { base1To0, ISourceScript, IUiLocation, Source, SourceFromMap } from '../sources';
 import { Script, Thread } from '../threads';
 
 export type LineColumn = { lineNumber: number; columnNumber: number }; // 1-based
@@ -194,7 +187,10 @@ export abstract class Breakpoint {
         // a source map source. To make them work, we always set by url to not miss compiled.
         // Additionally, if we have two sources with the same url, but different path (or no path),
         // this will make breakpoint work in all of them.
-        this._setByPath(thread, uiToRawOffset(this.originalPosition, source?.runtimeScriptOffset)),
+        this._setByPath(
+          thread,
+          source?.offsetSourceToScript(this.originalPosition) || this.originalPosition,
+        ),
       );
     }
 
@@ -210,7 +206,7 @@ export abstract class Breakpoint {
 
       await Promise.all(
         uiLocations.map(uiLocation =>
-          this._setByUiLocation(thread, uiToRawOffset(uiLocation, source.runtimeScriptOffset)),
+          this._setByUiLocation(thread, source.offsetSourceToScript(uiLocation)),
         ),
       );
     }
@@ -287,21 +283,29 @@ export abstract class Breakpoint {
     await Promise.all(promises);
   }
 
-  public async updateForSourceMap(thread: Thread, script: Script) {
+  /**
+   * Updates breakpoint placements in the debugee in responce to a new script
+   * getting parsed. This is useful in two cases:
+   *
+   * 1. Where the source was sourcemapped, in which case a new sourcemap tells
+   *    us scripts to set BPs in.
+   * 2. Where a source was set by script ID, which happens for sourceReferenced
+   *    sources.
+   */
+  public async updateForNewLocations(thread: Thread, script: Script) {
     const source = this._manager._sourceContainer.source(this.source);
     if (!source) {
       return [];
     }
 
     // Find all locations for this breakpoint in the new script.
-    const scriptSource = await script.source;
     const uiLocations = this._manager._sourceContainer.currentSiblingUiLocations(
       {
         lineNumber: this.originalPosition.lineNumber,
         columnNumber: this.originalPosition.columnNumber,
         source,
       },
-      scriptSource,
+      await script.source,
     );
 
     if (!uiLocations.length) {
@@ -310,9 +314,7 @@ export abstract class Breakpoint {
 
     const promises: Promise<void>[] = [];
     for (const uiLocation of uiLocations) {
-      promises.push(
-        this._setByScriptId(thread, script, uiToRawOffset(uiLocation, source.runtimeScriptOffset)),
-      );
+      promises.push(this._setByScriptId(thread, script, source.offsetSourceToScript(uiLocation)));
     }
 
     // If we get a source map that references this script exact URL, then
@@ -323,7 +325,7 @@ export abstract class Breakpoint {
         continue;
       }
 
-      if (!this.breakpointIsForSource(bp.args, scriptSource)) {
+      if (!this.breakpointIsForSource(bp.args, source)) {
         continue;
       }
 

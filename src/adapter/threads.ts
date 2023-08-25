@@ -40,7 +40,6 @@ import {
   IPreferredUiLocation,
   ISourceWithMap,
   IUiLocation,
-  rawToUiOffset,
   Source,
   SourceContainer,
 } from './sources';
@@ -1132,13 +1131,13 @@ export class Thread implements IVariableStoreLocationProvider {
 
     if (script.resolvedSource) {
       return this._sourceContainer.preferredUiLocation({
-        ...rawToUiOffset(rawLocation, script.resolvedSource.runtimeScriptOffset),
+        ...script.resolvedSource.offsetScriptToSource(rawLocation),
         source: script.resolvedSource,
       });
     } else {
       return script.source.then(source =>
         this._sourceContainer.preferredUiLocation({
-          ...rawToUiOffset(rawLocation, source.runtimeScriptOffset),
+          ...source.offsetSourceToScript(rawLocation),
           source,
         }),
       );
@@ -1157,7 +1156,7 @@ export class Thread implements IVariableStoreLocationProvider {
 
     const source = await script.source;
     return this._sourceContainer.preferredUiLocation({
-      ...rawToUiOffset(rawLocation, source.runtimeScriptOffset),
+      ...source.offsetScriptToSource(rawLocation),
       source,
     });
   }
@@ -1506,7 +1505,7 @@ export class Thread implements IVariableStoreLocationProvider {
       }
 
       const source = await this._sourceContainer.addSource(
-        event.url,
+        event,
         contentGetter,
         resolvedSourceMapUrl,
         inlineSourceOffset,

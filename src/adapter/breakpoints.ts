@@ -26,15 +26,13 @@ import { PatternEntryBreakpoint } from './breakpoints/patternEntrypointBreakpoin
 import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
 import { DiagnosticToolSuggester } from './diagnosticToolSuggester';
 import {
+  base0To1,
+  base1To0,
   ISourceWithMap,
+  isSourceWithMap,
   IUiLocation,
   Source,
   SourceContainer,
-  base0To1,
-  base1To0,
-  isSourceWithMap,
-  rawToUiOffset,
-  uiToRawOffset,
 } from './sources';
 import { ScriptWithSourceMapHandler, Thread } from './threads';
 
@@ -153,6 +151,17 @@ export class BreakpointManager {
 
     _breakpointsPredictor?.onLongParse(() => dap.longPrediction({}));
 
+    sourceContainer.onScript(script => {
+      script.source.then(source => {
+        const thread = this._thread;
+        if (thread) {
+          this._byRef
+            .get(source.sourceReference)
+            ?.forEach(bp => bp.updateForNewLocations(thread, script));
+        }
+      });
+    });
+
     sourceContainer.onSourceMappedSteppingChange(() => {
       if (this._thread) {
         for (const bp of this._byDapId.values()) {
@@ -182,10 +191,10 @@ export class BreakpointManager {
           const path = source.absolutePath;
           const byPath = path ? this._byPath.get(path) : undefined;
           for (const breakpoint of byPath || [])
-            todo.push(breakpoint.updateForSourceMap(this._thread, script));
+            todo.push(breakpoint.updateForNewLocations(this._thread, script));
           const byRef = this._byRef.get(source.sourceReference);
           for (const breakpoint of byRef || [])
-            todo.push(breakpoint.updateForSourceMap(this._thread, script));
+            todo.push(breakpoint.updateForNewLocations(this._thread, script));
 
           if (source.sourceMap) {
             queue.push(source.sourceMap.sourceByUrl.values());
@@ -362,8 +371,8 @@ export class BreakpointManager {
           .cdp()
           .Debugger.getPossibleBreakpoints({
             restrictToFunction: false,
-            start: { scriptId, ...uiToRawOffset(base1To0(start), lsrc.runtimeScriptOffset) },
-            end: { scriptId, ...uiToRawOffset(base1To0(end), lsrc.runtimeScriptOffset) },
+            start: { scriptId, ...lsrc.offsetSourceToScript(base1To0(start)) },
+            end: { scriptId, ...lsrc.offsetSourceToScript(base1To0(end)) },
           })
           .then(r => {
             if (!r) {
@@ -378,7 +387,7 @@ export class BreakpointManager {
               const { lineNumber, columnNumber = 0 } = breakLocation;
               const uiLocations = this._sourceContainer.currentSiblingUiLocations({
                 source: lsrc,
-                ...rawToUiOffset(base0To1({ lineNumber, columnNumber }), lsrc.runtimeScriptOffset),
+                ...lsrc.offsetScriptToSource(base0To1({ lineNumber, columnNumber })),
               });
 
               result.push({ breakLocation, uiLocations });
@@ -589,17 +598,17 @@ export class BreakpointManager {
     };
 
     const getCurrent = () =>
-      params.source.path
-        ? this._byPath.get(params.source.path)
-        : params.source.sourceReference
+      params.source.sourceReference
         ? this._byRef.get(params.source.sourceReference)
+        : params.source.path
+        ? this._byPath.get(params.source.path)
         : undefined;
 
     const result = mergeInto(getCurrent() ?? []);
-    if (params.source.path) {
-      this._byPath.set(params.source.path, result.list);
-    } else if (params.source.sourceReference) {
+    if (params.source.sourceReference) {
       this._byRef.set(params.source.sourceReference, result.list);
+    } else if (params.source.path) {
+      this._byPath.set(params.source.path, result.list);
     } else {
       return { breakpoints: [] };
     }

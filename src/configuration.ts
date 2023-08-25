@@ -1148,6 +1148,7 @@ export const breakpointLanguages: ReadonlyArray<string> = [
   'javascriptreact',
   'fsharp',
   'html',
+  'wat',
 ];
 
 declare const EXTENSION_NAME: string;
