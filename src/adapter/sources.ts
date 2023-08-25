@@ -479,11 +479,18 @@ export class SourceFromMap extends Source {
 }
 
 export class WasmSource extends Source {
+  private readonly _offsetsAssembled = getDeferred<void>();
+
   /**
    * Mapping of bytecode offsets where line numbers begin. For example, line
    * 42 begins at `byteOffsetsOfLines[42]`.
    */
   private byteOffsetsOfLines?: Uint32Array;
+
+  /**
+   * Promise that resolves when the WASM's source offsets have been loaded.
+   */
+  public readonly offsetsAssembled = this._offsetsAssembled.promise;
 
   constructor(
     container: SourceContainer,
@@ -523,7 +530,7 @@ export class WasmSource extends Source {
     // assembling offsets for wasm files. Downside is breakpoints hit immediately
     // when wasm files load might not initially have correct positions.
     if (!hadScripts) {
-      this.assembleOffsets();
+      this.assembleOffsets().finally(() => this._offsetsAssembled.resolve());
     }
   }
 

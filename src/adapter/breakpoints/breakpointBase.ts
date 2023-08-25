@@ -7,7 +7,14 @@ import { LogTag } from '../../common/logging';
 import { absolutePathToFileUrl, urlToRegex } from '../../common/urlUtils';
 import Dap from '../../dap/api';
 import { BreakpointManager } from '../breakpoints';
-import { base1To0, ISourceScript, IUiLocation, Source, SourceFromMap } from '../sources';
+import {
+  base1To0,
+  ISourceScript,
+  IUiLocation,
+  Source,
+  SourceFromMap,
+  WasmSource,
+} from '../sources';
 import { Script, Thread } from '../threads';
 
 export type LineColumn = { lineNumber: number; columnNumber: number }; // 1-based
@@ -296,6 +303,10 @@ export abstract class Breakpoint {
     const source = this._manager._sourceContainer.source(this.source);
     if (!source) {
       return [];
+    }
+
+    if (source instanceof WasmSource) {
+      await source.offsetsAssembled;
     }
 
     // Find all locations for this breakpoint in the new script.
