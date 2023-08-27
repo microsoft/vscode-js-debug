@@ -1,0 +1,44 @@
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+stopped event{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+$fac @ localhost꞉8001/wasm/hello.wasm:3:1
+<anonymous> @ ${workspaceFolder}/web/wasm/hello.html:14:19
+----Promise.then----
+<anonymous> @ ${workspaceFolder}/web/wasm/hello.html:12:59
+source mime typetext/wat
+source content(module
+  (func $fac (;0;) (export "fac") (param $var0 f64) (result f64)
+    local.get $var0
+    f64.const 1
+    f64.lt
+    if (result f64)
+      f64.const 1
+    else
+      local.get $var0
+      local.get $var0
+      f64.const 1
+      f64.sub
+      call $fac
+      f64.mul
+    end
+  )
+)
+breakpoint stopped event{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+$fac @ localhost꞉8001/wasm/hello.wasm:10:1
+<anonymous> @ ${workspaceFolder}/web/wasm/hello.html:14:19
+----Promise.then----
+<anonymous> @ ${workspaceFolder}/web/wasm/hello.html:12:59

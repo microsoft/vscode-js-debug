@@ -1586,6 +1586,22 @@ if (require.main === module) {
           title: 'JavaScript Debugger',
           properties: configurationSchema,
         },
+        grammars: [
+          {
+            language: 'wat',
+            scopeName: 'text.wat',
+            path: './src/ui/basic-wat.tmLanguage.json',
+          },
+        ],
+        languages: [
+          {
+            id: 'wat',
+            extensions: ['.wat', '.wasm'],
+            aliases: ['WebAssembly Text Format'],
+            firstLine: '^\\(module',
+            mimetypes: ['text/wat'],
+          },
+        ],
         terminal: {
           profiles: [
             {

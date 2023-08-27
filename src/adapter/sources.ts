@@ -9,6 +9,8 @@ import { relative } from 'path';
 import { NullableMappedPosition, SourceMapConsumer } from 'source-map';
 import { URL } from 'url';
 import Cdp from '../cdp/api';
+import { ICdpApi } from '../cdp/connection';
+import { binarySearch } from '../common/arrayUtils';
 import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
 import { EventEmitter } from '../common/events';
 import { checkContentHash } from '../common/hash/checkContentHash';
@@ -176,12 +178,42 @@ export class Source {
     this._name = this._humanName();
     this.setSourceMapUrl(sourceMapUrl);
 
-    this._existingAbsolutePath = checkContentHash(
+    this._existingAbsolutePath = this.checkContentHash(contentHash);
+  }
+
+  /** Returns the absolute path if the conten hash matches. */
+  protected checkContentHash(contentHash?: string) {
+    return checkContentHash(
       this.absolutePath,
       // Inline scripts will never match content of the html file. We skip the content check.
-      inlineScriptOffset || runtimeScriptOffset ? undefined : contentHash,
-      container._fileContentOverridesForTest.get(this.absolutePath),
+      this.inlineScriptOffset || this.runtimeScriptOffset ? undefined : contentHash,
+      this._container._fileContentOverridesForTest.get(this.absolutePath),
     );
+  }
+
+  /** Offsets a location that came from the runtime script, to where it appears in source code */
+  public offsetScriptToSource<T extends { lineNumber: number; columnNumber: number }>(obj: T): T {
+    if (this.runtimeScriptOffset) {
+      return {
+        ...obj,
+        lineNumber: obj.lineNumber - this.runtimeScriptOffset.lineOffset,
+        columnNumber: obj.columnNumber - this.runtimeScriptOffset.columnOffset,
+      };
+    }
+
+    return obj;
+  }
+  /** Offsets a location that came from source code, to where it appears in the runtime script */
+  public offsetSourceToScript<T extends { lineNumber: number; columnNumber: number }>(obj: T): T {
+    if (this.runtimeScriptOffset) {
+      return {
+        ...obj,
+        lineNumber: obj.lineNumber + this.runtimeScriptOffset.lineOffset,
+        columnNumber: obj.columnNumber + this.runtimeScriptOffset.columnOffset,
+      };
+    }
+
+    return obj;
   }
 
   private setSourceMapUrl(sourceMapUrl?: string) {
@@ -446,6 +478,143 @@ export class SourceFromMap extends Source {
   public readonly compiledToSourceUrl = new Map<ISourceWithMap, string>();
 }
 
+export class WasmSource extends Source {
+  private readonly _offsetsAssembled = getDeferred<void>();
+
+  /**
+   * Mapping of bytecode offsets where line numbers begin. For example, line
+   * 42 begins at `byteOffsetsOfLines[42]`.
+   */
+  private byteOffsetsOfLines?: Uint32Array;
+
+  /**
+   * Promise that resolves when the WASM's source offsets have been loaded.
+   */
+  public readonly offsetsAssembled = this._offsetsAssembled.promise;
+
+  constructor(
+    container: SourceContainer,
+    public readonly url: string,
+    absolutePath: string | undefined,
+    private readonly cdp: Cdp.Api,
+  ) {
+    super(
+      container,
+      url,
+      absolutePath,
+      once(() => this.getContent()),
+      undefined,
+      undefined,
+      undefined,
+      undefined,
+    );
+  }
+
+  protected override checkContentHash(): Promise<string | undefined> {
+    // We translate wasm to wat, so we should never use the original disk version:
+    return Promise.resolve(undefined);
+  }
+
+  /**
+   * Gets a suggested mimetype for the source.
+   */
+  public override get getSuggestedMimeType(): string | undefined {
+    return 'text/wat'; // does not seem to be any standard mime type for WAT
+  }
+
+  public override addScript(script: ISourceScript): void {
+    const hadScripts = this.scripts.length;
+    super.addScript(script);
+
+    // this is a little racey, but we don't want to block the debugger while
+    // assembling offsets for wasm files. Downside is breakpoints hit immediately
+    // when wasm files load might not initially have correct positions.
+    if (!hadScripts) {
+      this.assembleOffsets().finally(() => this._offsetsAssembled.resolve());
+    }
+  }
+
+  /** Offsets a location that came from the runtime script, to where it appears in source code. (Base 1 locations) */
+  public override offsetScriptToSource<T extends { lineNumber: number; columnNumber: number }>(
+    obj: T,
+  ): T {
+    if (this.byteOffsetsOfLines) {
+      // CDP sets locations in wasm as line = 0 and column = byte offset.
+      return {
+        ...obj,
+        columnNumber: 1,
+        lineNumber: binarySearch(this.byteOffsetsOfLines, obj.columnNumber, (a, b) => a - b),
+      };
+    }
+
+    return obj;
+  }
+  /** Offsets a location that came from source code, to where it appears in the runtime script.  (Base 1 locations) */
+  public override offsetSourceToScript<T extends { lineNumber: number; columnNumber: number }>(
+    obj: T,
+  ): T {
+    if (this.byteOffsetsOfLines) {
+      return {
+        ...obj,
+        lineNumber: 1,
+        columnNumber: this.byteOffsetsOfLines[obj.lineNumber - 1] || 1,
+      };
+    }
+
+    return obj;
+  }
+
+  private async assembleOffsets() {
+    for await (const chunk of this.getDisassembledStream()) {
+      let start: number;
+      if (this.byteOffsetsOfLines) {
+        const newOffsets = new Uint32Array(this.byteOffsetsOfLines.length + chunk.lines.length);
+        start = this.byteOffsetsOfLines.length;
+        newOffsets.set(this.byteOffsetsOfLines);
+        this.byteOffsetsOfLines = newOffsets;
+      } else {
+        this.byteOffsetsOfLines = new Uint32Array(chunk.lines.length);
+        start = 0;
+      }
+
+      for (let i = 0; i < chunk.lines.length; i++) {
+        this.byteOffsetsOfLines[start + i] = chunk.bytecodeOffsets[i];
+      }
+    }
+  }
+
+  private async getContent() {
+    let lines = '';
+    for await (const chunk of this.getDisassembledStream()) {
+      lines += chunk.lines.join('\n');
+    }
+
+    return lines;
+  }
+
+  private async *getDisassembledStream() {
+    if (!this.scripts.length) {
+      return;
+    }
+
+    const { scriptId } = this.scripts[0];
+    const r = await this.cdp.Debugger.disassembleWasmModule({ scriptId });
+    if (!r) {
+      return;
+    }
+
+    yield r.chunk;
+
+    while (r.streamId) {
+      const r2 = await this.cdp.Debugger.nextWasmDisassemblyChunk({ streamId: r.streamId });
+      if (!r2) {
+        return;
+      }
+      yield r2.chunk;
+    }
+  }
+}
+
 export const isSourceWithMap = (source: unknown): source is ISourceWithMap =>
   !!source && source instanceof Source && !!source.sourceMap;
 
@@ -566,6 +735,7 @@ export class SourceContainer {
 
   constructor(
     @inject(IDapApi) dap: Dap.Api,
+    @inject(ICdpApi) private readonly cdp: Cdp.Api,
     @inject(ISourceMapFactory) private readonly sourceMapFactory: ISourceMapFactory,
     @inject(ILogger) private readonly logger: ILogger,
     @inject(AnyLaunchConfiguration) private readonly launchConfig: AnyLaunchConfiguration,
@@ -890,36 +1060,41 @@ export class SourceContainer {
    * Adds a new source to the collection.
    */
   public async addSource(
-    url: string,
+    event: Cdp.Debugger.ScriptParsedEvent,
     contentGetter: ContentGetter,
     sourceMapUrl?: string,
     inlineSourceRange?: InlineScriptOffset,
     runtimeScriptOffset?: InlineScriptOffset,
     contentHash?: string,
   ): Promise<Source> {
-    const absolutePath = await this.sourcePathResolver.urlToAbsolutePath({ url });
+    const absolutePath = await this.sourcePathResolver.urlToAbsolutePath({ url: event.url });
 
     this.logger.verbose(LogTag.RuntimeSourceCreate, 'Creating source from url', {
-      inputUrl: url,
+      inputUrl: event.url,
       absolutePath,
     });
 
-    const source = new Source(
-      this,
-      url,
-      absolutePath,
-      contentGetter,
-      sourceMapUrl &&
-      this.sourcePathResolver.shouldResolveSourceMap({
-        sourceMapUrl,
-        compiledPath: absolutePath || url,
-      })
-        ? sourceMapUrl
-        : undefined,
-      inlineSourceRange,
-      runtimeScriptOffset,
-      contentHash,
-    );
+    let source: Source;
+    if (event.scriptLanguage === 'WebAssembly') {
+      source = new WasmSource(this, event.url, absolutePath, this.cdp);
+    } else {
+      source = new Source(
+        this,
+        event.url,
+        absolutePath,
+        contentGetter,
+        sourceMapUrl &&
+        this.sourcePathResolver.shouldResolveSourceMap({
+          sourceMapUrl,
+          compiledPath: absolutePath || event.url,
+        })
+          ? sourceMapUrl
+          : undefined,
+        inlineSourceRange,
+        runtimeScriptOffset,
+        contentHash,
+      );
+    }
 
     this._addSource(source);
     return source;

@@ -167,6 +167,7 @@ gulp.task('compile:static', () =>
         'README.md',
         'package.nls.json',
         'src/**/*.sh',
+        'src/ui/basic-wat.tmLanguage.json',
         '.vscodeignore',
       ],
       {
@@ -340,19 +341,25 @@ gulp.task(
 );
 
 /** Prepares the package and then hoists it to the root directory. Destructive. */
-gulp.task('package:hoist', gulp.series('package:prepare', async () => {
-  const srcFiles = await fs.promises.readdir(buildDir);
-  const ignoredFiles = new Set(await fs.promises.readdir(__dirname));
+gulp.task(
+  'package:hoist',
+  gulp.series('package:prepare', async () => {
+    const srcFiles = await fs.promises.readdir(buildDir);
+    const ignoredFiles = new Set(await fs.promises.readdir(__dirname));
 
-  ignoredFiles.delete('l10n-extract'); // special case: made in the pipeline
+    ignoredFiles.delete('l10n-extract'); // special case: made in the pipeline
 
-  for (const file of srcFiles) {
-    ignoredFiles.delete(file);
-    await fs.promises.rm(path.join(__dirname, file), { force: true, recursive: true });
-    await fs.promises.rename(path.join(buildDir, file), path.join(__dirname, file));
-  }
-  await fs.promises.appendFile(path.join(__dirname, '.vscodeignore'), [...ignoredFiles].join('\n'));
-}));
+    for (const file of srcFiles) {
+      ignoredFiles.delete(file);
+      await fs.promises.rm(path.join(__dirname, file), { force: true, recursive: true });
+      await fs.promises.rename(path.join(buildDir, file), path.join(__dirname, file));
+    }
+    await fs.promises.appendFile(
+      path.join(__dirname, '.vscodeignore'),
+      [...ignoredFiles].join('\n'),
+    );
+  }),
+);
 
 gulp.task('package', gulp.series('package:prepare', 'package:createVSIX'));
 
