@@ -36,7 +36,7 @@ export class JsDebugPortAttributesProvider
   /**
    * @inheritdoc
    */
-  public async providePortAttributes(port: number, pid: number | undefined) {
+  public async providePortAttributes({ port, pid }: { port: number; pid?: number }) {
     if (pid && this.cachedResolutions.includes(`${port}:${pid}`)) {
       return { port, autoForwardAction: PortAutoForwardAction.Ignore };
     }
