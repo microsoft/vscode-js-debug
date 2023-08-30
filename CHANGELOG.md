@@ -4,6 +4,10 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
+Nothing, yet
+
+## v1.82 (August 2023)
+
 - feat: allow basic webassembly debugging ([vscode#102181](https://github.com/microsoft/vscode/issues/102181))
 - feat: add `Symbol.for("debug.description")` as a way to generate object descriptions ([vscode#102181](https://github.com/microsoft/vscode/issues/102181))
 - feat: adopt supportTerminateDebuggee for browsers and node ([#1733](https://github.com/microsoft/vscode-js-debug/issues/1733))
