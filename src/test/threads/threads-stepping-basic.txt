@@ -15,7 +15,7 @@ Evaluating#1:
     reason : pause
     threadId : <number>
 }
-foo @ localhost꞉8001/eval1.js:6:11
+Window.foo @ localhost꞉8001/eval1.js:6:11
 <anonymous> @ localhost꞉8001/eval1.js:10:9
 
 step over
@@ -31,7 +31,7 @@ step over
         threadId : <number>
     }
 ]
-foo @ localhost꞉8001/eval1.js:7:11
+Window.foo @ localhost꞉8001/eval1.js:7:11
 <anonymous> @ localhost꞉8001/eval1.js:10:9
 
 step over
@@ -47,7 +47,7 @@ step over
         threadId : <number>
     }
 ]
-foo @ localhost꞉8001/eval1.js:8:11
+Window.foo @ localhost꞉8001/eval1.js:8:11
 <anonymous> @ localhost꞉8001/eval1.js:10:9
 
 step in
@@ -63,8 +63,8 @@ step in
         threadId : <number>
     }
 ]
-bar @ localhost꞉8001/eval1.js:3:11
-foo @ localhost꞉8001/eval1.js:8:11
+Window.bar @ localhost꞉8001/eval1.js:3:11
+Window.foo @ localhost꞉8001/eval1.js:8:11
 <anonymous> @ localhost꞉8001/eval1.js:10:9
 
 step out
@@ -80,7 +80,7 @@ step out
         threadId : <number>
     }
 ]
-foo @ localhost꞉8001/eval1.js:9:9
+Window.foo @ localhost꞉8001/eval1.js:9:9
 <anonymous> @ localhost꞉8001/eval1.js:10:9
 
 resume

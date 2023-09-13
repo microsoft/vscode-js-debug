@@ -5,5 +5,5 @@
     threadId : <number>
 }
 <anonymous> @ <eval>/VM<xx>:1:25
-bar @ ${workspaceFolder}/web/browserify/module2.ts:3:3 <hidden: Skipped by skipFiles>
+Window.bar @ ${workspaceFolder}/web/browserify/module2.ts:3:3 <hidden: Skipped by skipFiles>
 <anonymous> @ <eval>/VM<xx>:1:8

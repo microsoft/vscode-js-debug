@@ -11,5 +11,5 @@
     reason : step
     threadId : <number>
 }
-double @ ${fixturesDir}/test.js:2:3
+global.double @ ${fixturesDir}/test.js:2:3
 <anonymous> @ ${fixturesDir}/test.js:5:1

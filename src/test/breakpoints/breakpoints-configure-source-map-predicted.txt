@@ -4,10 +4,10 @@
     reason : breakpoint
     threadId : <number>
 }
-bar @ ${workspaceFolder}/web/browserify/module2.ts:3:3
+Object.bar @ ${workspaceFolder}/web/browserify/module2.ts:3:3
 3../module1 @ ${workspaceFolder}/web/browserify/pause.ts:4:4
-o @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1
-r @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1
+Window.o @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1
+Window.r @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1
 <anonymous> @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1
 {
     allThreadsStopped : false
@@ -16,8 +16,8 @@ r @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1
     threadId : <number>
 }
 foo @ ${workspaceFolder}/web/browserify/module1.ts:3:3
-bar @ ${workspaceFolder}/web/browserify/module2.ts:3:3
+Object.bar @ ${workspaceFolder}/web/browserify/module2.ts:3:3
 3../module1 @ ${workspaceFolder}/web/browserify/pause.ts:4:4
-o @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1
-r @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1
+Window.o @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1
+Window.r @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1
 <anonymous> @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1

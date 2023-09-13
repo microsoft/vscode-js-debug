@@ -24,8 +24,8 @@ step in new Foo(){
     reason : step
     threadId : <number>
 }
-Foo @ ${workspaceFolder}/web/stepInTargets.js:2:3
-doTest @ ${workspaceFolder}/web/stepInTargets.js:4:12
+Foo.constructor @ ${workspaceFolder}/web/stepInTargets.js:2:3
+Window.doTest @ ${workspaceFolder}/web/stepInTargets.js:4:12
 <anonymous> @ <eval>/VM<xx>:1:1
 {
     allThreadsStopped : false
@@ -69,6 +69,6 @@ step in new Foo().bar(){
     reason : step
     threadId : <number>
 }
-bar @ ${workspaceFolder}/web/stepInTargets.js:2:23
-doTest @ ${workspaceFolder}/web/stepInTargets.js:5:31
+Foo.bar @ ${workspaceFolder}/web/stepInTargets.js:2:23
+Window.doTest @ ${workspaceFolder}/web/stepInTargets.js:5:31
 <anonymous> @ <eval>/VM<xx>:1:1

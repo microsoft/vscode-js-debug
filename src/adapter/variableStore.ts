@@ -791,7 +791,6 @@ class ObjectVariable extends Variable implements IMemoryReadable {
             `${customStringReprMaxLength}`,
             this.context.customDescriptionGenerator || 'null',
           ),
-          arguments: [await this.context.getDescriptionSymbols(this.remoteObject.objectId)],
           objectId: this.remoteObject.objectId,
           returnByValue: true,
         });

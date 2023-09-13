@@ -7,5 +7,5 @@ Evaluating#1: debugger; doCallback(() => {
     reason : step
     threadId : <number>
 }
-doCallback @ ${workspaceFolder}/web/smartStep/missingMap.js:2:5
+Window.doCallback @ ${workspaceFolder}/web/smartStep/missingMap.js:2:5
 <anonymous> @ localhost꞉8001/eval1.js:1:11

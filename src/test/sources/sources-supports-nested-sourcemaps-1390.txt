@@ -4,4 +4,4 @@
     reason : breakpoint
     threadId : <number>
 }
-add @ ${workspaceFolder}/nestedSourceMaps/b/lib.js:2:1
+Module.add @ ${workspaceFolder}/nestedSourceMaps/b/lib.js:2:1

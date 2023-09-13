@@ -1,5 +1,5 @@
 
-foo @ <eval>/VM<xx>:4:19
+Window.foo @ <eval>/VM<xx>:4:19
   > scope #0: Local: foo
       Return value: 42
       > this: Window

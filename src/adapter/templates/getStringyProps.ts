@@ -94,7 +94,10 @@ export const getToStringIfCustom = templateFunction(function (
 
   if (typeof this === 'object' && this) {
     let str: string | undefined;
-    for (const sym of runtimeArgs[0]) {
+    for (const sym of [
+      Symbol.for(DescriptionSymbols.Generic),
+      Symbol.for(DescriptionSymbols.Node),
+    ]) {
       try {
         str = (this as Record<symbol, () => string>)[sym]();
         break;
