@@ -24,7 +24,7 @@ step in new Foo(){
     reason : step
     threadId : <number>
 }
-Foo.Foo @ ${workspaceFolder}/web/stepInTargets.js:2:3
+Foo.constructor @ ${workspaceFolder}/web/stepInTargets.js:2:3
 Window.doTest @ ${workspaceFolder}/web/stepInTargets.js:4:12
 <anonymous> @ <eval>/VM<xx>:1:1
 {

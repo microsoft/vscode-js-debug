@@ -10,7 +10,7 @@ import { SourceConstants } from '../common/sourceUtils';
 import Dap from '../dap/api';
 import { asyncScopesNotAvailable } from '../dap/errors';
 import { ProtocolError } from '../dap/protocolError';
-import { shouldStepOverStackFrame, StackFrameStepOverReason } from './smartStepping';
+import { StackFrameStepOverReason, shouldStepOverStackFrame } from './smartStepping';
 import { IPreferredUiLocation } from './sources';
 import { getToStringIfCustom } from './templates/getStringyProps';
 import { RawLocation, Thread } from './threads';
@@ -228,6 +228,7 @@ export class AsyncSeparator implements IFrameElement {
 }
 
 const fallbackName = '<anonymous>';
+const CLASS_CTOR_RE = /^class\s+(.+) {($|\n)/;
 
 async function getEnhancedName(
   thread: Thread,
@@ -257,7 +258,15 @@ async function getEnhancedName(
     objName = ret?.result.value;
   }
 
-  objName ||= callFrame.this.description;
+  if (!objName && callFrame.this.description) {
+    objName = callFrame.this.description;
+
+    // Static methods `this` is described like `class Foo {` -- make that just `Foo`
+    const classCtor = CLASS_CTOR_RE.exec(objName);
+    if (classCtor) {
+      objName = classCtor[1];
+    }
+  }
   if (!objName) {
     return callFrame.functionName;
   }
@@ -268,6 +277,10 @@ async function getEnhancedName(
   }
 
   const fnName = callFrame.functionName;
+  if (objName === fnName) {
+    return `${objName}.constructor`;
+  }
+
   return objName ? `${objName}.${fnName}` : fnName;
 }
 
