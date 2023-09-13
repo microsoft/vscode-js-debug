@@ -4,7 +4,7 @@
     reason : breakpoint
     threadId : <number>
 }
-foo @ <eval>/VM<xx>:3:19
+Window.foo @ <eval>/VM<xx>:3:19
 <anonymous> @ localhost꞉8001/test.js:1:1
 {
     allThreadsStopped : false

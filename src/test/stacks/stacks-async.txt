@@ -1,11 +1,11 @@
 
-foo @ <eval>/VM<xx>:4:11
+Window.foo @ <eval>/VM<xx>:4:11
   > scope #0: Local: foo
       n: 0
       > this: Window
   scope #1: Global [expensive]
 
-bar @ <eval>/VM<xx>:13:15
+Window.bar @ <eval>/VM<xx>:13:15
   > scope #0: Local: bar
       n: 0
       > this: Window

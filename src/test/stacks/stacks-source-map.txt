@@ -4,7 +4,7 @@ foo @ ${workspaceFolder}/web/browserify/module1.ts:3:3
       this: undefined
   scope #1: Global [expensive]
 
-bar @ ${workspaceFolder}/web/browserify/module2.ts:3:3
+Object.bar @ ${workspaceFolder}/web/browserify/module2.ts:3:3
   > scope #0: Local: bar
 
 > callback: ƒ foo() {
@@ -23,7 +23,7 @@ bar @ ${workspaceFolder}/web/browserify/module2.ts:3:3
       > this: Object
   scope #1: Global [expensive]
 
-o @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1
+Window.o @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1
   > scope #0: Local: o
       a: undefined
       c: undefined
@@ -41,7 +41,7 @@ o @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1
       > r: ƒ r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}
   scope #3: Global [expensive]
 
-r @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1
+Window.r @ ${workspaceFolder}/node_modules/browser-pack/_prelude.js:1:1
   > scope #0: Local: r
       > e: {1: Array(2), 2: Array(2), 3: Array(2)}
       i: 0

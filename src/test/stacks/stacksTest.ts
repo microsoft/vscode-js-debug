@@ -326,4 +326,32 @@ describe('stacks', () => {
       p.assertLog();
     });
   });
+
+  itIntegrates('uses custom descriptions in frame names', async ({ r }) => {
+    const p = await r.launchAndLoad('blank');
+    p.cdp.Runtime.evaluate({
+      expression: `
+        class Bar {
+          method2() {
+            debugger;
+          }
+
+          toString() {
+            return 'Custom';
+          }
+        }
+
+        class Foo {
+          method1() {
+            return new Bar().method2();
+          }
+        }
+
+        new Foo().method1();
+      `,
+    });
+
+    await dumpStackAndContinue(p, false);
+    p.assertLog();
+  });
 });

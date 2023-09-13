@@ -1,11 +1,11 @@
 
-paused @ <eval>/VM<xx>:4:9
+Window.paused @ <eval>/VM<xx>:4:9
   > scope #0: Local: paused
       > this: Window
       y: 'paused'
   scope #1: Global [expensive]
 
-chained @ <eval>/VM<xx>:11:23
+Window.chained @ <eval>/VM<xx>:11:23
   > scope #0: Local: chained
       > this: Window
       x: 'x1'
@@ -13,7 +13,7 @@ chained @ <eval>/VM<xx>:11:23
       n: 1
   scope #2: Global [expensive]
 
-chained @ <eval>/VM<xx>:11:23
+Window.chained @ <eval>/VM<xx>:11:23
   > scope #0: Local: chained
       > this: Window
       x: 'x2'
@@ -21,7 +21,7 @@ chained @ <eval>/VM<xx>:11:23
       n: 2
   scope #2: Global [expensive]
 
-chained @ <eval>/VM<xx>:11:23
+Window.chained @ <eval>/VM<xx>:11:23
   > scope #0: Local: chained
       > this: Window
       x: 'x3'

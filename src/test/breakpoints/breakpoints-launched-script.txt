@@ -11,6 +11,6 @@
     reason : breakpoint
     threadId : <number>
 }
-bar @ ${workspaceFolder}/web/script.js:6:3
-foo @ ${workspaceFolder}/web/script.js:2:3
+Window.bar @ ${workspaceFolder}/web/script.js:6:3
+Window.foo @ ${workspaceFolder}/web/script.js:2:3
 <anonymous> @ ${workspaceFolder}/web/script.js:11:1

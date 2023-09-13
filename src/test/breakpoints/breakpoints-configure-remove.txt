@@ -4,7 +4,7 @@
     reason : breakpoint
     threadId : <number>
 }
-foo @ ${workspaceFolder}/web/script.js:2:3
+Window.foo @ ${workspaceFolder}/web/script.js:2:3
 <anonymous> @ ${workspaceFolder}/web/script.js:9:1
 {
     allThreadsStopped : false

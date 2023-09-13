@@ -5,12 +5,12 @@
     threadId : <number>
 }
 ./src/App.vue @ ${workspaceFolder}/web/src/App.vue:9:17
-__webpack_require__ @ ${workspaceFolder}/web/webpack/bootstrap:79:1
+Window.__webpack_require__ @ ${workspaceFolder}/web/webpack/bootstrap:79:1
 ./src/main.js @ ${workspaceFolder}/web/vue/js/app.js:789:66
-__webpack_require__ @ ${workspaceFolder}/web/webpack/bootstrap:79:1
-0 @ ${workspaceFolder}/web/vue/js/app.js:812:18
-__webpack_require__ @ ${workspaceFolder}/web/webpack/bootstrap:79:1
-checkDeferredModules @ ${workspaceFolder}/web/webpack/bootstrap:45:1
+Window.__webpack_require__ @ ${workspaceFolder}/web/webpack/bootstrap:79:1
+Object.0 @ ${workspaceFolder}/web/vue/js/app.js:812:18
+Window.__webpack_require__ @ ${workspaceFolder}/web/webpack/bootstrap:79:1
+Window.checkDeferredModules @ ${workspaceFolder}/web/webpack/bootstrap:45:1
 <anonymous> @ ${workspaceFolder}/web/webpack/bootstrap:152:1
 <anonymous> @ ${workspaceFolder}/web/vue/js/app.js:156:10
 {
@@ -21,11 +21,11 @@ checkDeferredModules @ ${workspaceFolder}/web/webpack/bootstrap:45:1
 }
 <anonymous> @ ${workspaceFolder}/web/node_modules/vue-loader/lib/runtime/componentNormalizer.js:1:1
 ./src/App.vue @ ${workspaceFolder}/web/src/App.vue:9:17
-__webpack_require__ @ ${workspaceFolder}/web/webpack/bootstrap:79:1
+Window.__webpack_require__ @ ${workspaceFolder}/web/webpack/bootstrap:79:1
 ./src/main.js @ ${workspaceFolder}/web/vue/js/app.js:789:66
-__webpack_require__ @ ${workspaceFolder}/web/webpack/bootstrap:79:1
-0 @ ${workspaceFolder}/web/vue/js/app.js:812:18
-__webpack_require__ @ ${workspaceFolder}/web/webpack/bootstrap:79:1
-checkDeferredModules @ ${workspaceFolder}/web/webpack/bootstrap:45:1
+Window.__webpack_require__ @ ${workspaceFolder}/web/webpack/bootstrap:79:1
+Object.0 @ ${workspaceFolder}/web/vue/js/app.js:812:18
+Window.__webpack_require__ @ ${workspaceFolder}/web/webpack/bootstrap:79:1
+Window.checkDeferredModules @ ${workspaceFolder}/web/webpack/bootstrap:45:1
 <anonymous> @ ${workspaceFolder}/web/webpack/bootstrap:152:1
 <anonymous> @ ${workspaceFolder}/web/vue/js/app.js:156:10

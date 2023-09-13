@@ -1,12 +1,12 @@
 
-c @ ${workspaceFolder}/web/minified/index.js:13:5
+Window.c @ ${workspaceFolder}/web/minified/index.js:13:5
   > scope #0: Local: c
       arg1: 2
       arg2: 3
       > this: Window
   scope #1: Global [expensive]
 
-test @ ${workspaceFolder}/web/minified/index.js:6:5
+Window.test @ ${workspaceFolder}/web/minified/index.js:6:5
   > scope #0: Block: test
       inner1: 2
       inner2: 3

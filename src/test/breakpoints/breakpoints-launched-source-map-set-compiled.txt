@@ -15,7 +15,7 @@ Breakpoint resolved: {
     reason : breakpoint
     threadId : <number>
 }
-bar @ ${workspaceFolder}/web/browserify/bundle.js:36:5
+Window.bar @ ${workspaceFolder}/web/browserify/bundle.js:36:5
 <anonymous> @ localhost꞉8001/browserify/test.js:1:8
 {
     allThreadsStopped : false
@@ -24,5 +24,5 @@ bar @ ${workspaceFolder}/web/browserify/bundle.js:36:5
     threadId : <number>
 }
 foo @ ${workspaceFolder}/web/browserify/bundle.js:19:5
-bar @ ${workspaceFolder}/web/browserify/bundle.js:36:5
+Window.bar @ ${workspaceFolder}/web/browserify/bundle.js:36:5
 <anonymous> @ localhost꞉8001/browserify/test.js:1:8

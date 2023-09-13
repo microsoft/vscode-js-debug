@@ -4,5 +4,5 @@
     reason : breakpoint
     threadId : <number>
 }
-foo @ ${workspaceFolder}/web/tmp/app.ts:2:3
+Window.foo @ ${workspaceFolder}/web/tmp/app.ts:2:3
 <anonymous> @ ${workspaceFolder}/web/tmp/app.ts:5:1

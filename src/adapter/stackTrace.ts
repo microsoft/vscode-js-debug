@@ -10,8 +10,9 @@ import { SourceConstants } from '../common/sourceUtils';
 import Dap from '../dap/api';
 import { asyncScopesNotAvailable } from '../dap/errors';
 import { ProtocolError } from '../dap/protocolError';
-import { StackFrameStepOverReason, shouldStepOverStackFrame } from './smartStepping';
+import { shouldStepOverStackFrame, StackFrameStepOverReason } from './smartStepping';
 import { IPreferredUiLocation } from './sources';
+import { getToStringIfCustom } from './templates/getStringyProps';
 import { RawLocation, Thread } from './threads';
 import { IExtraProperty, IScopeRef, IVariableContainer } from './variableStore';
 
@@ -226,10 +227,57 @@ export class AsyncSeparator implements IFrameElement {
   }
 }
 
+const fallbackName = '<anonymous>';
+
+async function getEnhancedName(
+  thread: Thread,
+  callFrame: Cdp.Debugger.CallFrame,
+  useCustomName: boolean,
+) {
+  if (!callFrame.functionName) {
+    // 1. if there's no function name, this cannot be a method. Top-level code in
+    //    a .js file will have a generic "object" scope but no name, so this avoids
+    //    misrepresenting it.
+    return fallbackName;
+  }
+
+  if (callFrame.functionName.includes('.')) {
+    // 2. Some object names are formatted nicely and already contain a method
+    //    access, so skip formatting those.
+    return callFrame.functionName;
+  }
+
+  let objName: string | undefined;
+  if (callFrame.this.objectId && useCustomName) {
+    const ret = await thread.cdp().Runtime.callFunctionOn({
+      functionDeclaration: getToStringIfCustom.decl('64', 'null'),
+      objectId: callFrame.this.objectId,
+      returnByValue: true,
+    });
+    objName = ret?.result.value;
+  }
+
+  objName ||= callFrame.this.description;
+  if (!objName) {
+    return callFrame.functionName;
+  }
+
+  const idx = objName.indexOf('\n');
+  if (idx !== -1) {
+    objName = objName.slice(0, idx).trim();
+  }
+
+  const fnName = callFrame.functionName;
+  return objName ? `${objName}.${fnName}` : fnName;
+}
+
+function getDefaultName(callFrame: Cdp.Debugger.CallFrame | Cdp.Runtime.CallFrame) {
+  return callFrame.functionName || fallbackName;
+}
+
 export class StackFrame implements IFrameElement {
   public readonly frameId = frameIdCounter();
 
-  private _name: string;
   private _rawLocation: RawLocation;
   public readonly uiLocation: () =>
     | Promise<IPreferredUiLocation | undefined>
@@ -271,7 +319,6 @@ export class StackFrame implements IFrameElement {
     rawLocation: RawLocation,
     private readonly isAsync = false,
   ) {
-    this._name = callFrame.functionName || '<anonymous>';
     this._rawLocation = rawLocation;
     this.uiLocation = once(() => thread.rawLocationToUiLocation(rawLocation));
     this._thread = thread;
@@ -387,11 +434,27 @@ export class StackFrame implements IFrameElement {
     return { scopes: scopes.filter(truthy) };
   }
 
+  private readonly getLocationInfo = once(async () => {
+    const uiLocation = this.uiLocation();
+    const isSmartStepped = await shouldStepOverStackFrame(this);
+    // only use the relatively expensive custom tostring lookup for frames
+    // that aren't skipped, to avoid unnecessary work e.g. on node_internals
+    const name =
+      'this' in this.callFrame
+        ? await getEnhancedName(
+            this._thread,
+            this.callFrame,
+            isSmartStepped === StackFrameStepOverReason.NotStepped,
+          )
+        : getDefaultName(this.callFrame);
+
+    return { isSmartStepped, name, uiLocation: await uiLocation };
+  });
+
   /** @inheritdoc */
   async toDap(format?: Dap.StackFrameFormat): Promise<Dap.StackFrame> {
-    const uiLocation = await this.uiLocation();
+    const { isSmartStepped, name, uiLocation } = await this.getLocationInfo();
     const source = uiLocation ? await uiLocation.source.toDap() : undefined;
-    const isSmartStepped = await shouldStepOverStackFrame(this);
     const presentationHint = isSmartStepped ? 'deemphasize' : 'normal';
     if (isSmartStepped && source) {
       source.origin =
@@ -403,7 +466,7 @@ export class StackFrame implements IFrameElement {
     const line = (uiLocation || this._rawLocation).lineNumber;
     const column = (uiLocation || this._rawLocation).columnNumber;
 
-    let formattedName = this._name;
+    let formattedName = name;
 
     if (source && format) {
       if (format.module) {
@@ -430,21 +493,21 @@ export class StackFrame implements IFrameElement {
 
   /** @inheritdoc */
   async formatAsNative(): Promise<string> {
-    const uiLocation = await this.uiLocation();
+    const { name, uiLocation } = await this.getLocationInfo();
     const url =
       (await uiLocation?.source.existingAbsolutePath()) ||
       (await uiLocation?.source.prettyName()) ||
       this.callFrame.url;
     const { lineNumber, columnNumber } = uiLocation || this._rawLocation;
-    return `    at ${this._name} (${url}:${lineNumber}:${columnNumber})`;
+    return `    at ${name} (${url}:${lineNumber}:${columnNumber})`;
   }
 
   /** @inheritdoc */
   async format(): Promise<string> {
-    const uiLocation = await this.uiLocation();
+    const { name, uiLocation } = await this.getLocationInfo();
     const prettyName = (await uiLocation?.source.prettyName()) || '<unknown>';
     const anyLocation = uiLocation || this._rawLocation;
-    let text = `${this._name} @ ${prettyName}:${anyLocation.lineNumber}`;
+    let text = `${name} @ ${prettyName}:${anyLocation.lineNumber}`;
     if (anyLocation.columnNumber > 1) text += `:${anyLocation.columnNumber}`;
     return text;
   }

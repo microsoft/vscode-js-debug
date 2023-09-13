@@ -4,7 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
-Nothing, yet
+- feat: show class names of methods in call stack view ([#1770](https://github.com/microsoft/vscode-js-debug/issues/1770))
 
 ## v1.82 (August 2023)
 

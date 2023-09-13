@@ -4,4 +4,4 @@
     reason : breakpoint
     threadId : <number>
 }
-foo @ ${workspaceFolder}/sourceMapLocations/test.ts:6:3
+global.foo @ ${workspaceFolder}/sourceMapLocations/test.ts:6:3

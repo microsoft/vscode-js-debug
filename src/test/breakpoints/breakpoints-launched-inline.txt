@@ -11,5 +11,5 @@
     reason : breakpoint
     threadId : <number>
 }
-foo @ ${workspaceFolder}/web/inlinescriptpause.html:6:7
+Window.foo @ ${workspaceFolder}/web/inlinescriptpause.html:6:7
 <anonymous> @ ${workspaceFolder}/web/inlinescriptpause.html:9:5
