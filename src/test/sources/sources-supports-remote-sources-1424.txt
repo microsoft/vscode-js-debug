@@ -1,0 +1,23 @@
+
+Source event for
+{
+    reason : new
+    source : {
+        name : localhost꞉8001/remote-test/string.ts
+        path : localhost꞉8001/remote-test/string.ts
+        sourceReference : <number>
+    }
+}
+text/javascript
+---------
+let i = 0;
+i++;
+debugger;
+i++;
+i++;
+i++;
+i++;
+i++;
+console.log(i);//ts file
+
+---------

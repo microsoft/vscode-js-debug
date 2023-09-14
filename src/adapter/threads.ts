@@ -1843,8 +1843,9 @@ export class Thread implements IVariableStoreLocationProvider {
       }
 
       const compiledSource =
-        this._sourceContainer.getSourceByOriginalUrl(urlUtils.absolutePathToFileUrl(chunk.path)) ||
-        this._sourceContainer.getSourceByOriginalUrl(chunk.path);
+        this._sourceContainer.getSourceByOriginalUrl(
+          urlUtils.isAbsolute(chunk.path) ? urlUtils.absolutePathToFileUrl(chunk.path) : chunk.path,
+        ) || this._sourceContainer.getSourceByOriginalUrl(chunk.path);
       if (!compiledSource) {
         todo.push(chunk.toString());
         continue;

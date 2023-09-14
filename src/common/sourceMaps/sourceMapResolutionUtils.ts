@@ -20,7 +20,6 @@ export function getFullSourceEntry(sourceRoot: string | undefined, sourcePath: s
   if (!sourceRoot.endsWith('/')) {
     sourceRoot += '/';
   }
-
   return sourceRoot + sourcePath;
 }
 
@@ -35,12 +34,13 @@ export async function getComputedSourceRoot(
   logger: ILogger,
 ): Promise<string> {
   generatedPath = utils.fileUrlToAbsolutePath(generatedPath) || generatedPath;
-
   let absSourceRoot: string;
   if (sourceRoot) {
     if (utils.isFileUrl(sourceRoot)) {
       // sourceRoot points to a local path like "file:///c:/project/src", make it an absolute path
       absSourceRoot = utils.fileUrlToAbsolutePath(sourceRoot);
+    } else if (utils.isValidUrl(sourceRoot)) {
+      absSourceRoot = sourceRoot;
     } else if (utils.isAbsolute(sourceRoot)) {
       // sourceRoot is like "/src", should be like http://localhost/src, resolve to a local path using pathMaping.
       // If path mappings do not apply (e.g. node), assume that sourceRoot is actually a local absolute path.
@@ -79,9 +79,13 @@ export async function getComputedSourceRoot(
     );
   }
 
-  absSourceRoot = utils.stripTrailingSlash(absSourceRoot);
-  absSourceRoot = fixDriveLetterAndSlashes(absSourceRoot);
-
+  if (!utils.isValidUrl(absSourceRoot)) {
+    absSourceRoot = utils.stripTrailingSlash(absSourceRoot);
+    absSourceRoot = fixDriveLetterAndSlashes(absSourceRoot);
+  } else {
+    //guarantees one slash in the end for later join with sources files
+    absSourceRoot = new URL(absSourceRoot).href;
+  }
   return absSourceRoot;
 }
 

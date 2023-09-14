@@ -207,6 +207,16 @@ export function isValidUrl(url: string): boolean {
   }
 }
 
+export function isValidUrlWithProtocol(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+
+    return parsed.protocol.toLowerCase() == 'http:' || parsed.protocol.toLowerCase() == 'https:';
+  } catch (e) {
+    return false;
+  }
+}
+
 export function escapeForRegExp(s: string): string {
   const chars = '^[]{}()\\.^$*+?|-,';
 
@@ -302,6 +312,11 @@ export function fileUrlToNetworkPath(urlOrPath: string): string {
 // TODO: this does not escape/unescape special characters
 /** @deprecated consider absolutePathToFileUrlWithDetection instead */
 export function absolutePathToFileUrl(absolutePath: string): string {
+  if (!isAbsolute(absolutePath)) {
+    throw new Error(
+      `You are using the 'absolutePathToFileUrl()' on a string which is not absolute: ${absolutePath}`,
+    );
+  }
   if (platform === 'win32') {
     return 'file:///' + platformPathToUrlPath(absolutePath);
   }

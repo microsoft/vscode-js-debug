@@ -1278,9 +1278,10 @@ export class SourceContainer {
     const todo: Promise<unknown>[] = [];
     for (const url of map.sources) {
       const absolutePath = await this.sourcePathResolver.urlToAbsolutePath({ url, map });
-      const resolvedUrl = absolutePath
-        ? utils.absolutePathToFileUrl(absolutePath)
-        : map.computedSourceUrl(url);
+      const resolvedUrl =
+        absolutePath && utils.isAbsolute(absolutePath)
+          ? utils.absolutePathToFileUrl(absolutePath)
+          : map.computedSourceUrl(url);
 
       const existing = this._sourceMapSourcesByUrl.get(resolvedUrl);
       // fix: some modules, like the current version of the 1DS SDK, managed to
@@ -1309,7 +1310,6 @@ export class SourceContainer {
         resolvedUrl,
       });
 
-      const fileUrl = absolutePath && utils.absolutePathToFileUrl(absolutePath);
       const smContent = this.sourceMapFactory.guardSourceMapFn(
         map,
         () => map.sourceContentFor(url, true),
@@ -1343,6 +1343,10 @@ export class SourceContainer {
         }
       }
 
+      const fileUrl =
+        absolutePath && utils.isAbsolute(absolutePath)
+          ? utils.absolutePathToFileUrl(absolutePath)
+          : absolutePath;
       const source = new SourceFromMap(
         this,
         resolvedUrl,
@@ -1360,6 +1364,7 @@ export class SourceContainer {
       );
       source.compiledToSourceUrl.set(compiled, url);
       compiled.sourceMap.sourceByUrl.set(url, source);
+
       todo.push(this._addSource(source));
     }
 

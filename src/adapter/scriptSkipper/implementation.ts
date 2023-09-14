@@ -266,6 +266,7 @@ export class ScriptSkipper {
     if (
       !skipped &&
       source.absolutePath &&
+      urlUtils.isAbsolute(source.absolutePath) &&
       this._testSkipAuthored(urlUtils.absolutePathToFileUrl(source.absolutePath))
     ) {
       this.setIsUrlBlackboxSkipped(url, true);

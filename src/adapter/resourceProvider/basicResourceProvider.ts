@@ -55,7 +55,6 @@ export class BasicResourceProvider implements IResourceProvider {
         return { ok: false, url, error, statusCode: 200 };
       }
     }
-
     return this.fetchHttp(url, cancellationToken, headers);
   }
   /**
