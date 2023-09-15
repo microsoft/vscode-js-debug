@@ -5,16 +5,16 @@
 import { expect } from 'chai';
 import { SinonStub, stub } from 'sinon';
 import Cdp from '../cdp/api';
-import { stubbedCdpApi, StubCdpApi } from '../cdp/stubbedApi';
+import { StubCdpApi, stubbedCdpApi } from '../cdp/stubbedApi';
 import { upcastPartial } from '../common/objUtils';
 import { AnyLaunchConfiguration } from '../configuration';
 import Dap from '../dap/api';
-import { stubbedDapApi, StubDapApi } from '../dap/stubbedApi';
+import { StubDapApi, stubbedDapApi } from '../dap/stubbedApi';
 import { assertNotResolved, assertResolved } from '../test/asserts';
 import { IEvaluator } from './evaluator';
 import { ExceptionPauseService, PauseOnExceptionsState } from './exceptionPauseService';
 import { ScriptSkipper } from './scriptSkipper/implementation';
-import { SourceContainer } from './sources';
+import { SourceContainer } from './sourceContainer';
 
 describe('ExceptionPauseService', () => {
   let prepareEval: SinonStub;

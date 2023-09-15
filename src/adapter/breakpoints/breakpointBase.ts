@@ -4,17 +4,11 @@
 
 import Cdp from '../../cdp/api';
 import { LogTag } from '../../common/logging';
+import { IPosition } from '../../common/positions';
 import { absolutePathToFileUrl, urlToRegex } from '../../common/urlUtils';
 import Dap from '../../dap/api';
 import { BreakpointManager } from '../breakpoints';
-import {
-  base1To0,
-  ISourceScript,
-  IUiLocation,
-  Source,
-  SourceFromMap,
-  WasmSource,
-} from '../sources';
+import { ISourceScript, IUiLocation, Source, SourceFromMap, base1To0 } from '../source';
 import { Script, Thread } from '../threads';
 
 export type LineColumn = { lineNumber: number; columnNumber: number }; // 1-based
@@ -147,20 +141,18 @@ export abstract class Breakpoint {
    * the breakpoints when we pretty print a source. This is dangerous with
    * sharp edges, use with caution.
    */
-  public async updateSourceLocation(source: Dap.Source, uiLocation: IUiLocation) {
+  public async updateSourceLocation(thread: Thread, source: Dap.Source, uiLocation: IUiLocation) {
     this._source = source;
     this._originalPosition = uiLocation;
 
-    this.updateCdpRefs(list =>
-      list.map(bp =>
-        bp.state === CdpReferenceState.Applied
-          ? {
-              ...bp,
-              uiLocations: this._manager._sourceContainer.currentSiblingUiLocations(uiLocation),
-            }
-          : bp,
-      ),
-    );
+    const todo: Promise<unknown>[] = [];
+    for (const ref of this.cdpBreakpoints) {
+      if (ref.state === CdpReferenceState.Applied) {
+        todo.push(this.updateUiLocations(thread, ref.cdpId, ref.locations));
+      }
+    }
+
+    await Promise.all(todo);
   }
 
   /**
@@ -205,7 +197,7 @@ export abstract class Breakpoint {
 
     // double check still enabled to avoid racing
     if (source && this.isEnabled) {
-      const uiLocations = this._manager._sourceContainer.currentSiblingUiLocations({
+      const uiLocations = await this._manager._sourceContainer.currentSiblingUiLocations({
         lineNumber: this.originalPosition.lineNumber,
         columnNumber: this.originalPosition.columnNumber,
         source,
@@ -250,8 +242,9 @@ export abstract class Breakpoint {
       return;
     }
 
+    const locations = await this._manager._sourceContainer.currentSiblingUiLocations(uiLocation);
+
     this.updateExistingCdpRef(cdpId, bp => {
-      const locations = this._manager._sourceContainer.currentSiblingUiLocations(uiLocation);
       const inPreferredSource = locations.filter(l => l.source === source);
       return {
         ...bp,
@@ -305,12 +298,8 @@ export abstract class Breakpoint {
       return [];
     }
 
-    if (source instanceof WasmSource) {
-      await source.offsetsAssembled;
-    }
-
     // Find all locations for this breakpoint in the new script.
-    const uiLocations = this._manager._sourceContainer.currentSiblingUiLocations(
+    const uiLocations = await this._manager._sourceContainer.currentSiblingUiLocations(
       {
         lineNumber: this.originalPosition.lineNumber,
         columnNumber: this.originalPosition.columnNumber,
@@ -372,6 +361,24 @@ export abstract class Breakpoint {
   public executionContextWasCleared() {
     // only url-set breakpoints are still valid
     this.updateCdpRefs(l => l.filter(bp => isSetByUrl(bp.args)));
+  }
+
+  /**
+   * Gets whether this breakpoint has resolved to the given position.
+   */
+  public hasResolvedAt(scriptId: string, position: IPosition) {
+    const { lineNumber, columnNumber } = position.base0;
+
+    return this.cdpBreakpoints.some(
+      bp =>
+        bp.state === CdpReferenceState.Applied &&
+        bp.locations.some(
+          l =>
+            l.scriptId === scriptId &&
+            l.lineNumber === lineNumber &&
+            (l.columnNumber === undefined || l.columnNumber === columnNumber),
+        ),
+    );
   }
 
   /**
@@ -566,7 +573,10 @@ export abstract class Breakpoint {
     urlRegex: string,
     lineColumn: LineColumn,
   ): Promise<void> {
-    lineColumn = base1To0(lineColumn);
+    lineColumn = {
+      columnNumber: lineColumn.columnNumber - 1,
+      lineNumber: lineColumn.lineNumber - 1,
+    };
 
     const previous = this.hasSetOnLocationByRegexp(urlRegex, lineColumn);
     if (previous) {

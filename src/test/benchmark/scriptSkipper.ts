@@ -4,7 +4,7 @@
 
 import { IBenchmarkApi } from '@c4312/matcha';
 import { ScriptSkipper } from '../../adapter/scriptSkipper/implementation';
-import { Source } from '../../adapter/sources';
+import { Source } from '../../adapter/source';
 import Connection from '../../cdp/connection';
 import { NullTransport } from '../../cdp/nullTransport';
 import { Logger } from '../../common/logging/logger';

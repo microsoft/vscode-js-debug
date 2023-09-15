@@ -24,6 +24,7 @@ const pipelineAsync = util.promisify(stream.pipeline);
 
 const dirname = 'js-debug';
 const sources = ['src/**/*.{ts,tsx}'];
+const externalModules = ['@vscode/dwarf-debugging'];
 const allPackages = [];
 
 const srcDir = 'src';
@@ -232,7 +233,7 @@ async function compileTs({
         resolveExtensions: isInVsCode
           ? ['.extensionOnly.ts', ...resolveDefaultExts]
           : resolveDefaultExts,
-        external: isInVsCode ? ['vscode'] : [],
+        external: isInVsCode ? ['vscode', ...externalModules] : externalModules,
         sourcemap: !!sourcemap,
         sourcesContent: false,
         packages: nodePackages,

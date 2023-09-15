@@ -15,7 +15,7 @@ import { ProtocolError } from '../dap/protocolError';
 import { wrapBreakCondition } from './breakpoints/conditions/expression';
 import { IEvaluator, PreparedCallFrameExpr } from './evaluator';
 import { IScriptSkipper } from './scriptSkipper/scriptSkipper';
-import { SourceContainer } from './sources';
+import { SourceContainer } from './sourceContainer';
 
 export interface IExceptionPauseService {
   readonly launchBlocker: Promise<void>;

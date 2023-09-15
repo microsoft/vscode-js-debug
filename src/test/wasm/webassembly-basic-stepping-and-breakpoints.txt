@@ -10,7 +10,7 @@ stopped event{
     reason : step
     threadId : <number>
 }
-Window.$fac @ localhost꞉8001/wasm/hello.wasm:3:1
+Window.$fac @ localhost꞉8001/wasm/hello.wat:3:1
 <anonymous> @ ${workspaceFolder}/web/wasm/hello.html:14:19
 ----Promise.then----
 <anonymous> @ ${workspaceFolder}/web/wasm/hello.html:12:59
@@ -38,7 +38,7 @@ breakpoint stopped event{
     reason : breakpoint
     threadId : <number>
 }
-Window.$fac @ localhost꞉8001/wasm/hello.wasm:10:1
+Window.$fac @ localhost꞉8001/wasm/hello.wat:10:1
 <anonymous> @ ${workspaceFolder}/web/wasm/hello.html:14:19
 ----Promise.then----
 <anonymous> @ ${workspaceFolder}/web/wasm/hello.html:12:59

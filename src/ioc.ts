@@ -46,8 +46,13 @@ import { StatefulResourceProvider } from './adapter/resourceProvider/statefulRes
 import { ScriptSkipper } from './adapter/scriptSkipper/implementation';
 import { IScriptSkipper } from './adapter/scriptSkipper/scriptSkipper';
 import { SmartStepper } from './adapter/smartStepping';
-import { SourceContainer } from './adapter/sources';
+import { SourceContainer } from './adapter/sourceContainer';
 import { IVueFileMapper, VueFileMapper } from './adapter/vueFileMapper';
+import {
+  IWasmSymbolProvider,
+  StubWasmSymbolProvider,
+  WasmSymbolProvider,
+} from './adapter/wasmSymbolProvider';
 import Cdp from './cdp/api';
 import { ICdpApi } from './cdp/connection';
 import { ObservableMap } from './common/datastructure/observableMap';
@@ -56,7 +61,7 @@ import { OutFiles, VueComponentPaths } from './common/fileGlobList';
 import { IFsUtils, LocalAndRemoteFsUtils, LocalFsUtils } from './common/fsUtils';
 import { ILogger } from './common/logging';
 import { Logger } from './common/logging/logger';
-import { createMutableLaunchConfig, MutableLaunchConfig } from './common/mutableLaunchConfig';
+import { MutableLaunchConfig, createMutableLaunchConfig } from './common/mutableLaunchConfig';
 import { IRenameProvider, RenameProvider } from './common/sourceMaps/renameProvider';
 import {
   CachingSourceMapFactory,
@@ -204,6 +209,20 @@ export const createTargetContainer = (
     .to(CdpProxyProvider)
     .inSingletonScope()
     .onActivation(trackDispose);
+
+  try {
+    // todo: temporarily ignore import errors until the module is published
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    //@ts-ignore
+    const dwarf = require('@vscode/dwarf-debugging');
+    container
+      .bind(IWasmSymbolProvider)
+      .toDynamicValue(ctx => new WasmSymbolProvider(dwarf.spawn, cdp, ctx.container.get(ILogger)))
+      .inSingletonScope()
+      .onActivation(trackDispose);
+  } catch {
+    container.bind(IWasmSymbolProvider).to(StubWasmSymbolProvider).inSingletonScope();
+  }
 
   return container;
 };

@@ -11,7 +11,7 @@ import Dap from '../dap/api';
 import { asyncScopesNotAvailable } from '../dap/errors';
 import { ProtocolError } from '../dap/protocolError';
 import { StackFrameStepOverReason, shouldStepOverStackFrame } from './smartStepping';
-import { IPreferredUiLocation } from './sources';
+import { IPreferredUiLocation } from './sourceContainer';
 import { getToStringIfCustom } from './templates/getStringyProps';
 import { RawLocation, Thread } from './threads';
 import { IExtraProperty, IScopeRef, IVariableContainer } from './variableStore';

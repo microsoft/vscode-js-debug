@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { SourceMapTimeouts } from './adapter/sources';
+import { SourceMapTimeouts } from './adapter/sourceContainer';
 import { DebugType } from './common/contributionUtils';
 import { assertNever, filterValues } from './common/objUtils';
 import Dap from './dap/api';

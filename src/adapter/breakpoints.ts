@@ -5,7 +5,7 @@
 import { inject, injectable } from 'inversify';
 import Cdp from '../cdp/api';
 import { ILogger, LogTag } from '../common/logging';
-import { bisectArray, flatten } from '../common/objUtils';
+import { bisectArrayAsync, flatten } from '../common/objUtils';
 import { IPosition } from '../common/positions';
 import { delay } from '../common/promiseUtil';
 import { SourceMap } from '../common/sourceMaps/sourceMap';
@@ -25,15 +25,8 @@ import { NeverResolvedBreakpoint } from './breakpoints/neverResolvedBreakpoint';
 import { PatternEntryBreakpoint } from './breakpoints/patternEntrypointBreakpoint';
 import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
 import { DiagnosticToolSuggester } from './diagnosticToolSuggester';
-import {
-  base0To1,
-  base1To0,
-  ISourceWithMap,
-  isSourceWithMap,
-  IUiLocation,
-  Source,
-  SourceContainer,
-} from './sources';
+import { ISourceWithMap, IUiLocation, Source, base0To1, base1To0, isSourceWithMap } from './source';
+import { SourceContainer } from './sourceContainer';
 import { ScriptWithSourceMapHandler, Thread } from './threads';
 
 /**
@@ -226,23 +219,30 @@ export class BreakpointManager {
    * location in the `toSource`, using the provided source map. Breakpoints
    * are don't have a corresponding location won't be moved.
    */
-  public moveBreakpoints(fromSource: Source, sourceMap: SourceMap, toSource: Source) {
+  public async moveBreakpoints(
+    thread: Thread,
+    fromSource: Source,
+    sourceMap: SourceMap,
+    toSource: Source,
+  ) {
     const tryUpdateLocations = (breakpoints: UserDefinedBreakpoint[]) =>
-      bisectArray(breakpoints, bp => {
-        const gen = this._sourceContainer.getOptiminalOriginalPosition(
+      bisectArrayAsync(breakpoints, async bp => {
+        const gen = await this._sourceContainer.getOptiminalOriginalPosition(
           sourceMap,
           bp.originalPosition,
         );
-        if (gen.column === null || gen.line === null) {
+        if (!gen) {
           return false;
         }
 
+        const base1 = gen.position.base1;
         bp.updateSourceLocation(
+          thread,
           {
             path: toSource.absolutePath,
             sourceReference: toSource.sourceReference,
           },
-          { lineNumber: gen.line, columnNumber: gen.column + 1, source: toSource },
+          { lineNumber: base1.lineNumber, columnNumber: base1.columnNumber, source: toSource },
         );
         return false;
       });
@@ -251,14 +251,14 @@ export class BreakpointManager {
     const toPath = toSource.absolutePath;
     const byPath = fromPath ? this._byPath.get(fromPath) : undefined;
     if (byPath && toPath) {
-      const [remaining, moved] = tryUpdateLocations(byPath);
+      const [remaining, moved] = await tryUpdateLocations(byPath);
       this._byPath.set(fromPath, remaining);
       this._byPath.set(toPath, moved);
     }
 
     const byRef = this._byRef.get(fromSource.sourceReference);
     if (byRef) {
-      const [remaining, moved] = tryUpdateLocations(byRef);
+      const [remaining, moved] = await tryUpdateLocations(byRef);
       this._byRef.set(fromSource.sourceReference, remaining);
       this._byRef.set(toSource.sourceReference, moved);
     }
@@ -317,18 +317,19 @@ export class BreakpointManager {
     end: IPosition,
   ) {
     const start1 = start.base1;
-    const startLocations = this._sourceContainer.currentSiblingUiLocations({
-      source,
-      lineNumber: start1.lineNumber,
-      columnNumber: start1.columnNumber,
-    });
-
     const end1 = end.base1;
-    const endLocations = this._sourceContainer.currentSiblingUiLocations({
-      source,
-      lineNumber: end1.lineNumber,
-      columnNumber: end1.columnNumber,
-    });
+    const [startLocations, endLocations] = await Promise.all([
+      this._sourceContainer.currentSiblingUiLocations({
+        source,
+        lineNumber: start1.lineNumber,
+        columnNumber: start1.columnNumber,
+      }),
+      this._sourceContainer.currentSiblingUiLocations({
+        source,
+        lineNumber: end1.lineNumber,
+        columnNumber: end1.columnNumber,
+      }),
+    ]);
 
     // As far as I know the number of start and end locations should be the
     // same, log if this is not the case.
@@ -343,7 +344,7 @@ export class BreakpointManager {
     // For each viable location, attempt to identify its script ID and then ask
     // Chrome for the breakpoints in the given range. For almost all scripts
     // we'll only every find one viable location with a script.
-    const todo: Promise<void>[] = [];
+    const todo: Promise<unknown>[] = [];
     const result: IPossibleBreakLocation[] = [];
     for (let i = 0; i < startLocations.length; i++) {
       const start = startLocations[i];
@@ -383,15 +384,17 @@ export class BreakpointManager {
             // Discard any that map outside of the source we're interested in,
             // which is possible (e.g. if a section of code from one source is
             // inlined amongst the range we request).
-            for (const breakLocation of r.locations) {
-              const { lineNumber, columnNumber = 0 } = breakLocation;
-              const uiLocations = this._sourceContainer.currentSiblingUiLocations({
-                source: lsrc,
-                ...lsrc.offsetScriptToSource(base0To1({ lineNumber, columnNumber })),
-              });
+            return Promise.all(
+              r.locations.map(async breakLocation => {
+                const { lineNumber, columnNumber = 0 } = breakLocation;
+                const uiLocations = await this._sourceContainer.currentSiblingUiLocations({
+                  source: lsrc,
+                  ...lsrc.offsetScriptToSource(base0To1({ lineNumber, columnNumber })),
+                });
 
-              result.push({ breakLocation, uiLocations });
-            }
+                result.push({ breakLocation, uiLocations });
+              }),
+            );
           }),
       );
     }
@@ -671,7 +674,7 @@ export class BreakpointManager {
   }
 
   /**
-   * Rreturns whether any of the given breakpoints are an entrypoint breakpoint.
+   * Returns whether any of the given breakpoints are an entrypoint breakpoint.
    */
   public isEntrypointBreak(
     hitBreakpointIds: ReadonlyArray<Cdp.Debugger.BreakpointId>,

@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import { inject, injectable } from 'inversify';
-import { ISourceWithMap, Source, SourceFromMap } from '../../adapter/sources';
+import { ISourceWithMap, Source, SourceFromMap, isSourceWithSourceMap } from '../../adapter/source';
 import { StackFrame } from '../../adapter/stackTrace';
 import { AnyLaunchConfiguration } from '../../configuration';
 import { Base01Position, IPosition } from '../positions';
@@ -76,6 +76,10 @@ export class RenameProvider implements IRenameProvider {
     const original: ISourceWithMap | undefined = source.compiledToSourceUrl.keys().next().value;
     if (!original) {
       throw new Error('unreachable');
+    }
+
+    if (!isSourceWithSourceMap(original)) {
+      return RenameMapping.None;
     }
 
     const cached = this.renames.get(original.url);
