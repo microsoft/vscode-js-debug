@@ -416,7 +416,7 @@ export class SourceContainer {
     );
 
     if (!map) return [];
-    const sourceMapUiLocation = this._sourceMappedUiLocation(uiLocation, map);
+    const sourceMapUiLocation = await this._sourceMappedUiLocation(uiLocation, map);
     if (!isUiLocation(sourceMapUiLocation)) return [];
 
     const r = await this.getSourceMapUiLocations(sourceMapUiLocation);
