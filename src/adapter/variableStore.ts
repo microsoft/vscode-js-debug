@@ -7,6 +7,7 @@ import { generate } from 'astring';
 import { inject, injectable } from 'inversify';
 import Cdp from '../cdp/api';
 import { ICdpApi } from '../cdp/connection';
+import { groupBy, iteratorFirst } from '../common/arrayUtils';
 import { flatten, isInstanceOf, once } from '../common/objUtils';
 import { parseSource, statementsToFunction } from '../common/sourceCodeManipulations';
 import { IRenameProvider } from '../common/sourceMaps/renameProvider';
@@ -18,8 +19,9 @@ import { ProtocolError } from '../dap/protocolError';
 import * as objectPreview from './objectPreview';
 import { MapPreview, SetPreview } from './objectPreview/betterTypes';
 import { PreviewContextType } from './objectPreview/contexts';
+import { SourceFromMap, isSourceWithWasm } from './source';
 import { StackFrame, StackTrace } from './stackTrace';
-import { getSourceSuffix, RemoteException, RemoteObjectId } from './templates';
+import { RemoteException, RemoteObjectId, getSourceSuffix } from './templates';
 import { getArrayProperties } from './templates/getArrayProperties';
 import { getArraySlots } from './templates/getArraySlots';
 import {
@@ -30,6 +32,7 @@ import {
 import { invokeGetter } from './templates/invokeGetter';
 import { readMemory } from './templates/readMemory';
 import { writeMemory } from './templates/writeMemory';
+import { IWasmVariable, IWasmVariableEvaluation, WasmScope } from './wasmSymbolProvider';
 
 const getVariableId = (() => {
   let last = 0;
@@ -160,7 +163,7 @@ export interface IStoreSettings {
   customPropertiesGenerator?: string;
 }
 
-type VariableCtor<TRestArgs extends unknown[] = unknown[], R extends Variable = Variable> = {
+type VariableCtor<TRestArgs extends unknown[] = unknown[], R extends IVariable = IVariable> = {
   new (context: VariableContext, ...rest: TRestArgs): R;
 };
 
@@ -177,6 +180,12 @@ interface IContextSettings {
   descriptionSymbols?: Promise<Cdp.Runtime.CallArgument>;
 }
 
+const wasmScopeNames: { [K in WasmScope]: { name: string; sortOrder: number } } = {
+  [WasmScope.Parameter]: { name: l10n.t('Native Parameters'), sortOrder: -10 },
+  [WasmScope.Local]: { name: l10n.t('Native Locals'), sortOrder: -9 },
+  [WasmScope.Global]: { name: l10n.t('Native Globals'), sortOrder: -8 },
+};
+
 class VariableContext {
   /** When in a Variable, the name that this variable is accessible as from its parent scope or object */
   public readonly name: string;
@@ -191,11 +200,11 @@ class VariableContext {
 
   constructor(
     public readonly cdp: Cdp.Api,
-    public readonly parent: undefined | Variable | Scope,
+    public readonly parent: undefined | IVariable | Scope,
     ctx: IContextInit,
     private readonly vars: VariablesMap,
     public readonly locationProvider: IVariableStoreLocationProvider,
-    private readonly currentRef: undefined | (() => Variable | Scope),
+    private readonly currentRef: undefined | (() => IVariable | Scope),
     private readonly settings: IContextSettings,
   ) {
     this.name = ctx.name;
@@ -269,6 +278,21 @@ class VariableContext {
     }
 
     return this.createVariable(Variable, ctx, object);
+  }
+
+  public createVariableForWasm(variables: IWasmVariable[], scopeRef: IScopeRef) {
+    const groups = groupBy(variables, v => v.scope);
+    const groupVars: WasmScopeVariable[] = [];
+    for (const [key, display] of Object.entries(wasmScopeNames)) {
+      const vars = groups.get(key as WasmScope);
+      if (vars) {
+        groupVars.push(
+          this.createVariable(WasmScopeVariable, display, key as WasmScope, vars, scopeRef),
+        );
+      }
+    }
+
+    return groupVars;
   }
 
   /**
@@ -546,12 +570,12 @@ class Variable implements IVariable {
    */
   public get accessor(): string {
     const { parent, name } = this.context;
-    if (!parent || parent instanceof Scope) {
-      return this.context.name;
-    }
-
     if (parent instanceof AccessorVariable) {
       return parent.accessor;
+    }
+
+    if (!(parent instanceof Variable)) {
+      return this.context.name;
     }
 
     // Maps and sets:
@@ -1023,6 +1047,131 @@ class GetterVariable extends AccessorVariable {
   }
 }
 
+class WasmVariable implements IVariable, IMemoryReadable {
+  public static presentationHint: Dap.VariablePresentationHint = {
+    attributes: ['readOnly'],
+  };
+
+  /** @inheritdoc */
+  public readonly id = getVariableId();
+
+  /** @inheritdoc */
+  public readonly sortOrder = 0;
+
+  constructor(
+    private readonly context: VariableContext,
+    private readonly variable: IWasmVariableEvaluation,
+    private readonly scopeRef: IScopeRef,
+  ) {}
+
+  public toDap(): Promise<Dap.Variable> {
+    return Promise.resolve({
+      name: this.context.name,
+      value: this.variable.description || '',
+      variablesReference: this.variable.getChildren ? this.id : 0,
+      memoryReference: this.variable.linearMemoryAddress ? String(this.id) : undefined,
+      presentationHint: this.context.presentationHint,
+    });
+  }
+
+  public async getChildren(): Promise<IVariable[]> {
+    const children = (await this.variable.getChildren?.()) || [];
+    return children.map(c =>
+      this.context.createVariable(
+        WasmVariable,
+        { name: c.name, presentationHint: WasmVariable.presentationHint },
+        c.value,
+        this.scopeRef,
+      ),
+    );
+  }
+
+  /** @inheritdoc */
+  public async readMemory(offset: number, count: number): Promise<Buffer | undefined> {
+    const addr = this.variable.linearMemoryAddress;
+    if (addr === undefined) {
+      return undefined;
+    }
+
+    const result = await this.context.cdp.Debugger.evaluateOnCallFrame({
+      callFrameId: this.scopeRef.callFrameId,
+      expression: `(${readMemory.source}).call(memories[0].buffer, ${
+        +addr + offset
+      }, ${+count}) ${getSourceSuffix()}`,
+      returnByValue: true,
+    });
+
+    if (!result) {
+      throw new RemoteException({
+        exceptionId: 0,
+        text: 'No response from CDP',
+        lineNumber: 0,
+        columnNumber: 0,
+      });
+    }
+
+    return Buffer.from(result.result.value, 'hex');
+  }
+
+  /** @inheritdoc */
+  public async writeMemory(offset: number, memory: Buffer): Promise<number> {
+    const addr = this.variable.linearMemoryAddress;
+    if (addr === undefined) {
+      return 0;
+    }
+
+    const result = await this.context.cdp.Debugger.evaluateOnCallFrame({
+      callFrameId: this.scopeRef.callFrameId,
+      expression: `(${writeMemory.source}).call(memories[0].buffer, ${
+        +addr + offset
+      }, ${JSON.stringify(memory.toString('hex'))}) ${getSourceSuffix()}`,
+      returnByValue: true,
+    });
+
+    return result?.result.value || 0;
+  }
+}
+
+class WasmScopeVariable implements IVariable {
+  /** @inheritdoc */
+  public readonly id = getVariableId();
+
+  /** @inheritdoc */
+  public readonly sortOrder = wasmScopeNames[this.kind].sortOrder;
+
+  constructor(
+    private readonly context: VariableContext,
+    public readonly kind: WasmScope,
+    private readonly variables: readonly IWasmVariable[],
+    private readonly scopeRef: IScopeRef,
+  ) {}
+
+  toDap(): Promise<Dap.Variable> {
+    return Promise.resolve({
+      name: wasmScopeNames[this.kind].name,
+      value: '',
+      variablesReference: this.id,
+    });
+  }
+
+  getChildren(): Promise<IVariable[]> {
+    return Promise.all(
+      this.variables.map(async v => {
+        const evaluated = await v.evaluate();
+        return this.context.createVariable(
+          WasmVariable,
+          {
+            name: v.name,
+            presentationHint: WasmVariable.presentationHint,
+          },
+          evaluated,
+          this.scopeRef,
+        );
+      }),
+    );
+  }
+}
+
 class Scope implements IVariableContainer {
   /** @inheritdoc */
   public readonly id = getVariableId();
@@ -1035,7 +1184,7 @@ class Scope implements IVariableContainer {
     private readonly renameProvider: IRenameProvider,
   ) {}
 
-  public async getChildren(_params: Dap.VariablesParams): Promise<Variable[]> {
+  public async getChildren(_params: Dap.VariablesParams): Promise<IVariable[]> {
     const variables = await this.context.createObjectPropertyVars(this.remoteObject);
     const existing = new Set(variables.map(v => v.name));
     for (const extraProperty of this.extraProperties) {
@@ -1043,6 +1192,23 @@ class Scope implements IVariableContainer {
         variables.push(
           this.context.createVariableByType({ name: extraProperty.name }, extraProperty.value),
         );
+      }
+    }
+
+    // special case: if the stack frame is in a wasm that had a symbolicated
+    // source at this location, use its symbol mapping instead of native symbols.
+    if (this.ref.scopeNumber === 0) {
+      const location = await this.ref.stackFrame.uiLocation();
+      if (location?.source instanceof SourceFromMap) {
+        const c = iteratorFirst(location.source.compiledToSourceUrl.keys());
+        if (isSourceWithWasm(c) && c.sourceMap.value.settledValue?.getVariablesInScope) {
+          const wasmVars = await c.sourceMap.value.settledValue.getVariablesInScope(
+            this.ref.callFrameId,
+            this.ref.stackFrame.rawPosition,
+          );
+          const resolved: IVariable[] = this.context.createVariableForWasm(wasmVars, this.ref);
+          return resolved.concat(variables);
+        }
       }
     }
 

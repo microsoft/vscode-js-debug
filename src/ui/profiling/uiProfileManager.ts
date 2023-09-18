@@ -7,7 +7,8 @@ import { inject, injectable, multiInject } from 'inversify';
 import { homedir } from 'os';
 import { basename, join } from 'path';
 import * as vscode from 'vscode';
-import { getDefaultProfileName, ProfilerFactory } from '../../adapter/profiling';
+import { ProfilerFactory, getDefaultProfileName } from '../../adapter/profiling';
+import { iteratorFirst } from '../../common/arrayUtils';
 import { Commands, ContextKey, setContextKey } from '../../common/contributionUtils';
 import { DisposableList, IDisposable } from '../../common/disposable';
 import { moveFile } from '../../common/fsUtils';
@@ -260,8 +261,8 @@ export class UiProfileManager implements IDisposable {
 
     setContextKey(vscode.commands, ContextKey.IsProfiling, true);
 
-    if (this.activeSessions.size === 1) {
-      const session: UiProfileSession = this.activeSessions.values().next().value;
+    const session = iteratorFirst(this.activeSessions.values());
+    if (session && this.activeSessions.size === 1) {
       this.statusBarItem.text = session.status
         ? l10n.t('{0} Click to Stop Profiling ({1})', '$(loading~spin)', session.status)
         : l10n.t('{0} Click to Stop Profiling', '$(loading~spin)');

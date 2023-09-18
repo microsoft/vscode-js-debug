@@ -12,16 +12,11 @@ import { IDisposable } from '../common/disposable';
 import { ILogger, LogTag } from '../common/logging';
 import { once } from '../common/objUtils';
 import { Base0Position, IPosition } from '../common/positions';
-import { StackFrame } from './stackTrace';
 import { getSourceSuffix } from './templates';
-import { Thread } from './threads';
 
 export const IWasmSymbolProvider = Symbol('IWasmSymbolProvider');
 
 export interface IWasmSymbolProvider {
-  /** Sets the thread, required to interact with the stacktrace state */
-  setThread(thread: Thread): void;
-
   /** Loads WebAssembly symbols for the given wasm script, returning symbol information if it exists. */
   loadWasmSymbols(script: Cdp.Debugger.ScriptParsedEvent): Promise<IWasmSymbols>;
 }
@@ -29,10 +24,6 @@ export interface IWasmSymbolProvider {
 @injectable()
 export class StubWasmSymbolProvider implements IWasmSymbolProvider {
   constructor(@inject(ICdpApi) private readonly cdp: Cdp.Api) {}
-
-  setThread(): void {
-    // no-op
-  }
 
   public loadWasmSymbols(script: Cdp.Debugger.ScriptParsedEvent): Promise<IWasmSymbols> {
     return Promise.resolve(new DecompiledWasmSymbols(script, this.cdp, []));
@@ -42,18 +33,12 @@ export class StubWasmSymbolProvider implements IWasmSymbolProvider {
 @injectable()
 export class WasmSymbolProvider implements IWasmSymbolProvider, IDisposable {
   private worker?: IWasmWorker;
-  private thread!: Thread;
 
   constructor(
     private readonly spawnDwarf: typeof spawn,
     @inject(ICdpApi) private readonly cdp: Cdp.Api,
     @inject(ILogger) private readonly logger: ILogger,
   ) {}
-
-  /** @inheritdoc */
-  public setThread(thread: Thread) {
-    this.thread = thread;
-  }
 
   public async loadWasmSymbols(script: Cdp.Debugger.ScriptParsedEvent): Promise<IWasmSymbols> {
     const rpc = await this.getWorker();
@@ -108,7 +93,7 @@ export class WasmSymbolProvider implements IWasmSymbolProvider, IDisposable {
         this.loadWasmValue(
           `[].slice.call(new Uint8Array(memories[0].buffer, ${+offset}, ${+length}))`,
           stopId,
-        ),
+        ).then((v: number[]) => new Uint8Array(v).buffer),
     });
 
     this.worker.rpc.sendMessage('hello', [], false);
@@ -117,12 +102,7 @@ export class WasmSymbolProvider implements IWasmSymbolProvider, IDisposable {
   }
 
   private async loadWasmValue(expression: string, stopId: unknown) {
-    const frame = this.stopIdToFrame(stopId as bigint);
-    const callFrameId = frame.callFrameId();
-    if (!callFrameId) {
-      throw new Error('variables not available on this frame');
-    }
-
+    const callFrameId = stopId as string;
     const result = await this.cdp.Debugger.evaluateOnCallFrame({
       callFrameId,
       expression: expression + getSourceSuffix(),
@@ -137,15 +117,27 @@ export class WasmSymbolProvider implements IWasmSymbolProvider, IDisposable {
 
     return result.result.value;
   }
+}
 
-  private stopIdToFrame(stopId: bigint): StackFrame {
-    const frame = this.thread.pausedDetails()?.stackTrace.frames[Number(stopId)];
-    if (!frame || !('callFrameId' in frame)) {
-      throw new Error('frame not found');
-    }
+export interface IWasmVariableEvaluation {
+  type: string;
+  description: string | undefined;
+  linearMemoryAddress?: number;
+  linearMemorySize?: number;
+  getChildren?: () => Promise<{ name: string; value: IWasmVariableEvaluation }[]>;
+}
 
-    return frame;
-  }
+export const enum WasmScope {
+  Local = 'LOCAL',
+  Global = 'GLOBAL',
+  Parameter = 'PARAMETER',
+}
+
+export interface IWasmVariable {
+  scope: WasmScope;
+  name: string;
+  type: string;
+  evaluate: () => Promise<IWasmVariableEvaluation>;
 }
 
 export interface IWasmSymbols extends IDisposable {
@@ -168,7 +160,7 @@ export interface IWasmSymbols extends IDisposable {
   /**
    * Gets the source position for the given position in compiled code.
    *
-   * Following CDP semantics, it assumes the position is line 0 with the column
+   * Following CDP semantics, it returns a position on line 0 with the column
    * offset being the byte offset in webassembly.
    */
   originalPositionFor(
@@ -182,6 +174,15 @@ export interface IWasmSymbols extends IDisposable {
    * offset being the byte offset in webassembly.
    */
   compiledPositionFor(sourceUrl: string, sourcePosition: IPosition): Promise<IPosition | undefined>;
+
+  /**
+   * Gets variables in the program scope at the given position. If not
+   * implemented, the variable store should use its default behavior.
+   *
+   * Following CDP semantics, it assumes the position is line 0 with the column
+   * offset being the byte offset in webassembly.
+   */
+  getVariablesInScope?(callFrameId: string, position: IPosition): Promise<IWasmVariable[]>;
 }
 
 class DecompiledWasmSymbols implements IWasmSymbols {
@@ -360,5 +361,68 @@ class WasmSymbols extends DecompiledWasmSymbols {
   /** @inheritdoc */
   public override dispose() {
     return this.rpc.sendMessage('removeRawModule', this.moduleId);
+  }
+
+  /** @inheritdoc */
+  public async getVariablesInScope(
+    callFrameId: string,
+    position: IPosition,
+  ): Promise<IWasmVariable[]> {
+    const location = {
+      codeOffset: position.base0.columnNumber - this.codeOffset,
+      inlineFrameIndex: 0,
+      rawModuleId: this.moduleId,
+    };
+
+    const variables = await this.rpc.sendMessage('listVariablesInScope', location);
+
+    return variables.map(
+      (v): IWasmVariable => ({
+        name: v.name,
+        scope: v.scope as WasmScope,
+        type: v.type,
+        evaluate: async () => {
+          const result = await this.rpc.sendMessage('evaluate', v.name, location, callFrameId);
+          return result ? new WasmVariableEvaluation(result, this.rpc) : nullType;
+        },
+      }),
+    );
+  }
+}
+
+const nullType: IWasmVariableEvaluation = {
+  type: 'null',
+  description: 'no properties',
+};
+
+class WasmVariableEvaluation implements IWasmVariableEvaluation {
+  public readonly type: string;
+  public readonly description: string | undefined;
+  public readonly linearMemoryAddress: number | undefined;
+  public readonly linearMemorySize: number | undefined;
+
+  public readonly getChildren?: () => Promise<{ name: string; value: IWasmVariableEvaluation }[]>;
+
+  constructor(evaluation: NonNullable<MethodReturn<'evaluate'>>, rpc: IWasmWorker['rpc']) {
+    this.type = evaluation.type;
+    this.description = evaluation.description;
+    this.linearMemoryAddress = evaluation.linearMemoryAddress;
+    this.linearMemorySize = evaluation.linearMemoryAddress;
+
+    if (evaluation.objectId && evaluation.hasChildren) {
+      const oid = evaluation.objectId;
+      this.getChildren = once(() => this._getChildren(rpc, oid));
+    }
+  }
+
+  private async _getChildren(
+    rpc: IWasmWorker['rpc'],
+    objectId: string,
+  ): Promise<{ name: string; value: IWasmVariableEvaluation }[]> {
+    const vars = await rpc.sendMessage('getProperties', objectId);
+    return vars.map(v => ({
+      name: v.name,
+      value: new WasmVariableEvaluation(v.value, rpc),
+    }));
   }
 }
