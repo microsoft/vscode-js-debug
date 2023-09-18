@@ -306,6 +306,7 @@ class DecompiledWasmSymbols implements IWasmSymbols {
 }
 
 class WasmSymbols extends DecompiledWasmSymbols {
+  private readonly mappedLines = new Map</* source URL */ string, Promise<Uint32Array>>();
   private get codeOffset() {
     return this.event.codeOffset || 0;
   }
@@ -348,10 +349,22 @@ class WasmSymbols extends DecompiledWasmSymbols {
     const { lineNumber, columnNumber } = sourcePosition.base0;
     const locations = await this.rpc.sendMessage('sourceLocationToRawLocation', {
       lineNumber,
-      columnNumber: columnNumber === 0 ? -1 : 0,
+      columnNumber: columnNumber === 0 ? -1 : columnNumber,
       rawModuleId: this.moduleId,
       sourceFileURL: sourceUrl,
     });
+
+    // special case: unlike sourcemaps, if we resolve a location on a line
+    // with nothing on it, sourceLocationToRawLocation returns undefined.
+    // If we think this might have happened, verify it and then get
+    // the next mapped line and use that location.
+    if (columnNumber === 0 && locations.length === 0) {
+      const mappedLines = await this.getMappedLines(sourceUrl);
+      const next = mappedLines.find(l => l > lineNumber);
+      if (!mappedLines.includes(lineNumber) && next /* always > 0 */) {
+        return this.compiledPositionFor(sourceUrl, new Base0Position(next, 0));
+      }
+    }
 
     // todo@connor4312: will there ever be a location in another module?
     const location = locations.find(l => l.rawModuleId === this.moduleId);
@@ -387,6 +400,25 @@ class WasmSymbols extends DecompiledWasmSymbols {
         },
       }),
     );
+  }
+
+  private getMappedLines(sourceURL: string) {
+    const prev = this.mappedLines.get(sourceURL);
+    if (prev) {
+      return prev;
+    }
+
+    const value = (async () => {
+      try {
+        const lines = await this.rpc.sendMessage('getMappedLines', this.moduleId, sourceURL);
+        return new Uint32Array(lines?.sort((a, b) => a - b) || []);
+      } catch {
+        return new Uint32Array();
+      }
+    })();
+
+    this.mappedLines.set(sourceURL, value);
+    return value;
   }
 }
 
