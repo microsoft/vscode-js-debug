@@ -4,10 +4,11 @@
 
 import { promises as dns } from 'dns';
 import * as path from 'path';
-import { parse as urlParse, URL } from 'url';
+import { URL, parse as urlParse } from 'url';
 import Cdp from '../cdp/api';
 import { AnyChromiumConfiguration } from '../configuration';
 import { BrowserTargetType } from '../targets/browser/browserTargets';
+import { iteratorFirst } from './arrayUtils';
 import { MapUsingProjection } from './datastructure/mapUsingProjection';
 import { IFsUtils } from './fsUtils';
 import { memoize } from './objUtils';
@@ -362,7 +363,7 @@ const createReGroup = (patterns: ReadonlySet<string>): string => {
     case 0:
       return '';
     case 1:
-      return patterns.values().next().value;
+      return iteratorFirst(patterns.values()) as string;
     default:
       // Prefer the more compacy [aA] form if we're only matching single
       // characters, produce a non-capturing group otherwise.
