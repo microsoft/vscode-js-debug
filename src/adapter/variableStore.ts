@@ -16,6 +16,7 @@ import Dap from '../dap/api';
 import { IDapApi } from '../dap/connection';
 import * as errors from '../dap/errors';
 import { ProtocolError } from '../dap/protocolError';
+import { IWasmVariable, IWasmVariableEvaluation, WasmScope } from './dwarf/wasmSymbolProvider';
 import * as objectPreview from './objectPreview';
 import { MapPreview, SetPreview } from './objectPreview/betterTypes';
 import { PreviewContextType } from './objectPreview/contexts';
@@ -32,7 +33,6 @@ import {
 import { invokeGetter } from './templates/invokeGetter';
 import { readMemory } from './templates/readMemory';
 import { writeMemory } from './templates/writeMemory';
-import { IWasmVariable, IWasmVariableEvaluation, WasmScope } from './wasmSymbolProvider';
 
 const getVariableId = (() => {
   let last = 0;

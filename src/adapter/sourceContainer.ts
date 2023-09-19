@@ -23,6 +23,7 @@ import { sourceMapParseFailed } from '../dap/errors';
 import { IInitializeParams } from '../ioc-extras';
 import { IStatistics } from '../telemetry/classification';
 import { extractErrorDetails } from '../telemetry/dapTelemetryReporter';
+import { IWasmSymbolProvider, IWasmSymbols } from './dwarf/wasmSymbolProvider';
 import { IResourceProvider } from './resourceProvider';
 import { ScriptSkipper } from './scriptSkipper/implementation';
 import { IScriptSkipper } from './scriptSkipper/scriptSkipper';
@@ -43,7 +44,6 @@ import {
   uiToRawOffset,
 } from './source';
 import { Script } from './threads';
-import { IWasmSymbolProvider, IWasmSymbols } from './wasmSymbolProvider';
 
 function isUiLocation(loc: unknown): loc is IUiLocation {
   return (

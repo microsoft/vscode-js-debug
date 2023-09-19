@@ -2,17 +2,18 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import type { IWasmWorker, MethodReturn, spawn } from '@vscode/dwarf-debugging';
+import type { IWasmWorker, MethodReturn } from '@vscode/dwarf-debugging';
 import { randomUUID } from 'crypto';
 import { inject, injectable } from 'inversify';
-import Cdp from '../cdp/api';
-import { ICdpApi } from '../cdp/connection';
-import { binarySearch } from '../common/arrayUtils';
-import { IDisposable } from '../common/disposable';
-import { ILogger, LogTag } from '../common/logging';
-import { once } from '../common/objUtils';
-import { Base0Position, IPosition } from '../common/positions';
-import { getSourceSuffix } from './templates';
+import Cdp from '../../cdp/api';
+import { ICdpApi } from '../../cdp/connection';
+import { binarySearch } from '../../common/arrayUtils';
+import { IDisposable } from '../../common/disposable';
+import { ILogger, LogTag } from '../../common/logging';
+import { once } from '../../common/objUtils';
+import { Base0Position, IPosition } from '../../common/positions';
+import { getSourceSuffix } from '../templates';
+import { IDwarfModuleProvider } from './dwarfModuleProvider';
 
 export const IWasmSymbolProvider = Symbol('IWasmSymbolProvider');
 
@@ -22,26 +23,28 @@ export interface IWasmSymbolProvider {
 }
 
 @injectable()
-export class StubWasmSymbolProvider implements IWasmSymbolProvider {
-  constructor(@inject(ICdpApi) private readonly cdp: Cdp.Api) {}
-
-  public loadWasmSymbols(script: Cdp.Debugger.ScriptParsedEvent): Promise<IWasmSymbols> {
-    return Promise.resolve(new DecompiledWasmSymbols(script, this.cdp, []));
-  }
-}
-
-@injectable()
 export class WasmSymbolProvider implements IWasmSymbolProvider, IDisposable {
-  private worker?: IWasmWorker;
+  /** Running worker, `null` signals that the dwarf module was not available */
+  private worker?: IWasmWorker | null;
+
+  private readonly doPrompt = once(() => this.dwarf.prompt());
 
   constructor(
-    private readonly spawnDwarf: typeof spawn,
+    @inject(IDwarfModuleProvider) private readonly dwarf: IDwarfModuleProvider,
     @inject(ICdpApi) private readonly cdp: Cdp.Api,
     @inject(ILogger) private readonly logger: ILogger,
   ) {}
 
   public async loadWasmSymbols(script: Cdp.Debugger.ScriptParsedEvent): Promise<IWasmSymbols> {
     const rpc = await this.getWorker();
+    if (!rpc) {
+      const syms = new DecompiledWasmSymbols(script, this.cdp, []);
+      // disassembly is a good signal for a prompt, since that means a user
+      // will have stepped into and be looking at webassembly code.
+      syms.onDidDisassemble = this.doPrompt;
+      return syms;
+    }
+
     const moduleId = randomUUID();
 
     const symbolsUrl = script.debugSymbols?.externalURL;
@@ -81,11 +84,17 @@ export class WasmSymbolProvider implements IWasmSymbolProvider, IDisposable {
   }
 
   private async getWorker() {
-    if (this.worker) {
-      return this.worker.rpc;
+    if (this.worker !== undefined) {
+      return this.worker?.rpc;
     }
 
-    this.worker = this.spawnDwarf({
+    const dwarf = await this.dwarf.load();
+    if (!dwarf) {
+      this.worker = null;
+      return undefined;
+    }
+
+    this.worker = dwarf.spawn({
       getWasmGlobal: (index, stopId) => this.loadWasmValue(`globals[${index}]`, stopId),
       getWasmLocal: (index, stopId) => this.loadWasmValue(`locals[${index}]`, stopId),
       getWasmOp: (index, stopId) => this.loadWasmValue(`stack[${index}]`, stopId),
@@ -192,6 +201,9 @@ class DecompiledWasmSymbols implements IWasmSymbols {
   /** @inheritdoc */
   public readonly files: readonly string[];
 
+  /** Called whenever disassembly is requested for a source/ */
+  public onDidDisassemble?: () => void;
+
   constructor(
     protected readonly event: Cdp.Debugger.ScriptParsedEvent,
     protected readonly cdp: Cdp.Api,
@@ -204,6 +216,7 @@ class DecompiledWasmSymbols implements IWasmSymbols {
   /** @inheritdoc */
   public async getDisassembly(): Promise<string> {
     const { lines } = await this.doDisassemble();
+    this.onDidDisassemble?.();
     return lines.join('\n');
   }
 
