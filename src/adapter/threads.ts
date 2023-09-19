@@ -10,7 +10,7 @@ import { EventEmitter } from '../common/events';
 import { HrTime } from '../common/hrnow';
 import { ILogger, LogTag } from '../common/logging';
 import { isInstanceOf, truthy } from '../common/objUtils';
-import { Base1Position } from '../common/positions';
+import { Base1Position, Range } from '../common/positions';
 import { IDeferred, delay, getDeferred } from '../common/promiseUtil';
 import { IRenameProvider } from '../common/sourceMaps/renameProvider';
 import * as sourceUtils from '../common/sourceUtils';
@@ -25,7 +25,7 @@ import { ProtocolError } from '../dap/protocolError';
 import { NodeWorkerTarget } from '../targets/node/nodeWorkerTarget';
 import { ITarget } from '../targets/targets';
 import { IShutdownParticipants } from '../ui/shutdownParticipants';
-import { BreakpointManager, EntryBreakpointMode, IPossibleBreakLocation } from './breakpoints';
+import { BreakpointManager, EntryBreakpointMode } from './breakpoints';
 import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
 import { ICompletions } from './completions';
 import { ExceptionMessage, IConsole, QueryObjectsMessage } from './console';
@@ -34,48 +34,16 @@ import { IEvaluator } from './evaluator';
 import { IExceptionPauseService } from './exceptionPauseService';
 import * as objectPreview from './objectPreview';
 import { PreviewContextType, getContextForType } from './objectPreview/contexts';
+import { ExpectedPauseReason, IPausedDetails, StepDirection } from './pause';
 import { SmartStepper } from './smartStepping';
 import { ISourceWithMap, IUiLocation, Source, base1To0 } from './source';
 import { IPreferredUiLocation, SourceContainer } from './sourceContainer';
-import { StackFrame, StackTrace } from './stackTrace';
+import { StackFrame, StackTrace, isStackFrameElement } from './stackTrace';
 import {
   serializeForClipboard,
   serializeForClipboardTmpl,
 } from './templates/serializeForClipboard';
 import { IVariableStoreLocationProvider, VariableStore } from './variableStore';
-
-export type PausedReason =
-  | 'step'
-  | 'breakpoint'
-  | 'exception'
-  | 'pause'
-  | 'entry'
-  | 'goto'
-  | 'function breakpoint'
-  | 'data breakpoint'
-  | 'frame_entry';
-
-export const enum StepDirection {
-  In,
-  Over,
-  Out,
-}
-
-export type ExpectedPauseReason =
-  | { reason: Exclude<PausedReason, 'step'>; description?: string }
-  | { reason: 'step'; description?: string; direction: StepDirection };
-
-export interface IPausedDetails {
-  thread: Thread;
-  reason: PausedReason;
-  event: Cdp.Debugger.PausedEvent;
-  description: string;
-  stackTrace: StackTrace;
-  stepInTargets?: IPossibleBreakLocation[];
-  hitBreakpoints?: string[];
-  text?: string;
-  exception?: Cdp.Runtime.RemoteObject;
-}
 
 export class ExecutionContext {
   public readonly sourceMapLoads = new Map<string, Promise<IUiLocation[]>>();
@@ -193,7 +161,7 @@ export class Thread implements IVariableStoreLocationProvider {
   private _pausedForSourceMapScriptId?: string;
   private _executionContexts: Map<number, ExecutionContext> = new Map();
   readonly replVariables: VariableStore;
-  private _sourceContainer: SourceContainer;
+  readonly _sourceContainer: SourceContainer;
   private _pauseOnSourceMapBreakpointIds?: Cdp.Debugger.BreakpointId[];
   private _selectedContext: ExecutionContext | undefined;
   static _allThreadsByDebuggerId = new Map<Cdp.Runtime.UniqueDebuggerId, Thread>();
@@ -301,7 +269,8 @@ export class Thread implements IVariableStoreLocationProvider {
   public stepOver(): Promise<Dap.NextResult | Dap.Error> {
     return this.stateQueue.enqueue('stepOver', async () => {
       this._expectedPauseReason = { reason: 'step', direction: StepDirection.Over };
-      if (await this._cdp.Debugger.stepOver({})) {
+      const skipList = await this.getCurrentSkipList(StepDirection.Over);
+      if (await this._cdp.Debugger.stepOver({ skipList })) {
         return {};
       }
 
@@ -324,7 +293,8 @@ export class Thread implements IVariableStoreLocationProvider {
           return {};
         }
       } else {
-        if (await this._cdp.Debugger.stepInto({ breakOnAsyncCall: true })) {
+        const skipList = await this.getCurrentSkipList(StepDirection.In);
+        if (await this._cdp.Debugger.stepInto({ breakOnAsyncCall: true, skipList })) {
           return {};
         }
       }
@@ -345,6 +315,32 @@ export class Thread implements IVariableStoreLocationProvider {
     });
   }
 
+  private async getCurrentSkipList(direction: StepDirection) {
+    if (!this._pausedDetails) {
+      return;
+    }
+
+    const [frame] = await this._pausedDetails.stackTrace.loadFrames(1);
+    if (!frame || !isStackFrameElement(frame)) {
+      return undefined;
+    }
+
+    const list = await frame.getStepSkipList(direction);
+    if (!list) {
+      return undefined;
+    }
+
+    // make sure to simplify the range, as V8 is picky about
+    // wanting the ranges in order and non-overlapping.
+    return Range.simplify(list).map(
+      (r): Cdp.Debugger.LocationRange => ({
+        start: r.begin.base0,
+        end: r.end.base0,
+        scriptId: frame.root.scriptId,
+      }),
+    );
+  }
+
   _stackFrameNotFoundError(): Dap.Error {
     return errors.createSilentError(l10n.t('Stack frame not found'));
   }
@@ -354,7 +350,7 @@ export class Thread implements IVariableStoreLocationProvider {
   }
 
   async restartFrame(params: Dap.RestartFrameParams): Promise<Dap.RestartFrameResult | Dap.Error> {
-    const stackFrame = this._pausedDetails?.stackTrace.frame(params.frameId);
+    const stackFrame = this._pausedDetails?.stackTrace.frame(params.frameId)?.root;
     if (!stackFrame) {
       return this._stackFrameNotFoundError();
     }
@@ -432,7 +428,7 @@ export class Thread implements IVariableStoreLocationProvider {
     let stackFrame: StackFrame | undefined;
     if (params.frameId !== undefined) {
       stackFrame = this._pausedDetails
-        ? this._pausedDetails.stackTrace.frame(params.frameId)
+        ? this._pausedDetails.stackTrace.frame(params.frameId)?.root
         : undefined;
       if (!stackFrame) return this._stackFrameNotFoundError();
       if (!stackFrame.callFrameId()) return this._evaluateOnAsyncFrameError();
@@ -471,7 +467,7 @@ export class Thread implements IVariableStoreLocationProvider {
     let stackFrame: StackFrame | undefined;
     if (args.frameId !== undefined) {
       stackFrame = this._pausedDetails
-        ? this._pausedDetails.stackTrace.frame(args.frameId)
+        ? this._pausedDetails.stackTrace.frame(args.frameId)?.root
         : undefined;
       if (!stackFrame) {
         throw new ProtocolError(this._stackFrameNotFoundError());

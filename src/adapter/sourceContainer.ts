@@ -478,7 +478,7 @@ export class SourceContainer {
         continue;
       }
 
-      let location: IUiLocation;
+      let locations: IUiLocation[];
       if ('decompiledUrl' in value) {
         const entry = await value.compiledPositionFor(
           sourceUrl,
@@ -487,8 +487,11 @@ export class SourceContainer {
         if (!entry) {
           continue;
         }
-        const { lineNumber, columnNumber } = entry.base1;
-        location = { lineNumber, columnNumber, source: compiled };
+        locations = entry.map(l => ({
+          lineNumber: l.base1.lineNumber,
+          columnNumber: l.base1.columnNumber,
+          source: compiled,
+        }));
       } else {
         const entry = this.sourceMapFactory.guardSourceMapFn(
           value,
@@ -508,10 +511,12 @@ export class SourceContainer {
           compiled.inlineScriptOffset,
         );
 
-        location = { lineNumber, columnNumber, source: compiled };
+        // recurse for nested sourcemaps:
+        const location = { lineNumber, columnNumber, source: compiled };
+        locations = [location, ...(await this.getCompiledLocations(location))];
       }
 
-      output = output.concat(location, await this.getCompiledLocations(location));
+      output = output.concat(locations);
     }
 
     return output;
