@@ -2,6 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import type * as dwf from '@vscode/dwarf-debugging';
 import { promises as fsPromises } from 'fs';
 import { interfaces } from 'inversify';
 import type * as vscode from 'vscode';
@@ -68,6 +69,16 @@ export type FsPromises = typeof fsPromises;
  * Symbol for `@vscode/js-debug-browsers`'s IBrowserFinder.
  */
 export const BrowserFinder = Symbol('IBrowserFinder');
+
+/**
+ * Symbol for the `@vscode/dwarf-debugging` module, in IDwarfDebugging.
+ */
+export const DwarfDebugging = Symbol('DwarfDebugging');
+
+/**
+ * Type for {@link DwarfDebugging}
+ */
+export type DwarfDebugging = () => Promise<typeof dwf | undefined>;
 
 /**
  * Location the extension is running in.

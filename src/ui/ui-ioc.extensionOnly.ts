@@ -3,6 +3,7 @@
  *--------------------------------------------------------*/
 
 import { Container } from 'inversify';
+import { IDwarfModuleProvider } from '../adapter/dwarf/dwarfModuleProvider';
 import { IRequestOptionsProvider } from '../adapter/resourceProvider/requestOptionsProvider';
 import { IExtensionContribution, trackDispose, VSCodeApi } from '../ioc-extras';
 import { TerminalNodeLauncher } from '../targets/node/terminalNodeLauncher';
@@ -20,6 +21,7 @@ import { DebugLinkUi } from './debugLinkUI';
 import { DebugSessionTracker } from './debugSessionTracker';
 import { DiagnosticsUI } from './diagnosticsUI';
 import { DisableSourceMapUI } from './disableSourceMapUI';
+import { DwarfModuleProvider } from './dwarfModuleProviderImpl';
 import { EdgeDevToolOpener } from './edgeDevToolOpener';
 import { ExcludedCallersUI } from './excludedCallersUI';
 import { ILinkedBreakpointLocation } from './linkedBreakpointLocation';
@@ -68,6 +70,7 @@ export const registerUiComponents = (container: Container) => {
   container.bind(UiProfileManager).toSelf().inSingletonScope().onActivation(trackDispose);
   container.bind(TerminalLinkHandler).toSelf().inSingletonScope();
   container.bind(DisableSourceMapUI).toSelf().inSingletonScope();
+  container.bind(IDwarfModuleProvider).to(DwarfModuleProvider).inSingletonScope();
 
   container
     .bind(ITerminationConditionFactory)

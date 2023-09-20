@@ -16,8 +16,8 @@ import * as sourceUtils from '../common/sourceUtils';
 import { prettyPrintAsSourceMap } from '../common/sourceUtils';
 import * as utils from '../common/urlUtils';
 import Dap from '../dap/api';
+import { IWasmSymbols } from './dwarf/wasmSymbolProvider';
 import type { SourceContainer } from './sourceContainer';
-import { IWasmSymbols } from './wasmSymbolProvider';
 
 // Represents a text source visible to the user.
 //

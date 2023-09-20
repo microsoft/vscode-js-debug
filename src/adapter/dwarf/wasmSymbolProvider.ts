@@ -2,17 +2,20 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import type { IWasmWorker, MethodReturn, spawn } from '@vscode/dwarf-debugging';
+import type { IWasmWorker, MethodReturn } from '@vscode/dwarf-debugging';
+import { Chrome } from '@vscode/dwarf-debugging/chrome-cxx/mnt/extension-api';
 import { randomUUID } from 'crypto';
 import { inject, injectable } from 'inversify';
-import Cdp from '../cdp/api';
-import { ICdpApi } from '../cdp/connection';
-import { binarySearch } from '../common/arrayUtils';
-import { IDisposable } from '../common/disposable';
-import { ILogger, LogTag } from '../common/logging';
-import { once } from '../common/objUtils';
-import { Base0Position, IPosition } from '../common/positions';
-import { getSourceSuffix } from './templates';
+import Cdp from '../../cdp/api';
+import { ICdpApi } from '../../cdp/connection';
+import { binarySearch } from '../../common/arrayUtils';
+import { IDisposable } from '../../common/disposable';
+import { ILogger, LogTag } from '../../common/logging';
+import { flatten, once } from '../../common/objUtils';
+import { Base0Position, IPosition, Range } from '../../common/positions';
+import { StepDirection } from '../pause';
+import { getSourceSuffix } from '../templates';
+import { IDwarfModuleProvider } from './dwarfModuleProvider';
 
 export const IWasmSymbolProvider = Symbol('IWasmSymbolProvider');
 
@@ -22,26 +25,28 @@ export interface IWasmSymbolProvider {
 }
 
 @injectable()
-export class StubWasmSymbolProvider implements IWasmSymbolProvider {
-  constructor(@inject(ICdpApi) private readonly cdp: Cdp.Api) {}
-
-  public loadWasmSymbols(script: Cdp.Debugger.ScriptParsedEvent): Promise<IWasmSymbols> {
-    return Promise.resolve(new DecompiledWasmSymbols(script, this.cdp, []));
-  }
-}
-
-@injectable()
 export class WasmSymbolProvider implements IWasmSymbolProvider, IDisposable {
-  private worker?: IWasmWorker;
+  /** Running worker, `null` signals that the dwarf module was not available */
+  private worker?: IWasmWorker | null;
+
+  private readonly doPrompt = once(() => this.dwarf.prompt());
 
   constructor(
-    private readonly spawnDwarf: typeof spawn,
+    @inject(IDwarfModuleProvider) private readonly dwarf: IDwarfModuleProvider,
     @inject(ICdpApi) private readonly cdp: Cdp.Api,
     @inject(ILogger) private readonly logger: ILogger,
   ) {}
 
   public async loadWasmSymbols(script: Cdp.Debugger.ScriptParsedEvent): Promise<IWasmSymbols> {
     const rpc = await this.getWorker();
+    if (!rpc) {
+      const syms = new DecompiledWasmSymbols(script, this.cdp, []);
+      // disassembly is a good signal for a prompt, since that means a user
+      // will have stepped into and be looking at webassembly code.
+      syms.onDidDisassemble = this.doPrompt;
+      return syms;
+    }
+
     const moduleId = randomUUID();
 
     const symbolsUrl = script.debugSymbols?.externalURL;
@@ -81,11 +86,17 @@ export class WasmSymbolProvider implements IWasmSymbolProvider, IDisposable {
   }
 
   private async getWorker() {
-    if (this.worker) {
-      return this.worker.rpc;
+    if (this.worker !== undefined) {
+      return this.worker?.rpc;
     }
 
-    this.worker = this.spawnDwarf({
+    const dwarf = await this.dwarf.load();
+    if (!dwarf) {
+      this.worker = null;
+      return undefined;
+    }
+
+    this.worker = dwarf.spawn({
       getWasmGlobal: (index, stopId) => this.loadWasmValue(`globals[${index}]`, stopId),
       getWasmLocal: (index, stopId) => this.loadWasmValue(`locals[${index}]`, stopId),
       getWasmOp: (index, stopId) => this.loadWasmValue(`stack[${index}]`, stopId),
@@ -160,8 +171,8 @@ export interface IWasmSymbols extends IDisposable {
   /**
    * Gets the source position for the given position in compiled code.
    *
-   * Following CDP semantics, it returns a position on line 0 with the column
-   * offset being the byte offset in webassembly.
+   * Following CDP semantics, it assumes the column is being the byte offset
+   * in webassembly. However, we encode the inline frame index in the line.
    */
   originalPositionFor(
     compiledPosition: IPosition,
@@ -173,16 +184,40 @@ export interface IWasmSymbols extends IDisposable {
    * Following CDP semantics, it assumes the position is line 0 with the column
    * offset being the byte offset in webassembly.
    */
-  compiledPositionFor(sourceUrl: string, sourcePosition: IPosition): Promise<IPosition | undefined>;
+  compiledPositionFor(sourceUrl: string, sourcePosition: IPosition): Promise<IPosition[]>;
 
   /**
    * Gets variables in the program scope at the given position. If not
    * implemented, the variable store should use its default behavior.
    *
-   * Following CDP semantics, it assumes the position is line 0 with the column
-   * offset being the byte offset in webassembly.
+   * Following CDP semantics, it assumes the column is being the byte offset
+   * in webassembly. However, we encode the inline frame index in the line.
    */
   getVariablesInScope?(callFrameId: string, position: IPosition): Promise<IWasmVariable[]>;
+
+  /**
+   * Gets the stack of WASM functions at the given position. Generally this will
+   * return an element with a single item containing the function name. However,
+   * inlined functions may return multiple functions for a position.
+   *
+   * It may return an empty array if function information is not available.
+   *
+   * @see https://github.com/ChromeDevTools/devtools-frontend/blob/c9f204731633fd2e2b6999a2543e99b7cc489b4b/docs/language_extension_api.md#dealing-with-inlined-functions
+   */
+  getFunctionStack?(position: IPosition): Promise<{ name: string }[]>;
+
+  /**
+   * Gets ranges that should be stepped for the given step kind and location.
+   *
+   * Following CDP semantics, it assumes the column is being the byte offset
+   * in webassembly. However, we encode the inline frame index in the line.
+   */
+  getStepSkipList?(
+    direction: StepDirection,
+    position: IPosition,
+    sourceUrl?: string,
+    mappedPosition?: IPosition,
+  ): Promise<Range[]>;
 }
 
 class DecompiledWasmSymbols implements IWasmSymbols {
@@ -191,6 +226,9 @@ class DecompiledWasmSymbols implements IWasmSymbols {
 
   /** @inheritdoc */
   public readonly files: readonly string[];
+
+  /** Called whenever disassembly is requested for a source/ */
+  public onDidDisassemble?: () => void;
 
   constructor(
     protected readonly event: Cdp.Debugger.ScriptParsedEvent,
@@ -204,6 +242,7 @@ class DecompiledWasmSymbols implements IWasmSymbols {
   /** @inheritdoc */
   public async getDisassembly(): Promise<string> {
     const { lines } = await this.doDisassemble();
+    this.onDidDisassemble?.();
     return lines.join('\n');
   }
 
@@ -232,19 +271,19 @@ class DecompiledWasmSymbols implements IWasmSymbols {
   public async compiledPositionFor(
     sourceUrl: string,
     sourcePosition: IPosition,
-  ): Promise<IPosition | undefined> {
+  ): Promise<IPosition[]> {
     if (sourceUrl !== this.decompiledUrl) {
-      return undefined;
+      return [];
     }
 
     const { byteOffsetsOfLines } = await this.doDisassemble();
     const { lineNumber } = sourcePosition.base0;
     if (lineNumber >= byteOffsetsOfLines.length) {
-      return undefined;
+      return [];
     }
 
     const columnNumber = byteOffsetsOfLines[sourcePosition.base0.lineNumber];
-    return new Base0Position(0, columnNumber);
+    return [new Base0Position(0, columnNumber)];
   }
 
   public dispose(): void {
@@ -306,6 +345,7 @@ class DecompiledWasmSymbols implements IWasmSymbols {
 }
 
 class WasmSymbols extends DecompiledWasmSymbols {
+  private readonly mappedLines = new Map</* source URL */ string, Promise<Uint32Array>>();
   private get codeOffset() {
     return this.event.codeOffset || 0;
   }
@@ -326,7 +366,7 @@ class WasmSymbols extends DecompiledWasmSymbols {
   ): Promise<{ url: string; position: IPosition } | undefined> {
     const locations = await this.rpc.sendMessage('rawLocationToSourceLocation', {
       codeOffset: compiledPosition.base0.columnNumber - this.codeOffset,
-      inlineFrameIndex: 0,
+      inlineFrameIndex: compiledPosition.base0.lineNumber,
       rawModuleId: this.moduleId,
     });
 
@@ -344,18 +384,31 @@ class WasmSymbols extends DecompiledWasmSymbols {
   public override async compiledPositionFor(
     sourceUrl: string,
     sourcePosition: IPosition,
-  ): Promise<IPosition | undefined> {
+  ): Promise<IPosition[]> {
     const { lineNumber, columnNumber } = sourcePosition.base0;
     const locations = await this.rpc.sendMessage('sourceLocationToRawLocation', {
       lineNumber,
-      columnNumber: columnNumber === 0 ? -1 : 0,
+      columnNumber: columnNumber === 0 ? -1 : columnNumber,
       rawModuleId: this.moduleId,
       sourceFileURL: sourceUrl,
     });
 
+    // special case: unlike sourcemaps, if we resolve a location on a line
+    // with nothing on it, sourceLocationToRawLocation returns undefined.
+    // If we think this might have happened, verify it and then get
+    // the next mapped line and use that location.
+    if (columnNumber === 0 && locations.length === 0) {
+      const mappedLines = await this.getMappedLines(sourceUrl);
+      const next = mappedLines.find(l => l > lineNumber);
+      if (!mappedLines.includes(lineNumber) && next /* always > 0 */) {
+        return this.compiledPositionFor(sourceUrl, new Base0Position(next, 0));
+      }
+    }
+
     // todo@connor4312: will there ever be a location in another module?
-    const location = locations.find(l => l.rawModuleId === this.moduleId);
-    return location && new Base0Position(0, this.codeOffset + locations[0].startOffset);
+    return locations
+      .filter(l => l.rawModuleId === this.moduleId)
+      .map(l => new Base0Position(0, this.codeOffset + l.startOffset));
   }
 
   /** @inheritdoc */
@@ -370,7 +423,7 @@ class WasmSymbols extends DecompiledWasmSymbols {
   ): Promise<IWasmVariable[]> {
     const location = {
       codeOffset: position.base0.columnNumber - this.codeOffset,
-      inlineFrameIndex: 0,
+      inlineFrameIndex: position.base0.lineNumber,
       rawModuleId: this.moduleId,
     };
 
@@ -387,6 +440,97 @@ class WasmSymbols extends DecompiledWasmSymbols {
         },
       }),
     );
+  }
+
+  /** @inheritdoc */
+  public async getFunctionStack(position: IPosition): Promise<{ name: string }[]> {
+    const info = await this.rpc.sendMessage('getFunctionInfo', {
+      codeOffset: position.base0.columnNumber - this.codeOffset,
+      inlineFrameIndex: position.base0.lineNumber,
+      rawModuleId: this.moduleId,
+    });
+
+    return 'frames' in info ? info.frames : [];
+  }
+
+  /** @inheritdoc */
+  public async getStepSkipList(
+    direction: StepDirection,
+    position: IPosition,
+    sourceUrl?: string,
+    mappedPosition?: IPosition,
+  ): Promise<Range[]> {
+    const thisLocation = {
+      codeOffset: position.base0.columnNumber - this.codeOffset,
+      inlineFrameIndex: position.base0.lineNumber,
+      rawModuleId: this.moduleId,
+    };
+
+    const getOwnLineRanges = () => {
+      if (!(mappedPosition && sourceUrl)) {
+        return [];
+      }
+      return this.rpc.sendMessage('sourceLocationToRawLocation', {
+        lineNumber: mappedPosition.base0.lineNumber,
+        columnNumber: -1,
+        rawModuleId: this.moduleId,
+        sourceFileURL: sourceUrl,
+      });
+    };
+
+    let rawRanges: Chrome.DevTools.RawLocationRange[];
+    switch (direction) {
+      case StepDirection.Out: {
+        // Step out should step out of inline functions.
+        rawRanges = await this.rpc.sendMessage('getInlinedFunctionRanges', thisLocation);
+        break;
+      }
+      case StepDirection.Over: {
+        // step over should both step over inline functions and any
+        // intermediary statements on this line, which may exist
+        // in WAT assembly but not in source code.
+        const ranges = await Promise.all([
+          this.rpc.sendMessage('getInlinedCalleesRanges', thisLocation),
+          getOwnLineRanges(),
+        ]);
+        rawRanges = flatten(ranges);
+        break;
+      }
+      case StepDirection.In:
+        // Step in should skip over any intermediary statements on this line
+        rawRanges = await getOwnLineRanges();
+        break;
+      default:
+        rawRanges = [];
+        break;
+    }
+
+    return rawRanges.map(
+      r =>
+        new Range(
+          new Base0Position(0, r.startOffset + this.codeOffset),
+          new Base0Position(0, r.endOffset + this.codeOffset),
+        ),
+    );
+  }
+
+  private getMappedLines(sourceURL: string) {
+    const prev = this.mappedLines.get(sourceURL);
+    if (prev) {
+      return prev;
+    }
+
+    const value = (async () => {
+      try {
+        const lines = await this.rpc.sendMessage('getMappedLines', this.moduleId, sourceURL);
+        return new Uint32Array(lines?.sort((a, b) => a - b) || []);
+      } catch {
+        return new Uint32Array();
+      }
+    })();
+
+    this.mappedLines.set(sourceURL, value);
+    return value;
   }
 }
 
