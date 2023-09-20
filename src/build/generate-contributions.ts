@@ -295,6 +295,11 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
     default: [],
     description: refString('base.cascadeTerminateToConfigurations.label'),
   },
+  enableDWARF: {
+    type: 'boolean',
+    default: true,
+    markdownDescription: refString('base.enableDWARF.label'),
+  },
 };
 
 /**

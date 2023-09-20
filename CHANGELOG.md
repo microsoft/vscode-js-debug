@@ -4,6 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
+- feat: enable DWARF-based WebAssembly debugging ([#1789](https://github.com/microsoft/vscode-js-debug/issues/1789))
 - feat: show class names of methods in call stack view ([#1770](https://github.com/microsoft/vscode-js-debug/issues/1770))
 - fix: edge devtools incorrectly ask for local forwarding ([vscode#193110](https://github.com/microsoft/vscode/issues/193110))
 
