@@ -28,19 +28,23 @@ export const registerRequestCDPProxy = (
       }
 
       try {
-        const tunneled = await tunnels.request(sessionId, {
-          label: 'Edge Devtools Tunnel',
-          remotePort: proxied.port,
-        });
+        if (vscode.env.remoteName !== undefined) {
+          const tunneled = await tunnels.request(sessionId, {
+            label: 'Edge Devtools Tunnel',
+            remotePort: proxied.port,
+          });
 
-        return {
-          host: tunneled.localAddress.host,
-          port: tunneled.localAddress.port,
-          path: proxied.path,
-        };
+          return {
+            host: tunneled.localAddress.host,
+            port: tunneled.localAddress.port,
+            path: proxied.path,
+          };
+        }
       } catch {
-        return proxied;
+        // fall through
       }
+
+      return proxied;
     }),
   );
 };
