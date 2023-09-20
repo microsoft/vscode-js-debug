@@ -7,7 +7,6 @@ import { generate } from 'astring';
 import { inject, injectable } from 'inversify';
 import Cdp from '../cdp/api';
 import { ICdpApi } from '../cdp/connection';
-import { groupBy, iteratorFirst } from '../common/arrayUtils';
 import { flatten, isInstanceOf, once } from '../common/objUtils';
 import { parseSource, statementsToFunction } from '../common/sourceCodeManipulations';
 import { IRenameProvider } from '../common/sourceMaps/renameProvider';
@@ -16,10 +15,10 @@ import Dap from '../dap/api';
 import { IDapApi } from '../dap/connection';
 import * as errors from '../dap/errors';
 import { ProtocolError } from '../dap/protocolError';
+import { IWasmVariable, IWasmVariableEvaluation, WasmScope } from './dwarf/wasmSymbolProvider';
 import * as objectPreview from './objectPreview';
 import { MapPreview, SetPreview } from './objectPreview/betterTypes';
 import { PreviewContextType } from './objectPreview/contexts';
-import { SourceFromMap, isSourceWithWasm } from './source';
 import { StackFrame, StackTrace } from './stackTrace';
 import { RemoteException, RemoteObjectId, getSourceSuffix } from './templates';
 import { getArrayProperties } from './templates/getArrayProperties';
@@ -32,7 +31,6 @@ import {
 import { invokeGetter } from './templates/invokeGetter';
 import { readMemory } from './templates/readMemory';
 import { writeMemory } from './templates/writeMemory';
-import { IWasmVariable, IWasmVariableEvaluation, WasmScope } from './wasmSymbolProvider';
 
 const getVariableId = (() => {
   let last = 0;
@@ -181,9 +179,9 @@ interface IContextSettings {
 }
 
 const wasmScopeNames: { [K in WasmScope]: { name: string; sortOrder: number } } = {
-  [WasmScope.Parameter]: { name: l10n.t('Native Parameters'), sortOrder: -10 },
-  [WasmScope.Local]: { name: l10n.t('Native Locals'), sortOrder: -9 },
-  [WasmScope.Global]: { name: l10n.t('Native Globals'), sortOrder: -8 },
+  [WasmScope.Parameter]: { name: l10n.t('Parameters'), sortOrder: -10 },
+  [WasmScope.Local]: { name: l10n.t('Locals'), sortOrder: -9 },
+  [WasmScope.Global]: { name: l10n.t('Globals'), sortOrder: -8 },
 };
 
 class VariableContext {
@@ -278,21 +276,6 @@ class VariableContext {
     }
 
     return this.createVariable(Variable, ctx, object);
-  }
-
-  public createVariableForWasm(variables: IWasmVariable[], scopeRef: IScopeRef) {
-    const groups = groupBy(variables, v => v.scope);
-    const groupVars: WasmScopeVariable[] = [];
-    for (const [key, display] of Object.entries(wasmScopeNames)) {
-      const vars = groups.get(key as WasmScope);
-      if (vars) {
-        groupVars.push(
-          this.createVariable(WasmScopeVariable, display, key as WasmScope, vars, scopeRef),
-        );
-      }
-    }
-
-    return groupVars;
   }
 
   /**
@@ -1137,7 +1120,7 @@ class WasmScopeVariable implements IVariable {
   public readonly id = getVariableId();
 
   /** @inheritdoc */
-  public readonly sortOrder = wasmScopeNames[this.kind].sortOrder;
+  public readonly sortOrder = wasmScopeNames[this.kind]?.sortOrder || 0;
 
   constructor(
     private readonly context: VariableContext,
@@ -1148,7 +1131,7 @@ class WasmScopeVariable implements IVariable {
 
   toDap(): Promise<Dap.Variable> {
     return Promise.resolve({
-      name: wasmScopeNames[this.kind].name,
+      name: wasmScopeNames[this.kind]?.name || this.kind,
       value: '',
       variablesReference: this.id,
     });
@@ -1192,23 +1175,6 @@ class Scope implements IVariableContainer {
         variables.push(
           this.context.createVariableByType({ name: extraProperty.name }, extraProperty.value),
         );
-      }
-    }
-
-    // special case: if the stack frame is in a wasm that had a symbolicated
-    // source at this location, use its symbol mapping instead of native symbols.
-    if (this.ref.scopeNumber === 0) {
-      const location = await this.ref.stackFrame.uiLocation();
-      if (location?.source instanceof SourceFromMap) {
-        const c = iteratorFirst(location.source.compiledToSourceUrl.keys());
-        if (isSourceWithWasm(c) && c.sourceMap.value.settledValue?.getVariablesInScope) {
-          const wasmVars = await c.sourceMap.value.settledValue.getVariablesInScope(
-            this.ref.callFrameId,
-            this.ref.stackFrame.rawPosition,
-          );
-          const resolved: IVariable[] = this.context.createVariableForWasm(wasmVars, this.ref);
-          return resolved.concat(variables);
-        }
       }
     }
 
@@ -1362,6 +1328,32 @@ export class VariableStore {
       scopeRef,
       extraProperties,
       this.renameProvider,
+    );
+
+    this.vars.add(scope);
+
+    return scope;
+  }
+
+  /** Creates a container for a CDP Scope */
+  public createWasmScope(
+    kind: WasmScope,
+    variables: readonly IWasmVariable[],
+    scopeRef: IScopeRef,
+  ): IVariable {
+    const scope: WasmScopeVariable = new WasmScopeVariable(
+      new VariableContext(
+        this.cdp,
+        undefined,
+        { name: '' },
+        this.vars,
+        this.locationProvider,
+        () => scope,
+        this.contextSettings,
+      ),
+      kind,
+      variables,
+      scopeRef,
     );
 
     this.vars.add(scope);
