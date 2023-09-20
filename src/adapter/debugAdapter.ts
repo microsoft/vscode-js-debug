@@ -36,7 +36,8 @@ import { BasicCpuProfiler } from './profiling/basicCpuProfiler';
 import { ScriptSkipper } from './scriptSkipper/implementation';
 import { IScriptSkipper } from './scriptSkipper/scriptSkipper';
 import { SmartStepper } from './smartStepping';
-import { ISourceWithMap, SourceContainer, SourceFromMap } from './sources';
+import { ISourceWithMap, SourceFromMap } from './source';
+import { SourceContainer } from './sourceContainer';
 import { Thread } from './threads';
 import { VariableStore } from './variableStore';
 
@@ -509,7 +510,7 @@ export class DebugAdapter implements IDisposable {
   async _prettyPrintSource(
     params: Dap.PrettyPrintSourceParams,
   ): Promise<Dap.PrettyPrintSourceResult | Dap.Error> {
-    if (!params.source) {
+    if (!params.source || !this._thread) {
       return { canPrettyPrint: false };
     }
 
@@ -526,7 +527,7 @@ export class DebugAdapter implements IDisposable {
 
     const { map: sourceMap, source: generated } = prettified;
 
-    this.breakpointManager.moveBreakpoints(source, sourceMap, generated);
+    await this.breakpointManager.moveBreakpoints(this._thread, source, sourceMap, generated);
     this.sourceContainer.clearDisabledSourceMaps(source as ISourceWithMap);
     await this._refreshStackTrace();
 

@@ -15,11 +15,12 @@ import Dap from '../dap/api';
 import { IDapApi } from '../dap/connection';
 import * as errors from '../dap/errors';
 import { ProtocolError } from '../dap/protocolError';
+import { IWasmVariable, IWasmVariableEvaluation, WasmScope } from './dwarf/wasmSymbolProvider';
 import * as objectPreview from './objectPreview';
 import { MapPreview, SetPreview } from './objectPreview/betterTypes';
 import { PreviewContextType } from './objectPreview/contexts';
 import { StackFrame, StackTrace } from './stackTrace';
-import { getSourceSuffix, RemoteException, RemoteObjectId } from './templates';
+import { RemoteException, RemoteObjectId, getSourceSuffix } from './templates';
 import { getArrayProperties } from './templates/getArrayProperties';
 import { getArraySlots } from './templates/getArraySlots';
 import {
@@ -160,7 +161,7 @@ export interface IStoreSettings {
   customPropertiesGenerator?: string;
 }
 
-type VariableCtor<TRestArgs extends unknown[] = unknown[], R extends Variable = Variable> = {
+type VariableCtor<TRestArgs extends unknown[] = unknown[], R extends IVariable = IVariable> = {
   new (context: VariableContext, ...rest: TRestArgs): R;
 };
 
@@ -177,6 +178,12 @@ interface IContextSettings {
   descriptionSymbols?: Promise<Cdp.Runtime.CallArgument>;
 }
 
+const wasmScopeNames: { [K in WasmScope]: { name: string; sortOrder: number } } = {
+  [WasmScope.Parameter]: { name: l10n.t('Parameters'), sortOrder: -10 },
+  [WasmScope.Local]: { name: l10n.t('Locals'), sortOrder: -9 },
+  [WasmScope.Global]: { name: l10n.t('Globals'), sortOrder: -8 },
+};
+
 class VariableContext {
   /** When in a Variable, the name that this variable is accessible as from its parent scope or object */
   public readonly name: string;
@@ -191,11 +198,11 @@ class VariableContext {
 
   constructor(
     public readonly cdp: Cdp.Api,
-    public readonly parent: undefined | Variable | Scope,
+    public readonly parent: undefined | IVariable | Scope,
     ctx: IContextInit,
     private readonly vars: VariablesMap,
     public readonly locationProvider: IVariableStoreLocationProvider,
-    private readonly currentRef: undefined | (() => Variable | Scope),
+    private readonly currentRef: undefined | (() => IVariable | Scope),
     private readonly settings: IContextSettings,
   ) {
     this.name = ctx.name;
@@ -546,12 +553,12 @@ class Variable implements IVariable {
    */
   public get accessor(): string {
     const { parent, name } = this.context;
-    if (!parent || parent instanceof Scope) {
-      return this.context.name;
-    }
-
     if (parent instanceof AccessorVariable) {
       return parent.accessor;
+    }
+
+    if (!(parent instanceof Variable)) {
+      return this.context.name;
     }
 
     // Maps and sets:
@@ -1023,6 +1030,131 @@ class GetterVariable extends AccessorVariable {
   }
 }
 
+class WasmVariable implements IVariable, IMemoryReadable {
+  public static presentationHint: Dap.VariablePresentationHint = {
+    attributes: ['readOnly'],
+  };
+
+  /** @inheritdoc */
+  public readonly id = getVariableId();
+
+  /** @inheritdoc */
+  public readonly sortOrder = 0;
+
+  constructor(
+    private readonly context: VariableContext,
+    private readonly variable: IWasmVariableEvaluation,
+    private readonly scopeRef: IScopeRef,
+  ) {}
+
+  public toDap(): Promise<Dap.Variable> {
+    return Promise.resolve({
+      name: this.context.name,
+      value: this.variable.description || '',
+      variablesReference: this.variable.getChildren ? this.id : 0,
+      memoryReference: this.variable.linearMemoryAddress ? String(this.id) : undefined,
+      presentationHint: this.context.presentationHint,
+    });
+  }
+
+  public async getChildren(): Promise<IVariable[]> {
+    const children = (await this.variable.getChildren?.()) || [];
+    return children.map(c =>
+      this.context.createVariable(
+        WasmVariable,
+        { name: c.name, presentationHint: WasmVariable.presentationHint },
+        c.value,
+        this.scopeRef,
+      ),
+    );
+  }
+
+  /** @inheritdoc */
+  public async readMemory(offset: number, count: number): Promise<Buffer | undefined> {
+    const addr = this.variable.linearMemoryAddress;
+    if (addr === undefined) {
+      return undefined;
+    }
+
+    const result = await this.context.cdp.Debugger.evaluateOnCallFrame({
+      callFrameId: this.scopeRef.callFrameId,
+      expression: `(${readMemory.source}).call(memories[0].buffer, ${
+        +addr + offset
+      }, ${+count}) ${getSourceSuffix()}`,
+      returnByValue: true,
+    });
+
+    if (!result) {
+      throw new RemoteException({
+        exceptionId: 0,
+        text: 'No response from CDP',
+        lineNumber: 0,
+        columnNumber: 0,
+      });
+    }
+
+    return Buffer.from(result.result.value, 'hex');
+  }
+
+  /** @inheritdoc */
+  public async writeMemory(offset: number, memory: Buffer): Promise<number> {
+    const addr = this.variable.linearMemoryAddress;
+    if (addr === undefined) {
+      return 0;
+    }
+
+    const result = await this.context.cdp.Debugger.evaluateOnCallFrame({
+      callFrameId: this.scopeRef.callFrameId,
+      expression: `(${writeMemory.source}).call(memories[0].buffer, ${
+        +addr + offset
+      }, ${JSON.stringify(memory.toString('hex'))}) ${getSourceSuffix()}`,
+      returnByValue: true,
+    });
+
+    return result?.result.value || 0;
+  }
+}
+
+class WasmScopeVariable implements IVariable {
+  /** @inheritdoc */
+  public readonly id = getVariableId();
+
+  /** @inheritdoc */
+  public readonly sortOrder = wasmScopeNames[this.kind]?.sortOrder || 0;
+
+  constructor(
+    private readonly context: VariableContext,
+    public readonly kind: WasmScope,
+    private readonly variables: readonly IWasmVariable[],
+    private readonly scopeRef: IScopeRef,
+  ) {}
+
+  toDap(): Promise<Dap.Variable> {
+    return Promise.resolve({
+      name: wasmScopeNames[this.kind]?.name || this.kind,
+      value: '',
+      variablesReference: this.id,
+    });
+  }
+
+  getChildren(): Promise<IVariable[]> {
+    return Promise.all(
+      this.variables.map(async v => {
+        const evaluated = await v.evaluate();
+        return this.context.createVariable(
+          WasmVariable,
+          {
+            name: v.name,
+            presentationHint: WasmVariable.presentationHint,
+          },
+          evaluated,
+          this.scopeRef,
+        );
+      }),
+    );
+  }
+}
+
 class Scope implements IVariableContainer {
   /** @inheritdoc */
   public readonly id = getVariableId();
@@ -1035,7 +1167,7 @@ class Scope implements IVariableContainer {
     private readonly renameProvider: IRenameProvider,
   ) {}
 
-  public async getChildren(_params: Dap.VariablesParams): Promise<Variable[]> {
+  public async getChildren(_params: Dap.VariablesParams): Promise<IVariable[]> {
     const variables = await this.context.createObjectPropertyVars(this.remoteObject);
     const existing = new Set(variables.map(v => v.name));
     for (const extraProperty of this.extraProperties) {
@@ -1196,6 +1328,32 @@ export class VariableStore {
       scopeRef,
       extraProperties,
       this.renameProvider,
+    );
+
+    this.vars.add(scope);
+
+    return scope;
+  }
+
+  /** Creates a container for a CDP Scope */
+  public createWasmScope(
+    kind: WasmScope,
+    variables: readonly IWasmVariable[],
+    scopeRef: IScopeRef,
+  ): IVariable {
+    const scope: WasmScopeVariable = new WasmScopeVariable(
+      new VariableContext(
+        this.cdp,
+        undefined,
+        { name: '' },
+        this.vars,
+        this.locationProvider,
+        () => scope,
+        this.contextSettings,
+      ),
+      kind,
+      variables,
+      scopeRef,
     );
 
     this.vars.add(scope);

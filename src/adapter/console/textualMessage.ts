@@ -10,7 +10,7 @@ import Dap from '../../dap/api';
 import { formatMessage } from '../messageFormat';
 import { messageFormatters, previewAsObject } from '../objectPreview';
 import { AnyObject } from '../objectPreview/betterTypes';
-import { IUiLocation } from '../sources';
+import { IUiLocation } from '../source';
 import { StackFrame, StackTrace } from '../stackTrace';
 import { Thread } from '../threads';
 import { IConsoleMessage } from './consoleMessage';

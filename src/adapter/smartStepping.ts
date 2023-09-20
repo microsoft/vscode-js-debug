@@ -6,9 +6,10 @@ import { inject, injectable } from 'inversify';
 import { ILogger, LogTag } from '../common/logging';
 import { isInstanceOf } from '../common/objUtils';
 import { AnyLaunchConfiguration } from '../configuration';
-import { isSourceWithMap, UnmappedReason } from './sources';
+import { ExpectedPauseReason, IPausedDetails, PausedReason, StepDirection } from './pause';
+import { isSourceWithMap } from './source';
+import { UnmappedReason } from './sourceContainer';
 import { StackFrame } from './stackTrace';
-import { ExpectedPauseReason, IPausedDetails, PausedReason, StepDirection } from './threads';
 
 export const enum StackFrameStepOverReason {
   NotStepped,

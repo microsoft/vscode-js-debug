@@ -2,27 +2,19 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import * as l10n from '@vscode/l10n';
 import { inject, injectable } from 'inversify';
 import { xxHash32 } from 'js-xxhash';
-import { relative } from 'path';
 import { NullableMappedPosition, SourceMapConsumer } from 'source-map';
-import { URL } from 'url';
 import Cdp from '../cdp/api';
-import { ICdpApi } from '../cdp/connection';
-import { binarySearch } from '../common/arrayUtils';
 import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
 import { EventEmitter } from '../common/events';
-import { checkContentHash } from '../common/hash/checkContentHash';
 import { ILogger, LogTag } from '../common/logging';
-import { once } from '../common/objUtils';
-import { forceForwardSlashes, isSubdirectoryOf, properResolve } from '../common/pathUtils';
-import { delay, getDeferred } from '../common/promiseUtil';
+import { properResolve } from '../common/pathUtils';
+import { Base01Position, Base1Position, IPosition } from '../common/positions';
 import { ISourceMapMetadata, SourceMap } from '../common/sourceMaps/sourceMap';
 import { CachingSourceMapFactory, ISourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
-import { InlineScriptOffset, ISourcePathResolver } from '../common/sourcePathResolver';
+import { ISourcePathResolver, InlineScriptOffset } from '../common/sourcePathResolver';
 import * as sourceUtils from '../common/sourceUtils';
-import { prettyPrintAsSourceMap } from '../common/sourceUtils';
 import * as utils from '../common/urlUtils';
 import { AnyLaunchConfiguration } from '../configuration';
 import Dap from '../dap/api';
@@ -31,17 +23,27 @@ import { sourceMapParseFailed } from '../dap/errors';
 import { IInitializeParams } from '../ioc-extras';
 import { IStatistics } from '../telemetry/classification';
 import { extractErrorDetails } from '../telemetry/dapTelemetryReporter';
+import { IWasmSymbolProvider, IWasmSymbols } from './dwarf/wasmSymbolProvider';
 import { IResourceProvider } from './resourceProvider';
 import { ScriptSkipper } from './scriptSkipper/implementation';
 import { IScriptSkipper } from './scriptSkipper/scriptSkipper';
+import {
+  ContentGetter,
+  ISourceMapLocationProvider,
+  ISourceWithMap,
+  IUiLocation,
+  LineColumn,
+  Source,
+  SourceFromMap,
+  SourceLocationProvider,
+  WasmSource,
+  isSourceWithMap,
+  isSourceWithSourceMap,
+  isSourceWithWasm,
+  rawToUiOffset,
+  uiToRawOffset,
+} from './source';
 import { Script } from './threads';
-
-// This is a ui location which corresponds to a position in the document user can see (Source, Dap.Source).
-export interface IUiLocation {
-  lineNumber: number; // 1-based
-  columnNumber: number; // 1-based
-  source: Source;
-}
 
 function isUiLocation(loc: unknown): loc is IUiLocation {
   return (
@@ -60,10 +62,6 @@ const getFallbackPosition = () => ({
   isSourceMapLoadFailure: true,
 });
 
-type ContentGetter = () => Promise<string | undefined>;
-
-// Each source map has a number of compiled sources referncing it.
-type SourceMapData = { compiled: Set<ISourceWithMap>; map?: SourceMap; loaded: Promise<void> };
 export type SourceMapTimeouts = {
   // This is a source map loading delay used for testing.
   load: number;
@@ -99,524 +97,6 @@ const defaultTimeouts: SourceMapTimeouts = {
   output: 1000,
   sourceMapCumulativePause: 10000,
 };
-
-export interface ISourceScript {
-  executionContextId: Cdp.Runtime.ExecutionContextId;
-  scriptId: Cdp.Runtime.ScriptId;
-  url: string;
-}
-
-// Represents a text source visible to the user.
-//
-// Source maps flow (start with compiled1 and compiled2). Two different compiled sources
-// reference to the same source map, and produce two different resolved urls leading
-// to different source map sources. This is a corner case, usually there is a single
-// resolved url and a single source map source per each sourceUrl in the source map.
-//
-//       ------> sourceMapUrl -> SourceContainer._sourceMaps -> SourceMapData -> map
-//       |    |                                                                    |
-//       |    compiled1  - - - - - - -  source1 <-- resolvedUrl1 <-- sourceUrl <----
-//       |                                                                         |
-//      compiled2  - - - - - - - - - -  source2 <-- resolvedUrl2 <-- sourceUrl <----
-//
-// compiled1 and source1 are connected (same goes for compiled2 and source2):
-//    compiled1._sourceMapSourceByUrl.get(sourceUrl) === source1
-//    source1._compiledToSourceUrl.get(compiled1) === sourceUrl
-//
-export class Source {
-  public readonly sourceReference: number;
-  private readonly _name: string;
-  private readonly _fqname: string;
-
-  /**
-   * Function to retrieve the content of the source.
-   */
-  private readonly _contentGetter: ContentGetter;
-
-  private readonly _container: SourceContainer;
-
-  /**
-   * Hypothesized absolute path for the source. May or may not actually exist.
-   */
-  public readonly absolutePath: string;
-
-  public sourceMap?: ISourceWithMap['sourceMap'];
-
-  // This is the same as |_absolutePath|, but additionally checks that file exists to
-  // avoid errors when page refers to non-existing paths/urls.
-  private readonly _existingAbsolutePath: Promise<string | undefined>;
-  private _scripts: ISourceScript[] = [];
-
-  /**
-   * @param inlineScriptOffset Offset of the start location of the script in
-   * its source file. This is used on scripts in HTML pages, where the script
-   * is nested in the content.
-   * @param contentHash Optional hash of the file contents. This is used to
-   * check whether the script we get is the same one as what's on disk. This
-   * can be used to detect in-place transpilation.
-   * @param runtimeScriptOffset Offset of the start location of the script
-   * in the runtime *only*. This differs from the inlineScriptOffset, as the
-   * inline offset of also reflected in the file. This is used to deal with
-   * the runtime wrapping the source and offsetting locations which should
-   * not be shown to the user.
-   */
-  constructor(
-    container: SourceContainer,
-    public readonly url: string,
-    absolutePath: string | undefined,
-    contentGetter: ContentGetter,
-    sourceMapUrl?: string,
-    public readonly inlineScriptOffset?: InlineScriptOffset,
-    public readonly runtimeScriptOffset?: InlineScriptOffset,
-    public readonly contentHash?: string,
-  ) {
-    this.sourceReference = container.getSourceReference(url);
-    this._contentGetter = once(contentGetter);
-    this._container = container;
-    this.absolutePath = absolutePath || '';
-    this._fqname = this._fullyQualifiedName();
-    this._name = this._humanName();
-    this.setSourceMapUrl(sourceMapUrl);
-
-    this._existingAbsolutePath = this.checkContentHash(contentHash);
-  }
-
-  /** Returns the absolute path if the conten hash matches. */
-  protected checkContentHash(contentHash?: string) {
-    return checkContentHash(
-      this.absolutePath,
-      // Inline scripts will never match content of the html file. We skip the content check.
-      this.inlineScriptOffset || this.runtimeScriptOffset ? undefined : contentHash,
-      this._container._fileContentOverridesForTest.get(this.absolutePath),
-    );
-  }
-
-  /** Offsets a location that came from the runtime script, to where it appears in source code */
-  public offsetScriptToSource<T extends { lineNumber: number; columnNumber: number }>(obj: T): T {
-    if (this.runtimeScriptOffset) {
-      return {
-        ...obj,
-        lineNumber: obj.lineNumber - this.runtimeScriptOffset.lineOffset,
-        columnNumber: obj.columnNumber - this.runtimeScriptOffset.columnOffset,
-      };
-    }
-
-    return obj;
-  }
-  /** Offsets a location that came from source code, to where it appears in the runtime script */
-  public offsetSourceToScript<T extends { lineNumber: number; columnNumber: number }>(obj: T): T {
-    if (this.runtimeScriptOffset) {
-      return {
-        ...obj,
-        lineNumber: obj.lineNumber + this.runtimeScriptOffset.lineOffset,
-        columnNumber: obj.columnNumber + this.runtimeScriptOffset.columnOffset,
-      };
-    }
-
-    return obj;
-  }
-
-  private setSourceMapUrl(sourceMapUrl?: string) {
-    if (!sourceMapUrl) {
-      this.sourceMap = undefined;
-      return;
-    }
-
-    this.sourceMap = {
-      url: sourceMapUrl,
-      sourceByUrl: new Map(),
-      metadata: {
-        sourceMapUrl,
-        compiledPath: this.absolutePath || this.url,
-      },
-    };
-  }
-
-  /**
-   * Associated a script with this source. This is only valid for a source
-   * from the runtime, not a {@link SourceFromMap}.
-   */
-  addScript(script: ISourceScript): void {
-    this._scripts.push(script);
-  }
-
-  /**
-   * Filters scripts from a source, done when an execution context is removed.
-   */
-  filterScripts(fn: (s: ISourceScript) => boolean): void {
-    this._scripts = this._scripts.filter(fn);
-  }
-
-  /**
-   * Gets scripts associated with this source.
-   */
-  get scripts(): ReadonlyArray<ISourceScript> {
-    return this._scripts;
-  }
-
-  /**
-   * Gets a suggested mimetype for the source.
-   */
-  get getSuggestedMimeType(): string | undefined {
-    // only return an explicit mimetype if the file has no extension (such as
-    // with node internals) or a query path. Otherwise, let the editor guess.
-    if (!/\.[^/]+$/.test(this.url) || this.url.includes('?')) {
-      return 'text/javascript';
-    }
-  }
-
-  async content(): Promise<string | undefined> {
-    let content = await this._contentGetter();
-
-    // pad for the inline source offset, see
-    // https://github.com/microsoft/vscode-js-debug/issues/736
-    if (this.inlineScriptOffset?.lineOffset) {
-      content = '\n'.repeat(this.inlineScriptOffset.lineOffset) + content;
-    }
-
-    return content;
-  }
-
-  /**
-   * Pretty-prints the source. Generates a beauitified source map if possible
-   * and it hasn't already been done, and returns the created map and created
-   * ephemeral source. Returns undefined if the source can't be beautified.
-   */
-  public async prettyPrint(): Promise<{ map: SourceMap; source: Source } | undefined> {
-    if (!this._container) {
-      return undefined;
-    }
-
-    if (isSourceWithMap(this) && this.sourceMap.url.endsWith('-pretty.map')) {
-      const map = this._container._sourceMaps.get(this.sourceMap?.url)?.map;
-      // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-      return map && { map, source: [...this.sourceMap.sourceByUrl!.values()][0] };
-    }
-
-    const content = await this.content();
-    if (!content) {
-      return undefined;
-    }
-
-    // Eval'd scripts have empty urls, give them a temporary one for the purpose
-    // of the sourcemap. See #929
-    const baseUrl = this.url || `eval://${this.sourceReference}.js`;
-    const sourceMapUrl = baseUrl + '-pretty.map';
-    const basename = baseUrl.split(/[\/\\]/).pop() as string;
-    const fileName = basename + '-pretty.js';
-    const map = await prettyPrintAsSourceMap(fileName, content, baseUrl, sourceMapUrl);
-    if (!map) {
-      return undefined;
-    }
-
-    // Note: this overwrites existing source map.
-    this.setSourceMapUrl(sourceMapUrl);
-    const asCompiled = this as ISourceWithMap;
-    const sourceMap: SourceMapData = {
-      compiled: new Set([asCompiled]),
-      map,
-      loaded: Promise.resolve(),
-    };
-    this._container._sourceMaps.set(sourceMapUrl, sourceMap);
-    await this._container._addSourceMapSources(asCompiled, map);
-    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-    return { map, source: [...asCompiled.sourceMap.sourceByUrl.values()][0] };
-  }
-
-  /**
-   * Returns a DAP representation of the source.
-   */
-  async toDap(): Promise<Dap.Source> {
-    return this.toDapShallow();
-  }
-
-  /**
-   * Returns a DAP representation without including any nested sources.
-   */
-  public async toDapShallow(): Promise<Dap.Source> {
-    const existingAbsolutePath = await this._existingAbsolutePath;
-    const dap: Dap.Source = {
-      name: this._name,
-      path: this._fqname,
-      sourceReference: this.sourceReference,
-      presentationHint: this.blackboxed() ? 'deemphasize' : undefined,
-      origin: this.blackboxed() ? l10n.t('Skipped by skipFiles') : undefined,
-    };
-
-    if (existingAbsolutePath) {
-      dap.sourceReference = 0;
-      dap.path = existingAbsolutePath;
-    }
-
-    return dap;
-  }
-
-  existingAbsolutePath(): Promise<string | undefined> {
-    return this._existingAbsolutePath;
-  }
-
-  async prettyName(): Promise<string> {
-    const path = await this._existingAbsolutePath;
-    if (path) return path;
-    return this._fqname;
-  }
-
-  /**
-   * Gets the human-readable name of the source.
-   */
-  private _humanName() {
-    if (utils.isAbsolute(this._fqname)) {
-      for (const root of this._container.rootPaths) {
-        if (isSubdirectoryOf(root, this._fqname)) {
-          return forceForwardSlashes(relative(root, this._fqname));
-        }
-      }
-    }
-
-    return this._fqname;
-  }
-
-  /**
-   * Returns a pretty name for the script. This is the name displayed in
-   * stack traces and returned through DAP if the file does not verifiably
-   * exist on disk.
-   */
-  private _fullyQualifiedName(): string {
-    if (!this.url) {
-      return '<eval>/VM' + this.sourceReference;
-    }
-
-    if (this.url.endsWith(sourceUtils.SourceConstants.ReplExtension)) {
-      return 'repl';
-    }
-
-    if (this.absolutePath.startsWith('<node_internals>')) {
-      return this.absolutePath;
-    }
-
-    if (utils.isAbsolute(this.url)) {
-      return this.url;
-    }
-
-    const parsedAbsolute = utils.fileUrlToAbsolutePath(this.url);
-    if (parsedAbsolute) {
-      return parsedAbsolute;
-    }
-
-    let fqname = this.url;
-    try {
-      const tokens: string[] = [];
-      const url = new URL(this.url);
-      if (url.protocol === 'data:') {
-        return '<eval>/VM' + this.sourceReference;
-      }
-
-      if (url.hostname) {
-        tokens.push(url.hostname);
-      }
-
-      if (url.port) {
-        tokens.push('\uA789' + url.port); // : in unicode
-      }
-
-      if (url.pathname) {
-        tokens.push(/^\/[a-z]:/.test(url.pathname) ? url.pathname.slice(1) : url.pathname);
-      }
-
-      const searchParams = url.searchParams?.toString();
-      if (searchParams) {
-        tokens.push('?' + searchParams);
-      }
-
-      fqname = tokens.join('');
-    } catch (e) {
-      // ignored
-    }
-
-    if (fqname.endsWith('/')) {
-      fqname += '(index)';
-    }
-
-    if (this.inlineScriptOffset) {
-      fqname += `\uA789${this.inlineScriptOffset.lineOffset + 1}:${
-        this.inlineScriptOffset.columnOffset + 1
-      }`;
-    }
-    return fqname;
-  }
-
-  /**
-   * Gets whether this script is blackboxed (part of the skipfiles).
-   */
-  public blackboxed(): boolean {
-    return this._container.isSourceSkipped(this.url);
-  }
-}
-
-/**
- * A Source that has an associated sourcemap.
- */
-export interface ISourceWithMap extends Source {
-  readonly sourceMap: {
-    url: string;
-    metadata: ISourceMapMetadata;
-    // When compiled source references a source map, we'll generate source map sources.
-    // This map |sourceUrl| as written in the source map itself to the Source.
-    // Only present on compiled sources, exclusive with |_origin|.
-    sourceByUrl: Map<string, SourceFromMap>;
-  };
-}
-
-/**
- * A Source generated from a sourcemap. For example, a TypeScript input file
- * discovered from its compiled JavaScript code.
- */
-export class SourceFromMap extends Source {
-  // Sources generated from the source map are referenced by some compiled sources
-  // (through a source map). This map holds the original |sourceUrl| as written in the
-  // source map, which was used to produce this source for each compiled.
-  public readonly compiledToSourceUrl = new Map<ISourceWithMap, string>();
-}
-
-export class WasmSource extends Source {
-  private readonly _offsetsAssembled = getDeferred<void>();
-
-  /**
-   * Mapping of bytecode offsets where line numbers begin. For example, line
-   * 42 begins at `byteOffsetsOfLines[42]`.
-   */
-  private byteOffsetsOfLines?: Uint32Array;
-
-  /**
-   * Promise that resolves when the WASM's source offsets have been loaded.
-   */
-  public readonly offsetsAssembled = this._offsetsAssembled.promise;
-
-  constructor(
-    container: SourceContainer,
-    public readonly url: string,
-    absolutePath: string | undefined,
-    private readonly cdp: Cdp.Api,
-  ) {
-    super(
-      container,
-      url,
-      absolutePath,
-      once(() => this.getContent()),
-      undefined,
-      undefined,
-      undefined,
-      undefined,
-    );
-  }
-
-  protected override checkContentHash(): Promise<string | undefined> {
-    // We translate wasm to wat, so we should never use the original disk version:
-    return Promise.resolve(undefined);
-  }
-
-  /**
-   * Gets a suggested mimetype for the source.
-   */
-  public override get getSuggestedMimeType(): string | undefined {
-    return 'text/wat'; // does not seem to be any standard mime type for WAT
-  }
-
-  public override addScript(script: ISourceScript): void {
-    const hadScripts = this.scripts.length;
-    super.addScript(script);
-
-    // this is a little racey, but we don't want to block the debugger while
-    // assembling offsets for wasm files. Downside is breakpoints hit immediately
-    // when wasm files load might not initially have correct positions.
-    if (!hadScripts) {
-      this.assembleOffsets().finally(() => this._offsetsAssembled.resolve());
-    }
-  }
-
-  /** Offsets a location that came from the runtime script, to where it appears in source code. (Base 1 locations) */
-  public override offsetScriptToSource<T extends { lineNumber: number; columnNumber: number }>(
-    obj: T,
-  ): T {
-    if (this.byteOffsetsOfLines) {
-      // CDP sets locations in wasm as line = 0 and column = byte offset.
-      return {
-        ...obj,
-        columnNumber: 1,
-        lineNumber: binarySearch(this.byteOffsetsOfLines, obj.columnNumber, (a, b) => a - b),
-      };
-    }
-
-    return obj;
-  }
-  /** Offsets a location that came from source code, to where it appears in the runtime script.  (Base 1 locations) */
-  public override offsetSourceToScript<T extends { lineNumber: number; columnNumber: number }>(
-    obj: T,
-  ): T {
-    if (this.byteOffsetsOfLines) {
-      return {
-        ...obj,
-        lineNumber: 1,
-        columnNumber: this.byteOffsetsOfLines[obj.lineNumber - 1] || 1,
-      };
-    }
-
-    return obj;
-  }
-
-  private async assembleOffsets() {
-    for await (const chunk of this.getDisassembledStream()) {
-      let start: number;
-      if (this.byteOffsetsOfLines) {
-        const newOffsets = new Uint32Array(this.byteOffsetsOfLines.length + chunk.lines.length);
-        start = this.byteOffsetsOfLines.length;
-        newOffsets.set(this.byteOffsetsOfLines);
-        this.byteOffsetsOfLines = newOffsets;
-      } else {
-        this.byteOffsetsOfLines = new Uint32Array(chunk.lines.length);
-        start = 0;
-      }
-
-      for (let i = 0; i < chunk.lines.length; i++) {
-        this.byteOffsetsOfLines[start + i] = chunk.bytecodeOffsets[i];
-      }
-    }
-  }
-
-  private async getContent() {
-    let lines = '';
-    for await (const chunk of this.getDisassembledStream()) {
-      lines += chunk.lines.join('\n');
-    }
-
-    return lines;
-  }
-
-  private async *getDisassembledStream() {
-    if (!this.scripts.length) {
-      return;
-    }
-
-    const { scriptId } = this.scripts[0];
-    const r = await this.cdp.Debugger.disassembleWasmModule({ scriptId });
-    if (!r) {
-      return;
-    }
-
-    yield r.chunk;
-
-    while (r.streamId) {
-      const r2 = await this.cdp.Debugger.nextWasmDisassemblyChunk({ streamId: r.streamId });
-      if (!r2) {
-        return;
-      }
-      yield r2.chunk;
-    }
-  }
-}
-
-export const isSourceWithMap = (source: unknown): source is ISourceWithMap =>
-  !!source && source instanceof Source && !!source.sourceMap;
 
 const isOriginalSourceOf = (compiled: Source, original: Source) =>
   original instanceof SourceFromMap && original.compiledToSourceUrl.has(compiled as ISourceWithMap);
@@ -668,8 +148,6 @@ export class SourceContainer {
   private _sourceMapSourcesByUrl: Map<string, SourceFromMap> = new Map();
   private _sourceByAbsolutePath: Map<string, Source> = utils.caseNormalizedMap();
 
-  // All source maps by url.
-  _sourceMaps: Map<string, SourceMapData> = new Map();
   private _sourceMapTimeouts: SourceMapTimeouts = defaultTimeouts;
 
   // Test support.
@@ -735,7 +213,6 @@ export class SourceContainer {
 
   constructor(
     @inject(IDapApi) dap: Dap.Api,
-    @inject(ICdpApi) private readonly cdp: Cdp.Api,
     @inject(ISourceMapFactory) private readonly sourceMapFactory: ISourceMapFactory,
     @inject(ILogger) private readonly logger: ILogger,
     @inject(AnyLaunchConfiguration) private readonly launchConfig: AnyLaunchConfiguration,
@@ -743,6 +220,7 @@ export class SourceContainer {
     @inject(ISourcePathResolver) public readonly sourcePathResolver: ISourcePathResolver,
     @inject(IScriptSkipper) public readonly scriptSkipper: ScriptSkipper,
     @inject(IResourceProvider) private readonly resourceProvider: IResourceProvider,
+    @inject(IWasmSymbolProvider) private readonly wasmSymbols: IWasmSymbolProvider,
   ) {
     this._dap = dap;
 
@@ -864,19 +342,12 @@ export class SourceContainer {
           break;
         }
 
-        const sourceMap = this._sourceMaps.get(uiLocation.source.sourceMap.url);
-        if (
-          !this.logger.assert(
-            sourceMap,
-            `Expected to have sourcemap for loaded source ${uiLocation.source.sourceMap.url}`,
-          )
-        ) {
-          break;
-        }
-
-        await Promise.race([sourceMap.loaded, delay(this._sourceMapTimeouts.resolveLocation)]);
-        if (!sourceMap.map) return { ...uiLocation, isMapped, unmappedReason };
-        const sourceMapped = this._sourceMappedUiLocation(uiLocation, sourceMap.map);
+        const map = await SourceLocationProvider.waitForValueWithTimeout(
+          uiLocation.source.sourceMap,
+          this._sourceMapTimeouts.resolveLocation,
+        );
+        if (!map) return { ...uiLocation, isMapped, unmappedReason };
+        const sourceMapped = await this._sourceMappedUiLocation(uiLocation, map);
         if (!isUiLocation(sourceMapped)) {
           unmappedReason = isMapped ? undefined : sourceMapped;
           break;
@@ -897,16 +368,19 @@ export class SourceContainer {
    * the location in source map source. This method does not wait for the
    * source map to be loaded.
    */
-  currentSiblingUiLocations(uiLocation: IUiLocation, inSource?: Source): IUiLocation[] {
-    return this._uiLocations(uiLocation).filter(
-      uiLocation => !inSource || uiLocation.source === inSource,
-    );
+  public async currentSiblingUiLocations(
+    uiLocation: IUiLocation,
+    inSource?: Source,
+  ): Promise<IUiLocation[]> {
+    const locations = await this._uiLocations(uiLocation);
+    return inSource ? locations.filter(ui => ui.source === inSource) : locations;
   }
 
   /**
    * Clears all sources in the container.
+   * @param silent If true, does not send DAP events to remove the source; used during shutdown
    */
-  clear(silent: boolean) {
+  public clear(silent: boolean) {
     this.scriptsById.clear();
     for (const source of this._sourceByReference.values()) {
       this.removeSource(source, silent);
@@ -922,33 +396,38 @@ export class SourceContainer {
    * Returns all the possible locations the given location can map to or from,
    * taking into account source maps.
    */
-  private _uiLocations(uiLocation: IUiLocation): IUiLocation[] {
-    return [
-      ...this.getSourceMapUiLocations(uiLocation),
-      uiLocation,
-      ...this.getCompiledLocations(uiLocation),
-    ];
+  private async _uiLocations(uiLocation: IUiLocation): Promise<IUiLocation[]> {
+    const [original, source] = await Promise.all([
+      this.getSourceMapUiLocations(uiLocation),
+      this.getCompiledLocations(uiLocation),
+    ]);
+
+    return [...original, uiLocation, ...source];
   }
 
   /**
    * Returns all UI locations the given location maps to.
    */
-  private getSourceMapUiLocations(uiLocation: IUiLocation): IUiLocation[] {
+  private async getSourceMapUiLocations(uiLocation: IUiLocation): Promise<IUiLocation[]> {
     if (!isSourceWithMap(uiLocation.source) || !this._doSourceMappedStepping) return [];
-    const map = this._sourceMaps.get(uiLocation.source.sourceMap.url)?.map;
+    const map = await SourceLocationProvider.waitForValueWithTimeout(
+      uiLocation.source.sourceMap,
+      this._sourceMapTimeouts.resolveLocation,
+    );
+
     if (!map) return [];
-    const sourceMapUiLocation = this._sourceMappedUiLocation(uiLocation, map);
+    const sourceMapUiLocation = await this._sourceMappedUiLocation(uiLocation, map);
     if (!isUiLocation(sourceMapUiLocation)) return [];
 
-    const r = this.getSourceMapUiLocations(sourceMapUiLocation);
+    const r = await this.getSourceMapUiLocations(sourceMapUiLocation);
     r.push(sourceMapUiLocation);
     return r;
   }
 
-  private _sourceMappedUiLocation(
+  private async _sourceMappedUiLocation(
     uiLocation: IUiLocation,
-    map: SourceMap,
-  ): IUiLocation | UnmappedReason {
+    map: SourceMap | IWasmSymbols,
+  ): Promise<IUiLocation | UnmappedReason> {
     const compiled = uiLocation.source;
     if (!isSourceWithMap(compiled)) {
       return UnmappedReason.HasNoMap;
@@ -961,69 +440,83 @@ export class SourceContainer {
       return UnmappedReason.MapDisabled;
     }
 
-    const entry = this.getOptiminalOriginalPosition(
+    const entry = await this.getOptiminalOriginalPosition(
       map,
       rawToUiOffset(uiLocation, compiled.inlineScriptOffset),
     );
 
-    if ('isSourceMapLoadFailure' in entry) {
-      return UnmappedReason.MapLoadingFailed;
-    }
-
-    if (!entry.source) {
+    if (!entry) {
       return UnmappedReason.MapPositionMissing;
     }
 
-    const source = compiled.sourceMap.sourceByUrl.get(entry.source);
+    const source = compiled.sourceMap.sourceByUrl.get(entry.url);
     if (!source) {
       return UnmappedReason.MapPositionMissing;
     }
 
+    const base1 = entry.position.base1;
     return {
-      lineNumber: entry.line || 1,
-      columnNumber: entry.column ? entry.column + 1 : 1, // adjust for 0-based columns
+      lineNumber: base1.lineNumber,
+      columnNumber: base1.columnNumber, // adjust for 0-based columns
       source: source,
     };
   }
 
-  private getCompiledLocations(uiLocation: IUiLocation): IUiLocation[] {
+  private async getCompiledLocations(uiLocation: IUiLocation): Promise<IUiLocation[]> {
     if (!(uiLocation.source instanceof SourceFromMap)) {
       return [];
     }
 
     let output: IUiLocation[] = [];
     for (const [compiled, sourceUrl] of uiLocation.source.compiledToSourceUrl) {
-      const sourceMap = this._sourceMaps.get(compiled.sourceMap.url);
-      if (!sourceMap || !sourceMap.map) {
+      const value = await SourceLocationProvider.waitForValueWithTimeout(
+        compiled.sourceMap,
+        this._sourceMapTimeouts.resolveLocation,
+      );
+
+      if (!value) {
         continue;
       }
 
-      const entry = this.sourceMapFactory.guardSourceMapFn(
-        sourceMap.map,
-        // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-        () => sourceUtils.getOptimalCompiledPosition(sourceUrl, uiLocation, sourceMap.map!),
-        getFallbackPosition,
-      );
+      let locations: IUiLocation[];
+      if ('decompiledUrl' in value) {
+        const entry = await value.compiledPositionFor(
+          sourceUrl,
+          new Base1Position(uiLocation.lineNumber, uiLocation.columnNumber),
+        );
+        if (!entry) {
+          continue;
+        }
+        locations = entry.map(l => ({
+          lineNumber: l.base1.lineNumber,
+          columnNumber: l.base1.columnNumber,
+          source: compiled,
+        }));
+      } else {
+        const entry = this.sourceMapFactory.guardSourceMapFn(
+          value,
+          () => sourceUtils.getOptimalCompiledPosition(sourceUrl, uiLocation, value),
+          getFallbackPosition,
+        );
 
-      if (!entry) {
-        continue;
+        if (!entry) {
+          continue;
+        }
+
+        const { lineNumber, columnNumber } = uiToRawOffset(
+          {
+            lineNumber: entry.line || 1,
+            columnNumber: (entry.column || 0) + 1, // correct for 0 index
+          },
+          compiled.inlineScriptOffset,
+        );
+
+        // recurse for nested sourcemaps:
+        const location = { lineNumber, columnNumber, source: compiled };
+        locations = [location, ...(await this.getCompiledLocations(location))];
       }
 
-      const { lineNumber, columnNumber } = uiToRawOffset(
-        {
-          lineNumber: entry.line || 1,
-          columnNumber: (entry.column || 0) + 1, // correct for 0 index
-        },
-        compiled.inlineScriptOffset,
-      );
-
-      const compiledUiLocation: IUiLocation = {
-        lineNumber,
-        columnNumber,
-        source: compiled,
-      };
-
-      output = output.concat(compiledUiLocation, this.getCompiledLocations(compiledUiLocation));
+      output = output.concat(locations);
     }
 
     return output;
@@ -1032,8 +525,16 @@ export class SourceContainer {
   /**
    * Gets the best original position for the location in the source map.
    */
-  public getOptiminalOriginalPosition(sourceMap: SourceMap, uiLocation: LineColumn) {
-    return this.sourceMapFactory.guardSourceMapFn<NullableMappedPosition>(
+  public async getOptiminalOriginalPosition(
+    sourceMap: SourceMap | IWasmSymbols,
+    uiLocation: LineColumn,
+  ): Promise<{ url: string; position: IPosition } | undefined> {
+    if ('decompiledUrl' in sourceMap) {
+      return await sourceMap.originalPositionFor(
+        new Base1Position(uiLocation.lineNumber, uiLocation.columnNumber),
+      );
+    }
+    const value = this.sourceMapFactory.guardSourceMapFn<NullableMappedPosition>(
       sourceMap,
       () => {
         const glb = sourceMap.originalPositionFor({
@@ -1054,6 +555,15 @@ export class SourceContainer {
       },
       getFallbackPosition,
     );
+
+    if (value.column === null || value.line === null || value.source === null) {
+      return undefined;
+    }
+
+    return {
+      position: new Base01Position(value.line, value.column),
+      url: value.source,
+    };
   }
 
   /**
@@ -1076,7 +586,7 @@ export class SourceContainer {
 
     let source: Source;
     if (event.scriptLanguage === 'WebAssembly') {
-      source = new WasmSource(this, event.url, absolutePath, this.cdp);
+      source = new WasmSource(this, event, absolutePath);
     } else {
       source = new Source(
         this,
@@ -1131,27 +641,52 @@ export class SourceContainer {
     this.scriptSkipper.initializeSkippingValueForSource(source);
     source.toDap().then(dap => this._dap.loadedSource({ reason: 'new', source: dap }));
 
-    if (!isSourceWithMap(source)) {
-      return;
+    if (isSourceWithSourceMap(source)) {
+      this._finishAddSourceWithSourceMap(source);
+    } else if (isSourceWithWasm(source)) {
+      this._finishAddSourceWithWasm(source as WasmSource);
+    }
+  }
+
+  private async _finishAddSourceWithWasm(compiled: WasmSource) {
+    const symbols = await this.wasmSymbols.loadWasmSymbols(compiled.event);
+
+    const todo: Promise<unknown>[] = [];
+    for (const url of symbols.files) {
+      const absolutePath = await this.sourcePathResolver.urlToAbsolutePath({ url });
+      const resolvedUrl = absolutePath ? utils.absolutePathToFileUrl(absolutePath) : url;
+
+      this.logger.verbose(LogTag.RuntimeSourceCreate, 'Creating wasm source from source map', {
+        inputUrl: url,
+        absolutePath,
+        resolvedUrl,
+      });
+
+      const fileUrl = absolutePath && utils.absolutePathToFileUrl(absolutePath);
+      const contentGetter =
+        url === symbols.decompiledUrl
+          ? () => symbols.getDisassembly()
+          : () =>
+              fileUrl
+                ? this.resourceProvider.fetch(fileUrl).then(r => r.body)
+                : Promise.resolve(`Could not read ${url}`);
+
+      const source = new SourceFromMap(this, resolvedUrl, absolutePath, contentGetter);
+      source.compiledToSourceUrl.set(compiled, url);
+      compiled.sourceMap.sourceByUrl.set(url, source);
+      todo.push(this._addSource(source));
     }
 
-    const existingSourceMap = this._sourceMaps.get(source.sourceMap.url);
-    if (existingSourceMap) {
-      existingSourceMap.compiled.add(source);
-      if (existingSourceMap.map) {
-        // If source map has been already loaded, we add sources here.
-        // Otheriwse, we'll add sources for all compiled after loading the map.
-        await this._addSourceMapSources(source, existingSourceMap.map);
-      }
-      return;
-    }
+    await Promise.all(todo);
 
-    const deferred = getDeferred<void>();
-    const sourceMap: SourceMapData = { compiled: new Set([source]), loaded: deferred.promise };
-    this._sourceMaps.set(source.sourceMap.url, sourceMap);
+    compiled.sourceMap.value.resolve(symbols);
+  }
 
+  private async _finishAddSourceWithSourceMap(source: ISourceWithMap<ISourceMapLocationProvider>) {
+    const deferred = source.sourceMap.value;
+    let value: SourceMap | undefined;
     try {
-      sourceMap.map = await this.sourceMapFactory.load(source.sourceMap.metadata);
+      value = await this.sourceMapFactory.load(source.sourceMap.metadata);
     } catch (urlError) {
       if (this.initializeConfig.clientID === 'visualstudio') {
         // On VS we want to support loading source-maps from storage if the web-server doesn't serve them
@@ -1166,7 +701,7 @@ export class SourceContainer {
               utils.absolutePathToFileUrl(sourceMapAbsolutePath);
           }
 
-          sourceMap.map = await this.sourceMapFactory.load(source.sourceMap.metadata);
+          value = await this.sourceMapFactory.load(source.sourceMap.metadata);
           this._statistics.fallbackSourceMapCount++;
 
           this.logger.info(
@@ -1181,36 +716,36 @@ export class SourceContainer {
         } catch {}
       }
 
-      if (!sourceMap.map) {
+      if (value === undefined) {
         this._dap.output({
           output: sourceMapParseFailed(source.url, urlError.message).error.format + '\n',
           category: 'stderr',
         });
 
-        return deferred.resolve();
+        return deferred.resolve(undefined);
       }
     }
 
     // Source map could have been detached while loading.
-    if (this._sourceMaps.get(source.sourceMap.url) !== sourceMap) {
-      return deferred.resolve();
+    if (this._sourceByReference.get(source.sourceReference) !== source) {
+      return deferred.resolve(undefined);
     }
 
     this.logger.verbose(LogTag.SourceMapParsing, 'Creating sources from source map', {
-      sourceMapId: sourceMap.map.id,
-      metadata: sourceMap.map.metadata,
+      sourceMapId: value.id,
+      metadata: value.metadata,
     });
 
-    const todo: Promise<void>[] = [];
-    for (const compiled of sourceMap.compiled) {
-      todo.push(this._addSourceMapSources(compiled, sourceMap.map));
+    try {
+      await this._addSourceMapSources(source, value);
+    } finally {
+      // important to not resolve the sourcemap until after sources are available,
+      // or dependent code that's waiting for the sources will fail
+      deferred.resolve(value);
     }
-
-    await Promise.all(todo);
 
     // re-initialize after loading source mapped sources
     this.scriptSkipper.initializeSkippingValueForSource(source);
-    deferred.resolve();
   }
 
   public removeSource(source: Source, silent = false) {
@@ -1247,30 +782,14 @@ export class SourceContainer {
       source.toDap().then(dap => this._dap.loadedSource({ reason: 'removed', source: dap }));
     }
 
-    if (!isSourceWithMap(source)) return;
-
-    const sourceMap = this._sourceMaps.get(source.sourceMap.url);
-    if (
-      !this.logger.assert(
-        sourceMap,
-        `Source map missing for ${source.sourceMap.url} in removeSource()`,
-      )
-    ) {
-      return;
+    if (isSourceWithSourceMap(source)) {
+      source.sourceMap.value.settledValue?.destroy();
+    } else if (isSourceWithWasm(source)) {
+      source.sourceMap.value.promise.then(w => w?.dispose());
     }
-    this.logger.assert(
-      sourceMap.compiled.has(source),
-      `Source map ${source.sourceMap.url} does not contain source ${source.url}`,
-    );
 
-    sourceMap.compiled.delete(source);
-    if (!sourceMap.compiled.size) {
-      if (sourceMap.map) sourceMap.map.destroy();
-      this._sourceMaps.delete(source.sourceMap.url);
-    }
-    // Source map could still be loading, or failed to load.
-    if (sourceMap.map) {
-      this._removeSourceMapSources(source, sourceMap.map, silent);
+    if (isSourceWithMap(source)) {
+      this._removeSourceMapSources(source, silent);
     }
   }
 
@@ -1366,8 +885,8 @@ export class SourceContainer {
     await Promise.all(todo);
   }
 
-  private _removeSourceMapSources(compiled: ISourceWithMap, map: SourceMap, silent: boolean) {
-    for (const url of map.sources) {
+  private _removeSourceMapSources(compiled: ISourceWithMap, silent: boolean) {
+    for (const url of compiled.sourceMap.sourceByUrl.keys()) {
       const source = compiled.sourceMap.sourceByUrl.get(url);
       if (!source) {
         // Previously, we would have always expected the source to exist here.
@@ -1389,15 +908,8 @@ export class SourceContainer {
       return [];
     }
 
-    const sourceMap = this._sourceMaps.get(source.sourceMap.url);
-    if (
-      !this.logger.assert(sourceMap, 'Unrecognized source map url in waitForSourceMapSources()')
-    ) {
-      return [];
-    }
-
-    await sourceMap.loaded;
-    return [...source.sourceMap.sourceByUrl.values()];
+    const sourcesByUrl = await SourceLocationProvider.waitForSources(source.sourceMap);
+    return [...sourcesByUrl.values()];
   }
 
   /**
@@ -1434,43 +946,3 @@ export class SourceContainer {
     }
   }
 }
-
-type LineColumn = { lineNumber: number; columnNumber: number }; // 1-based
-
-export function uiToRawOffset<T extends LineColumn>(lc: T, offset?: InlineScriptOffset): T {
-  if (!offset) {
-    return lc;
-  }
-
-  let { lineNumber, columnNumber } = lc;
-  if (offset) {
-    lineNumber += offset.lineOffset;
-    if (lineNumber <= 1) columnNumber += offset.columnOffset;
-  }
-
-  return { ...lc, lineNumber, columnNumber };
-}
-
-export function rawToUiOffset<T extends LineColumn>(lc: T, offset?: InlineScriptOffset): T {
-  if (!offset) {
-    return lc;
-  }
-
-  let { lineNumber, columnNumber } = lc;
-  if (offset) {
-    lineNumber = Math.max(1, lineNumber - offset.lineOffset);
-    if (lineNumber <= 1) columnNumber = Math.max(1, columnNumber - offset.columnOffset);
-  }
-
-  return { ...lc, lineNumber, columnNumber };
-}
-
-export const base0To1 = (lc: LineColumn) => ({
-  lineNumber: lc.lineNumber + 1,
-  columnNumber: lc.columnNumber + 1,
-});
-
-export const base1To0 = (lc: LineColumn) => ({
-  lineNumber: lc.lineNumber - 1,
-  columnNumber: lc.columnNumber - 1,
-});

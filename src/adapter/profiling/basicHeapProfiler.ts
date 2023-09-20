@@ -12,7 +12,7 @@ import { AnyLaunchConfiguration } from '../../configuration';
 import { profileCaptureError } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
 import { FS, FsPromises } from '../../ioc-extras';
-import { SourceContainer } from '../sources';
+import { SourceContainer } from '../sourceContainer';
 import { SourceAnnotationHelper } from './sourceAnnotationHelper';
 
 /**

@@ -4,7 +4,7 @@
 
 import Cdp from '../../cdp/api';
 import Dap from '../../dap/api';
-import { SourceContainer } from '../sources';
+import { SourceContainer } from '../sourceContainer';
 
 interface IEmbeddedLocation {
   lineNumber: number;
@@ -45,14 +45,14 @@ export class SourceAnnotationHelper {
           return [];
         }
 
+        const locations = await this.sources.currentSiblingUiLocations({
+          lineNumber: callFrame.lineNumber + 1,
+          columnNumber: callFrame.columnNumber + 1,
+          source,
+        });
+
         return Promise.all(
-          this.sources
-            .currentSiblingUiLocations({
-              lineNumber: callFrame.lineNumber + 1,
-              columnNumber: callFrame.columnNumber + 1,
-              source,
-            })
-            .map(async loc => ({ ...loc, source: await loc.source.toDapShallow() })),
+          locations.map(async loc => ({ ...loc, source: await loc.source.toDapShallow() })),
         );
       })(),
     });

@@ -262,7 +262,6 @@ describe('sources', () => {
         `//# sourceMappingURL=data:application/json;charset=utf-8;base64,${contents}\n`,
       );
       await p.logger.logOutput(await output);
-      await waitForPause(p);
       await ev;
       p.assertLog();
     });

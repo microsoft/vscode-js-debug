@@ -338,14 +338,14 @@ export function trailingEdgeThrottle(
  * Bisets the array by the predicate. The first return value will be the ones
  * in which the predicate returned true, the second where it returned false.
  */
-export function bisectArray<T>(
+export async function bisectArrayAsync<T>(
   items: ReadonlyArray<T>,
-  predicate: (item: T) => boolean,
-): [T[], T[]] {
+  predicate: (item: T) => Promise<boolean>,
+): Promise<[T[], T[]]> {
   const a: T[] = [];
   const b: T[] = [];
   for (const item of items) {
-    if (predicate(item)) {
+    if (await predicate(item)) {
       a.push(item);
     } else {
       b.push(item);

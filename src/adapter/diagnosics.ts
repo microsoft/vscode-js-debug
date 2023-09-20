@@ -18,7 +18,8 @@ import {
   IBreakpointCdpReferenceApplied,
   IBreakpointCdpReferencePending,
 } from './breakpoints/breakpointBase';
-import { IUiLocation, SourceContainer, SourceFromMap } from './sources';
+import { IUiLocation, SourceFromMap, isSourceWithSourceMap } from './source';
+import { SourceContainer } from './sourceContainer';
 
 export interface IDiagnosticSource {
   uniqueId: number;
@@ -148,14 +149,16 @@ export class Diagnostics {
                   ([k, v]) => [k.sourceReference, v] as [number, string],
                 )
               : undefined,
-          sourceMap: source.sourceMap && {
-            url: source.sourceMap.url,
-            metadata: source.sourceMap.metadata,
-            sources: mapValues(
-              Object.fromEntries(source.sourceMap.sourceByUrl),
-              v => v.sourceReference,
-            ),
-          },
+          sourceMap: isSourceWithSourceMap(source)
+            ? {
+                url: source.sourceMap.metadata.sourceMapUrl,
+                metadata: source.sourceMap.metadata,
+                sources: mapValues(
+                  Object.fromEntries(source.sourceMap.sourceByUrl),
+                  v => v.sourceReference,
+                ),
+              }
+            : undefined,
         }))(),
       );
     }

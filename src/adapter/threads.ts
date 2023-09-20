@@ -10,8 +10,8 @@ import { EventEmitter } from '../common/events';
 import { HrTime } from '../common/hrnow';
 import { ILogger, LogTag } from '../common/logging';
 import { isInstanceOf, truthy } from '../common/objUtils';
-import { Base1Position } from '../common/positions';
-import { delay, getDeferred, IDeferred } from '../common/promiseUtil';
+import { Base1Position, Range } from '../common/positions';
+import { IDeferred, delay, getDeferred } from '../common/promiseUtil';
 import { IRenameProvider } from '../common/sourceMaps/renameProvider';
 import * as sourceUtils from '../common/sourceUtils';
 import { StackTraceParser } from '../common/stackTraceParser';
@@ -25,7 +25,7 @@ import { ProtocolError } from '../dap/protocolError';
 import { NodeWorkerTarget } from '../targets/node/nodeWorkerTarget';
 import { ITarget } from '../targets/targets';
 import { IShutdownParticipants } from '../ui/shutdownParticipants';
-import { BreakpointManager, EntryBreakpointMode, IPossibleBreakLocation } from './breakpoints';
+import { BreakpointManager, EntryBreakpointMode } from './breakpoints';
 import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
 import { ICompletions } from './completions';
 import { ExceptionMessage, IConsole, QueryObjectsMessage } from './console';
@@ -33,55 +33,17 @@ import { CustomBreakpointId, customBreakpoints } from './customBreakpoints';
 import { IEvaluator } from './evaluator';
 import { IExceptionPauseService } from './exceptionPauseService';
 import * as objectPreview from './objectPreview';
-import { getContextForType, PreviewContextType } from './objectPreview/contexts';
+import { PreviewContextType, getContextForType } from './objectPreview/contexts';
+import { ExpectedPauseReason, IPausedDetails, StepDirection } from './pause';
 import { SmartStepper } from './smartStepping';
-import {
-  base1To0,
-  IPreferredUiLocation,
-  ISourceWithMap,
-  IUiLocation,
-  Source,
-  SourceContainer,
-} from './sources';
-import { StackFrame, StackTrace } from './stackTrace';
+import { ISourceWithMap, IUiLocation, Source, base1To0 } from './source';
+import { IPreferredUiLocation, SourceContainer } from './sourceContainer';
+import { StackFrame, StackTrace, isStackFrameElement } from './stackTrace';
 import {
   serializeForClipboard,
   serializeForClipboardTmpl,
 } from './templates/serializeForClipboard';
 import { IVariableStoreLocationProvider, VariableStore } from './variableStore';
-
-export type PausedReason =
-  | 'step'
-  | 'breakpoint'
-  | 'exception'
-  | 'pause'
-  | 'entry'
-  | 'goto'
-  | 'function breakpoint'
-  | 'data breakpoint'
-  | 'frame_entry';
-
-export const enum StepDirection {
-  In,
-  Over,
-  Out,
-}
-
-export type ExpectedPauseReason =
-  | { reason: Exclude<PausedReason, 'step'>; description?: string }
-  | { reason: 'step'; description?: string; direction: StepDirection };
-
-export interface IPausedDetails {
-  thread: Thread;
-  reason: PausedReason;
-  event: Cdp.Debugger.PausedEvent;
-  description: string;
-  stackTrace: StackTrace;
-  stepInTargets?: IPossibleBreakLocation[];
-  hitBreakpoints?: string[];
-  text?: string;
-  exception?: Cdp.Runtime.RemoteObject;
-}
 
 export class ExecutionContext {
   public readonly sourceMapLoads = new Map<string, Promise<IUiLocation[]>>();
@@ -199,8 +161,8 @@ export class Thread implements IVariableStoreLocationProvider {
   private _pausedForSourceMapScriptId?: string;
   private _executionContexts: Map<number, ExecutionContext> = new Map();
   readonly replVariables: VariableStore;
-  private _sourceContainer: SourceContainer;
-  private _pauseOnSourceMapBreakpointId?: Cdp.Debugger.BreakpointId;
+  readonly _sourceContainer: SourceContainer;
+  private _pauseOnSourceMapBreakpointIds?: Cdp.Debugger.BreakpointId[];
   private _selectedContext: ExecutionContext | undefined;
   static _allThreadsByDebuggerId = new Map<Cdp.Runtime.UniqueDebuggerId, Thread>();
   private _scriptWithSourceMapHandler?: ScriptWithSourceMapHandler;
@@ -307,7 +269,8 @@ export class Thread implements IVariableStoreLocationProvider {
   public stepOver(): Promise<Dap.NextResult | Dap.Error> {
     return this.stateQueue.enqueue('stepOver', async () => {
       this._expectedPauseReason = { reason: 'step', direction: StepDirection.Over };
-      if (await this._cdp.Debugger.stepOver({})) {
+      const skipList = await this.getCurrentSkipList(StepDirection.Over);
+      if (await this._cdp.Debugger.stepOver({ skipList })) {
         return {};
       }
 
@@ -330,7 +293,8 @@ export class Thread implements IVariableStoreLocationProvider {
           return {};
         }
       } else {
-        if (await this._cdp.Debugger.stepInto({ breakOnAsyncCall: true })) {
+        const skipList = await this.getCurrentSkipList(StepDirection.In);
+        if (await this._cdp.Debugger.stepInto({ breakOnAsyncCall: true, skipList })) {
           return {};
         }
       }
@@ -351,6 +315,32 @@ export class Thread implements IVariableStoreLocationProvider {
     });
   }
 
+  private async getCurrentSkipList(direction: StepDirection) {
+    if (!this._pausedDetails) {
+      return;
+    }
+
+    const [frame] = await this._pausedDetails.stackTrace.loadFrames(1);
+    if (!frame || !isStackFrameElement(frame)) {
+      return undefined;
+    }
+
+    const list = await frame.getStepSkipList(direction);
+    if (!list) {
+      return undefined;
+    }
+
+    // make sure to simplify the range, as V8 is picky about
+    // wanting the ranges in order and non-overlapping.
+    return Range.simplify(list).map(
+      (r): Cdp.Debugger.LocationRange => ({
+        start: r.begin.base0,
+        end: r.end.base0,
+        scriptId: frame.root.scriptId,
+      }),
+    );
+  }
+
   _stackFrameNotFoundError(): Dap.Error {
     return errors.createSilentError(l10n.t('Stack frame not found'));
   }
@@ -360,7 +350,7 @@ export class Thread implements IVariableStoreLocationProvider {
   }
 
   async restartFrame(params: Dap.RestartFrameParams): Promise<Dap.RestartFrameResult | Dap.Error> {
-    const stackFrame = this._pausedDetails?.stackTrace.frame(params.frameId);
+    const stackFrame = this._pausedDetails?.stackTrace.frame(params.frameId)?.root;
     if (!stackFrame) {
       return this._stackFrameNotFoundError();
     }
@@ -438,7 +428,7 @@ export class Thread implements IVariableStoreLocationProvider {
     let stackFrame: StackFrame | undefined;
     if (params.frameId !== undefined) {
       stackFrame = this._pausedDetails
-        ? this._pausedDetails.stackTrace.frame(params.frameId)
+        ? this._pausedDetails.stackTrace.frame(params.frameId)?.root
         : undefined;
       if (!stackFrame) return this._stackFrameNotFoundError();
       if (!stackFrame.callFrameId()) return this._evaluateOnAsyncFrameError();
@@ -477,7 +467,7 @@ export class Thread implements IVariableStoreLocationProvider {
     let stackFrame: StackFrame | undefined;
     if (args.frameId !== undefined) {
       stackFrame = this._pausedDetails
-        ? this._pausedDetails.stackTrace.frame(args.frameId)
+        ? this._pausedDetails.stackTrace.frame(args.frameId)?.root
         : undefined;
       if (!stackFrame) {
         throw new ProtocolError(this._stackFrameNotFoundError());
@@ -808,7 +798,7 @@ export class Thread implements IVariableStoreLocationProvider {
       return;
     }
 
-    this._pausedDetails = this._createPausedDetails(this._pausedDetails.event);
+    this._pausedDetails = await this._createPausedDetails(this._pausedDetails.event);
     this._onThreadResumed();
     await this._onThreadPaused(this._pausedDetails);
   }
@@ -845,9 +835,7 @@ export class Thread implements IVariableStoreLocationProvider {
   }
 
   private async _onPaused(event: Cdp.Debugger.PausedEvent) {
-    const hitBreakpoints = (event.hitBreakpoints ?? []).filter(
-      bp => bp !== this._pauseOnSourceMapBreakpointId,
-    );
+    const hitBreakpoints = event.hitBreakpoints ?? [];
     // "Break on start" is not actually a by-spec reason in CDP, it's added on from Node.js, so cast `as string`:
     // https://github.com/nodejs/node/blob/9cbf6af5b5ace0cc53c1a1da3234aeca02522ec6/src/node_contextify.cc#L913
     // And Deno uses `debugCommand:
@@ -857,8 +845,10 @@ export class Thread implements IVariableStoreLocationProvider {
     const location = event.callFrames[0]?.location as Cdp.Debugger.Location | undefined;
     const scriptId = (event.data as IInstrumentationPauseAuxData)?.scriptId || location?.scriptId;
     const isSourceMapPause =
-      (event.reason === 'instrumentation' && event.data?.scriptId) ||
-      (scriptId && this._breakpointManager.isEntrypointBreak(hitBreakpoints, scriptId));
+      scriptId &&
+      (event.reason === 'instrumentation' ||
+        this._breakpointManager.isEntrypointBreak(hitBreakpoints, scriptId) ||
+        hitBreakpoints.some(bp => this._pauseOnSourceMapBreakpointIds?.includes(bp)));
     this.evaluator.setReturnedValue(event.callFrames[0]?.returnValue);
 
     if (isSourceMapPause) {
@@ -949,7 +939,7 @@ export class Thread implements IVariableStoreLocationProvider {
     }
 
     // We store pausedDetails in a local variable to avoid race conditions while awaiting this._smartStepper.shouldSmartStep
-    const pausedDetails = (this._pausedDetails = this._createPausedDetails(event));
+    const pausedDetails = (this._pausedDetails = await this._createPausedDetails(event));
     if (this._excludedCallers.length) {
       if (await this._matchesExcludedCaller(this._pausedDetails.stackTrace)) {
         this.logger.info(LogTag.Runtime, 'Skipping pause due to excluded caller');
@@ -1210,7 +1200,7 @@ export class Thread implements IVariableStoreLocationProvider {
     await breakpoint.apply(this._cdp, enabled);
   }
 
-  _createPausedDetails(event: Cdp.Debugger.PausedEvent): IPausedDetails {
+  private async _createPausedDetails(event: Cdp.Debugger.PausedEvent): Promise<IPausedDetails> {
     // When hitting breakpoint in compiled source, we ignore source maps during the stepping
     // sequence (or exceptions) until user resumes or hits another breakpoint-alike pause.
     // TODO: this does not work for async stepping just yet.
@@ -1345,14 +1335,15 @@ export class Thread implements IVariableStoreLocationProvider {
             });
 
             if (entryBreakpointSource !== undefined) {
-              const entryBreakpointLocations = this._sourceContainer.currentSiblingUiLocations({
-                lineNumber: event.callFrames[0].location.lineNumber + 1,
-                columnNumber: (event.callFrames[0].location.columnNumber || 0) + 1,
-                source: entryBreakpointSource,
-              });
+              const entryBreakpointLocations =
+                await this._sourceContainer.currentSiblingUiLocations({
+                  lineNumber: event.callFrames[0].location.lineNumber + 1,
+                  columnNumber: (event.callFrames[0].location.columnNumber || 0) + 1,
+                  source: entryBreakpointSource,
+                });
 
               // But if there is a user breakpoint on the same location that the stop on entry breakpoint, then we consider it an user breakpoint
-              isStopOnEntry = !entryBreakpointLocations.some(location =>
+              isStopOnEntry = !entryBreakpointLocations?.some(location =>
                 this._breakpointManager.hasAtLocation(location),
               );
             }
@@ -1537,7 +1528,7 @@ export class Thread implements IVariableStoreLocationProvider {
 
     this._sourceContainer.addScriptById(script);
 
-    if (event.sourceMapURL) {
+    if (event.sourceMapURL || event.scriptLanguage === 'WebAssembly') {
       // If we won't pause before executing this script, still try to load source
       // map and set breakpoints as soon as possible. We pause on the first line
       // (the "module entry breakpoint") to ensure this resolves.
@@ -1775,18 +1766,37 @@ export class Thread implements IVariableStoreLocationProvider {
 
     const needsPause =
       pause && this._sourceContainer.sourceMapTimeouts().sourceMapMinPause && handler;
-    if (needsPause && !this._pauseOnSourceMapBreakpointId) {
-      const result = await this._cdp.Debugger.setInstrumentationBreakpoint({
-        instrumentation: 'beforeScriptWithSourceMapExecution',
-      });
-      this._pauseOnSourceMapBreakpointId = result ? result.breakpointId : undefined;
-    } else if (!needsPause && this._pauseOnSourceMapBreakpointId) {
-      const breakpointId = this._pauseOnSourceMapBreakpointId;
-      this._pauseOnSourceMapBreakpointId = undefined;
-      await this._cdp.Debugger.removeBreakpoint({ breakpointId });
+    if (needsPause && !this._pauseOnSourceMapBreakpointIds?.length) {
+      // setting the URL breakpoint for wasm fails if debugger isn't fully initialized
+      await this.debuggerReady.promise;
+
+      const result = await Promise.all([
+        this._cdp.Debugger.setInstrumentationBreakpoint({
+          instrumentation: 'beforeScriptWithSourceMapExecution',
+        }),
+        // WASM files don't have sourcemaps and so aren't paused in the usual
+        // instrumentation BP. But we do need to pause, either to figure out the WAT
+        // lines or by mapping symbolicated files.
+        //
+        // todo: this does not actually work yet! I have a thread out with the
+        // Chromium folks to see if we can make it work, or if there's another workaround.
+        this._cdp.Debugger.setBreakpointByUrl({
+          lineNumber: 0,
+          columnNumber: 0,
+          // this is very approximate, but hitting it spurriously is not problematic
+          urlRegex: '\\.[wW][aA][sS][mM]',
+        }),
+      ]);
+      this._pauseOnSourceMapBreakpointIds = result.map(r => r?.breakpointId).filter(truthy);
+    } else if (!needsPause && this._pauseOnSourceMapBreakpointIds?.length) {
+      const breakpointIds = this._pauseOnSourceMapBreakpointIds;
+      this._pauseOnSourceMapBreakpointIds = undefined;
+      await Promise.all(
+        breakpointIds.map(breakpointId => this._cdp.Debugger.removeBreakpoint({ breakpointId })),
+      );
     }
 
-    return !!this._pauseOnSourceMapBreakpointId;
+    return !!this._pauseOnSourceMapBreakpointIds?.length;
   }
 
   /**

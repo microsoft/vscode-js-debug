@@ -19,14 +19,8 @@ import * as urlUtils from '../../common/urlUtils';
 import { AnyLaunchConfiguration } from '../../configuration';
 import Dap from '../../dap/api';
 import { ITarget } from '../../targets/targets';
-import {
-  ISourceScript,
-  ISourceWithMap,
-  Source,
-  SourceContainer,
-  SourceFromMap,
-  isSourceWithMap,
-} from '../sources';
+import { ISourceScript, ISourceWithMap, Source, SourceFromMap, isSourceWithMap } from '../source';
+import { SourceContainer } from '../sourceContainer';
 import { getSourceSuffix } from '../templates';
 import { simpleGlobsToRe } from './simpleGlobToRe';
 
@@ -212,7 +206,7 @@ export class ScriptSkipper {
     const parentIsSkipped = this.isScriptSkipped(source.url);
     const skipRanges: Cdp.Debugger.ScriptPosition[] = [];
     let inSkipRange = parentIsSkipped;
-    Array.from(source.sourceMap.sourceByUrl.values()).forEach(authoredSource => {
+    for (const authoredSource of source.sourceMap.sourceByUrl.values()) {
       let isSkippedSource = this.isScriptSkipped(authoredSource.url);
       if (typeof isSkippedSource === 'undefined') {
         // If not toggled or specified in launch config, inherit the parent's status
@@ -220,7 +214,7 @@ export class ScriptSkipper {
       }
 
       if (isSkippedSource !== inSkipRange) {
-        const locations = this._sourceContainer.currentSiblingUiLocations(
+        const locations = await this._sourceContainer.currentSiblingUiLocations(
           { source: authoredSource, lineNumber: 1, columnNumber: 1 },
           source,
         );
@@ -237,7 +231,7 @@ export class ScriptSkipper {
           );
         }
       }
-    });
+    }
 
     let targets = scripts;
     if (!skipRanges.length) {
