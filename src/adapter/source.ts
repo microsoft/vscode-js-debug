@@ -510,6 +510,11 @@ export const isSourceWithWasm = (
 ): source is ISourceWithMap<IWasmLocationProvider> =>
   isSourceWithMap(source) && source.sourceMap.type === SourceLocationType.WasmSymbols;
 
+export const isWasmSymbols = (
+  source: SourceMap | IWasmSymbols | undefined,
+): source is IWasmSymbols =>
+  !!source && typeof (source as IWasmSymbols).getDisassembly === 'function';
+
 export type ContentGetter = () => Promise<string | undefined>;
 export type LineColumn = { lineNumber: number; columnNumber: number }; // 1-based
 

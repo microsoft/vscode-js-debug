@@ -40,6 +40,7 @@ import {
   isSourceWithMap,
   isSourceWithSourceMap,
   isSourceWithWasm,
+  isWasmSymbols,
   rawToUiOffset,
   uiToRawOffset,
 } from './source';
@@ -332,31 +333,23 @@ export class SourceContainer {
    * This method returns a "preferred" location. This usually means going
    * through a source map and showing the source map source instead of a
    * compiled one. We use timeout to avoid waiting for the source map for too long.
+   *
+   * Similar to {@link getSourceMapUiLocations}, except it only returns the
+   * single preferred location.
    */
   public async preferredUiLocation(uiLocation: IUiLocation): Promise<IPreferredUiLocation> {
     let isMapped = false;
     let unmappedReason: UnmappedReason | undefined = UnmappedReason.CannotMap;
-    if (this._doSourceMappedStepping) {
-      while (true) {
-        if (!isSourceWithMap(uiLocation.source)) {
-          break;
-        }
-
-        const map = await SourceLocationProvider.waitForValueWithTimeout(
-          uiLocation.source.sourceMap,
-          this._sourceMapTimeouts.resolveLocation,
-        );
-        if (!map) return { ...uiLocation, isMapped, unmappedReason };
-        const sourceMapped = await this._sourceMappedUiLocation(uiLocation, map);
-        if (!isUiLocation(sourceMapped)) {
-          unmappedReason = isMapped ? undefined : sourceMapped;
-          break;
-        }
-
-        uiLocation = sourceMapped;
-        isMapped = true;
-        unmappedReason = undefined;
+    while (true) {
+      const next = await this._originalPositionFor(uiLocation);
+      if (!isUiLocation(next)) {
+        unmappedReason = isMapped ? undefined : next;
+        break;
       }
+
+      uiLocation = next;
+      isMapped = true;
+      unmappedReason = undefined;
     }
 
     return { ...uiLocation, isMapped, unmappedReason };
@@ -407,24 +400,65 @@ export class SourceContainer {
 
   /**
    * Returns all UI locations the given location maps to.
+   *
+   * Similar to {@link preferredUiLocation}, except it returns all positions,
+   * not just one.
    */
   private async getSourceMapUiLocations(uiLocation: IUiLocation): Promise<IUiLocation[]> {
-    if (!isSourceWithMap(uiLocation.source) || !this._doSourceMappedStepping) return [];
-    const map = await SourceLocationProvider.waitForValueWithTimeout(
-      uiLocation.source.sourceMap,
-      this._sourceMapTimeouts.resolveLocation,
-    );
-
-    if (!map) return [];
-    const sourceMapUiLocation = await this._sourceMappedUiLocation(uiLocation, map);
-    if (!isUiLocation(sourceMapUiLocation)) return [];
+    const sourceMapUiLocation = await this._originalPositionFor(uiLocation);
+    if (!isUiLocation(sourceMapUiLocation)) {
+      return [];
+    }
 
     const r = await this.getSourceMapUiLocations(sourceMapUiLocation);
     r.push(sourceMapUiLocation);
     return r;
   }
 
-  private async _sourceMappedUiLocation(
+  /**
+   * Gets the compiled position for a single UI location. Is aware of whether
+   * source map stepping is enabled.
+   */
+  private async _originalPositionFor(uiLocation: IUiLocation) {
+    if (!isSourceWithMap(uiLocation.source)) {
+      return UnmappedReason.HasNoMap;
+    }
+
+    const map = await SourceLocationProvider.waitForValueWithTimeout(
+      uiLocation.source.sourceMap,
+      this._sourceMapTimeouts.resolveLocation,
+    );
+    if (!map) {
+      return UnmappedReason.MapLoadingFailed;
+    }
+
+    if (this._doSourceMappedStepping) {
+      return this._originalPositionForMap(uiLocation, map);
+    }
+
+    if (isWasmSymbols(map)) {
+      const l = await map.disassembledPositionFor(
+        new Base1Position(uiLocation.lineNumber, uiLocation.columnNumber),
+      );
+      const mapped = l && uiLocation.source.sourceMap.sourceByUrl.get(l.url);
+      if (mapped) {
+        return mapped
+          ? {
+              columnNumber: l.position.base1.lineNumber,
+              lineNumber: l.position.base1.lineNumber,
+              source: mapped,
+            }
+          : UnmappedReason.MapPositionMissing;
+      }
+    }
+
+    return UnmappedReason.MapDisabled;
+  }
+
+  /**
+   * Looks up the given location in the sourcemap.
+   */
+  private async _originalPositionForMap(
     uiLocation: IUiLocation,
     map: SourceMap | IWasmSymbols,
   ): Promise<IUiLocation | UnmappedReason> {
@@ -529,7 +563,7 @@ export class SourceContainer {
     sourceMap: SourceMap | IWasmSymbols,
     uiLocation: LineColumn,
   ): Promise<{ url: string; position: IPosition } | undefined> {
-    if ('decompiledUrl' in sourceMap) {
+    if (isWasmSymbols(sourceMap)) {
       return await sourceMap.originalPositionFor(
         new Base1Position(uiLocation.lineNumber, uiLocation.columnNumber),
       );

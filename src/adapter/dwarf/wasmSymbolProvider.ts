@@ -13,6 +13,7 @@ import { IDisposable } from '../../common/disposable';
 import { ILogger, LogTag } from '../../common/logging';
 import { flatten, once } from '../../common/objUtils';
 import { Base0Position, IPosition, Range } from '../../common/positions';
+import { AnyLaunchConfiguration } from '../../configuration';
 import { StepDirection } from '../pause';
 import { getSourceSuffix } from '../templates';
 import { IDwarfModuleProvider } from './dwarfModuleProvider';
@@ -35,12 +36,17 @@ export class WasmSymbolProvider implements IWasmSymbolProvider, IDisposable {
     @inject(IDwarfModuleProvider) private readonly dwarf: IDwarfModuleProvider,
     @inject(ICdpApi) private readonly cdp: Cdp.Api,
     @inject(ILogger) private readonly logger: ILogger,
+    @inject(AnyLaunchConfiguration) private readonly launchConfig: AnyLaunchConfiguration,
   ) {}
 
   public async loadWasmSymbols(script: Cdp.Debugger.ScriptParsedEvent): Promise<IWasmSymbols> {
+    if (!this.launchConfig.enableDWARF) {
+      return this.defaultSymbols(script);
+    }
+
     const rpc = await this.getWorker();
     if (!rpc) {
-      const syms = new DecompiledWasmSymbols(script, this.cdp, []);
+      const syms = this.defaultSymbols(script);
       // disassembly is a good signal for a prompt, since that means a user
       // will have stepped into and be looking at webassembly code.
       syms.onDidDisassemble = this.doPrompt;
@@ -60,12 +66,12 @@ export class WasmSymbolProvider implements IWasmSymbolProvider, IDisposable {
             : undefined,
       });
     } catch {
-      return new DecompiledWasmSymbols(script, this.cdp, []);
+      return this.defaultSymbols(script);
     }
 
     if (!(result instanceof Array) || result.length === 0) {
       rpc.sendMessage('removeRawModule', moduleId); // no await necessary
-      return new DecompiledWasmSymbols(script, this.cdp, []);
+      return this.defaultSymbols(script);
     }
 
     this.logger.info(LogTag.SourceMapParsing, 'parsed files from wasm', { files: result });
@@ -77,6 +83,10 @@ export class WasmSymbolProvider implements IWasmSymbolProvider, IDisposable {
   public dispose(): void {
     this.worker?.dispose();
     this.worker = undefined;
+  }
+
+  private defaultSymbols(script: Cdp.Debugger.ScriptParsedEvent) {
+    return new DecompiledWasmSymbols(script, this.cdp, []);
   }
 
   private async getBytecode(scriptId: string) {
@@ -179,6 +189,16 @@ export interface IWasmSymbols extends IDisposable {
   ): Promise<{ url: string; position: IPosition } | undefined>;
 
   /**
+   * Gets the position in the disassembly for the given position in compiled code.
+   *
+   * Following CDP semantics, it assumes the column is being the byte offset
+   * in webassembly. However, we encode the inline frame index in the line.
+   */
+  disassembledPositionFor(
+    compiledPosition: IPosition,
+  ): Promise<{ url: string; position: IPosition } | undefined>;
+
+  /**
    * Gets the compiled position for the given position in source code.
    *
    * Following CDP semantics, it assumes the position is line 0 with the column
@@ -247,7 +267,14 @@ class DecompiledWasmSymbols implements IWasmSymbols {
   }
 
   /** @inheritdoc */
-  public async originalPositionFor(
+  public originalPositionFor(
+    compiledPosition: IPosition,
+  ): Promise<{ url: string; position: IPosition } | undefined> {
+    return this.disassembledPositionFor(compiledPosition);
+  }
+
+  /** @inheritdoc */
+  public async disassembledPositionFor(
     compiledPosition: IPosition,
   ): Promise<{ url: string; position: IPosition } | undefined> {
     const { byteOffsetsOfLines } = await this.doDisassemble();
@@ -385,6 +412,10 @@ class WasmSymbols extends DecompiledWasmSymbols {
     sourceUrl: string,
     sourcePosition: IPosition,
   ): Promise<IPosition[]> {
+    if (sourceUrl === this.decompiledUrl) {
+      return super.compiledPositionFor(sourceUrl, sourcePosition);
+    }
+
     const { lineNumber, columnNumber } = sourcePosition.base0;
     const locations = await this.rpc.sendMessage('sourceLocationToRawLocation', {
       lineNumber,

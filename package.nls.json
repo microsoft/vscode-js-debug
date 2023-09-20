@@ -2,6 +2,7 @@
   "add.browser.breakpoint": "Add Browser Breakpoint",
   "attach.node.process": "Attach to Node Process",
   "base.cascadeTerminateToConfigurations.label": "A list of debug sessions which, when this debug session is terminated, will also be stopped.",
+  "base.enableDWARF.label": "Toggles whether the debugger will try to read DWARF debug symbols from WebAssembly, which can be resource intensive. Requires the `ms-vscode.wasm-dwarf-debugging` extension to function.",
   "browser.address.description": "IP address or hostname the debugged browser is listening on.",
   "browser.attach.port.description": "Port to use to remote debugging the browser, given as `--remote-debugging-port` when launching the browser.",
   "browser.baseUrl.description": "Base URL to resolve paths baseUrl. baseURL is trimmed when mapping URLs to the files on disk. Defaults to the launch URL domain.",

@@ -159,6 +159,13 @@ export interface IBaseConfiguration extends IMandatedConfiguration {
   cascadeTerminateToConfigurations: string[];
 
   /**
+   * Toggles whether the debugger will try to read DWARF debug symbols from
+   * WebAssembly, which can be resource intensive. Requires the
+   * `ms-vscode.wasm-dwarf-debugging` extension to function.
+   */
+  enableDWARF: boolean;
+
+  /**
    * The value of the ${workspaceFolder} variable
    */
   __workspaceFolder: string;
@@ -814,6 +821,7 @@ export const baseDefaults: IBaseConfiguration = {
   sourceMapPathOverrides: defaultSourceMapPathOverrides('${workspaceFolder}'),
   enableContentValidation: true,
   cascadeTerminateToConfigurations: [],
+  enableDWARF: true,
   // Should always be determined upstream;
   __workspaceFolder: '',
   __remoteFilePrefix: undefined,
