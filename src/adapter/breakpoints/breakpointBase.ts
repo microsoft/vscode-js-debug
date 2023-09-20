@@ -5,7 +5,7 @@
 import Cdp from '../../cdp/api';
 import { LogTag } from '../../common/logging';
 import { IPosition } from '../../common/positions';
-import { absolutePathToFileUrl, urlToRegex } from '../../common/urlUtils';
+import { absolutePathToFileUrl } from '../../common/urlUtils';
 import Dap from '../../dap/api';
 import { BreakpointManager } from '../breakpoints';
 import { ISourceScript, IUiLocation, Source, SourceFromMap, base1To0 } from '../source';
@@ -314,7 +314,7 @@ export abstract class Breakpoint {
 
     const promises: Promise<void>[] = [];
     for (const uiLocation of uiLocations) {
-      promises.push(this._setByScriptId(thread, script, source.offsetSourceToScript(uiLocation)));
+      promises.push(this._setForSpecific(thread, script, source.offsetSourceToScript(uiLocation)));
     }
 
     // If we get a source map that references this script exact URL, then
@@ -480,7 +480,7 @@ export abstract class Breakpoint {
 
   private async _setByUiLocation(thread: Thread, uiLocation: IUiLocation): Promise<void> {
     await Promise.all(
-      uiLocation.source.scripts.map(script => this._setByScriptId(thread, script, uiLocation)),
+      uiLocation.source.scripts.map(script => this._setForSpecific(thread, script, uiLocation)),
     );
   }
 
@@ -539,7 +539,9 @@ export abstract class Breakpoint {
           lcEqual(bp.args.location, lineColumn)) ||
         (script.url &&
           isSetByUrl(bp.args) &&
-          new RegExp(bp.args.urlRegex ?? '').test(script.url) &&
+          (bp.args.urlRegex
+            ? new RegExp(bp.args.urlRegex).test(script.url)
+            : script.url === bp.args.url) &&
           lcEqual(bp.args, lineColumn)),
     );
   }
@@ -549,23 +551,60 @@ export abstract class Breakpoint {
    * at the provided script by url regexp already. This is used to deduplicate breakpoint
    * requests to avoid triggering any logpoint breakpoints multiple times.
    */
-  protected hasSetOnLocationByRegexp(urlRegexp: string, lineColumn: LineColumn) {
+  protected hasSetOnLocationByUrl(kind: 're' | 'url', input: string, lineColumn: LineColumn) {
     return this.cdpBreakpoints.find(bp => {
       if (isSetByUrl(bp.args)) {
-        return bp.args.urlRegex === urlRegexp && lcEqual(bp.args, lineColumn);
+        if (!lcEqual(bp.args, lineColumn)) {
+          return false;
+        }
+
+        if (kind === 'url') {
+          return bp.args.urlRegex
+            ? new RegExp(bp.args.urlRegex).test(input)
+            : bp.args.url === input;
+        } else {
+          return kind === 're' && bp.args.urlRegex === input;
+        }
       }
 
       const script = this._manager._sourceContainer.getScriptById(bp.args.location.scriptId);
       if (script) {
-        return lcEqual(bp.args.location, lineColumn) && new RegExp(urlRegexp).test(script.url);
+        return lcEqual(bp.args.location, lineColumn) && kind === 're'
+          ? new RegExp(input).test(script.url)
+          : script.url === input;
       }
 
       return undefined;
     });
   }
 
+  protected async _setForSpecific(thread: Thread, script: ISourceScript, lineColumn: LineColumn) {
+    // prefer to set on script URL for non-anonymous scripts, since url breakpoints
+    // will survive and be hit on reload.
+    if (script.url) {
+      return this._setByUrl(thread, script.url, lineColumn);
+    } else {
+      return this._setByScriptId(thread, script, lineColumn);
+    }
+  }
+
   protected async _setByUrl(thread: Thread, url: string, lineColumn: LineColumn): Promise<void> {
-    return this._setByUrlRegexp(thread, urlToRegex(url), lineColumn);
+    lineColumn = base1To0(lineColumn);
+
+    const previous = this.hasSetOnLocationByUrl('url', url, lineColumn);
+    if (previous) {
+      if (previous.state === CdpReferenceState.Pending) {
+        await previous.done;
+      }
+
+      return;
+    }
+
+    return this._setAny(thread, {
+      url,
+      condition: this.getBreakCondition(),
+      ...lineColumn,
+    });
   }
 
   protected async _setByUrlRegexp(
@@ -573,12 +612,9 @@ export abstract class Breakpoint {
     urlRegex: string,
     lineColumn: LineColumn,
   ): Promise<void> {
-    lineColumn = {
-      columnNumber: lineColumn.columnNumber - 1,
-      lineNumber: lineColumn.lineNumber - 1,
-    };
+    lineColumn = base1To0(lineColumn);
 
-    const previous = this.hasSetOnLocationByRegexp(urlRegex, lineColumn);
+    const previous = this.hasSetOnLocationByUrl('re', urlRegex, lineColumn);
     if (previous) {
       if (previous.state === CdpReferenceState.Pending) {
         await previous.done;

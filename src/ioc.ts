@@ -32,6 +32,7 @@ import { IConsole } from './adapter/console';
 import { Console } from './adapter/console/console';
 import { Diagnostics } from './adapter/diagnosics';
 import { DiagnosticToolSuggester } from './adapter/diagnosticToolSuggester';
+import { IWasmSymbolProvider, WasmSymbolProvider } from './adapter/dwarf/wasmSymbolProvider';
 import { Evaluator, IEvaluator } from './adapter/evaluator';
 import { ExceptionPauseService, IExceptionPauseService } from './adapter/exceptionPauseService';
 import { IPerformanceProvider, PerformanceProviderFactory } from './adapter/performance';
@@ -48,11 +49,6 @@ import { IScriptSkipper } from './adapter/scriptSkipper/scriptSkipper';
 import { SmartStepper } from './adapter/smartStepping';
 import { SourceContainer } from './adapter/sourceContainer';
 import { IVueFileMapper, VueFileMapper } from './adapter/vueFileMapper';
-import {
-  IWasmSymbolProvider,
-  StubWasmSymbolProvider,
-  WasmSymbolProvider,
-} from './adapter/wasmSymbolProvider';
 import Cdp from './cdp/api';
 import { ICdpApi } from './cdp/connection';
 import { ObservableMap } from './common/datastructure/observableMap';
@@ -125,6 +121,8 @@ import { NullTelemetryReporter } from './telemetry/nullTelemetryReporter';
 import { ITelemetryReporter } from './telemetry/telemetryReporter';
 import { IShutdownParticipants, ShutdownParticipants } from './ui/shutdownParticipants';
 import { registerTopLevelSessionComponents, registerUiComponents } from './ui/ui-ioc';
+import { IDwarfModuleProvider } from './adapter/dwarf/dwarfModuleProvider';
+import { DwarfModuleProvider } from './adapter/dwarf/dwarfModuleProviderImpl';
 
 /**
  * Contains IOC container factories for the extension. We use Inverisfy, which
@@ -197,6 +195,7 @@ export const createTargetContainer = (
   container.bind(IEvaluator).to(Evaluator).inSingletonScope();
   container.bind(IConsole).to(Console).inSingletonScope();
   container.bind(IShutdownParticipants).to(ShutdownParticipants).inSingletonScope();
+  container.bind(IWasmSymbolProvider).to(WasmSymbolProvider).inSingletonScope();
 
   container.bind(BasicCpuProfiler).toSelf();
   container.bind(BasicHeapProfiler).toSelf();
@@ -209,20 +208,6 @@ export const createTargetContainer = (
     .to(CdpProxyProvider)
     .inSingletonScope()
     .onActivation(trackDispose);
-
-  try {
-    // todo: temporarily ignore import errors until the module is published
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    //@ts-ignore
-    const dwarf = require('@vscode/dwarf-debugging');
-    container
-      .bind(IWasmSymbolProvider)
-      .toDynamicValue(ctx => new WasmSymbolProvider(dwarf.spawn, cdp, ctx.container.get(ILogger)))
-      .inSingletonScope()
-      .onActivation(trackDispose);
-  } catch {
-    container.bind(IWasmSymbolProvider).to(StubWasmSymbolProvider).inSingletonScope();
-  }
 
   return container;
 };
@@ -289,6 +274,10 @@ export const createTopLevelSessionContainer = (parent: Container) => {
       parent.get(DelegateLauncherFactory).createLauncher(container.get(ILogger)),
     )
     .inSingletonScope();
+
+  if (!container.isBound(IDwarfModuleProvider)) {
+    container.bind(IDwarfModuleProvider).to(DwarfModuleProvider).inSingletonScope();
+  }
 
   const browserFinderFactory = (ctor: BrowserFinderCtor) => (ctx: interfaces.Context) =>
     new ctor(ctx.container.get(ProcessEnv), ctx.container.get(FS), ctx.container.get(Execa));

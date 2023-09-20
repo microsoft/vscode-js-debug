@@ -3,9 +3,10 @@
  *--------------------------------------------------------*/
 
 import { inject, injectable } from 'inversify';
-import { ISourceWithMap, Source, SourceFromMap, isSourceWithSourceMap } from '../../adapter/source';
+import { Source, SourceFromMap, isSourceWithSourceMap } from '../../adapter/source';
 import { StackFrame } from '../../adapter/stackTrace';
 import { AnyLaunchConfiguration } from '../../configuration';
+import { iteratorFirst } from '../arrayUtils';
 import { Base01Position, IPosition } from '../positions';
 import { PositionToOffset } from '../stringUtils';
 import { SourceMap } from './sourceMap';
@@ -73,7 +74,7 @@ export class RenameProvider implements IRenameProvider {
       return RenameMapping.None;
     }
 
-    const original: ISourceWithMap | undefined = source.compiledToSourceUrl.keys().next().value;
+    const original = iteratorFirst(source.compiledToSourceUrl.keys());
     if (!original) {
       throw new Error('unreachable');
     }

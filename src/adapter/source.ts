@@ -16,8 +16,8 @@ import * as sourceUtils from '../common/sourceUtils';
 import { prettyPrintAsSourceMap } from '../common/sourceUtils';
 import * as utils from '../common/urlUtils';
 import Dap from '../dap/api';
+import { IWasmSymbols } from './dwarf/wasmSymbolProvider';
 import type { SourceContainer } from './sourceContainer';
-import { IWasmSymbols } from './wasmSymbolProvider';
 
 // Represents a text source visible to the user.
 //
@@ -509,6 +509,7 @@ export const isSourceWithWasm = (
   source: unknown,
 ): source is ISourceWithMap<IWasmLocationProvider> =>
   isSourceWithMap(source) && source.sourceMap.type === SourceLocationType.WasmSymbols;
+
 export type ContentGetter = () => Promise<string | undefined>;
 export type LineColumn = { lineNumber: number; columnNumber: number }; // 1-based
 

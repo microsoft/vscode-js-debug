@@ -32,3 +32,26 @@ export function binarySearch<T>(
 
   return low;
 }
+
+/**
+ * Groups an array using an accessor function.
+ */
+export function groupBy<T, K>(array: T[], accessor: (item: T) => K): Map<K, T[]> {
+  const groups: Map<K, T[]> = new Map();
+
+  for (const item of array) {
+    const key = accessor(item);
+    const group = groups.get(key);
+    if (group) {
+      group.push(item);
+    } else {
+      groups.set(key, [item]);
+    }
+  }
+
+  return groups;
+}
+
+export function iteratorFirst<T>(it: IterableIterator<T>): T | undefined {
+  return it.next().value;
+}
