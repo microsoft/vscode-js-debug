@@ -1,0 +1,172 @@
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+__main_argc_argv @ ${workspaceFolder}/web/dwarf/diverse-inlining-main.c:7:14
+<anonymous> @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:723:14
+Window.callMain @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1626:15
+Window.doRun @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1676:23
+<anonymous> @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1687:7
+----setTimeout----
+run @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1683:5
+runCaller @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1603:19
+removeRunDependency @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:641:7
+receiveInstance @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:860:5
+receiveInstantiationResult @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:878:5
+----Promise.then----
+<anonymous> @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:813:21
+----Promise.then----
+instantiateAsync @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:805:62
+createWasm @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:897:3
+<anonymous> @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1292:19
+---- stepIn ----
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+foo @ ${workspaceFolder}/web/dwarf/diverse-inlining.h:1:0
+__main_argc_argv @ ${workspaceFolder}/web/dwarf/diverse-inlining-main.c:7:10
+<anonymous> @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:723:14
+Window.callMain @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1626:15
+Window.doRun @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1676:23
+<anonymous> @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1687:7
+----setTimeout----
+run @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1683:5
+runCaller @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1603:19
+removeRunDependency @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:641:7
+receiveInstance @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:860:5
+receiveInstantiationResult @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:878:5
+----Promise.then----
+<anonymous> @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:813:21
+----Promise.then----
+instantiateAsync @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:805:62
+createWasm @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:897:3
+<anonymous> @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1292:19
+---- stepOut ----
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+__main_argc_argv @ ${workspaceFolder}/web/dwarf/diverse-inlining-main.c:7:10
+<anonymous> @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:723:14
+Window.callMain @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1626:15
+Window.doRun @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1676:23
+<anonymous> @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1687:7
+----setTimeout----
+run @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1683:5
+runCaller @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1603:19
+removeRunDependency @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:641:7
+receiveInstance @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:860:5
+receiveInstantiationResult @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:878:5
+----Promise.then----
+<anonymous> @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:813:21
+----Promise.then----
+instantiateAsync @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:805:62
+createWasm @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:897:3
+<anonymous> @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1292:19
+---- next ----
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+__main_argc_argv @ ${workspaceFolder}/web/dwarf/diverse-inlining-main.c:8:14
+<anonymous> @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:723:14
+Window.callMain @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1626:15
+Window.doRun @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1676:23
+<anonymous> @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1687:7
+----setTimeout----
+run @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1683:5
+runCaller @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1603:19
+removeRunDependency @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:641:7
+receiveInstance @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:860:5
+receiveInstantiationResult @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:878:5
+----Promise.then----
+<anonymous> @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:813:21
+----Promise.then----
+instantiateAsync @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:805:62
+createWasm @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:897:3
+<anonymous> @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1292:19
+---- stepIn ----
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+bar @ ${workspaceFolder}/web/dwarf/diverse-inlining-extern.c:4:0
+__main_argc_argv @ ${workspaceFolder}/web/dwarf/diverse-inlining-main.c:8:10
+<anonymous> @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:723:14
+Window.callMain @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1626:15
+Window.doRun @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1676:23
+<anonymous> @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1687:7
+----setTimeout----
+run @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1683:5
+runCaller @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1603:19
+removeRunDependency @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:641:7
+receiveInstance @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:860:5
+receiveInstantiationResult @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:878:5
+----Promise.then----
+<anonymous> @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:813:21
+----Promise.then----
+instantiateAsync @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:805:62
+createWasm @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:897:3
+<anonymous> @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1292:19
+---- stepIn ----
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+bar @ ${workspaceFolder}/web/dwarf/diverse-inlining-extern.c:5:14
+__main_argc_argv @ ${workspaceFolder}/web/dwarf/diverse-inlining-main.c:8:10
+<anonymous> @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:723:14
+Window.callMain @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1626:15
+Window.doRun @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1676:23
+<anonymous> @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1687:7
+----setTimeout----
+run @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1683:5
+runCaller @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1603:19
+removeRunDependency @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:641:7
+receiveInstance @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:860:5
+receiveInstantiationResult @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:878:5
+----Promise.then----
+<anonymous> @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:813:21
+----Promise.then----
+instantiateAsync @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:805:62
+createWasm @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:897:3
+<anonymous> @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1292:19
+---- stepIn ----
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+foo @ ${workspaceFolder}/web/dwarf/diverse-inlining.h:2:7
+bar @ ${workspaceFolder}/web/dwarf/diverse-inlining-extern.c:5:10
+__main_argc_argv @ ${workspaceFolder}/web/dwarf/diverse-inlining-main.c:8:10
+<anonymous> @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:723:14
+Window.callMain @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1626:15
+Window.doRun @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1676:23
+<anonymous> @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1687:7
+----setTimeout----
+run @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1683:5
+runCaller @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1603:19
+removeRunDependency @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:641:7
+receiveInstance @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:860:5
+receiveInstantiationResult @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:878:5
+----Promise.then----
+<anonymous> @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:813:21
+----Promise.then----
+instantiateAsync @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:805:62
+createWasm @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:897:3
+<anonymous> @ ${workspaceFolder}/web/dwarf/diverse-inlining.js:1292:19

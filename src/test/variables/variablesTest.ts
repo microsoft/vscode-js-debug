@@ -365,7 +365,7 @@ describe('variables', () => {
       const p = await r.launchUrlAndLoad('minified/index.html');
       p.cdp.Runtime.evaluate({ expression: `test()` });
       const event = await p.dap.once('stopped');
-      const stacks = await p.logger.logStackTrace(event.threadId!, true);
+      const stacks = await p.logger.logStackTrace(event.threadId!, Infinity);
 
       p.log('\nPreserves eval sourceURL (#1259):'); // https://github.com/microsoft/vscode-js-debug/issues/1259#issuecomment-1442584596
       p.log(

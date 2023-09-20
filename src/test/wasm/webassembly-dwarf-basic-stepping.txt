@@ -1,0 +1,55 @@
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+fib @ ${workspaceFolder}/web/dwarf/fibonacci.c:7:9
+main @ ${workspaceFolder}/web/dwarf/fibonacci.c:14:11
+Window.$main @ localhost꞉8001/dwarf/fibonacci.wat:230:1
+<anonymous> @ ${workspaceFolder}/web/dwarf/fibonacci.js:723:14
+Window.callMain @ ${workspaceFolder}/web/dwarf/fibonacci.js:1580:15
+Window.doRun @ ${workspaceFolder}/web/dwarf/fibonacci.js:1630:23
+<anonymous> @ ${workspaceFolder}/web/dwarf/fibonacci.js:1641:7
+----setTimeout----
+run @ ${workspaceFolder}/web/dwarf/fibonacci.js:1637:5
+runCaller @ ${workspaceFolder}/web/dwarf/fibonacci.js:1565:19
+removeRunDependency @ ${workspaceFolder}/web/dwarf/fibonacci.js:641:7
+receiveInstance @ ${workspaceFolder}/web/dwarf/fibonacci.js:860:5
+receiveInstantiationResult @ ${workspaceFolder}/web/dwarf/fibonacci.js:878:5
+----Promise.then----
+<anonymous> @ ${workspaceFolder}/web/dwarf/fibonacci.js:813:21
+----Promise.then----
+instantiateAsync @ ${workspaceFolder}/web/dwarf/fibonacci.js:805:62
+createWasm @ ${workspaceFolder}/web/dwarf/fibonacci.js:897:3
+<anonymous> @ ${workspaceFolder}/web/dwarf/fibonacci.js:1253:19
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+main @ ${workspaceFolder}/web/dwarf/fibonacci.c:14:11
+Window.$main @ localhost꞉8001/dwarf/fibonacci.wat:230:1
+<anonymous> @ ${workspaceFolder}/web/dwarf/fibonacci.js:723:14
+Window.callMain @ ${workspaceFolder}/web/dwarf/fibonacci.js:1580:15
+Window.doRun @ ${workspaceFolder}/web/dwarf/fibonacci.js:1630:23
+<anonymous> @ ${workspaceFolder}/web/dwarf/fibonacci.js:1641:7
+----setTimeout----
+run @ ${workspaceFolder}/web/dwarf/fibonacci.js:1637:5
+runCaller @ ${workspaceFolder}/web/dwarf/fibonacci.js:1565:19
+removeRunDependency @ ${workspaceFolder}/web/dwarf/fibonacci.js:641:7
+receiveInstance @ ${workspaceFolder}/web/dwarf/fibonacci.js:860:5
+receiveInstantiationResult @ ${workspaceFolder}/web/dwarf/fibonacci.js:878:5
+----Promise.then----
+<anonymous> @ ${workspaceFolder}/web/dwarf/fibonacci.js:813:21
+----Promise.then----
+instantiateAsync @ ${workspaceFolder}/web/dwarf/fibonacci.js:805:62
+createWasm @ ${workspaceFolder}/web/dwarf/fibonacci.js:897:3
+<anonymous> @ ${workspaceFolder}/web/dwarf/fibonacci.js:1253:19
