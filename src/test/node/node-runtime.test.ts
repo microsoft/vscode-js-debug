@@ -65,7 +65,7 @@ describe('node runtime', () => {
       handle.load();
       const stoppedParams = await handle.dap.once('stopped');
       await delay(200); // need to pause test to let debouncer update scripts
-      await handle.logger.logStackTrace(stoppedParams.threadId!, false);
+      await handle.logger.logStackTrace(stoppedParams.threadId!);
       handle.assertLog({ customAssert: assertSkipFiles });
     });
 
@@ -89,7 +89,7 @@ describe('node runtime', () => {
 
             handle.dap.on('output', o => handle.logger.logOutput(o));
             handle.dap.on('stopped', async o => {
-              await handle.logger.logStackTrace(o.threadId!, false);
+              await handle.logger.logStackTrace(o.threadId!);
               await handle.dap.continue({ threadId: o.threadId! });
             });
 

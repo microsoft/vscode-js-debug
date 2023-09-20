@@ -10,7 +10,7 @@ import { itIntegrates, waitForPause } from '../testIntegrationUtils';
 describe('stacks', () => {
   async function dumpStackAndContinue(p: TestP, scopes: boolean) {
     const event = await p.dap.once('stopped');
-    await p.logger.logStackTrace(event.threadId!, scopes);
+    await p.logger.logStackTrace(event.threadId!, scopes ? Infinity : 0);
     await p.dap.continue({ threadId: event.threadId! });
   }
 
@@ -250,7 +250,7 @@ describe('stacks', () => {
     async function waitForPausedThenDelayStackTrace(p: TestP, scopes: boolean) {
       const event = await p.dap.once('stopped');
       await delay(200); // need to pause test to let debouncer update scripts
-      await p.logger.logStackTrace(event.threadId!, scopes);
+      await p.logger.logStackTrace(event.threadId!, scopes ? Infinity : 0);
       return event;
     }
 
@@ -313,15 +313,15 @@ describe('stacks', () => {
 
       const event = await p.dap.once('stopped');
       await delay(500); // need to pause test to let debouncer update scripts
-      await p.logger.logStackTrace(event.threadId!, false);
+      await p.logger.logStackTrace(event.threadId!);
 
       p.log('----send toggle skipfile status request----');
       await p.dap.toggleSkipFileStatus({ resource: path });
-      await p.logger.logStackTrace(event.threadId!, false);
+      await p.logger.logStackTrace(event.threadId!);
 
       p.log('----send (un)toggle skipfile status request----');
       await p.dap.toggleSkipFileStatus({ resource: path });
-      await p.logger.logStackTrace(event.threadId!, false);
+      await p.logger.logStackTrace(event.threadId!);
 
       p.assertLog();
     });

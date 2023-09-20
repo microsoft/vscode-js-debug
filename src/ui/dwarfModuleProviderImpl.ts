@@ -20,6 +20,13 @@ export class DwarfModuleProvider implements IDwarfModuleProvider {
 
   /** @inheritdoc */
   public async load(): Promise<typeof dwf | undefined> {
+    try {
+      // for development, use the module to avoid having to install the extension
+      return await import('@vscode/dwarf-debugging');
+    } catch {
+      // fall through
+    }
+
     const ext = vscode.extensions.getExtension<typeof dwf>(EXT_ID);
     if (!ext) {
       return undefined;

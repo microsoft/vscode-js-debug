@@ -162,6 +162,7 @@ export class StackTrace {
           continue;
         }
 
+        const newFrames: InlinedFrame[] = [];
         for (let i = 0; i < stack.length; i++) {
           const inlinedFrame = new InlinedFrame({
             source,
@@ -170,9 +171,12 @@ export class StackTrace {
             name: stack[i].name,
             root: frame,
           });
-
-          this._appendFrame(inlinedFrame, last++);
+          this._frameById.set(inlinedFrame.frameId, inlinedFrame);
+          newFrames.push(inlinedFrame);
         }
+
+        this._spliceFrames(last, 1, ...newFrames);
+        last += stack.length - 1;
       }
 
       return last;
@@ -206,15 +210,17 @@ export class StackTrace {
     }
   }
 
-  private _appendFrame(frame: FrameElement, index?: number) {
-    if (index !== undefined) {
-      this.frames.splice(index, 0, frame);
-    } else {
-      this.frames.push(frame);
+  private _spliceFrames(index: number, deleteCount: number, ...frames: FrameElement[]) {
+    this.frames.splice(index, deleteCount, ...frames);
+    for (const frame of frames) {
+      if (!(frame instanceof AsyncSeparator)) {
+        this._frameById.set(frame.frameId, frame);
+      }
     }
-    if (!(frame instanceof AsyncSeparator)) {
-      this._frameById.set(frame.frameId, frame);
-    }
+  }
+
+  private _appendFrame(frame: FrameElement) {
+    this._spliceFrames(this.frames.length, 0, frame);
   }
 
   public async formatAsNative(): Promise<string> {

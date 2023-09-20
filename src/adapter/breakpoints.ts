@@ -487,16 +487,18 @@ export class BreakpointManager {
     const perScriptSm =
       (this.launchConfig as IChromiumBaseConfiguration).perScriptSourcemaps === 'yes';
 
+    let entryBpSet: Promise<boolean>;
     if (perScriptSm) {
-      return Promise.all([
+      entryBpSet = Promise.all([
         this.updateEntryBreakpointMode(thread, EntryBreakpointMode.Greedy),
         thread.setScriptSourceMapHandler(false, this._scriptSourceMapHandler),
       ]).then(() => true);
     } else if (this._breakpointsPredictor && !this.launchConfig.pauseForSourceMap) {
-      return thread.setScriptSourceMapHandler(false, this._scriptSourceMapHandler);
+      entryBpSet = thread.setScriptSourceMapHandler(false, this._scriptSourceMapHandler);
     } else {
-      return thread.setScriptSourceMapHandler(true, this._scriptSourceMapHandler);
+      entryBpSet = thread.setScriptSourceMapHandler(true, this._scriptSourceMapHandler);
     }
+    this._sourceMapHandlerInstalled = { entryBpSet };
   }
 
   private async _uninstallSourceMapHandler(thread: Thread) {
@@ -517,7 +519,7 @@ export class BreakpointManager {
     ids: number[],
   ): Promise<Dap.SetBreakpointsResult> {
     if (!this._sourceMapHandlerInstalled && this._thread && params.breakpoints?.length) {
-      this._sourceMapHandlerInstalled = { entryBpSet: this._installSourceMapHandler(this._thread) };
+      this._installSourceMapHandler(this._thread);
     }
 
     const wasEntryBpSet = await this._sourceMapHandlerInstalled?.entryBpSet;
@@ -604,6 +606,14 @@ export class BreakpointManager {
       return { breakpoints: [] };
     }
 
+    // Ignore no-op breakpoint sets. These can come in from VS Code at the start
+    // of the session (if a file only has disabled breakpoints) and make it look
+    // like the user had removed all breakpoints they previously set, causing
+    // us to uninstall/re-install the SM handler repeatedly.
+    if (result.unbound.length === 0 && result.new.length === 0) {
+      return { breakpoints: [] };
+    }
+
     // Cleanup existing breakpoints before setting new ones.
     this._totalBreakpointsCount -= result.unbound.length;
     await Promise.all(
@@ -615,8 +625,12 @@ export class BreakpointManager {
 
     this._totalBreakpointsCount += result.new.length;
 
-    if (this._thread && this._totalBreakpointsCount === 0 && this._sourceMapHandlerInstalled) {
-      this._uninstallSourceMapHandler(this._thread);
+    if (this._thread) {
+      if (this._totalBreakpointsCount === 0 && this._sourceMapHandlerInstalled) {
+        this._uninstallSourceMapHandler(this._thread);
+      } else if (this._totalBreakpointsCount > 0 && !this._sourceMapHandlerInstalled) {
+        this._installSourceMapHandler(this._thread);
+      }
     }
 
     if (thread && result.new.length) {
