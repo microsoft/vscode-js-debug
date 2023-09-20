@@ -125,7 +125,7 @@
     "@types/ws": "^8.5.3",
     "@typescript-eslint/eslint-plugin": "^5.17.0",
     "@typescript-eslint/parser": "^5.17.0",
-    "@vscode/dwarf-debugging": "file:../vscode-dwarf-debugging/vscode-dwarf-debugging-0.0.2.tgz",
+    "@vscode/dwarf-debugging": "^0.0.2",
     "@vscode/test-electron": "^2.2.3",
     "chai": "^4.3.6",
     "chai-as-promised": "^7.1.1",
