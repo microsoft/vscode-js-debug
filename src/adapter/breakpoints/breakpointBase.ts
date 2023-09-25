@@ -8,7 +8,7 @@ import { IPosition } from '../../common/positions';
 import { absolutePathToFileUrl } from '../../common/urlUtils';
 import Dap from '../../dap/api';
 import { BreakpointManager } from '../breakpoints';
-import { ISourceScript, IUiLocation, Source, SourceFromMap, base1To0 } from '../source';
+import { ISourceScript, IUiLocation, SourceFromMap, base1To0 } from '../source';
 import { Script, Thread } from '../threads';
 
 export type LineColumn = { lineNumber: number; columnNumber: number }; // 1-based
@@ -325,7 +325,7 @@ export abstract class Breakpoint {
         continue;
       }
 
-      if (!this.breakpointIsForSource(bp.args, source)) {
+      if (!breakpointIsForUrl(bp.args, script.url)) {
         continue;
       }
 
@@ -379,26 +379,6 @@ export abstract class Breakpoint {
             (l.columnNumber === undefined || l.columnNumber === columnNumber),
         ),
     );
-  }
-
-  /**
-   * Gets whether the breakpoint was set in the source by URL. Also checks
-   * the rebased remote paths, since Sources are always normalized to the
-   * 'local' locations, but the CDP set is for the remote.
-   */
-  private breakpointIsForSource(args: Cdp.Debugger.SetBreakpointByUrlParams, source: Source) {
-    if (breakpointIsForUrl(args, source.url)) {
-      return true;
-    }
-
-    const remotePath = this._manager._sourceContainer.sourcePathResolver.rebaseLocalToRemote(
-      source.absolutePath,
-    );
-    if (breakpointIsForUrl(args, remotePath)) {
-      return true;
-    }
-
-    return false;
   }
 
   /**
