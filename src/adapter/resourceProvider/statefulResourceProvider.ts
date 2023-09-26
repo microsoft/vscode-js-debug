@@ -99,9 +99,12 @@ export class StatefulResourceProvider extends BasicResourceProvider implements I
         return original;
       }
 
-      const chunk = chunkRes.base64Encoded ? Buffer.from(chunkRes.data, 'base64') : chunkRes.data;
-      offset += chunk.length;
-      result.push(chunk.toString());
+      const chunk = chunkRes.base64Encoded
+        ? Buffer.from(chunkRes.data, 'base64').toString()
+        : chunkRes.data;
+      // V8 uses byte length, not UTF-16 length, see #1814
+      offset += Buffer.byteLength(chunk, 'utf-8');
+      result.push(chunk);
       if (offset >= maxOffset) {
         this.cdp.IO.close({ handle: res.resource.stream }); // no await: do this in the background
         break;
