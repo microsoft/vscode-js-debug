@@ -1157,6 +1157,11 @@ export const breakpointLanguages: ReadonlyArray<string> = [
   'fsharp',
   'html',
   'wat',
+  // Common wasm languages:
+  'c',
+  'cpp',
+  'rust',
+  'zig',
 ];
 
 declare const EXTENSION_NAME: string;
