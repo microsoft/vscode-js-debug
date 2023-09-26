@@ -1384,10 +1384,6 @@ const menus: Menus = {
       command: Commands.DisableSourceMapStepping,
       when: `!${ContextKey.IsMapSteppingDisabled}`,
     },
-    {
-      command: Commands.EnableSourceMapStepping,
-      when: ContextKey.IsMapSteppingDisabled,
-    },
   ],
   'debug/callstack/context': [
     {
