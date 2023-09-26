@@ -491,6 +491,10 @@ class WasmSymbols extends DecompiledWasmSymbols {
     sourceUrl?: string,
     mappedPosition?: IPosition,
   ): Promise<Range[]> {
+    if (sourceUrl === this.decompiledUrl) {
+      return [];
+    }
+
     const thisLocation = {
       codeOffset: position.base0.columnNumber - this.codeOffset,
       inlineFrameIndex: position.base0.lineNumber,
