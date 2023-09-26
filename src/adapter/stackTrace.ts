@@ -694,9 +694,11 @@ export class InlinedFrame implements IStackFrameElement {
   /** @inheritdoc */
   public readonly uiLocation: () => Promise<IPreferredUiLocation>;
 
+  public readonly inlineFrameIndex: number;
+
+  private readonly wasmPosition: Base0Position;
   private readonly name: string;
   private readonly thread: Thread;
-  private readonly inlineFrameIndex: number;
   private readonly source: ISourceWithMap<IWasmLocationProvider>;
 
   constructor(opts: {
@@ -715,6 +717,10 @@ export class InlinedFrame implements IStackFrameElement {
     this.thread = opts.thread;
     this.source = opts.source;
     this.inlineFrameIndex = opts.inlineFrameIndex;
+    this.wasmPosition = new Base0Position(
+      this.inlineFrameIndex,
+      this.root.rawPosition.base0.columnNumber,
+    );
     this.uiLocation = once(() =>
       opts.thread._sourceContainer.preferredUiLocation({
         columnNumber: opts.root.rawPosition.base1.columnNumber,
@@ -760,7 +766,7 @@ export class InlinedFrame implements IStackFrameElement {
     if (uiLocation) {
       return sm.getStepSkipList(
         direction,
-        this.root.rawPosition,
+        this.wasmPosition,
         (uiLocation.source as SourceFromMap).compiledToSourceUrl.get(this.source),
         new Base1Position(uiLocation.lineNumber, uiLocation.columnNumber),
       );
@@ -777,10 +783,7 @@ export class InlinedFrame implements IStackFrameElement {
       return EMPTY_SCOPES;
     }
 
-    const variables = await v.getVariablesInScope?.(
-      callFrameId,
-      new Base0Position(this.inlineFrameIndex, this.root.rawPosition.base0.columnNumber),
-    );
+    const variables = await v.getVariablesInScope?.(callFrameId, this.wasmPosition);
     if (!variables) {
       return EMPTY_SCOPES;
     }

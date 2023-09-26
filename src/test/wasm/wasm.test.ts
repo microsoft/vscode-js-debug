@@ -195,5 +195,21 @@ describe('webassembly', () => {
 
       r.assertLog();
     });
+
+    itIntegrates('does lldb evaluation', async ({ r, context }) => {
+      const p = await prepare(r, context, 'fibonacci', {
+        source: { path: 'web/dwarf/fibonacci.c' },
+        breakpoints: [{ line: 6 }],
+      });
+
+      const { threadId } = p.log(await p.dap.once('stopped'));
+      const { id: frameId } = (await p.dap.stackTrace({ threadId })).stackFrames[0];
+
+      await p.logger.evaluateAndLog(`n`, { params: { frameId } });
+      await p.logger.evaluateAndLog(`a`, { params: { frameId } });
+      await p.logger.evaluateAndLog(`a + n * 2`, { params: { frameId } });
+
+      r.assertLog();
+    });
   });
 });

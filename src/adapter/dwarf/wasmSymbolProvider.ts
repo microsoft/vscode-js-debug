@@ -14,6 +14,8 @@ import { ILogger, LogTag } from '../../common/logging';
 import { flatten, once } from '../../common/objUtils';
 import { Base0Position, IPosition, Range } from '../../common/positions';
 import { AnyLaunchConfiguration } from '../../configuration';
+import * as errors from '../../dap/errors';
+import { ProtocolError } from '../../dap/protocolError';
 import { StepDirection } from '../pause';
 import { getSourceSuffix } from '../templates';
 import { IDwarfModuleProvider } from './dwarfModuleProvider';
@@ -225,6 +227,18 @@ export interface IWasmSymbols extends IDisposable {
    * @see https://github.com/ChromeDevTools/devtools-frontend/blob/c9f204731633fd2e2b6999a2543e99b7cc489b4b/docs/language_extension_api.md#dealing-with-inlined-functions
    */
   getFunctionStack?(position: IPosition): Promise<{ name: string }[]>;
+
+  /**
+   * Evaluates the expression at a position.
+   *
+   * Following CDP semantics, it assumes the column is being the byte offset
+   * in webassembly. However, we encode the inline frame index in the line.
+   */
+  evaluate?(
+    callFrameId: string,
+    position: IPosition,
+    expression: string,
+  ): Promise<Cdp.Runtime.RemoteObject | undefined>;
 
   /**
    * Gets ranges that should be stepped for the given step kind and location.
@@ -547,6 +561,33 @@ class WasmSymbols extends DecompiledWasmSymbols {
           new Base0Position(0, r.endOffset + this.codeOffset),
         ),
     );
+  }
+
+  /** @inheritdoc */
+  public async evaluate(
+    callFrameId: string,
+    position: IPosition,
+    expression: string,
+  ): Promise<Cdp.Runtime.RemoteObject | undefined> {
+    try {
+      const r = await this.rpc.sendMessage(
+        'evaluate',
+        expression,
+        {
+          codeOffset: position.base0.columnNumber - this.codeOffset,
+          inlineFrameIndex: position.base0.lineNumber,
+          rawModuleId: this.moduleId,
+        },
+        callFrameId,
+      );
+
+      // cast since types in dwarf-debugging are slightly different than generated cdp API
+      return (r as Cdp.Runtime.RemoteObject) ?? undefined;
+    } catch (e) {
+      // errors are expected here if the user tries to evaluate expressions
+      // the simple lldb-eval can't handle.
+      throw new ProtocolError(errors.createSilentError(e.message));
+    }
   }
 
   private getMappedLines(sourceURL: string) {
