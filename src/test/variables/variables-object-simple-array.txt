@@ -1,4 +1,4 @@
-> result: (3) [1, 2, 3, foo: 1]  // type=object
+> result: (3) [1, 2, 3, foo: 1]  // type=Array
     0: 1  // type=number
     1: 2  // type=number
     2: 3  // type=number

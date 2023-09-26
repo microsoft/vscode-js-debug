@@ -10,7 +10,7 @@ import { EventEmitter } from '../common/events';
 import { HrTime } from '../common/hrnow';
 import { ILogger, LogTag } from '../common/logging';
 import { isInstanceOf, truthy } from '../common/objUtils';
-import { Base1Position, Range } from '../common/positions';
+import { Base0Position, Base1Position, Range } from '../common/positions';
 import { IDeferred, delay, getDeferred } from '../common/promiseUtil';
 import { IRenameProvider } from '../common/sourceMaps/renameProvider';
 import * as sourceUtils from '../common/sourceUtils';
@@ -36,9 +36,9 @@ import * as objectPreview from './objectPreview';
 import { PreviewContextType, getContextForType } from './objectPreview/contexts';
 import { ExpectedPauseReason, IPausedDetails, StepDirection } from './pause';
 import { SmartStepper } from './smartStepping';
-import { ISourceWithMap, IUiLocation, Source, base1To0 } from './source';
+import { ISourceWithMap, IUiLocation, Source, base1To0, isSourceWithWasm } from './source';
 import { IPreferredUiLocation, SourceContainer } from './sourceContainer';
-import { StackFrame, StackTrace, isStackFrameElement } from './stackTrace';
+import { InlinedFrame, StackFrame, StackTrace, isStackFrameElement } from './stackTrace';
 import {
   serializeForClipboard,
   serializeForClipboardTmpl,
@@ -462,36 +462,53 @@ export class Thread implements IVariableStoreLocationProvider {
       .map(label => ({ label, start: 0, length: params.text.length }));
   }
 
-  async evaluate(args: Dap.EvaluateParamsExtended): Promise<Dap.EvaluateResult> {
-    let callFrameId: Cdp.Debugger.CallFrameId | undefined;
-    let stackFrame: StackFrame | undefined;
-    if (args.frameId !== undefined) {
-      stackFrame = this._pausedDetails
-        ? this._pausedDetails.stackTrace.frame(args.frameId)?.root
-        : undefined;
-      if (!stackFrame) {
-        throw new ProtocolError(this._stackFrameNotFoundError());
-      }
-
-      callFrameId = stackFrame.callFrameId();
-      if (!callFrameId) {
-        throw new ProtocolError(this._evaluateOnAsyncFrameError());
-      }
+  /**
+   * Evaluates the expression on the stackframe if it's a WASM stackframe with
+   * evaluation information. Returns undefined otherwise.
+   */
+  private async _evaluteWasm(
+    stackFrame: StackFrame | InlinedFrame | undefined,
+    args: Dap.EvaluateParamsExtended,
+    variables: VariableStore,
+  ): Promise<Dap.Variable | undefined> {
+    if (!stackFrame) {
+      return;
     }
 
-    if (args.context === 'repl' && args.expression.startsWith('cd ')) {
-      const contextName = args.expression.substring('cd '.length).trim();
-      for (const ec of this._executionContexts.values()) {
-        if (this.target.executionContextName(ec.description) === contextName) {
-          this._selectedContext = ec;
-          return {
-            result: `[${contextName}]`,
-            variablesReference: 0,
-          };
-        }
-      }
+    const root = stackFrame.root;
+    const cfId = root.callFrameId();
+    const source = await root.scriptSource?.source;
+    if (!isSourceWithWasm(source) || !cfId) {
+      return;
     }
 
+    const symbols = await source.sourceMap.value.promise;
+    if (!symbols.evaluate) {
+      return;
+    }
+
+    const position = new Base0Position(
+      stackFrame instanceof InlinedFrame ? stackFrame.inlineFrameIndex : 0,
+      root.rawPosition.base0.columnNumber,
+    );
+
+    const result = await symbols.evaluate(cfId, position, args.expression);
+    if (result) {
+      return await variables
+        .createFloatingVariable(args.expression, result)
+        .toDap(args.context as PreviewContextType, args.format);
+    }
+  }
+
+  /**
+   * Evaluates the expression on the stackframe.
+   */
+  private async _evaluteJs(
+    stackFrame: StackFrame | InlinedFrame | undefined,
+    args: Dap.EvaluateParamsExtended,
+    variables: VariableStore,
+  ): Promise<Dap.Variable> {
+    const callFrameId = stackFrame?.root.callFrameId();
     // For clipboard evaluations, return a safe JSON-stringified string.
     const params: Cdp.Runtime.EvaluateParams =
       args.context === 'clipboard'
@@ -534,7 +551,7 @@ export class Thread implements IVariableStoreLocationProvider {
             ...params,
             contextId: this._selectedContext ? this._selectedContext.description.id : undefined,
           },
-      { isInternalScript: false, stackFrame },
+      { isInternalScript: false, stackFrame: stackFrame?.root },
     );
 
     // Report result for repl immediately so that the user could see the expression they entered.
@@ -543,6 +560,7 @@ export class Thread implements IVariableStoreLocationProvider {
     }
 
     const response = await responsePromise;
+
     if (!response) throw new ProtocolError(errors.createSilentError(l10n.t('Unable to evaluate')));
     if (response.exceptionDetails) {
       let text = response.exceptionDetails.exception
@@ -552,17 +570,53 @@ export class Thread implements IVariableStoreLocationProvider {
       throw new ProtocolError(errors.createSilentError(text));
     }
 
+    return variables
+      .createFloatingVariable(params.expression, response.result)
+      .toDap(args.context as PreviewContextType, args.format);
+  }
+
+  public async evaluate(args: Dap.EvaluateParamsExtended): Promise<Dap.EvaluateResult> {
+    let callFrameId: Cdp.Debugger.CallFrameId | undefined;
+    let stackFrame: StackFrame | InlinedFrame | undefined;
+    if (args.frameId !== undefined) {
+      stackFrame = this._pausedDetails
+        ? this._pausedDetails.stackTrace.frame(args.frameId)
+        : undefined;
+
+      if (!stackFrame) {
+        throw new ProtocolError(this._stackFrameNotFoundError());
+      }
+
+      callFrameId = stackFrame.root.callFrameId();
+      if (!callFrameId) {
+        throw new ProtocolError(this._evaluateOnAsyncFrameError());
+      }
+    }
+
+    if (args.context === 'repl' && args.expression.startsWith('cd ')) {
+      const contextName = args.expression.substring('cd '.length).trim();
+      for (const ec of this._executionContexts.values()) {
+        if (this.target.executionContextName(ec.description) === contextName) {
+          this._selectedContext = ec;
+          return {
+            result: `[${contextName}]`,
+            variablesReference: 0,
+          };
+        }
+      }
+    }
+
     const variableStore = callFrameId ? this._pausedVariables : this.replVariables;
     if (!variableStore) {
       throw new ProtocolError(errors.createSilentError(l10n.t('Unable to evaluate')));
     }
 
-    const variable = await variableStore
-      .createFloatingVariable(params.expression, response.result)
-      .toDap(args.context as PreviewContextType, args.format);
+    const variable =
+      (await this._evaluteWasm(stackFrame, args, variableStore)) ??
+      (await this._evaluteJs(stackFrame, args, variableStore));
 
     return {
-      type: response.result.type,
+      type: variable.type,
       result: variable.value,
       variablesReference: variable.variablesReference,
       namedVariables: variable.namedVariables,
@@ -588,9 +642,9 @@ export class Thread implements IVariableStoreLocationProvider {
       | Promise<Cdp.Runtime.EvaluateResult | undefined>
       | Promise<Cdp.Debugger.EvaluateOnCallFrameResult | undefined>,
     format: Dap.ValueFormat | undefined,
-  ): Promise<Dap.EvaluateResult> {
+  ): Promise<Dap.Variable> {
     const response = await responsePromise;
-    if (!response) return { result: '', variablesReference: 0 };
+    if (!response) return { name: originalCall.expression, value: '', variablesReference: 0 };
 
     if (response.exceptionDetails) {
       const formattedException = await new ExceptionMessage(response.exceptionDetails).toDap(this);
@@ -623,7 +677,7 @@ export class Thread implements IVariableStoreLocationProvider {
       );
     }
 
-    return { ...resultVar, result: `${contextName}${resultVar.value}` };
+    return { ...resultVar, value: `${contextName}${resultVar.value}` };
   }
 
   private _initialize() {

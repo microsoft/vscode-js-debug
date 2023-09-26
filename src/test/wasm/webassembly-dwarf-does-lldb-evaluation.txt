@@ -1,0 +1,9 @@
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+result: 9
+result: 0
+result: 18
