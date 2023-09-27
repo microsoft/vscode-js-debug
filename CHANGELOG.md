@@ -4,10 +4,15 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
+Nothing, yet
+
+## v1.83 (September 2023)
+
 - feat: enable DWARF-based WebAssembly debugging ([#1789](https://github.com/microsoft/vscode-js-debug/issues/1789))
 - feat: show class names of methods in call stack view ([#1770](https://github.com/microsoft/vscode-js-debug/issues/1770))
 - fix: edge devtools incorrectly ask for local forwarding ([vscode#193110](https://github.com/microsoft/vscode/issues/193110))
 - fix: authentication sourcemap fallback failing for some maps ([#1814](https://github.com/microsoft/vscode-js-debug/issues/1814))
+- fix: source map stepping command registered multiple times ([#1817](https://github.com/microsoft/vscode-js-debug/issues/1817))
 
 ## v1.82 (August 2023)
 
