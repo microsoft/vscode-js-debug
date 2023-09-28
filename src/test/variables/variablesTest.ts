@@ -421,6 +421,14 @@ describe('variables', () => {
     });
   });
 
+  itIntegrates('map variable without preview (#1824)', async ({ r }) => {
+    const p = await r.launchAndLoad('blank');
+    await p.logger.evaluateAndLog(`
+      class A { #bar = new Map([[1, 2]]) }
+      new A();`);
+    p.assertLog();
+  });
+
   itIntegrates('readMemory/writeMemory', async ({ r }) => {
     const p = await r.launchAndLoad('blank');
     p.cdp.Runtime.evaluate({

@@ -854,9 +854,9 @@ class SetOrMapVariable extends ObjectVariable {
 
   constructor(context: VariableContext, remoteObject: Cdp.Runtime.RemoteObject) {
     super(context, remoteObject, NoCustomStringRepr);
-    const cast = remoteObject.preview as MapPreview | SetPreview;
-    this.isMap = cast.subtype === 'map';
-    this.size = Number(cast.properties.find(p => p.name === 'size')?.value) ?? undefined;
+    this.isMap = remoteObject.subtype === 'map';
+    const cast = remoteObject.preview as MapPreview | SetPreview | undefined;
+    this.size = Number(cast?.properties.find(p => p.name === 'size')?.value) ?? undefined;
   }
 
   public override async toDap(previewContext: PreviewContextType): Promise<Dap.Variable> {
