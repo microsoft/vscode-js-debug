@@ -109,6 +109,15 @@ export class Base01Position implements IPosition {
 }
 
 export class Range {
+  public static ZERO = new Range(new Base0Position(0, 0), new Base0Position(0, 0));
+  public static INFINITE = new Range(
+    new Base0Position(0, 0),
+    new Base0Position(Infinity, Infinity),
+  );
+
+  /**
+   * Simplifies the list of ranges by combining overlapping ranges.
+   */
   public static simplify(rangeList: readonly Range[]): Range[] {
     if (rangeList.length === 0) {
       return [];
@@ -134,6 +143,14 @@ export class Range {
 
   constructor(public readonly begin: IPosition, public readonly end: IPosition) {}
 
+  /**
+   * Returns if the range contains the given position, inclusive.
+   */
+  public contains(position: IPosition) {
+    return position.compare(this.begin) >= 0 && position.compare(this.end) <= 0;
+  }
+
+  /** Returns a human-debuggable representation of the range. */
   public toString() {
     const b1 = this.begin.base0;
     const e1 = this.end.base0;

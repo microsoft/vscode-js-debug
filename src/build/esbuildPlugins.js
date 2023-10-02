@@ -17,6 +17,21 @@ exports.dirname = filter => ({
   },
 });
 
+exports.hackyVendorBundle = vendors => ({
+  name: 'hackyVendorBundle',
+  setup: build => {
+    const vendorNames = [...vendors.keys()];
+
+    build.onResolve(
+      { filter: new RegExp(`^(${vendorNames.join('|')})$`), namespace: 'file' },
+      args => ({
+        path: vendors.get(args.path),
+        external: true,
+      }),
+    );
+  },
+});
+
 // https://github.com/evanw/esbuild/issues/1051#issuecomment-806325487
 exports.nativeNodeModulesPlugin = () => ({
   name: 'native-node-modules',

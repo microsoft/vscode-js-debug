@@ -5,8 +5,9 @@
 import { expect } from 'chai';
 import Cdp from '../cdp/api';
 import { stubbedCdpApi, StubCdpApi } from '../cdp/stubbedApi';
-import { Base01Position } from '../common/positions';
-import { RenameMapping } from '../common/sourceMaps/renameProvider';
+import { Base01Position, Range } from '../common/positions';
+import { IRename, RenameMapping } from '../common/sourceMaps/renameProvider';
+import { ScopeNode } from '../common/sourceMaps/renameScopeTree';
 import { Evaluator } from './evaluator';
 
 describe('Evaluator', () => {
@@ -52,12 +53,12 @@ describe('Evaluator', () => {
   });
 
   it('replaces renamed identifiers', async () => {
+    const node = new ScopeNode<IRename[]>(Range.INFINITE);
+    node.data = [{ original: 'foo', compiled: 'bar' }];
     const prep = evaluator.prepare('foo', {
       isInternalScript: false,
       renames: {
-        mapping: new RenameMapping([
-          { original: 'foo', compiled: 'bar', position: new Base01Position(0, 1) },
-        ]),
+        mapping: new RenameMapping(node),
         position: new Base01Position(0, 1),
       },
     });
@@ -71,6 +72,8 @@ describe('Evaluator', () => {
   });
 
   it('does not replace identifiers in invalid contexts', async () => {
+    const node = new ScopeNode<IRename[]>(Range.INFINITE);
+    node.data = [{ original: 'foo', compiled: 'bar' }];
     const prep = evaluator.prepare(
       `const baz = foo;
 z.find(foo => true)
@@ -80,9 +83,7 @@ try {} catch ({ foo }) {}`,
       {
         isInternalScript: false,
         renames: {
-          mapping: new RenameMapping([
-            { original: 'foo', compiled: 'bar', position: new Base01Position(0, 1) },
-          ]),
+          mapping: new RenameMapping(node),
           position: new Base01Position(0, 1),
         },
       },

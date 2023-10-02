@@ -16,7 +16,7 @@ import {
 } from 'estree';
 import { NullablePosition, Position, SourceMapConsumer, SourceMapGenerator } from 'source-map';
 import { LineColumn } from '../adapter/breakpoints/breakpointBase';
-import { acornOptions, parseProgram } from './sourceCodeManipulations';
+import { acornOptions, ESTRAVERSE_KEYS, parseProgram } from './sourceCodeManipulations';
 import { SourceMap } from './sourceMaps/sourceMap';
 
 export const enum SourceConstants {
@@ -79,7 +79,7 @@ export function rewriteTopLevelAwait(code: string): string | undefined {
   let program: Program;
   try {
     // todo: strict needed due to https://github.com/acornjs/acorn/issues/988
-    program = parseProgram(code, /* strict= */ true);
+    program = parseProgram(code);
   } catch (e) {
     return undefined;
   }
@@ -98,6 +98,7 @@ export function rewriteTopLevelAwait(code: string): string | undefined {
   let containsReturn = false;
 
   const replaced = replace(program, {
+    keys: ESTRAVERSE_KEYS,
     enter(node, parent) {
       switch (node.type) {
         case 'ClassDeclaration':
@@ -337,6 +338,7 @@ export function getBestSteppableExpressionAt(src: string, offset: number) {
   let other: Node | undefined;
   let steppable: Node | undefined;
   traverse(ast, {
+    keys: ESTRAVERSE_KEYS,
     enter: node => {
       const asAcorn = node as AcornNode;
       if (offset >= asAcorn.start && offset < asAcorn.end) {

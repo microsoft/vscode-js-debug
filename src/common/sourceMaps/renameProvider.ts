@@ -7,15 +7,16 @@ import { Source, SourceFromMap, isSourceWithSourceMap } from '../../adapter/sour
 import { StackFrame } from '../../adapter/stackTrace';
 import { AnyLaunchConfiguration } from '../../configuration';
 import { iteratorFirst } from '../arrayUtils';
-import { Base01Position, IPosition } from '../positions';
+import { ILogger, LogTag } from '../logging';
+import { Base01Position, IPosition, Range } from '../positions';
 import { PositionToOffset } from '../stringUtils';
+import { ScopeNode, extractScopeRanges } from './renameScopeTree';
 import { SourceMap } from './sourceMap';
 import { ISourceMapFactory } from './sourceMapFactory';
 
-interface IRename {
+export interface IRename {
   original: string;
   compiled: string;
-  position: Base01Position;
 }
 
 /** Very approximate regex for JS identifiers */
@@ -40,6 +41,7 @@ export class RenameProvider implements IRenameProvider {
   private renames = new Map</* source uri */ string, Promise<RenameMapping>>();
 
   constructor(
+    @inject(ILogger) private readonly logger: ILogger,
     @inject(ISourceMapFactory) private readonly sourceMapFactory: ISourceMapFactory,
     @inject(AnyLaunchConfiguration) private readonly launchConfig: AnyLaunchConfiguration,
   ) {}
@@ -96,7 +98,7 @@ export class RenameProvider implements IRenameProvider {
         }
 
         const content = await original.content();
-        return content ? this.createFromSourceMap(sm, content) : RenameMapping.None;
+        return content ? await this.createFromSourceMap(sm, content) : RenameMapping.None;
       })
       .catch(() => RenameMapping.None);
 
@@ -104,18 +106,26 @@ export class RenameProvider implements IRenameProvider {
     return promise;
   }
 
-  private createFromSourceMap(sourceMap: SourceMap, content: string) {
-    const toOffset = new PositionToOffset(content);
-    const renames: IRename[] = [];
+  private async createFromSourceMap(sourceMap: SourceMap, content: string) {
+    const start = Date.now();
+    let scopeTree: ScopeNode<IRename[]>;
+    try {
+      scopeTree = await extractScopeRanges(content);
+    } catch (e) {
+      this.logger.info(LogTag.Runtime, `Error parsing content for source tree: ${e}}`, {
+        url: sourceMap.metadata.compiledPath,
+      });
+      return RenameMapping.None;
+    }
 
-    // todo: may eventually want to be away
+    const toOffset = new PositionToOffset(content);
+
     sourceMap.eachMapping(mapping => {
       if (!mapping.name) {
         return;
       }
 
-      // convert to base 0 columns
-      const position = new Base01Position(mapping.generatedLine, mapping.generatedColumn);
+      const position = new Base01Position(mapping.generatedLine, mapping.generatedColumn).base0;
       const start = toOffset.convert(position);
       identifierRe.lastIndex = start;
       const match = identifierRe.exec(content);
@@ -123,12 +133,28 @@ export class RenameProvider implements IRenameProvider {
         return;
       }
 
-      renames.push({ compiled: match[0], original: mapping.name, position });
+      const compiled = match[0];
+      if (compiled === mapping.name) {
+        return; // it happens sometimes 🤷
+      }
+
+      const scope = scopeTree.search(position) || scopeTree;
+      scope.data ??= [];
+
+      // some tools emit name mapping each time the identifier is used, avoid duplicates.
+      if (!scope.data.some(r => r.compiled == compiled)) {
+        scope.data.push({ compiled, original: mapping.name });
+      }
     });
 
-    renames.sort((a, b) => a.position.compare(b.position));
+    scopeTree.filterHoist(node => !!node.data);
 
-    return new RenameMapping(renames);
+    const end = Date.now();
+    this.logger.info(LogTag.Runtime, `renames calculated in ${end - start}ms`, {
+      url: sourceMap.metadata.compiledPath,
+    });
+
+    return new RenameMapping(scopeTree);
   }
 }
 
@@ -139,9 +165,9 @@ export class RenameProvider implements IRenameProvider {
  * This is probably good enough.
  */
 export class RenameMapping {
-  public static None = new RenameMapping([]);
+  public static None = new RenameMapping(new ScopeNode(Range.ZERO));
 
-  constructor(private readonly renames: readonly IRename[]) {}
+  constructor(private readonly renames: ScopeNode<IRename[]>) {}
 
   /**
    * Gets the original identifier name from a compiled name, with the
@@ -159,22 +185,6 @@ export class RenameMapping {
   }
 
   private getClosestRename(compiledPosition: IPosition, filter: (rename: IRename) => boolean) {
-    const compiled01 = compiledPosition.base01;
-    let best: IRename | undefined;
-
-    for (const rename of this.renames) {
-      if (!filter(rename)) {
-        continue;
-      }
-
-      const isBefore = rename.position.compare(compiled01) < 0;
-      if (!isBefore && best) {
-        return best;
-      }
-
-      best = rename;
-    }
-
-    return best;
+    return this.renames.findDeepest(compiledPosition, n => n.data?.find(filter));
   }
 }

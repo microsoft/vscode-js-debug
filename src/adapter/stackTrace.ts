@@ -374,7 +374,7 @@ export class StackFrame implements IStackFrameElement {
 
   public get rawPosition() {
     // todo: move RawLocation to use Positions, then just return that.
-    return new Base0Position(this._rawLocation.lineNumber, this._rawLocation.columnNumber);
+    return new Base1Position(this._rawLocation.lineNumber, this._rawLocation.columnNumber);
   }
 
   static fromRuntime(

@@ -4,6 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
+- fix: make source map renames scope-aware
 - fix: error when processing private properties with a map ([#1824](https://github.com/microsoft/vscode-js-debug/issues/1824))
 
 ## v1.83 (September 2023)
