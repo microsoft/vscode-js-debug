@@ -192,6 +192,15 @@ async function getConstantDefines() {
   };
 }
 
+function compileVendorLibrary(name) {
+  return {
+    name,
+    entryPoints: [require.resolve(name)],
+    outdir: `${buildSrcDir}/vendor`,
+    entryNames: `${name}`,
+  };
+}
+
 async function compileTs({
   packages = [],
   sourcemap = false,
@@ -199,10 +208,38 @@ async function compileTs({
   minify = isWatch ? false : true,
   watch = false,
 } = options) {
+  const vendorPrefix = 'vendor';
+
+  // don't watch these, they won't really change:
+  const vendors = new Map(
+    await Promise.all(
+      [
+        {
+          ...compileVendorLibrary('acorn-loose'),
+          plugins: [esbuildPlugins.hackyVendorBundle(new Map([['acorn', './acorn']]))],
+        },
+        compileVendorLibrary('acorn'),
+      ].map(async ({ name, ...opts }) => {
+        await esbuild.build({
+          ...opts,
+          sourcemap,
+          bundle: true,
+          platform: 'node',
+          format: 'cjs',
+          target: 'node18',
+          minify,
+        });
+
+        return [name, `./${vendorPrefix}/${name}.js`];
+      }),
+    ),
+  );
+
   // add the entrypoints common to both vscode and vs here
   packages = [
     ...packages,
     { entry: `${srcDir}/common/hash/hash.ts`, library: false },
+    { entry: `${srcDir}/common/sourceMaps/renameWorker.ts`, library: false },
     { entry: `${srcDir}/targets/node/bootloader.ts`, library: false, target: 'node10' },
     { entry: `${srcDir}/targets/node/watchdog.ts`, library: false, target: 'node10' },
     {
@@ -222,7 +259,7 @@ async function compileTs({
     library,
     isInVsCode,
     nodePackages,
-    target = 'node16',
+    target = 'node18',
   } of packages) {
     todo.push(
       incrementalEsbuild({
@@ -245,6 +282,7 @@ async function compileTs({
           esbuildPlugins.nativeNodeModulesPlugin(),
           esbuildPlugins.importGlobLazy(),
           esbuildPlugins.dirname(/src.test./),
+          esbuildPlugins.hackyVendorBundle(vendors),
         ],
         format: library ? 'cjs' : 'iife',
       }),

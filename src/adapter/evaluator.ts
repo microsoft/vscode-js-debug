@@ -11,7 +11,7 @@ import { inject, injectable } from 'inversify';
 import Cdp from '../cdp/api';
 import { ICdpApi } from '../cdp/connection';
 import { IPosition } from '../common/positions';
-import { parseProgram } from '../common/sourceCodeManipulations';
+import { ESTRAVERSE_KEYS, parseProgram } from '../common/sourceCodeManipulations';
 import { IRenameProvider, RenameMapping } from '../common/sourceMaps/renameProvider';
 import { isInPatternSlot } from '../common/sourceUtils';
 import { StackFrame } from './stackTrace';
@@ -276,6 +276,7 @@ export class Evaluator implements IEvaluator {
     const parents: Node[] = [];
     const program = parseProgram(expr);
     const transformed = replace(program, {
+      keys: ESTRAVERSE_KEYS,
       enter(node, parent) {
         const asAcorn = node as AcornNode;
         if (node.type !== 'Identifier' || expr[asAcorn.start - 1] === '.') {

@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 import { Node as AcornNode, parse as parseStrict } from 'acorn';
-import { isDummy, Options, parse } from 'acorn-loose';
+import { Options, isDummy, parse } from 'acorn-loose';
 import {
   ArrowFunctionExpression,
   CallExpression,
@@ -238,3 +238,8 @@ export function statementToExpression(stmt: Statement): Expression | undefined {
       return undefined;
   }
 }
+/** Extra keys for estraverse functionality they don't support yet */
+
+export const ESTRAVERSE_KEYS: Record<string, string[]> = {
+  StaticBlock: ['body'], // https://github.com/estools/estraverse/pull/120
+};
