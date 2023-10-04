@@ -27,6 +27,7 @@ exports.hackyVendorBundle = vendors => ({
       args => ({
         path: vendors.get(args.path),
         external: true,
+        sideEffects: false,
       }),
     );
   },
