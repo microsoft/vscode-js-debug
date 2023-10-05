@@ -11,6 +11,9 @@ import { delay } from '../../common/promiseUtil';
 import { AnyNodeConfiguration } from '../../configuration';
 import { NodeLauncherBase } from './nodeLauncherBase';
 
+/** Variables that should be appended rather than replaced in the environment */
+const appendVars: readonly string[] = ['NODE_OPTIONS', 'VSCODE_INSPECTOR_OPTIONS'];
+
 /**
  * Base class that implements common matters for attachment.
  */
@@ -22,7 +25,9 @@ export abstract class NodeAttacherBase<T extends AnyNodeConfiguration> extends N
       Object.entries(vars.defined())
         .map(([key, value]) => {
           const k = JSON.stringify(key);
-          return `process.env[${k}]=(process.env[${k}]||'')+${JSON.stringify(value)}`;
+          return appendVars.includes(key)
+            ? `process.env[${k}]=(process.env[${k}]||'')+${JSON.stringify(value)}`
+            : `process.env[${k}]=${JSON.stringify(value)}`;
         })
         .join(';') +
       '})()' +
