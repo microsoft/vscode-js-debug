@@ -711,6 +711,12 @@ export class BreakpointManager {
     });
   }
 
+  /** Gets whether the CDP breakpoint ID refers to an entrypoint breakpoint. */
+  public isEntrypointCdpBreak(cdpId: string) {
+    const bp = this._resolvedBreakpoints.get(cdpId);
+    return bp instanceof EntryBreakpoint;
+  }
+
   /**
    * Handler that should be called *after* source map resolution on an entry
    * breakpoint. Returns whether the debugger should remain paused.

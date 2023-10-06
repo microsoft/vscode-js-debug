@@ -1269,8 +1269,11 @@ export class Thread implements IVariableStoreLocationProvider {
       event.reason === 'other' ||
       event.reason === 'ambiguous';
 
-    const hitAnyBreakpoint = !!(event.hitBreakpoints && event.hitBreakpoints.length);
-    if (hitAnyBreakpoint || !sameDebuggingSequence) this._sourceContainer.clearDisabledSourceMaps();
+    const hitBreakpoints =
+      event.hitBreakpoints?.filter(bp => !this._breakpointManager.isEntrypointCdpBreak(bp)) || [];
+
+    if (hitBreakpoints.length || !sameDebuggingSequence)
+      this._sourceContainer.clearDisabledSourceMaps();
 
     if (event.hitBreakpoints && this._sourceMapDisabler) {
       for (const sourceToDisable of this._sourceMapDisabler(event.hitBreakpoints))
@@ -1383,10 +1386,10 @@ export class Thread implements IVariableStoreLocationProvider {
           description: l10n.t('Paused before Out Of Memory exception'),
         };
       default:
-        if (event.hitBreakpoints && event.hitBreakpoints.length) {
+        if (hitBreakpoints.length) {
           let isStopOnEntry = false; // By default we assume breakpoints aren't stop on entry
           const userEntryBp = this.target.entryBreakpoint;
-          if (userEntryBp && event.hitBreakpoints.includes(userEntryBp.cdpId)) {
+          if (userEntryBp && hitBreakpoints.includes(userEntryBp.cdpId)) {
             isStopOnEntry = true; // But if it matches the entry breakpoint id, then it's probably stop on entry
             const entryBreakpointSource = this._sourceContainer.source({
               path: fileUrlToAbsolutePath(userEntryBp.path),
@@ -1408,7 +1411,7 @@ export class Thread implements IVariableStoreLocationProvider {
           }
 
           if (!isStopOnEntry) {
-            this._breakpointManager.registerBreakpointsHit(event.hitBreakpoints);
+            this._breakpointManager.registerBreakpointsHit(hitBreakpoints);
           }
           return {
             thread: this,
