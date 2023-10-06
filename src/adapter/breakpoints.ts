@@ -697,17 +697,11 @@ export class BreakpointManager {
     // Fix: if we stopped in a script where an active entrypoint breakpoint
     // exists, regardless of the reason, treat this as a breakpoint.
     // ref: https://github.com/microsoft/vscode/issues/107859
-    const entryInScript = [...this.moduleEntryBreakpoints.values()].filter(
+    const entryInScript = [...this.moduleEntryBreakpoints.values()].some(
       bp => bp.enabled && bp.cdpScriptIds.has(scriptId),
     );
 
-    if (entryInScript.length) {
-      for (const breakpoint of entryInScript) {
-        if (!(breakpoint instanceof PatternEntryBreakpoint)) {
-          breakpoint.disable();
-        }
-      }
-
+    if (entryInScript) {
       return true;
     }
 
@@ -715,6 +709,12 @@ export class BreakpointManager {
       const bp = this._resolvedBreakpoints.get(id);
       return bp && (bp instanceof EntryBreakpoint || isSetAtEntry(bp));
     });
+  }
+
+  /** Gets whether the CDP breakpoint ID refers to an entrypoint breakpoint. */
+  public isEntrypointCdpBreak(cdpId: string) {
+    const bp = this._resolvedBreakpoints.get(cdpId);
+    return bp instanceof EntryBreakpoint;
   }
 
   /**
