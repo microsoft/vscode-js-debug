@@ -36,7 +36,14 @@ import * as objectPreview from './objectPreview';
 import { PreviewContextType, getContextForType } from './objectPreview/contexts';
 import { ExpectedPauseReason, IPausedDetails, StepDirection } from './pause';
 import { SmartStepper } from './smartStepping';
-import { ISourceWithMap, IUiLocation, Source, base1To0, isSourceWithWasm } from './source';
+import {
+  ISourceScript,
+  ISourceWithMap,
+  IUiLocation,
+  Source,
+  base1To0,
+  isSourceWithWasm,
+} from './source';
 import { IPreferredUiLocation, SourceContainer } from './sourceContainer';
 import { InlinedFrame, StackFrame, StackTrace, isStackFrameElement } from './stackTrace';
 import {
@@ -69,10 +76,7 @@ export class ExecutionContext {
   }
 }
 
-export type Script = {
-  url: string;
-  scriptId: string;
-  executionContextId: number;
+export type Script = ISourceScript & {
   source: Promise<Source>;
   resolvedSource?: Source;
 };
@@ -1515,6 +1519,7 @@ export class Thread implements IVariableStoreLocationProvider {
         prevSource.addScript({
           scriptId: event.scriptId,
           url: event.url,
+          hasSourceURL: !!event.hasSourceURL,
           executionContextId: event.executionContextId,
         });
         return prevSource;
@@ -1565,6 +1570,7 @@ export class Thread implements IVariableStoreLocationProvider {
       source.addScript({
         scriptId: event.scriptId,
         url: event.url,
+        hasSourceURL: !!event.hasSourceURL,
         executionContextId: event.executionContextId,
       });
 
@@ -1573,6 +1579,7 @@ export class Thread implements IVariableStoreLocationProvider {
 
     const script: Script = {
       url: event.url,
+      hasSourceURL: !!event.hasSourceURL,
       scriptId: event.scriptId,
       executionContextId: event.executionContextId,
       source: createSource(),

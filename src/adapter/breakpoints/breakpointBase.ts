@@ -518,6 +518,7 @@ export abstract class Breakpoint {
           bp.args.location.scriptId === script.scriptId &&
           lcEqual(bp.args.location, lineColumn)) ||
         (script.url &&
+          !script.hasSourceURL &&
           isSetByUrl(bp.args) &&
           (bp.args.urlRegex
             ? new RegExp(bp.args.urlRegex).test(script.url)
@@ -560,8 +561,9 @@ export abstract class Breakpoint {
 
   protected async _setForSpecific(thread: Thread, script: ISourceScript, lineColumn: LineColumn) {
     // prefer to set on script URL for non-anonymous scripts, since url breakpoints
-    // will survive and be hit on reload.
-    if (script.url) {
+    // will survive and be hit on reload. But don't set if the script has
+    // a source URL, since V8 doesn't resolve these
+    if (script.url && !script.hasSourceURL) {
       return this._setByUrl(thread, script.url, lineColumn);
     } else {
       return this._setByScriptId(thread, script, lineColumn);
