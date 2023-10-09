@@ -376,7 +376,8 @@ export class BreakpointManager {
             end: { scriptId, ...lsrc.offsetSourceToScript(base1To0(end)) },
           })
           .then(r => {
-            if (!r) {
+            // locations can be undefined in Hermes, #1837
+            if (!r?.locations) {
               return;
             }
 
