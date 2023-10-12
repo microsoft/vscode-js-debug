@@ -384,6 +384,7 @@ export interface IWasmLocationProvider extends ISourceLocationProvider {
 export interface ISourceScript {
   executionContextId: Cdp.Runtime.ExecutionContextId;
   scriptId: Cdp.Runtime.ScriptId;
+  embedderName?: string;
   hasSourceURL: boolean;
   url: string;
 }

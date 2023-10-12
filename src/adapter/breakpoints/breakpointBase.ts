@@ -563,7 +563,11 @@ export abstract class Breakpoint {
     // prefer to set on script URL for non-anonymous scripts, since url breakpoints
     // will survive and be hit on reload. But don't set if the script has
     // a source URL, since V8 doesn't resolve these
-    if (script.url && !script.hasSourceURL) {
+    if (
+      script.url &&
+      !script.hasSourceURL &&
+      (!script.embedderName || script.embedderName === script.url)
+    ) {
       return this._setByUrl(thread, script.url, lineColumn);
     } else {
       return this._setByScriptId(thread, script, lineColumn);
