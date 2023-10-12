@@ -1522,6 +1522,7 @@ export class Thread implements IVariableStoreLocationProvider {
         prevSource.addScript({
           scriptId: event.scriptId,
           url: event.url,
+          embedderName: event.embedderName,
           hasSourceURL: !!event.hasSourceURL,
           executionContextId: event.executionContextId,
         });
@@ -1573,6 +1574,7 @@ export class Thread implements IVariableStoreLocationProvider {
       source.addScript({
         scriptId: event.scriptId,
         url: event.url,
+        embedderName: event.embedderName,
         hasSourceURL: !!event.hasSourceURL,
         executionContextId: event.executionContextId,
       });
@@ -1583,6 +1585,7 @@ export class Thread implements IVariableStoreLocationProvider {
     const script: Script = {
       url: event.url,
       hasSourceURL: !!event.hasSourceURL,
+      embedderName: event.embedderName,
       scriptId: event.scriptId,
       executionContextId: event.executionContextId,
       source: createSource(),
