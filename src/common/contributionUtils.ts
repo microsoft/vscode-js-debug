@@ -20,7 +20,7 @@ export const enum Contributions {
 }
 
 export const enum CustomViews {
-  BrowserBreakpoints = 'jsBrowserBreakpoints',
+  EventListenerBreakpoints = 'jsBrowserBreakpoints',
   ExcludedCallers = 'jsExcludedCallers',
 }
 

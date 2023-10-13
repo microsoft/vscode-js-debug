@@ -93,7 +93,7 @@ export function registerCustomBreakpointsUI(
 ) {
   const provider = new BreakpointsDataProvider(debugSessionTracker);
 
-  vscode.window.createTreeView(CustomViews.BrowserBreakpoints, {
+  vscode.window.createTreeView(CustomViews.EventListenerBreakpoints, {
     treeDataProvider: provider,
   });
   context.subscriptions.push(

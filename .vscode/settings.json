@@ -17,16 +17,19 @@
     "**/.hg": true,
     "**/CVS": true,
     "**/.DS_Store": true,
+    "**/Thumbs.db": true,
+    "**/obj": true,
     "**/.dynamic-testWorkspace": true,
     "**/.vscode-test": true,
-    "**/demos": true,
+    "**/demos": true
   },
   "[typescript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+    "editor.defaultFormatter": "vscode.typescript-language-features"
   },
   "editor.codeActionsOnSave": {
     "source.organizeImports": true
   },
   "editor.formatOnSave": true,
   "typescript.tsserver.experimental.enableProjectDiagnostics": true,
+  "hide-files.files": [],
 }
