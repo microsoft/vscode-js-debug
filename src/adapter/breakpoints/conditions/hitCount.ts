@@ -2,9 +2,9 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { IBreakpointCondition } from '.';
 import { invalidHitCondition } from '../../../dap/errors';
 import { ProtocolError } from '../../../dap/protocolError';
-import { IBreakpointCondition } from '.';
 
 /**
  * Regex used to match hit conditions. It matches the operator in group 1 and
@@ -42,14 +42,28 @@ export class HitCondition implements IBreakpointCondition {
       throw new ProtocolError(invalidHitCondition(expression));
     }
 
-    const [, op = '=', value] = parts;
-    const expr =
-      op === '%'
-        ? `return (numHits % ${value}) === 0;`
-        : op[0] === '='
-        ? `return numHits === ${value};`
-        : `return numHits ${op} ${value};`;
-
-    return new HitCondition(new Function('numHits', expr) as (n: number) => boolean);
+    const [, op = '=', valueStr] = parts;
+    return new HitCondition(makeTester(expression, op, Number(valueStr)));
   }
 }
+
+const makeTester = (expression: string, op: string, value: number): ((n: number) => boolean) => {
+  switch (op) {
+    case '=':
+    case '==':
+    case '===':
+      return n => n === value;
+    case '>':
+      return n => n > value;
+    case '>=':
+      return n => n >= value;
+    case '<':
+      return n => n < value;
+    case '<=':
+      return n => n <= value;
+    case '%':
+      return n => n % value === 0;
+    default:
+      throw new ProtocolError(invalidHitCondition(expression));
+  }
+};

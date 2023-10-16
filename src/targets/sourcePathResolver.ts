@@ -76,7 +76,7 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
     }
 
     suffix =
-      suffix.slice(0, sharedPrefixLen).replace(/[\[\]\(\)\{\}\!\*]/g, '\\$&') +
+      suffix.slice(0, sharedPrefixLen).replace(/[\[\]\(\)\{\}\!\*]/g, '\\$&') + // CodeQL [SM02383] backslashes are not present in this string
       suffix.slice(sharedPrefixLen);
 
     return prefix + suffix;
