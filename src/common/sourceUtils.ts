@@ -327,7 +327,7 @@ export const isInPatternSlot = (node: Pattern, parent: Node | null | undefined):
  */
 export function getSyntaxErrorIn(code: string): Error | void {
   try {
-    new Function(code);
+    new Function(code); // CodeQL [SM04509] Not evaluated
   } catch (e) {
     return e;
   }

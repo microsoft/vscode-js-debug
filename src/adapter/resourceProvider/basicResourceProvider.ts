@@ -92,7 +92,7 @@ export class BasicResourceProvider implements IResourceProvider {
     const port = Number(parsed.port) ?? (isSecure ? 443 : 80);
     const options: OptionsOfTextResponseBody = { headers, followRedirect: true };
     if (isSecure && (await isLoopback(url))) {
-      options.rejectUnauthorized = false;
+      options.rejectUnauthorized = false; // CodeQL [SM03616] Intentional for local development.
     }
 
     this.options?.provideOptions(options, url);

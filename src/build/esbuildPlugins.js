@@ -122,7 +122,7 @@ exports.importGlobLazy = () => ({
           cwd: args.pluginData.resolveDir,
         })
         .sort()
-        .map(m => `[${JSON.stringify(m)}, () => import(${JSON.stringify(`./${m}`)})]`);
+        .map(m => `[${JSON.stringify(m)}, () => import(${JSON.stringify(`./${m}`)})]`); // CodeQL [SM03611] Bad detection
 
       const importerCode = `
         const modules = new Map([${files.join(',\n')}]);

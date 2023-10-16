@@ -98,7 +98,7 @@ export class SourceMapOverrides {
 
       this.replacers.push([
         new RegExp(reSource + '$', 'i'),
-        rightPattern.replace(/\$/g, '$$$$').replace(/\*/, '$1'),
+        rightPattern.replace(/\$/g, '$$$$').replace(/\*/, '$1'), // CodeQL [SM02383] intentional behavior, bad detection
       ]);
     }
   }

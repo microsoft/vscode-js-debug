@@ -24,7 +24,7 @@ extends:
   parameters:
     publishExtension: ${{ parameters.publishExtension }}
     vscePackageArgs: --no-dependencies
-    cgIgnoreDirectories: 'testdata,demos,.vscode-test'
+    cgIgnoreDirectories: 'testdata,demos,.vscode-test,src/test,testWorkspace'
     ${{ if eq(parameters.publishGhRelease, true) }}:
       ghCreateRelease: true
       ghReleaseAddChangeLog: true
