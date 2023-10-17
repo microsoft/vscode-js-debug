@@ -5,6 +5,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 ## Nightly (only)
 
 - fix: envFiles variables appending rather than replacing in attach ([vscode#1935510](https://github.com/microsoft/vscode/issues/1935510))
+- fix: cache-bust sourcemaps if the underlying content changes ([#1803](https://github.com/microsoft/vscode-js-debug/issues/1803))
 - fix: make source map renames scope-aware
 - fix: breakpoints not setting in webpack `eval`-type sourcemaps ([vscode#194988](https://github.com/microsoft/vscode/issues/194988))
 - fix: error when processing private properties with a map ([#1824](https://github.com/microsoft/vscode-js-debug/issues/1824))
