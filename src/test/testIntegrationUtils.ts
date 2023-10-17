@@ -3,14 +3,13 @@
  *--------------------------------------------------------*/
 
 import * as child_process from 'child_process';
-import del from 'del';
+import { promises as fs } from 'fs';
 import { ExclusiveTestFunction, TestFunction } from 'mocha';
 import * as path from 'path';
-import { forceForwardSlashes } from '../common/pathUtils';
 import { delay } from '../common/promiseUtil';
 import { GoldenText } from './goldenText';
 import { IGoldenReporterTextTest } from './reporters/goldenTextReporterUtils';
-import { ITestHandle, testFixturesDir, TestRoot, testWorkspace } from './test';
+import { ITestHandle, TestRoot, testFixturesDir, testWorkspace } from './test';
 
 process.env['DA_TEST_DISABLE_TELEMETRY'] = 'true';
 
@@ -110,9 +109,16 @@ export const eventuallyOk = async <T>(
 };
 
 afterEach(async () => {
-  await del([`${forceForwardSlashes(testFixturesDir)}/**`], {
-    force: true /* delete outside cwd */,
-  });
+  // Retry to avoid flaking with EINVAL if files are written out during deletion
+  for (let retries = 5; retries >= 0; retries--)
+    try {
+      await fs.rm(testFixturesDir, { recursive: true, force: true });
+      return;
+    } catch (e) {
+      if (retries === 0) {
+        throw e;
+      }
+    }
 });
 
 export async function waitForPause(p: ITestHandle, cb?: (threadId: number) => Promise<void>) {
