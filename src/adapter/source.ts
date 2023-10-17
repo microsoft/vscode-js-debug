@@ -79,7 +79,7 @@ export class Source {
     public readonly url: string,
     absolutePath: string | undefined,
     contentGetter: ContentGetter,
-    sourceMapUrl?: string,
+    sourceMapMetadata?: ISourceMapMetadata,
     public readonly inlineScriptOffset?: InlineScriptOffset,
     public readonly runtimeScriptOffset?: InlineScriptOffset,
     public readonly contentHash?: string,
@@ -90,7 +90,7 @@ export class Source {
     this.absolutePath = absolutePath || '';
     this._fqname = this._fullyQualifiedName();
     this._name = this._humanName();
-    this.setSourceMapUrl(sourceMapUrl);
+    this.setSourceMapUrl(sourceMapMetadata);
 
     this._existingAbsolutePath = this.checkContentHash(contentHash);
   }
@@ -130,8 +130,8 @@ export class Source {
     return obj;
   }
 
-  private setSourceMapUrl(sourceMapUrl?: string) {
-    if (!sourceMapUrl) {
+  private setSourceMapUrl(sourceMapMetadata?: ISourceMapMetadata) {
+    if (!sourceMapMetadata) {
       this.sourceMap = undefined;
       return;
     }
@@ -140,10 +140,7 @@ export class Source {
       type: SourceLocationType.SourceMap,
       sourceByUrl: new Map(),
       value: getDeferred(),
-      metadata: {
-        sourceMapUrl,
-        compiledPath: this.absolutePath || this.url,
-      },
+      metadata: sourceMapMetadata,
     };
   }
 
@@ -232,16 +229,13 @@ export class Source {
     }
 
     // Note: this overwrites existing source map.
-    this.setSourceMapUrl(sourceMapUrl);
-    const asCompiled = this as ISourceWithMap;
-    this.sourceMap = {
-      type: SourceLocationType.SourceMap,
-      metadata: { compiledPath: this.absolutePath, sourceMapUrl: '' },
-      sourceByUrl: new Map(),
-      value: getDeferred(),
-    };
-    this.sourceMap.value.resolve(map);
+    this.setSourceMapUrl({
+      compiledPath: this.absolutePath,
+      sourceMapUrl: '',
+    });
+    (this.sourceMap as ISourceMapLocationProvider).value.resolve(map);
 
+    const asCompiled = this as ISourceWithMap;
     await this._container._addSourceMapSources(asCompiled, map);
     // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
     return { map, source: [...asCompiled.sourceMap.sourceByUrl.values()][0] };

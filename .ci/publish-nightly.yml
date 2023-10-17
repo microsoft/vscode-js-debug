@@ -19,7 +19,7 @@ extends:
   parameters:
     usePreReleaseChannel: false
     vscePackageArgs: --no-dependencies
-    cgIgnoreDirectories: 'testdata,demos,.vscode-test'
+    cgIgnoreDirectories: 'testdata,demos,.vscode-test,src/test,testWorkspace'
     l10nShouldProcess: false
     ghCreateTag: false
     buildSteps:
