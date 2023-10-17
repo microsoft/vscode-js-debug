@@ -1218,7 +1218,7 @@ const commands: ReadonlyArray<{
     icon: '$(add)',
   },
   {
-    command: Commands.RemoveCustomBreakpoint,
+    command: Commands.RemoveCustomBreakpoints,
     title: refString('remove.eventListener.breakpoint'),
     icon: '$(remove)',
   },
@@ -1441,6 +1441,10 @@ const menus: Menus = {
       when: `view == ${CustomViews.EventListenerBreakpoints}`,
     },
     {
+      command: Commands.RemoveCustomBreakpoints,
+      when: `view == ${CustomViews.EventListenerBreakpoints}`,
+    },
+    {
       command: Commands.RemoveAllCustomBreakpoints,
       when: `view == ${CustomViews.EventListenerBreakpoints}`,
     },
@@ -1467,20 +1471,6 @@ const menus: Menus = {
     },
   ],
   'view/item/context': [
-    {
-      command: Commands.RemoveCustomBreakpoint,
-      when: `view == ${CustomViews.EventListenerBreakpoints}`,
-      group: 'inline',
-    },
-    {
-      command: Commands.AddCustomBreakpoints,
-      when: `view == ${CustomViews.EventListenerBreakpoints}`,
-    },
-    {
-      command: Commands.RemoveCustomBreakpoint,
-      when: `view == ${CustomViews.EventListenerBreakpoints}`,
-    },
-
     {
       command: Commands.CallersGoToCaller,
       group: 'inline',

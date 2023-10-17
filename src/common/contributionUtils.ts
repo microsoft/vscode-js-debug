@@ -38,7 +38,7 @@ export const enum Commands {
   PickProcess = 'extension.js-debug.pickNodeProcess',
   PrettyPrint = 'extension.js-debug.prettyPrint',
   RemoveAllCustomBreakpoints = 'extension.js-debug.removeAllCustomBreakpoints',
-  RemoveCustomBreakpoint = 'extension.js-debug.removeCustomBreakpoint',
+  RemoveCustomBreakpoints = 'extension.js-debug.removeCustomBreakpoint',
   RevealPage = 'extension.js-debug.revealPage',
   RequestCDPProxy = 'extension.js-debug.requestCDPProxy',
   /** Use node-debug's command so existing keybindings work */
@@ -99,7 +99,7 @@ const commandsObj: { [K in Commands]: null } = {
   [Commands.PickProcess]: null,
   [Commands.PrettyPrint]: null,
   [Commands.RemoveAllCustomBreakpoints]: null,
-  [Commands.RemoveCustomBreakpoint]: null,
+  [Commands.RemoveCustomBreakpoints]: null,
   [Commands.RevealPage]: null,
   [Commands.StartProfile]: null,
   [Commands.StopProfile]: null,

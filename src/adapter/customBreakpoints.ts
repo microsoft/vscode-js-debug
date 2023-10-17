@@ -165,7 +165,7 @@ export function customBreakpoints(): Map<string, ICustomBreakpoint> {
     e('DOMSubtreeModified'),
     e('DOMContentLoaded'),
   ]);
-  g(`Drag / drop`, [
+  g(`Drag / Drop`, [
     e('drag'),
     e('dragstart'),
     e('dragend'),
