@@ -632,7 +632,11 @@ export class SourceContainer {
           sourceMapUrl,
           compiledPath: absolutePath || event.url,
         })
-          ? sourceMapUrl
+          ? {
+              sourceMapUrl,
+              compiledPath: absolutePath || event.url,
+              cacheKey: event.hash,
+            }
           : undefined,
         inlineSourceRange,
         runtimeScriptOffset,
@@ -907,7 +911,13 @@ export class SourceContainer {
           : () => compiled.content(),
         // Support recursive source maps if the source includes the source content.
         // This obviates the need for the `source-map-loader` in webpack for most cases.
-        sourceMapUrl,
+        sourceMapUrl
+          ? {
+              compiledPath: absolutePath || resolvedUrl,
+              sourceMapUrl,
+              cacheKey: map.metadata.cacheKey,
+            }
+          : undefined,
         undefined,
         compiled.runtimeScriptOffset,
       );

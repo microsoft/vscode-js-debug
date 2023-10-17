@@ -17,7 +17,7 @@ import { completeUrlEscapingRoot, isDataUri } from '../urlUtils';
 
 export interface ISourceMapMetadata {
   sourceMapUrl: string;
-  cacheKey?: number;
+  cacheKey?: number | string;
   compiledPath: string;
 }
 
