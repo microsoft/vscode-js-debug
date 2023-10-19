@@ -33,7 +33,6 @@ interface IInitializationCollection {
   setExceptionBreakpointsParams?: Dap.SetExceptionBreakpointsParams;
   setBreakpointsParams: { params: Dap.SetBreakpointsParams; ids: number[] }[];
   customBreakpoints: Set<string>;
-  xhrBreakpoints: Set<string>;
   initializeParams: Dap.InitializeParams;
   launchParams: AnyResolvingConfiguration;
 
@@ -52,7 +51,6 @@ function collectInitialize(dap: Dap.Api) {
   let setExceptionBreakpointsParams: Dap.SetExceptionBreakpointsParams | undefined;
   const setBreakpointsParams: { params: Dap.SetBreakpointsParams; ids: number[] }[] = [];
   const customBreakpoints = new Set<string>();
-  const XHRBreakpoints = new Set<string>();
   const configurationDone = getDeferred<void>();
   let lastBreakpointId = 0;
   let initializeParams: Dap.InitializeParams;
@@ -80,16 +78,6 @@ function collectInitialize(dap: Dap.Api) {
 
   dap.on('disableCustomBreakpoints', async params => {
     for (const id of params.ids) customBreakpoints.delete(id);
-    return {};
-  });
-
-  dap.on('enableXHRBreakpoints', async params => {
-    for (const id of params.ids) XHRBreakpoints.add(id);
-    return {};
-  });
-
-  dap.on('disableXHRBreakpoints', async params => {
-    for (const id of params.ids) XHRBreakpoints.delete(id);
     return {};
   });
 
@@ -131,7 +119,6 @@ function collectInitialize(dap: Dap.Api) {
         setExceptionBreakpointsParams,
         setBreakpointsParams,
         customBreakpoints,
-        xhrBreakpoints: XHRBreakpoints,
         launchParams: launchParams as AnyResolvingConfiguration,
         deferred,
       });
@@ -203,7 +190,6 @@ class DapSessionManager implements IBinderDelegate {
     for (const { params, ids } of init.setBreakpointsParams)
       await adapter.breakpointManager.setBreakpoints(params, ids);
     await adapter.enableCustomBreakpoints({ ids: Array.from(init.customBreakpoints) });
-    await adapter.enableXHRBreakpoints({ ids: Array.from(init.xhrBreakpoints) });
     await adapter.onInitialize(init.initializeParams);
     await adapter.configurationDone();
 

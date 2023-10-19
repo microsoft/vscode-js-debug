@@ -1439,10 +1439,6 @@ const menus: Menus = {
     {
       command: Commands.AddCustomBreakpoints,
       when: `view == ${CustomViews.EventListenerBreakpoints}`,
-    },
-    {
-      command: Commands.RemoveAllCustomBreakpoints,
-      when: `view == ${CustomViews.EventListenerBreakpoints}`,
       group: 'navigation',
     },
     {

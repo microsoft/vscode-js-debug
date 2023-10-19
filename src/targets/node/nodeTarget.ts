@@ -109,10 +109,6 @@ export class NodeTarget implements ITarget {
     return false;
   }
 
-  supportsXHRBreakpoints(): boolean {
-    return false;
-  }
-
   executionContextName(): string {
     return this._targetName;
   }

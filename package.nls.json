@@ -1,9 +1,5 @@
 {
   "add.eventListener.breakpoint": "Add Event Listener Breakpoint",
-  "add.xhr.breakpoint": "Add XHR/fetch Breakpoint",
-  "edit.xhr.breakpoint": "Edit XHR/fetch Breakpoint",
-  "breakpoint.xhr.contains":"Break when URL contains:",
-  "breakpoint.xhr.any":"Any XHR/fetch",
   "attach.node.process": "Attach to Node Process",
   "base.cascadeTerminateToConfigurations.label": "A list of debug sessions which, when this debug session is terminated, will also be stopped.",
   "base.enableDWARF.label": "Toggles whether the debugger will try to read DWARF debug symbols from WebAssembly, which can be resource intensive. Requires the `ms-vscode.wasm-dwarf-debugging` extension to function.",
@@ -191,8 +187,6 @@
   "profile.stop": "Stop Performance Profile",
   "remove.eventListener.breakpoint.all": "Remove All Event Listener Breakpoints",
   "remove.eventListener.breakpoint": "Remove Event Listener Breakpoint",
-  "remove.xhr.breakpoint.all": "Remove All XHR/fetch Breakpoints",
-  "remove.xhr.breakpoint": "Remove XHR/fetch Breakpoint",
   "requestCDPProxy.label": "Request CDP Proxy for Debug Session",
   "skipFiles.description": "An array of glob patterns for files to skip when debugging. The pattern `<node_internals>/**` matches all internal Node.js modules.",
   "smartStep.description": "Automatically step through generated code that cannot be mapped back to the original source.",
