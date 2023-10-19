@@ -24,6 +24,10 @@ interface ICDPOperationClassification {
   'audits.issueadded': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!audits.issueadded.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
 
+  // Domain: Autofill
+  'autofill.addressformfilled': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!autofill.addressformfilled.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+
   // Domain: BackgroundService
   'backgroundservice.recordingstatechanged': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!backgroundservice.recordingstatechanged.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
@@ -359,8 +363,8 @@ interface ICDPOperationClassification {
   '!preload.rulesetupdated.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   'preload.rulesetremoved': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!preload.rulesetremoved.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
-  'preload.prerenderattemptcompleted': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!preload.prerenderattemptcompleted.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  'preload.preloadenabledstateupdated': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!preload.preloadenabledstateupdated.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   'preload.prefetchstatusupdated': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!preload.prefetchstatusupdated.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   'preload.prerenderstatusupdated': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
@@ -425,6 +429,12 @@ interface ICDPOperationClassification {
   '!storage.interestgroupaccessed.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   'storage.sharedstorageaccessed': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!storage.sharedstorageaccessed.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  'storage.storagebucketcreatedorupdated': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!storage.storagebucketcreatedorupdated.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  'storage.storagebucketdeleted': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!storage.storagebucketdeleted.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  'storage.attributionreportingsourceregistered': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!storage.attributionreportingsourceregistered.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
 
   // Domain: SystemInfo
 

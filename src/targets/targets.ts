@@ -79,6 +79,7 @@ export interface ITarget {
   initialize(): Promise<void>;
   waitingForDebugger(): boolean;
   supportsCustomBreakpoints(): boolean;
+  supportsXHRBreakpoints(): boolean;
   scriptUrlToUrl(url: string): string;
   executionContextName(context: Cdp.Runtime.ExecutionContextDescription): string;
   entryBreakpoint?: IBreakpointPathAndId | undefined;

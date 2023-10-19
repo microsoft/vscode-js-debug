@@ -16,7 +16,8 @@ export namespace Dap {
     /**
      * The `cancel` request is used by the client in two situations:
      * - to indicate that it is no longer interested in the result produced by a specific request issued earlier
-     * - to cancel a progress sequence. Clients should only call this request if the corresponding capability `supportsCancelRequest` is true.
+     * - to cancel a progress sequence.
+     * Clients should only call this request if the corresponding capability `supportsCancelRequest` is true.
      * This request has a hint characteristic: a debug adapter can only be expected to make a 'best effort' in honoring this request but there are no guarantees.
      * The `cancel` request may return an error if it could not cancel an operation but a client should refrain from presenting this error to end users.
      * The request that got cancelled still needs to send a response back. This can either be a normal result (`success` attribute true) or an error response (`success` attribute false and the `message` set to `cancelled`).
@@ -31,7 +32,8 @@ export namespace Dap {
     /**
      * The `cancel` request is used by the client in two situations:
      * - to indicate that it is no longer interested in the result produced by a specific request issued earlier
-     * - to cancel a progress sequence. Clients should only call this request if the corresponding capability `supportsCancelRequest` is true.
+     * - to cancel a progress sequence.
+     * Clients should only call this request if the corresponding capability `supportsCancelRequest` is true.
      * This request has a hint characteristic: a debug adapter can only be expected to make a 'best effort' in honoring this request but there are no guarantees.
      * The `cancel` request may return an error if it could not cancel an operation but a client should refrain from presenting this error to end users.
      * The request that got cancelled still needs to send a response back. This can either be a normal result (`success` attribute true) or an error response (`success` attribute false and the `message` set to `cancelled`).
@@ -854,6 +856,36 @@ export namespace Dap {
     ): Promise<DisableCustomBreakpointsResult>;
 
     /**
+     * Enable XHR/fetch breakpoints.
+     */
+    on(
+      request: 'enableXHRBreakpoints',
+      handler: (params: EnableXHRBreakpointsParams) => Promise<EnableXHRBreakpointsResult | Error>,
+    ): () => void;
+    /**
+     * Enable XHR/fetch breakpoints.
+     */
+    enableXHRBreakpointsRequest(
+      params: EnableXHRBreakpointsParams,
+    ): Promise<EnableXHRBreakpointsResult>;
+
+    /**
+     * Disable XHR/fetch breakpoints.
+     */
+    on(
+      request: 'disableXHRBreakpoints',
+      handler: (
+        params: DisableXHRBreakpointsParams,
+      ) => Promise<DisableXHRBreakpointsResult | Error>,
+    ): () => void;
+    /**
+     * Disable XHR/fetch breakpoints.
+     */
+    disableXHRBreakpointsRequest(
+      params: DisableXHRBreakpointsParams,
+    ): Promise<DisableXHRBreakpointsResult>;
+
+    /**
      * Pretty prints source for debugging.
      */
     on(
@@ -1168,7 +1200,8 @@ export namespace Dap {
     /**
      * The `cancel` request is used by the client in two situations:
      * - to indicate that it is no longer interested in the result produced by a specific request issued earlier
-     * - to cancel a progress sequence. Clients should only call this request if the corresponding capability `supportsCancelRequest` is true.
+     * - to cancel a progress sequence.
+     * Clients should only call this request if the corresponding capability `supportsCancelRequest` is true.
      * This request has a hint characteristic: a debug adapter can only be expected to make a 'best effort' in honoring this request but there are no guarantees.
      * The `cancel` request may return an error if it could not cancel an operation but a client should refrain from presenting this error to end users.
      * The request that got cancelled still needs to send a response back. This can either be a normal result (`success` attribute true) or an error response (`success` attribute false and the `message` set to `cancelled`).
@@ -1681,6 +1714,18 @@ export namespace Dap {
     ): Promise<DisableCustomBreakpointsResult>;
 
     /**
+     * Enable XHR/fetch breakpoints.
+     */
+    enableXHRBreakpoints(params: EnableXHRBreakpointsParams): Promise<EnableXHRBreakpointsResult>;
+
+    /**
+     * Disable XHR/fetch breakpoints.
+     */
+    disableXHRBreakpoints(
+      params: DisableXHRBreakpointsParams,
+    ): Promise<DisableXHRBreakpointsResult>;
+
+    /**
      * Pretty prints source for debugging.
      */
     prettyPrintSource(params: PrettyPrintSourceParams): Promise<PrettyPrintSourceResult>;
@@ -1953,7 +1998,7 @@ export namespace Dap {
 
   export interface BreakpointLocationsParams {
     /**
-     * The source location of the breakpoints; either `source.path` or `source.reference` must be specified.
+     * The source location of the breakpoints; either `source.path` or `source.sourceReference` must be specified.
      */
     source: Source;
 
@@ -2119,7 +2164,7 @@ export namespace Dap {
 
   export interface DataBreakpointInfoResult {
     /**
-     * An identifier for the data on which a data breakpoint can be registered with the `setDataBreakpoints` request or null if no data breakpoint is available.
+     * An identifier for the data on which a data breakpoint can be registered with the `setDataBreakpoints` request or null if no data breakpoint is available. If a `variablesReference` or `frameId` is passed, the `dataId` is valid in the current suspended state, otherwise it's valid indefinitely. See 'Lifetime of Object References' in the Overview section for details. Breakpoints set using the `dataId` in the `setDataBreakpoints` request may outlive the lifetime of the associated `dataId`.
      */
     dataId: string | null;
 
@@ -2156,6 +2201,15 @@ export namespace Dap {
   }
 
   export interface DisableSourcemapResult {}
+
+  export interface DisableXHRBreakpointsParams {
+    /**
+     * Id of breakpoints to enable.
+     */
+    ids: string[];
+  }
+
+  export interface DisableXHRBreakpointsResult {}
 
   export interface DisassembleParams {
     /**
@@ -2224,6 +2278,15 @@ export namespace Dap {
 
   export interface EnableCustomBreakpointsResult {}
 
+  export interface EnableXHRBreakpointsParams {
+    /**
+     * Id of breakpoints to enable.
+     */
+    ids: string[];
+  }
+
+  export interface EnableXHRBreakpointsResult {}
+
   export interface EvaluateParams {
     /**
      * The expression to evaluate.
@@ -2286,7 +2349,7 @@ export namespace Dap {
     /**
      * A memory reference to a location appropriate for this result.
      * For pointer type eval results, this is generally a reference to the memory address contained in the pointer.
-     * This attribute should be returned by a debug adapter if corresponding capability `supportsMemoryReferences` is true.
+     * This attribute may be returned by a debug adapter if corresponding capability `supportsMemoryReferences` is true.
      */
     memoryReference?: string;
   }
@@ -3374,6 +3437,13 @@ export namespace Dap {
      * The value should be less than or equal to 2147483647 (2^31-1).
      */
     indexedVariables?: integer;
+
+    /**
+     * A memory reference to a location appropriate for this result.
+     * For pointer type eval results, this is generally a reference to the memory address contained in the pointer.
+     * This attribute may be returned by a debug adapter if corresponding capability `supportsMemoryReferences` is true.
+     */
+    memoryReference?: string;
   }
 
   export interface SetFunctionBreakpointsParams {
@@ -3465,6 +3535,13 @@ export namespace Dap {
      * The value should be less than or equal to 2147483647 (2^31-1).
      */
     indexedVariables?: integer;
+
+    /**
+     * A memory reference to a location appropriate for this result.
+     * For pointer type eval results, this is generally a reference to the memory address contained in the pointer.
+     * This attribute may be returned by a debug adapter if corresponding capability `supportsMemoryReferences` is true.
+     */
+    memoryReference?: string;
   }
 
   export interface SourceParams {
@@ -3789,11 +3866,13 @@ export namespace Dap {
 
     /**
      * The index of the first variable to return; if omitted children start at 0.
+     * The attribute is only honored by a debug adapter if the corresponding capability `supportsVariablePaging` is true.
      */
     start?: integer;
 
     /**
      * The number of variables to return. If count is missing or 0, all variables are returned.
+     * The attribute is only honored by a debug adapter if the corresponding capability `supportsVariablePaging` is true.
      */
     count?: integer;
 
@@ -3902,8 +3981,10 @@ export namespace Dap {
     indexedVariables?: integer;
 
     /**
-     * The memory reference for the variable if the variable represents executable code, such as a function pointer.
-     * This attribute is only required if the corresponding capability `supportsMemoryReferences` is true.
+     * A memory reference associated with this variable.
+     * For pointer type variables, this is generally a reference to the memory address contained in the pointer.
+     * For executable data, this reference may later be used in a `disassemble` request.
+     * This attribute may be returned by a debug adapter if corresponding capability `supportsMemoryReferences` is true.
      */
     memoryReference?: string;
   }
@@ -4068,7 +4149,7 @@ export namespace Dap {
     instructionReference: string;
 
     /**
-     * The offset from the instruction reference.
+     * The offset from the instruction reference in bytes.
      * This can be negative.
      */
     offset?: integer;
@@ -4750,6 +4831,13 @@ export namespace Dap {
      * The end column of the range that corresponds to this instruction, if any.
      */
     endColumn?: integer;
+
+    /**
+     * A hint for how to present the instruction in the UI.
+     *
+     * A value of `invalid` may be used to indicate this instruction is 'filler' and cannot be reached by the program. For example, unreadable memory addresses may be presented is 'invalid.'
+     */
+    presentationHint?: string;
   }
 
   /**
@@ -5171,6 +5259,14 @@ export namespace Dap {
      * This can be negative.
      */
     offset?: integer;
+
+    /**
+     * A machine-readable explanation of why a breakpoint may not be verified. If a breakpoint is verified or a specific reason is not known, the adapter should omit this property. Possible values include:
+     *
+     * - `pending`: Indicates a breakpoint might be verified in the future, but the adapter cannot verify it in the current state.
+     *  - `failed`: Indicates a breakpoint was not able to be verified, and the adapter does not believe it can be verified without intervention.
+     */
+    reason?: string;
   }
 }
 

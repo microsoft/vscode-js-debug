@@ -20,6 +20,7 @@ import { registerAutoAttach } from './ui/autoAttach';
 import { registerCompanionBrowserLaunch } from './ui/companionBrowserLaunch';
 import { IDebugConfigurationProvider, IDebugConfigurationResolver } from './ui/configuration';
 import { registerCustomBreakpointsUI } from './ui/customBreakpointsUI';
+import { registerXHRBreakpointsUI } from './ui/xhrBreakpointsUI';
 import { debugNpmScript } from './ui/debugNpmScript';
 import { DebugSessionTracker } from './ui/debugSessionTracker';
 import { registerDebugTerminalUI } from './ui/debugTerminalUI';
@@ -93,6 +94,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   registerCompanionBrowserLaunch(context);
   registerCustomBreakpointsUI(context, debugSessionTracker);
+  registerXHRBreakpointsUI(context, debugSessionTracker);
   registerDebugTerminalUI(
     context,
     services.get(DelegateLauncherFactory),

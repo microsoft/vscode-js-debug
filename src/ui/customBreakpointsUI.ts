@@ -130,7 +130,6 @@ export function registerCustomBreakpointsUI(
   });
 
   view.onDidChangeCheckboxState(e => {
-    console.log(e.items);
     if (e.items.length == 1 && e.items[0][0] instanceof vscode.TreeItem) {
       if (!e.items[0][0].label) return;
       const allBr = provider.breakpoints.get(e.items[0][0].label.toString());
