@@ -29,6 +29,7 @@ export const enum CustomViews {
 export const enum Commands {
   AddCustomBreakpoints = 'extension.js-debug.addCustomBreakpoints',
   AddXHRBreakpoints = 'extension.js-debug.addXHRBreakpoints',
+  EditXHRBreakpoint = 'extension.js-debug.editXHRBreakpoints',
   AttachProcess = 'extension.pwa-node-debug.attachNodeProcess',
   AutoAttachClearVariables = 'extension.js-debug.clearAutoAttachVariables',
   AutoAttachSetVariables = 'extension.js-debug.setAutoAttachVariables',
@@ -93,6 +94,7 @@ const debugTypes: { [K in DebugType]: null } = {
 const commandsObj: { [K in Commands]: null } = {
   [Commands.AddCustomBreakpoints]: null,
   [Commands.AddXHRBreakpoints]: null,
+  [Commands.EditXHRBreakpoint]: null,
   [Commands.AttachProcess]: null,
   [Commands.AutoAttachClearVariables]: null,
   [Commands.AutoAttachSetVariables]: null,

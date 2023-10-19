@@ -1,6 +1,7 @@
 {
   "add.eventListener.breakpoint": "Add Event Listener Breakpoint",
   "add.xhr.breakpoint": "Add XHR/fetch Breakpoint",
+  "edit.xhr.breakpoint": "Edit XHR/fetch Breakpoint",
   "breakpoint.xhr.contains":"Break when URL contains:",
   "breakpoint.xhr.any":"Any XHR/fetch",
   "attach.node.process": "Attach to Node Process",

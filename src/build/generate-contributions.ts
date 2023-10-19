@@ -1233,6 +1233,11 @@ const commands: ReadonlyArray<{
     icon: '$(add)',
   },
   {
+    command: Commands.EditXHRBreakpoint,
+    title: refString('edit.xhr.breakpoint'),
+    icon: '$(edit)',
+  },
+  {
     command: Commands.RemoveXHRBreakpoints,
     title: refString('remove.xhr.breakpoint'),
     icon: '$(remove)',
@@ -1497,7 +1502,15 @@ const menus: Menus = {
     {
       command: Commands.AddXHRBreakpoints,
       when: `view == ${CustomViews.XHRFetchBreakpoints}`,
+    },
+    {
+      command: Commands.EditXHRBreakpoint,
+      when: `view == ${CustomViews.XHRFetchBreakpoints}`,
       group: 'inline',
+    },
+    {
+      command: Commands.EditXHRBreakpoint,
+      when: `view == ${CustomViews.XHRFetchBreakpoints}`,
     },
     {
       command: Commands.RemoveXHRBreakpoints,
