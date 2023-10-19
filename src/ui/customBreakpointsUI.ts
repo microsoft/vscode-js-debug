@@ -39,14 +39,15 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<Breakpoint | vs
   breakpoints: Map<string, Breakpoint[]>;
 
   constructor(debugSessionTracker: DebugSessionTracker) {
-    this.breakpoints = new Map<string, Breakpoint[]>(
-      [...customBreakpoints()].reduce((acc, cb) => {
-        if (![...acc.keys()].includes(cb[1].group)) acc.set(cb[1].group, []);
-
-        acc.get(cb[1].group)?.push(new Breakpoint(cb[1], false));
-        return acc;
-      }, new Map<string, Breakpoint[]>()),
-    );
+    this.breakpoints = [...customBreakpoints().values()].reduce((acc, breakpoint) => {
+      let list = acc.get(breakpoint.group);
+      if (!list) {
+        list = [];
+        acc.set(breakpoint.group, list);
+      }
+      list.push(new Breakpoint(breakpoint, false));
+      return acc;
+    }, new Map<string, Breakpoint[]>());
 
     this._debugSessionTracker = debugSessionTracker;
     debugSessionTracker.onSessionAdded(session => {
@@ -73,9 +74,9 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<Breakpoint | vs
     item?: vscode.TreeItem | Breakpoint,
   ): vscode.ProviderResult<(Breakpoint | vscode.TreeItem)[]> {
     if (!item)
-      return [...this.breakpoints.keys()].map(key => {
+      return [...this.breakpoints].map(([key, breakpoint]) => {
         const retVal = new vscode.TreeItem(key, vscode.TreeItemCollapsibleState.Collapsed);
-        retVal.checkboxState = this.breakpoints.get(key)?.every(p => p.checkboxState) ? 1 : 0;
+        retVal.checkboxState = breakpoint.every(p => p.checkboxState) ? 1 : 0;
         return retVal;
       });
     if ('label' in item) {
@@ -93,7 +94,7 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<Breakpoint | vs
   }
 
   addBreakpoints(breakpoints: Breakpoint[]) {
-    if (breakpoints.length == 0) return;
+    if (breakpoints.length === 0) return;
 
     for (const breakpoint of breakpoints)
       breakpoint.checkboxState = vscode.TreeItemCheckboxState.Checked;
@@ -105,7 +106,7 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<Breakpoint | vs
   }
 
   removeBreakpoints(breakpoints: Breakpoint[]) {
-    if (breakpoints.length == 0) return;
+    if (breakpoints.length === 0) return;
 
     // disable every breakpoint in breakpoints
     for (const breakpoint of breakpoints)
@@ -130,24 +131,21 @@ export function registerCustomBreakpointsUI(
   });
 
   view.onDidChangeCheckboxState(e => {
-    if (e.items.length == 1 && e.items[0][0] instanceof vscode.TreeItem) {
-      if (!e.items[0][0].label) return;
-      const allBr = provider.breakpoints.get(e.items[0][0].label.toString());
-      if (!allBr) return;
-      if (e.items[0][1]) {
-        provider.addBreakpoints(allBr);
-      } else {
-        provider.removeBreakpoints(allBr);
-      }
-      return;
-    }
-
     for (const item of e.items) {
       if (item[0] instanceof Breakpoint) {
         if (item[1]) {
           provider.addBreakpoints([item[0]]);
         } else {
           provider.removeBreakpoints([item[0]]);
+        }
+      } else {
+        if (!item[0].label) continue;
+        const allBr = provider.breakpoints.get(item[0].label.toString());
+        if (!allBr) continue;
+        if (item[1]) {
+          provider.addBreakpoints(allBr);
+        } else {
+          provider.removeBreakpoints(allBr);
         }
       }
     }
@@ -175,7 +173,6 @@ export function registerCustomBreakpointsUI(
           const ids = items
             .filter(item => item.kind != vscode.QuickPickItemKind.Separator)
             .map(item => item.id);
-
           provider.addBreakpoints(provider.getAllBreakpoints().filter(b => ids.includes(b.id)));
         });
     }),
