@@ -25,6 +25,7 @@ import { ProtocolError } from '../dap/protocolError';
 import { NodeWorkerTarget } from '../targets/node/nodeWorkerTarget';
 import { ITarget } from '../targets/targets';
 import { IShutdownParticipants } from '../ui/shutdownParticipants';
+import { XHRBreakpointId } from './XHRBreakpoints';
 import { BreakpointManager, EntryBreakpointMode } from './breakpoints';
 import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
 import { ICompletions } from './completions';
@@ -1272,6 +1273,18 @@ export class Thread implements IVariableStoreLocationProvider {
 
     this._enabledCustomBreakpoints = newIds;
     await Promise.all(todo);
+  }
+
+  async updateXHRBreakpoint(id: XHRBreakpointId, enabled: boolean): Promise<void> {
+    if (!this.target.supportsXHRBreakpoints()) return;
+    if (enabled)
+      !!(await this._cdp.DOMDebugger.setXHRBreakpoint({
+        url: id,
+      }));
+    else
+      !!(await this._cdp.DOMDebugger.removeXHRBreakpoint({
+        url: id,
+      }));
   }
 
   private async _createPausedDetails(event: Cdp.Debugger.PausedEvent): Promise<IPausedDetails> {

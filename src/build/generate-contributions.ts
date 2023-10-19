@@ -1223,6 +1223,26 @@ const commands: ReadonlyArray<{
     icon: '$(close-all)',
   },
   {
+    command: Commands.AddXHRBreakpoints,
+    title: refString('add.xhr.breakpoint'),
+    icon: '$(add)',
+  },
+  {
+    command: Commands.RemoveXHRBreakpoints,
+    title: refString('remove.xhr.breakpoint'),
+    icon: '$(remove)',
+  },
+  {
+    command: Commands.RemoveAllXHRBreakpoints,
+    title: refString('remove.xhr.breakpoint.all'),
+    icon: '$(close-all)',
+  },
+  {
+    command: Commands.EditXHRBreakpoint,
+    title: refString('edit.xhr.breakpoint'),
+    icon: '$(edit)',
+  },
+  {
     command: Commands.AttachProcess,
     title: refString('attach.node.process'),
     category: 'Debug',
@@ -1442,6 +1462,16 @@ const menus: Menus = {
       group: 'navigation',
     },
     {
+      command: Commands.AddXHRBreakpoints,
+      when: `view == ${CustomViews.XHRFetchBreakpoints}`,
+      group: 'navigation',
+    },
+    {
+      command: Commands.RemoveAllXHRBreakpoints,
+      when: `view == ${CustomViews.XHRFetchBreakpoints}`,
+      group: 'navigation',
+    },
+    {
       command: Commands.CallersRemoveAll,
       group: 'navigation',
       when: `view == ${CustomViews.ExcludedCallers}`,
@@ -1464,6 +1494,32 @@ const menus: Menus = {
     },
   ],
   'view/item/context': [
+    {
+      command: Commands.AddXHRBreakpoints,
+      when: `view == ${CustomViews.XHRFetchBreakpoints}`,
+    },
+    {
+      command: Commands.EditXHRBreakpoint,
+      when: `view == ${CustomViews.XHRFetchBreakpoints}`,
+      group: 'inline',
+    },
+    {
+      command: Commands.EditXHRBreakpoint,
+      when: `view == ${CustomViews.XHRFetchBreakpoints}`,
+    },
+    {
+      command: Commands.RemoveXHRBreakpoints,
+      when: `view == ${CustomViews.XHRFetchBreakpoints}`,
+      group: 'inline',
+    },
+    {
+      command: Commands.RemoveXHRBreakpoints,
+      when: `view == ${CustomViews.XHRFetchBreakpoints}`,
+    },
+    {
+      command: Commands.RemoveAllXHRBreakpoints,
+      when: `view == ${CustomViews.XHRFetchBreakpoints}`,
+    },
     {
       command: Commands.CallersGoToCaller,
       group: 'inline',
@@ -1525,6 +1581,11 @@ const views = {
     {
       id: CustomViews.EventListenerBreakpoints,
       name: 'Event Listener Breakpoints',
+      when: forBrowserDebugType('debugType'),
+    },
+    {
+      id: CustomViews.XHRFetchBreakpoints,
+      name: 'XHR/Fetch Breakpoints',
       when: forBrowserDebugType('debugType'),
     },
     {

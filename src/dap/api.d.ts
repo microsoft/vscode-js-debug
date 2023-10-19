@@ -838,6 +838,36 @@ export namespace Dap {
     ): Promise<SetCustomBreakpointsResult>;
 
     /**
+     * Enable XHR/fetch breakpoints.
+     */
+    on(
+      request: 'enableXHRBreakpoints',
+      handler: (params: EnableXHRBreakpointsParams) => Promise<EnableXHRBreakpointsResult | Error>,
+    ): () => void;
+    /**
+     * Enable XHR/fetch breakpoints.
+     */
+    enableXHRBreakpointsRequest(
+      params: EnableXHRBreakpointsParams,
+    ): Promise<EnableXHRBreakpointsResult>;
+
+    /**
+     * Disable XHR/fetch breakpoints.
+     */
+    on(
+      request: 'disableXHRBreakpoints',
+      handler: (
+        params: DisableXHRBreakpointsParams,
+      ) => Promise<DisableXHRBreakpointsResult | Error>,
+    ): () => void;
+    /**
+     * Disable XHR/fetch breakpoints.
+     */
+    disableXHRBreakpointsRequest(
+      params: DisableXHRBreakpointsParams,
+    ): Promise<DisableXHRBreakpointsResult>;
+
+    /**
      * Pretty prints source for debugging.
      */
     on(
@@ -1657,6 +1687,18 @@ export namespace Dap {
     setCustomBreakpoints(params: SetCustomBreakpointsParams): Promise<SetCustomBreakpointsResult>;
 
     /**
+     * Enable XHR/fetch breakpoints.
+     */
+    enableXHRBreakpoints(params: EnableXHRBreakpointsParams): Promise<EnableXHRBreakpointsResult>;
+
+    /**
+     * Disable XHR/fetch breakpoints.
+     */
+    disableXHRBreakpoints(
+      params: DisableXHRBreakpointsParams,
+    ): Promise<DisableXHRBreakpointsResult>;
+
+    /**
      * Pretty prints source for debugging.
      */
     prettyPrintSource(params: PrettyPrintSourceParams): Promise<PrettyPrintSourceResult>;
@@ -2124,6 +2166,15 @@ export namespace Dap {
 
   export interface DisableSourcemapResult {}
 
+  export interface DisableXHRBreakpointsParams {
+    /**
+     * Id of breakpoints to enable.
+     */
+    ids: string[];
+  }
+
+  export interface DisableXHRBreakpointsResult {}
+
   export interface DisassembleParams {
     /**
      * Memory reference to the base location containing the instructions to disassemble.
@@ -2181,6 +2232,15 @@ export namespace Dap {
   }
 
   export interface DisconnectResult {}
+
+  export interface EnableXHRBreakpointsParams {
+    /**
+     * Id of breakpoints to enable.
+     */
+    ids: string[];
+  }
+
+  export interface EnableXHRBreakpointsResult {}
 
   export interface EvaluateParams {
     /**

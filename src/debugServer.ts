@@ -23,6 +23,7 @@ class Configurator {
   private _setExceptionBreakpointsParams?: Dap.SetExceptionBreakpointsParams;
   private _setBreakpointsParams: { params: Dap.SetBreakpointsParams; ids: number[] }[];
   private _customBreakpoints: string[] = [];
+  private _xhrBreakpoints = new Set<string>();
   private lastBreakpointId = 0;
 
   constructor(dap: Dap.Api) {
@@ -52,6 +53,15 @@ class Configurator {
       return {};
     });
 
+    dap.on('enableXHRBreakpoints', async params => {
+      for (const id of params.ids) this._xhrBreakpoints.add(id);
+      return {};
+    });
+    dap.on('disableXHRBreakpoints', async params => {
+      for (const id of params.ids) this._xhrBreakpoints.delete(id);
+      return {};
+    });
+
     dap.on('configurationDone', async () => {
       return {};
     });
@@ -71,6 +81,7 @@ class Configurator {
     for (const { params, ids } of this._setBreakpointsParams)
       await adapter.breakpointManager.setBreakpoints(params, ids);
     await adapter.setCustomBreakpoints({ ids: Array.from(this._customBreakpoints) });
+    await adapter.enableXHRBreakpoints({ ids: Array.from(this._xhrBreakpoints) });
     await adapter.configurationDone();
   }
 }

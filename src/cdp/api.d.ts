@@ -24323,6 +24323,8 @@ export namespace Cdp {
        * that is incompatible with prerender and has caused the cancellation of the attempt.
        */
       disallowedMojoInterface?: string;
+
+      mismatchedHeaders?: PrerenderMismatchedHeaders[];
     }
 
     /**
@@ -24557,6 +24559,17 @@ export namespace Cdp {
       | 'PrefetchResponseUsed'
       | 'PrefetchSuccessfulButNotUsed'
       | 'PrefetchNotUsedProbeFailed';
+
+    /**
+     * Information of headers to be displayed when the header mismatch occurred.
+     */
+    export interface PrerenderMismatchedHeaders {
+      headerName: string;
+
+      initialValue?: string;
+
+      activationValue?: string;
+    }
   }
 
   /**
@@ -27424,6 +27437,8 @@ export namespace Cdp {
       controlledClients?: Target.TargetID[];
 
       targetId?: Target.TargetID;
+
+      routerRules?: string;
     }
 
     /**
