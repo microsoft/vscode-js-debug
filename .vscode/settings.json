@@ -6,7 +6,11 @@
   "editor.insertSpaces": true,
   "editor.tabSize": 2,
   "editor.detectIndentation": false,
-  "eslint.validate": ["javascript", "javascriptreact", "typescript"],
+  "eslint.validate": [
+    "javascript",
+    "javascriptreact",
+    "typescript"
+  ],
   "search.exclude": {
     "**/testdata": true,
     "**/.dynamic-testWorkspace/defaultSearchExcluded": true
@@ -30,6 +34,5 @@
     "source.organizeImports": true
   },
   "editor.formatOnSave": true,
-  "typescript.tsserver.experimental.enableProjectDiagnostics": true,
-  "hide-files.files": [],
+  "typescript.tsserver.experimental.enableProjectDiagnostics": true
 }
