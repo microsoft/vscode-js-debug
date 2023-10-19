@@ -157,8 +157,13 @@ export function registerCustomBreakpointsUI(
 
   context.subscriptions.push(
     vscode.commands.registerCommand(Commands.AddCustomBreakpoints, () => {
-      const items = [...provider.breakpoints]
-        .map(bC => bC[1].map(b => ({ id: b.id, label: `${bC[0]}: ${b.label}` })))
+      const items: (vscode.QuickPickItem & { id: CustomBreakpointId })[] = [
+        ...provider.breakpoints.entries(),
+      ]
+        .map(bC => [
+          { kind: vscode.QuickPickItemKind.Separator, id: bC[0], label: bC[0] },
+          ...bC[1].map(b => ({ id: b.id, label: `${b.label}` })),
+        ])
         .flat();
       vscode.window
         .showQuickPick(items, {
@@ -167,7 +172,9 @@ export function registerCustomBreakpointsUI(
         })
         .then(items => {
           if (!items) return;
-          const ids = items.map(item => item.id);
+          const ids = items
+            .filter(item => item.kind != vscode.QuickPickItemKind.Separator)
+            .map(item => item.id);
 
           provider.addBreakpoints(provider.getAllBreakpoints().filter(b => ids.includes(b.id)));
         });
@@ -182,8 +189,13 @@ export function registerCustomBreakpointsUI(
 
   context.subscriptions.push(
     vscode.commands.registerCommand(Commands.RemoveCustomBreakpoints, () => {
-      const items = [...provider.breakpoints]
-        .map(bC => bC[1].map(b => ({ id: b.id, label: `${bC[0]}: ${b.label}` })))
+      const items: (vscode.QuickPickItem & { id: CustomBreakpointId })[] = [
+        ...provider.breakpoints.entries(),
+      ]
+        .map(bC => [
+          { kind: vscode.QuickPickItemKind.Separator, id: bC[0], label: bC[0] },
+          ...bC[1].map(b => ({ id: b.id, label: `${b.label}` })),
+        ])
         .flat();
       vscode.window
         .showQuickPick(items, {
