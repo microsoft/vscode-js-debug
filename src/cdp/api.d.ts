@@ -27,6 +27,7 @@ export namespace Cdp {
     Accessibility: AccessibilityApi;
     Animation: AnimationApi;
     Audits: AuditsApi;
+    Autofill: AutofillApi;
     BackgroundService: BackgroundServiceApi;
     Browser: BrowserApi;
     CacheStorage: CacheStorageApi;
@@ -455,7 +456,7 @@ export namespace Cdp {
       superseded?: boolean;
 
       /**
-       * The native markup source for this value, e.g. a <label> element.
+       * The native markup source for this value, e.g. a `<label>` element.
        */
       nativeSource?: AXValueNativeSourceType;
 
@@ -1117,6 +1118,14 @@ export namespace Cdp {
       params: Audits.CheckContrastParams,
     ): Promise<Audits.CheckContrastResult | undefined>;
 
+    /**
+     * Runs the form issues check for the target page. Found issues are reported
+     * using Audits.issueAdded event.
+     */
+    checkFormsIssues(
+      params: Audits.CheckFormsIssuesParams,
+    ): Promise<Audits.CheckFormsIssuesResult | undefined>;
+
     on(event: 'issueAdded', listener: (event: Audits.IssueAddedEvent) => void): IDisposable;
   }
 
@@ -1205,6 +1214,18 @@ export namespace Cdp {
     export interface CheckContrastResult {}
 
     /**
+     * Parameters of the 'Audits.checkFormsIssues' method.
+     */
+    export interface CheckFormsIssuesParams {}
+
+    /**
+     * Return value of the 'Audits.checkFormsIssues' method.
+     */
+    export interface CheckFormsIssuesResult {
+      formIssues: GenericIssueDetails[];
+    }
+
+    /**
      * Parameters of the 'Audits.issueAdded' event.
      */
     export interface IssueAddedEvent {
@@ -1252,7 +1273,8 @@ export namespace Cdp {
       | 'ExcludeInvalidSameParty'
       | 'ExcludeSamePartyCrossPartyContext'
       | 'ExcludeDomainNonASCII'
-      | 'ExcludeThirdPartyCookieBlockedInFirstPartySet';
+      | 'ExcludeThirdPartyCookieBlockedInFirstPartySet'
+      | 'ExcludeThirdPartyPhaseout';
 
     export type CookieWarningReason =
       | 'WarnSameSiteUnspecifiedCrossSiteContext'
@@ -1264,7 +1286,9 @@ export namespace Cdp {
       | 'WarnSameSiteLaxCrossDowngradeStrict'
       | 'WarnSameSiteLaxCrossDowngradeLax'
       | 'WarnAttributeValueExceedsMaxSize'
-      | 'WarnDomainNonASCII';
+      | 'WarnDomainNonASCII'
+      | 'WarnThirdPartyPhaseout'
+      | 'WarnCrossSiteRedirectDowngradeChangesInclusion';
 
     export type CookieOperation = 'SetCookie' | 'ReadCookie';
 
@@ -1472,34 +1496,6 @@ export namespace Cdp {
       type: SharedArrayBufferIssueType;
     }
 
-    export type TwaQualityEnforcementViolationType =
-      | 'kHttpError'
-      | 'kUnavailableOffline'
-      | 'kDigitalAssetLinks';
-
-    export interface TrustedWebActivityIssueDetails {
-      /**
-       * The url that triggers the violation.
-       */
-      url: string;
-
-      violationType: TwaQualityEnforcementViolationType;
-
-      httpStatusCode?: integer;
-
-      /**
-       * The package name of the Trusted Web Activity client app. This field is
-       * only used when violation type is kDigitalAssetLinks.
-       */
-      packageName?: string;
-
-      /**
-       * The signature of the Trusted Web Activity client app. This field is only
-       * used when violation type is kDigitalAssetLinks.
-       */
-      signature?: string;
-    }
-
     export interface LowTextContrastIssueDetails {
       violatingNodeId: DOM.BackendNodeId;
 
@@ -1542,8 +1538,6 @@ export namespace Cdp {
       | 'InsecureContext'
       | 'InvalidHeader'
       | 'InvalidRegisterTriggerHeader'
-      | 'InvalidEligibleHeader'
-      | 'TooManyConcurrentRequests'
       | 'SourceAndTriggerHeaders'
       | 'SourceIgnored'
       | 'TriggerIgnored'
@@ -1551,7 +1545,9 @@ export namespace Cdp {
       | 'OsTriggerIgnored'
       | 'InvalidRegisterOsSourceHeader'
       | 'InvalidRegisterOsTriggerHeader'
-      | 'WebAndOsHeaders';
+      | 'WebAndOsHeaders'
+      | 'NoWebOrOsSupport'
+      | 'NavigationRegistrationWithoutTransientUserActivation';
 
     /**
      * Details for issues around "Attribution Reporting API" usage.
@@ -1587,6 +1583,10 @@ export namespace Cdp {
       loaderId: Network.LoaderId;
     }
 
+    /**
+     *
+     * @deprecated
+     */
     export interface NavigatorUserAgentIssueDetails {
       url: string;
 
@@ -1604,7 +1604,8 @@ export namespace Cdp {
       | 'FormInputAssignedAutocompleteValueToIdOrNameAttributeError'
       | 'FormLabelHasNeitherForNorNestedInput'
       | 'FormLabelForMatchesNonExistingIdError'
-      | 'FormInputHasWrongButWellIntendedAutocompleteValueError';
+      | 'FormInputHasWrongButWellIntendedAutocompleteValueError'
+      | 'ResponseWasBlockedByORB';
 
     /**
      * Depending on the concrete errorType, different properties are set.
@@ -1618,6 +1619,10 @@ export namespace Cdp {
       frameId?: Page.FrameId;
 
       violatingNodeId?: DOM.BackendNodeId;
+
+      violatingNodeAttribute?: string;
+
+      request?: AffectedRequest;
     }
 
     /**
@@ -1633,6 +1638,28 @@ export namespace Cdp {
        * One of the deprecation names from third_party/blink/renderer/core/frame/deprecation/deprecation.json5
        */
       type: string;
+    }
+
+    /**
+     * This issue warns about sites in the redirect chain of a finished navigation
+     * that may be flagged as trackers and have their state cleared if they don't
+     * receive a user interaction. Note that in this context 'site' means eTLD+1.
+     * For example, if the URL `https://example.test:80/bounce` was in the
+     * redirect chain, the site reported would be `example.test`.
+     */
+    export interface BounceTrackingIssueDetails {
+      trackingSites: string[];
+    }
+
+    /**
+     * This issue warns about third-party sites that are accessing cookies on the
+     * current page, and have been permitted due to having a global metadata grant.
+     * Note that in this context 'site' means eTLD+1. For example, if the URL
+     * `https://example.test:80/web_page` was accessing cookies, the site reported
+     * would be `example.test`.
+     */
+    export interface CookieDeprecationMetadataIssueDetails {
+      allowedSites: string[];
     }
 
     export type ClientHintIssueReason = 'MetaTagAllowListInvalidOrigin' | 'MetaTagModifiedHTML';
@@ -1654,14 +1681,17 @@ export namespace Cdp {
       | 'WellKnownNoResponse'
       | 'WellKnownInvalidResponse'
       | 'WellKnownListEmpty'
+      | 'WellKnownInvalidContentType'
       | 'ConfigNotInWellKnown'
       | 'WellKnownTooBig'
       | 'ConfigHttpNotFound'
       | 'ConfigNoResponse'
       | 'ConfigInvalidResponse'
+      | 'ConfigInvalidContentType'
       | 'ClientMetadataHttpNotFound'
       | 'ClientMetadataNoResponse'
       | 'ClientMetadataInvalidResponse'
+      | 'ClientMetadataInvalidContentType'
       | 'DisabledInSettings'
       | 'ErrorFetchingSignin'
       | 'InvalidSigninResponse'
@@ -1669,13 +1699,38 @@ export namespace Cdp {
       | 'AccountsNoResponse'
       | 'AccountsInvalidResponse'
       | 'AccountsListEmpty'
+      | 'AccountsInvalidContentType'
       | 'IdTokenHttpNotFound'
       | 'IdTokenNoResponse'
       | 'IdTokenInvalidResponse'
       | 'IdTokenInvalidRequest'
+      | 'IdTokenInvalidContentType'
       | 'ErrorIdToken'
       | 'Canceled'
-      | 'RpPageNotVisible';
+      | 'RpPageNotVisible'
+      | 'SilentMediationFailure'
+      | 'ThirdPartyCookiesBlocked'
+      | 'NotSignedInWithIdp';
+
+    export interface FederatedAuthUserInfoRequestIssueDetails {
+      federatedAuthUserInfoRequestIssueReason: FederatedAuthUserInfoRequestIssueReason;
+    }
+
+    /**
+     * Represents the failure reason when a getUserInfo() call fails.
+     * Should be updated alongside FederatedAuthUserInfoRequestResult in
+     * third_party/blink/public/mojom/devtools/inspector_issue.mojom.
+     */
+    export type FederatedAuthUserInfoRequestIssueReason =
+      | 'NotSameOrigin'
+      | 'NotIframe'
+      | 'NotPotentiallyTrustworthy'
+      | 'NoApiPermission'
+      | 'NotSignedInWithIdp'
+      | 'NoAccountSharingPermission'
+      | 'InvalidConfigOrWellKnown'
+      | 'InvalidAccountsResponse'
+      | 'NoReturningUserFromFetchedAccounts';
 
     /**
      * This issue tracks client hints related issues. It's used to deprecate old
@@ -1685,6 +1740,69 @@ export namespace Cdp {
       sourceCodeLocation: SourceCodeLocation;
 
       clientHintIssueReason: ClientHintIssueReason;
+    }
+
+    export interface FailedRequestInfo {
+      /**
+       * The URL that failed to load.
+       */
+      url: string;
+
+      /**
+       * The failure message for the failed request.
+       */
+      failureMessage: string;
+
+      requestId?: Network.RequestId;
+    }
+
+    export type StyleSheetLoadingIssueReason = 'LateImportRule' | 'RequestFailed';
+
+    /**
+     * This issue warns when a referenced stylesheet couldn't be loaded.
+     */
+    export interface StylesheetLoadingIssueDetails {
+      /**
+       * Source code position that referenced the failing stylesheet.
+       */
+      sourceCodeLocation: SourceCodeLocation;
+
+      /**
+       * Reason why the stylesheet couldn't be loaded.
+       */
+      styleSheetLoadingIssueReason: StyleSheetLoadingIssueReason;
+
+      /**
+       * Contains additional info when the failure was due to a request.
+       */
+      failedRequestInfo?: FailedRequestInfo;
+    }
+
+    export type PropertyRuleIssueReason =
+      | 'InvalidSyntax'
+      | 'InvalidInitialValue'
+      | 'InvalidInherits'
+      | 'InvalidName';
+
+    /**
+     * This issue warns about errors in property rules that lead to property
+     * registrations being ignored.
+     */
+    export interface PropertyRuleIssueDetails {
+      /**
+       * Source code position of the property rule.
+       */
+      sourceCodeLocation: SourceCodeLocation;
+
+      /**
+       * Reason why the property rule was discarded.
+       */
+      propertyRuleIssueReason: PropertyRuleIssueReason;
+
+      /**
+       * The value of the property rule property that failed to parse
+       */
+      propertyValue?: string;
     }
 
     /**
@@ -1699,7 +1817,6 @@ export namespace Cdp {
       | 'HeavyAdIssue'
       | 'ContentSecurityPolicyIssue'
       | 'SharedArrayBufferIssue'
-      | 'TrustedWebActivityIssue'
       | 'LowTextContrastIssue'
       | 'CorsIssue'
       | 'AttributionReportingIssue'
@@ -1708,7 +1825,12 @@ export namespace Cdp {
       | 'GenericIssue'
       | 'DeprecationIssue'
       | 'ClientHintIssue'
-      | 'FederatedAuthRequestIssue';
+      | 'FederatedAuthRequestIssue'
+      | 'BounceTrackingIssue'
+      | 'CookieDeprecationMetadataIssue'
+      | 'StylesheetLoadingIssue'
+      | 'FederatedAuthUserInfoRequestIssue'
+      | 'PropertyRuleIssue';
 
     /**
      * This struct holds a list of optional fields with additional information
@@ -1728,8 +1850,6 @@ export namespace Cdp {
 
       sharedArrayBufferIssueDetails?: SharedArrayBufferIssueDetails;
 
-      twaQualityEnforcementDetails?: TrustedWebActivityIssueDetails;
-
       lowTextContrastIssueDetails?: LowTextContrastIssueDetails;
 
       corsIssueDetails?: CorsIssueDetails;
@@ -1738,6 +1858,10 @@ export namespace Cdp {
 
       quirksModeIssueDetails?: QuirksModeIssueDetails;
 
+      /**
+       *
+       * @deprecated
+       */
       navigatorUserAgentIssueDetails?: NavigatorUserAgentIssueDetails;
 
       genericIssueDetails?: GenericIssueDetails;
@@ -1747,6 +1871,16 @@ export namespace Cdp {
       clientHintIssueDetails?: ClientHintIssueDetails;
 
       federatedAuthRequestIssueDetails?: FederatedAuthRequestIssueDetails;
+
+      bounceTrackingIssueDetails?: BounceTrackingIssueDetails;
+
+      cookieDeprecationMetadataIssueDetails?: CookieDeprecationMetadataIssueDetails;
+
+      stylesheetLoadingIssueDetails?: StylesheetLoadingIssueDetails;
+
+      propertyRuleIssueDetails?: PropertyRuleIssueDetails;
+
+      federatedAuthUserInfoRequestIssueDetails?: FederatedAuthUserInfoRequestIssueDetails;
     }
 
     /**
@@ -1768,6 +1902,226 @@ export namespace Cdp {
        * exception, CDP message, etc.) is referencing this issue.
        */
       issueId?: IssueId;
+    }
+  }
+
+  /**
+   * Methods and events of the 'Autofill' domain.
+   */
+  export interface AutofillApi {
+    /**
+     * Trigger autofill on a form identified by the fieldId.
+     * If the field and related form cannot be autofilled, returns an error.
+     */
+    trigger(params: Autofill.TriggerParams): Promise<Autofill.TriggerResult | undefined>;
+
+    /**
+     * Set addresses so that developers can verify their forms implementation.
+     */
+    setAddresses(
+      params: Autofill.SetAddressesParams,
+    ): Promise<Autofill.SetAddressesResult | undefined>;
+
+    /**
+     * Disables autofill domain notifications.
+     */
+    disable(params: Autofill.DisableParams): Promise<Autofill.DisableResult | undefined>;
+
+    /**
+     * Enables autofill domain notifications.
+     */
+    enable(params: Autofill.EnableParams): Promise<Autofill.EnableResult | undefined>;
+
+    /**
+     * Emitted when an address form is filled.
+     */
+    on(
+      event: 'addressFormFilled',
+      listener: (event: Autofill.AddressFormFilledEvent) => void,
+    ): IDisposable;
+  }
+
+  /**
+   * Types of the 'Autofill' domain.
+   */
+  export namespace Autofill {
+    /**
+     * Parameters of the 'Autofill.trigger' method.
+     */
+    export interface TriggerParams {
+      /**
+       * Identifies a field that serves as an anchor for autofill.
+       */
+      fieldId: DOM.BackendNodeId;
+
+      /**
+       * Identifies the frame that field belongs to.
+       */
+      frameId?: Page.FrameId;
+
+      /**
+       * Credit card information to fill out the form. Credit card data is not saved.
+       */
+      card: CreditCard;
+    }
+
+    /**
+     * Return value of the 'Autofill.trigger' method.
+     */
+    export interface TriggerResult {}
+
+    /**
+     * Parameters of the 'Autofill.setAddresses' method.
+     */
+    export interface SetAddressesParams {
+      addresses: Address[];
+    }
+
+    /**
+     * Return value of the 'Autofill.setAddresses' method.
+     */
+    export interface SetAddressesResult {}
+
+    /**
+     * Parameters of the 'Autofill.disable' method.
+     */
+    export interface DisableParams {}
+
+    /**
+     * Return value of the 'Autofill.disable' method.
+     */
+    export interface DisableResult {}
+
+    /**
+     * Parameters of the 'Autofill.enable' method.
+     */
+    export interface EnableParams {}
+
+    /**
+     * Return value of the 'Autofill.enable' method.
+     */
+    export interface EnableResult {}
+
+    /**
+     * Parameters of the 'Autofill.addressFormFilled' event.
+     */
+    export interface AddressFormFilledEvent {
+      /**
+       * Information about the fields that were filled
+       */
+      filledFields: FilledField[];
+
+      /**
+       * An UI representation of the address used to fill the form.
+       * Consists of a 2D array where each child represents an address/profile line.
+       */
+      addressUi: AddressUI;
+    }
+
+    export interface CreditCard {
+      /**
+       * 16-digit credit card number.
+       */
+      number: string;
+
+      /**
+       * Name of the credit card owner.
+       */
+      name: string;
+
+      /**
+       * 2-digit expiry month.
+       */
+      expiryMonth: string;
+
+      /**
+       * 4-digit expiry year.
+       */
+      expiryYear: string;
+
+      /**
+       * 3-digit card verification code.
+       */
+      cvc: string;
+    }
+
+    export interface AddressField {
+      /**
+       * address field name, for example GIVEN_NAME.
+       */
+      name: string;
+
+      /**
+       * address field value, for example Jon Doe.
+       */
+      value: string;
+    }
+
+    /**
+     * A list of address fields.
+     */
+    export interface AddressFields {
+      fields: AddressField[];
+    }
+
+    export interface Address {
+      /**
+       * fields and values defining an address.
+       */
+      fields: AddressField[];
+    }
+
+    /**
+     * Defines how an address can be displayed like in chrome://settings/addresses.
+     * Address UI is a two dimensional array, each inner array is an "address information line", and when rendered in a UI surface should be displayed as such.
+     * The following address UI for instance:
+     * [[{name: "GIVE_NAME", value: "Jon"}, {name: "FAMILY_NAME", value: "Doe"}], [{name: "CITY", value: "Munich"}, {name: "ZIP", value: "81456"}]]
+     * should allow the receiver to render:
+     * Jon Doe
+     * Munich 81456
+     */
+    export interface AddressUI {
+      /**
+       * A two dimension array containing the repesentation of values from an address profile.
+       */
+      addressFields: AddressFields[];
+    }
+
+    /**
+     * Specified whether a filled field was done so by using the html autocomplete attribute or autofill heuristics.
+     */
+    export type FillingStrategy = 'autocompleteAttribute' | 'autofillInferred';
+
+    export interface FilledField {
+      /**
+       * The type of the field, e.g text, password etc.
+       */
+      htmlType: string;
+
+      /**
+       * the html id
+       */
+      id: string;
+
+      /**
+       * the html name
+       */
+      name: string;
+
+      /**
+       * the field value
+       */
+      value: string;
+
+      /**
+       * The actual field type, e.g FAMILY_NAME
+       */
+      autofillType: string;
+
+      /**
+       * The filling strategy
+       */
+      fillingStrategy: FillingStrategy;
     }
   }
 
@@ -2071,6 +2425,14 @@ export namespace Cdp {
     executeBrowserCommand(
       params: Browser.ExecuteBrowserCommandParams,
     ): Promise<Browser.ExecuteBrowserCommandResult | undefined>;
+
+    /**
+     * Allows a site to use privacy sandbox features that require enrollment
+     * without the site actually being enrolled. Only supported on page targets.
+     */
+    addPrivacySandboxEnrollmentOverride(
+      params: Browser.AddPrivacySandboxEnrollmentOverrideParams,
+    ): Promise<Browser.AddPrivacySandboxEnrollmentOverrideResult | undefined>;
 
     /**
      * Fired when page is about to start a download.
@@ -2443,6 +2805,18 @@ export namespace Cdp {
     export interface ExecuteBrowserCommandResult {}
 
     /**
+     * Parameters of the 'Browser.addPrivacySandboxEnrollmentOverride' method.
+     */
+    export interface AddPrivacySandboxEnrollmentOverrideParams {
+      url: string;
+    }
+
+    /**
+     * Return value of the 'Browser.addPrivacySandboxEnrollmentOverride' method.
+     */
+    export interface AddPrivacySandboxEnrollmentOverrideResult {}
+
+    /**
      * Parameters of the 'Browser.downloadWillBegin' event.
      */
     export interface DownloadWillBeginEvent {
@@ -2730,7 +3104,7 @@ export namespace Cdp {
      */
     export interface RequestCacheNamesParams {
       /**
-       * At least and at most one of securityOrigin, storageKey must be specified.
+       * At least and at most one of securityOrigin, storageKey, storageBucket must be specified.
        * Security origin.
        */
       securityOrigin?: string;
@@ -2739,6 +3113,11 @@ export namespace Cdp {
        * Storage key.
        */
       storageKey?: string;
+
+      /**
+       * Storage bucket. If not specified, it uses the default bucket.
+       */
+      storageBucket?: Storage.StorageBucket;
     }
 
     /**
@@ -2901,6 +3280,11 @@ export namespace Cdp {
        * Storage key of the cache.
        */
       storageKey: string;
+
+      /**
+       * Storage bucket of the cache.
+       */
+      storageBucket?: Storage.StorageBucket;
 
       /**
        * The name of the cache.
@@ -3330,6 +3714,13 @@ export namespace Cdp {
     ): Promise<CSS.SetEffectivePropertyValueForNodeResult | undefined>;
 
     /**
+     * Modifies the property rule property name.
+     */
+    setPropertyRulePropertyName(
+      params: CSS.SetPropertyRulePropertyNameParams,
+    ): Promise<CSS.SetPropertyRulePropertyNameResult | undefined>;
+
+    /**
      * Modifies the keyframe rule key text.
      */
     setKeyframeKey(params: CSS.SetKeyframeKeyParams): Promise<CSS.SetKeyframeKeyResult | undefined>;
@@ -3676,6 +4067,21 @@ export namespace Cdp {
       cssKeyframesRules?: CSSKeyframesRule[];
 
       /**
+       * A list of CSS position fallbacks matching this node.
+       */
+      cssPositionFallbackRules?: CSSPositionFallbackRule[];
+
+      /**
+       * A list of CSS at-property rules matching this node.
+       */
+      cssPropertyRules?: CSSPropertyRule[];
+
+      /**
+       * A list of CSS property registrations matching this node.
+       */
+      cssPropertyRegistrations?: CSSPropertyRegistration[];
+
+      /**
        * Id of the first parent element that does not have display: contents.
        */
       parentLayoutNodeId?: DOM.NodeId;
@@ -3786,6 +4192,27 @@ export namespace Cdp {
      * Return value of the 'CSS.setEffectivePropertyValueForNode' method.
      */
     export interface SetEffectivePropertyValueForNodeResult {}
+
+    /**
+     * Parameters of the 'CSS.setPropertyRulePropertyName' method.
+     */
+    export interface SetPropertyRulePropertyNameParams {
+      styleSheetId: StyleSheetId;
+
+      range: SourceRange;
+
+      propertyName: string;
+    }
+
+    /**
+     * Return value of the 'CSS.setPropertyRulePropertyName' method.
+     */
+    export interface SetPropertyRulePropertyNameResult {
+      /**
+       * The resulting key text after modification.
+       */
+      propertyName: Value;
+    }
 
     /**
      * Parameters of the 'CSS.setKeyframeKey' method.
@@ -4127,6 +4554,33 @@ export namespace Cdp {
        * Value range in the underlying resource (if available).
        */
       range?: SourceRange;
+
+      /**
+       * Specificity of the selector.
+       */
+      specificity?: Specificity;
+    }
+
+    /**
+     * Specificity:
+     * https://drafts.csswg.org/selectors/#specificity-rules
+     */
+    export interface Specificity {
+      /**
+       * The a component, which represents the number of ID selectors.
+       */
+      a: integer;
+
+      /**
+       * The b component, which represents the number of class selectors, attributes selectors, and
+       * pseudo-classes.
+       */
+      b: integer;
+
+      /**
+       * The c component, which represents the number of type selectors and pseudo-elements.
+       */
+      c: integer;
     }
 
     /**
@@ -4204,7 +4658,7 @@ export namespace Cdp {
       /**
        * Whether this stylesheet is mutable. Inline stylesheets become mutable
        * after they have been modified via CSSOM API.
-       * <link> element's stylesheets become mutable only if DevTools modifies them.
+       * `<link>` element's stylesheets become mutable only if DevTools modifies them.
        * Constructed stylesheets (new CSSStyleSheet()) are mutable immediately after creation.
        */
       isMutable: boolean;
@@ -4239,6 +4693,11 @@ export namespace Cdp {
        * Column offset of the end of the stylesheet within the resource (zero based).
        */
       endColumn: number;
+
+      /**
+       * If the style sheet was loaded from a network resource, this indicates when the resource failed to load
+       */
+      loadingFailed?: boolean;
     }
 
     /**
@@ -4300,7 +4759,24 @@ export namespace Cdp {
        * The array enumerates @scope at-rules starting with the innermost one, going outwards.
        */
       scopes?: CSSScope[];
+
+      /**
+       * The array keeps the types of ancestor CSSRules from the innermost going outwards.
+       */
+      ruleTypes?: CSSRuleType[];
     }
+
+    /**
+     * Enum indicating the type of a CSS rule, used to represent the order of a style rule's ancestors.
+     * This list only contains rule types that are collected during the ancestor rule collection.
+     */
+    export type CSSRuleType =
+      | 'MediaRule'
+      | 'SupportsRule'
+      | 'ContainerRule'
+      | 'LayerRule'
+      | 'ScopeRule'
+      | 'StyleRule';
 
     /**
      * CSS coverage information.
@@ -4780,6 +5256,39 @@ export namespace Cdp {
     }
 
     /**
+     * CSS try rule representation.
+     */
+    export interface CSSTryRule {
+      /**
+       * The css style sheet identifier (absent for user agent stylesheet and user-specified
+       * stylesheet rules) this rule came from.
+       */
+      styleSheetId?: StyleSheetId;
+
+      /**
+       * Parent stylesheet's origin.
+       */
+      origin: StyleSheetOrigin;
+
+      /**
+       * Associated style declaration.
+       */
+      style: CSSStyle;
+    }
+
+    /**
+     * CSS position-fallback rule representation.
+     */
+    export interface CSSPositionFallbackRule {
+      name: Value;
+
+      /**
+       * List of keyframes.
+       */
+      tryRules: CSSTryRule[];
+    }
+
+    /**
      * CSS keyframes rule representation.
      */
     export interface CSSKeyframesRule {
@@ -4792,6 +5301,45 @@ export namespace Cdp {
        * List of keyframes.
        */
       keyframes: CSSKeyframeRule[];
+    }
+
+    /**
+     * Representation of a custom property registration through CSS.registerProperty
+     */
+    export interface CSSPropertyRegistration {
+      propertyName: string;
+
+      initialValue?: Value;
+
+      inherits: boolean;
+
+      syntax: string;
+    }
+
+    /**
+     * CSS property at-rule representation.
+     */
+    export interface CSSPropertyRule {
+      /**
+       * The css style sheet identifier (absent for user agent stylesheet and user-specified
+       * stylesheet rules) this rule came from.
+       */
+      styleSheetId?: StyleSheetId;
+
+      /**
+       * Parent stylesheet's origin.
+       */
+      origin: StyleSheetOrigin;
+
+      /**
+       * Associated property name.
+       */
+      propertyName: Value;
+
+      /**
+       * Associated style declaration.
+       */
+      style: CSSStyle;
     }
 
     /**
@@ -6076,7 +6624,8 @@ export namespace Cdp {
         | 'OOM'
         | 'other'
         | 'promiseRejection'
-        | 'XHR';
+        | 'XHR'
+        | 'step';
 
       /**
        * Object containing break-specific auxiliary properties.
@@ -6155,7 +6704,7 @@ export namespace Cdp {
       hash: string;
 
       /**
-       * Embedder-specific auxiliary data.
+       * Embedder-specific auxiliary data likely matching {isDefault: boolean, type: 'default'|'isolated'|'worker', frameId: string}
        */
       executionContextAuxData?: any;
 
@@ -6245,7 +6794,7 @@ export namespace Cdp {
       hash: string;
 
       /**
-       * Embedder-specific auxiliary data.
+       * Embedder-specific auxiliary data likely matching {isDefault: boolean, type: 'default'|'isolated'|'worker', frameId: string}
        */
       executionContextAuxData?: any;
 
@@ -8839,6 +9388,7 @@ export namespace Cdp {
 
     /**
      * Removes breakpoint on particular native event.
+     * @deprecated
      */
     removeInstrumentationBreakpoint(
       params: DOMDebugger.RemoveInstrumentationBreakpointParams,
@@ -8874,6 +9424,7 @@ export namespace Cdp {
 
     /**
      * Sets breakpoint on particular native event.
+     * @deprecated
      */
     setInstrumentationBreakpoint(
       params: DOMDebugger.SetInstrumentationBreakpointParams,
@@ -10219,6 +10770,29 @@ export namespace Cdp {
       params: Emulation.SetGeolocationOverrideParams,
     ): Promise<Emulation.SetGeolocationOverrideResult | undefined>;
 
+    getOverriddenSensorInformation(
+      params: Emulation.GetOverriddenSensorInformationParams,
+    ): Promise<Emulation.GetOverriddenSensorInformationResult | undefined>;
+
+    /**
+     * Overrides a platform sensor of a given type. If |enabled| is true, calls to
+     * Sensor.start() will use a virtual sensor as backend rather than fetching
+     * data from a real hardware sensor. Otherwise, existing virtual
+     * sensor-backend Sensor objects will fire an error event and new calls to
+     * Sensor.start() will attempt to use a real sensor instead.
+     */
+    setSensorOverrideEnabled(
+      params: Emulation.SetSensorOverrideEnabledParams,
+    ): Promise<Emulation.SetSensorOverrideEnabledResult | undefined>;
+
+    /**
+     * Updates the sensor readings reported by a sensor type previously overriden
+     * by setSensorOverrideEnabled.
+     */
+    setSensorOverrideReadings(
+      params: Emulation.SetSensorOverrideReadingsParams,
+    ): Promise<Emulation.SetSensorOverrideReadingsResult | undefined>;
+
     /**
      * Overrides the Idle state.
      */
@@ -10633,6 +11207,50 @@ export namespace Cdp {
     export interface SetGeolocationOverrideResult {}
 
     /**
+     * Parameters of the 'Emulation.getOverriddenSensorInformation' method.
+     */
+    export interface GetOverriddenSensorInformationParams {
+      type: SensorType;
+    }
+
+    /**
+     * Return value of the 'Emulation.getOverriddenSensorInformation' method.
+     */
+    export interface GetOverriddenSensorInformationResult {
+      requestedSamplingFrequency: number;
+    }
+
+    /**
+     * Parameters of the 'Emulation.setSensorOverrideEnabled' method.
+     */
+    export interface SetSensorOverrideEnabledParams {
+      enabled: boolean;
+
+      type: SensorType;
+
+      metadata?: SensorMetadata;
+    }
+
+    /**
+     * Return value of the 'Emulation.setSensorOverrideEnabled' method.
+     */
+    export interface SetSensorOverrideEnabledResult {}
+
+    /**
+     * Parameters of the 'Emulation.setSensorOverrideReadings' method.
+     */
+    export interface SetSensorOverrideReadingsParams {
+      type: SensorType;
+
+      reading: SensorReading;
+    }
+
+    /**
+     * Return value of the 'Emulation.setSensorOverrideReadings' method.
+     */
+    export interface SetSensorOverrideReadingsResult {}
+
+    /**
      * Parameters of the 'Emulation.setIdleOverride' method.
      */
     export interface SetIdleOverrideParams {
@@ -10988,6 +11606,59 @@ export namespace Cdp {
     }
 
     /**
+     * Used to specify sensor types to emulate.
+     * See https://w3c.github.io/sensors/#automation for more information.
+     */
+    export type SensorType =
+      | 'absolute-orientation'
+      | 'accelerometer'
+      | 'ambient-light'
+      | 'gravity'
+      | 'gyroscope'
+      | 'linear-acceleration'
+      | 'magnetometer'
+      | 'proximity'
+      | 'relative-orientation';
+
+    export interface SensorMetadata {
+      available?: boolean;
+
+      minimumFrequency?: number;
+
+      maximumFrequency?: number;
+    }
+
+    export interface SensorReadingSingle {
+      value: number;
+    }
+
+    export interface SensorReadingXYZ {
+      x: number;
+
+      y: number;
+
+      z: number;
+    }
+
+    export interface SensorReadingQuaternion {
+      x: number;
+
+      y: number;
+
+      z: number;
+
+      w: number;
+    }
+
+    export interface SensorReading {
+      single?: SensorReadingSingle;
+
+      xyz?: SensorReadingXYZ;
+
+      quaternion?: SensorReadingQuaternion;
+    }
+
+    /**
      * Enum of image types that can be disabled.
      */
     export type DisabledImageType = 'avif' | 'webp';
@@ -11010,6 +11681,13 @@ export namespace Cdp {
     removeInstrumentationBreakpoint(
       params: EventBreakpoints.RemoveInstrumentationBreakpointParams,
     ): Promise<EventBreakpoints.RemoveInstrumentationBreakpointResult | undefined>;
+
+    /**
+     * Removes all breakpoints
+     */
+    disable(
+      params: EventBreakpoints.DisableParams,
+    ): Promise<EventBreakpoints.DisableResult | undefined>;
   }
 
   /**
@@ -11045,6 +11723,16 @@ export namespace Cdp {
      * Return value of the 'EventBreakpoints.removeInstrumentationBreakpoint' method.
      */
     export interface RemoveInstrumentationBreakpointResult {}
+
+    /**
+     * Parameters of the 'EventBreakpoints.disable' method.
+     */
+    export interface DisableParams {}
+
+    /**
+     * Return value of the 'EventBreakpoints.disable' method.
+     */
+    export interface DisableResult {}
   }
 
   /**
@@ -11059,9 +11747,25 @@ export namespace Cdp {
       params: FedCm.SelectAccountParams,
     ): Promise<FedCm.SelectAccountResult | undefined>;
 
+    /**
+     * Only valid if the dialog type is ConfirmIdpLogin. Acts as if the user had
+     * clicked the continue button.
+     */
+    confirmIdpLogin(
+      params: FedCm.ConfirmIdpLoginParams,
+    ): Promise<FedCm.ConfirmIdpLoginResult | undefined>;
+
     dismissDialog(
       params: FedCm.DismissDialogParams,
     ): Promise<FedCm.DismissDialogResult | undefined>;
+
+    /**
+     * Resets the cooldown time, if any, to allow the next FedCM call to show
+     * a dialog even if one was recently dismissed by the user.
+     */
+    resetCooldown(
+      params: FedCm.ResetCooldownParams,
+    ): Promise<FedCm.ResetCooldownResult | undefined>;
 
     on(event: 'dialogShown', listener: (event: FedCm.DialogShownEvent) => void): IDisposable;
   }
@@ -11112,10 +11816,24 @@ export namespace Cdp {
     export interface SelectAccountResult {}
 
     /**
+     * Parameters of the 'FedCm.confirmIdpLogin' method.
+     */
+    export interface ConfirmIdpLoginParams {
+      dialogId: string;
+    }
+
+    /**
+     * Return value of the 'FedCm.confirmIdpLogin' method.
+     */
+    export interface ConfirmIdpLoginResult {}
+
+    /**
      * Parameters of the 'FedCm.dismissDialog' method.
      */
     export interface DismissDialogParams {
       dialogId: string;
+
+      triggerCooldown?: boolean;
     }
 
     /**
@@ -11124,12 +11842,32 @@ export namespace Cdp {
     export interface DismissDialogResult {}
 
     /**
+     * Parameters of the 'FedCm.resetCooldown' method.
+     */
+    export interface ResetCooldownParams {}
+
+    /**
+     * Return value of the 'FedCm.resetCooldown' method.
+     */
+    export interface ResetCooldownResult {}
+
+    /**
      * Parameters of the 'FedCm.dialogShown' event.
      */
     export interface DialogShownEvent {
       dialogId: string;
 
+      dialogType: DialogType;
+
       accounts: Account[];
+
+      /**
+       * These exist primarily so that the caller can verify the
+       * RP context was used appropriately.
+       */
+      title: string;
+
+      subtitle?: string;
     }
 
     /**
@@ -11137,6 +11875,11 @@ export namespace Cdp {
      * whether this account has ever been used to sign in to this RP before.
      */
     export type LoginState = 'SignIn' | 'SignUp';
+
+    /**
+     * Whether the dialog shown is an account chooser or an auto re-authentication dialog.
+     */
+    export type DialogType = 'AccountChooser' | 'AutoReauthn' | 'ConfirmIdpLogin';
 
     /**
      * Corresponds to IdentityRequestAccount
@@ -11154,7 +11897,7 @@ export namespace Cdp {
 
       idpConfigUrl: string;
 
-      idpSigninUrl: string;
+      idpLoginUrl: string;
 
       loginState: LoginState;
 
@@ -11224,6 +11967,10 @@ export namespace Cdp {
      * takeResponseBodyForInterceptionAsStream. Calling other methods that
      * affect the request or disabling fetch domain before body is received
      * results in an undefined behavior.
+     * Note that the response body is not available for redirects. Requests
+     * paused in the _redirect received_ state may be differentiated by
+     * `responseCode` and presence of `location` response header, see
+     * comments to `requestPaused` for details.
      */
     getResponseBody(
       params: Fetch.GetResponseBodyParams,
@@ -11252,6 +11999,11 @@ export namespace Cdp {
      * The stage of the request can be determined by presence of responseErrorReason
      * and responseStatusCode -- the request is at the response stage if either
      * of these fields is present and in the request stage otherwise.
+     * Redirect responses and subsequent requests are reported similarly to regular
+     * responses and requests. Redirect responses may be distinguished by the value
+     * of `responseStatusCode` (which is one of 301, 302, 303, 307, 308) along with
+     * presence of the `location` header. Requests resulting from a redirect will
+     * have `redirectedRequestId` field set.
      */
     on(event: 'requestPaused', listener: (event: Fetch.RequestPausedEvent) => void): IDisposable;
 
@@ -11795,7 +12547,7 @@ export namespace Cdp {
       format?: 'jpeg' | 'png' | 'webp';
 
       /**
-       * Compression quality from range [0..100] (jpeg only).
+       * Compression quality from range [0..100] (jpeg and webp only).
        */
       quality?: integer;
 
@@ -12305,7 +13057,7 @@ export namespace Cdp {
      */
     export interface ClearObjectStoreParams {
       /**
-       * At least and at most one of securityOrigin, storageKey must be specified.
+       * At least and at most one of securityOrigin, storageKey, or storageBucket must be specified.
        * Security origin.
        */
       securityOrigin?: string;
@@ -12314,6 +13066,11 @@ export namespace Cdp {
        * Storage key.
        */
       storageKey?: string;
+
+      /**
+       * Storage bucket. If not specified, it uses the default bucket.
+       */
+      storageBucket?: Storage.StorageBucket;
 
       /**
        * Database name.
@@ -12336,7 +13093,7 @@ export namespace Cdp {
      */
     export interface DeleteDatabaseParams {
       /**
-       * At least and at most one of securityOrigin, storageKey must be specified.
+       * At least and at most one of securityOrigin, storageKey, or storageBucket must be specified.
        * Security origin.
        */
       securityOrigin?: string;
@@ -12345,6 +13102,11 @@ export namespace Cdp {
        * Storage key.
        */
       storageKey?: string;
+
+      /**
+       * Storage bucket. If not specified, it uses the default bucket.
+       */
+      storageBucket?: Storage.StorageBucket;
 
       /**
        * Database name.
@@ -12362,7 +13124,7 @@ export namespace Cdp {
      */
     export interface DeleteObjectStoreEntriesParams {
       /**
-       * At least and at most one of securityOrigin, storageKey must be specified.
+       * At least and at most one of securityOrigin, storageKey, or storageBucket must be specified.
        * Security origin.
        */
       securityOrigin?: string;
@@ -12371,6 +13133,11 @@ export namespace Cdp {
        * Storage key.
        */
       storageKey?: string;
+
+      /**
+       * Storage bucket. If not specified, it uses the default bucket.
+       */
+      storageBucket?: Storage.StorageBucket;
 
       databaseName: string;
 
@@ -12412,7 +13179,7 @@ export namespace Cdp {
      */
     export interface RequestDataParams {
       /**
-       * At least and at most one of securityOrigin, storageKey must be specified.
+       * At least and at most one of securityOrigin, storageKey, or storageBucket must be specified.
        * Security origin.
        */
       securityOrigin?: string;
@@ -12421,6 +13188,11 @@ export namespace Cdp {
        * Storage key.
        */
       storageKey?: string;
+
+      /**
+       * Storage bucket. If not specified, it uses the default bucket.
+       */
+      storageBucket?: Storage.StorageBucket;
 
       /**
        * Database name.
@@ -12473,7 +13245,7 @@ export namespace Cdp {
      */
     export interface GetMetadataParams {
       /**
-       * At least and at most one of securityOrigin, storageKey must be specified.
+       * At least and at most one of securityOrigin, storageKey, or storageBucket must be specified.
        * Security origin.
        */
       securityOrigin?: string;
@@ -12482,6 +13254,11 @@ export namespace Cdp {
        * Storage key.
        */
       storageKey?: string;
+
+      /**
+       * Storage bucket. If not specified, it uses the default bucket.
+       */
+      storageBucket?: Storage.StorageBucket;
 
       /**
        * Database name.
@@ -12516,7 +13293,7 @@ export namespace Cdp {
      */
     export interface RequestDatabaseParams {
       /**
-       * At least and at most one of securityOrigin, storageKey must be specified.
+       * At least and at most one of securityOrigin, storageKey, or storageBucket must be specified.
        * Security origin.
        */
       securityOrigin?: string;
@@ -12525,6 +13302,11 @@ export namespace Cdp {
        * Storage key.
        */
       storageKey?: string;
+
+      /**
+       * Storage bucket. If not specified, it uses the default bucket.
+       */
+      storageBucket?: Storage.StorageBucket;
 
       /**
        * Database name.
@@ -12547,7 +13329,7 @@ export namespace Cdp {
      */
     export interface RequestDatabaseNamesParams {
       /**
-       * At least and at most one of securityOrigin, storageKey must be specified.
+       * At least and at most one of securityOrigin, storageKey, or storageBucket must be specified.
        * Security origin.
        */
       securityOrigin?: string;
@@ -12556,6 +13338,11 @@ export namespace Cdp {
        * Storage key.
        */
       storageKey?: string;
+
+      /**
+       * Storage bucket. If not specified, it uses the default bucket.
+       */
+      storageBucket?: Storage.StorageBucket;
     }
 
     /**
@@ -12781,6 +13568,13 @@ export namespace Cdp {
     dispatchTouchEvent(
       params: Input.DispatchTouchEventParams,
     ): Promise<Input.DispatchTouchEventResult | undefined>;
+
+    /**
+     * Cancels any active dragging in the page.
+     */
+    cancelDragging(
+      params: Input.CancelDraggingParams,
+    ): Promise<Input.CancelDraggingResult | undefined>;
 
     /**
      * Emulates touch event from the mouse event parameters.
@@ -13075,12 +13869,12 @@ export namespace Cdp {
       /**
        * The plane angle between the Y-Z plane and the plane containing both the stylus axis and the Y axis, in degrees of the range [-90,90], a positive tiltX is to the right (default: 0).
        */
-      tiltX?: integer;
+      tiltX?: number;
 
       /**
        * The plane angle between the X-Z plane and the plane containing both the stylus axis and the X axis, in degrees of the range [-90,90], a positive tiltY is towards the user (default: 0).
        */
-      tiltY?: integer;
+      tiltY?: number;
 
       /**
        * The clockwise rotation of a pen stylus around its own major axis, in degrees in the range [0,359] (default: 0).
@@ -13141,6 +13935,16 @@ export namespace Cdp {
      * Return value of the 'Input.dispatchTouchEvent' method.
      */
     export interface DispatchTouchEventResult {}
+
+    /**
+     * Parameters of the 'Input.cancelDragging' method.
+     */
+    export interface CancelDraggingParams {}
+
+    /**
+     * Return value of the 'Input.cancelDragging' method.
+     */
+    export interface CancelDraggingResult {}
 
     /**
      * Parameters of the 'Input.emulateTouchFromMouseEvent' method.
@@ -13417,12 +14221,12 @@ export namespace Cdp {
       /**
        * The plane angle between the Y-Z plane and the plane containing both the stylus axis and the Y axis, in degrees of the range [-90,90], a positive tiltX is to the right (default: 0)
        */
-      tiltX?: integer;
+      tiltX?: number;
 
       /**
        * The plane angle between the X-Z plane and the plane containing both the stylus axis and the X axis, in degrees of the range [-90,90], a positive tiltY is towards the user (default: 0).
        */
-      tiltY?: integer;
+      tiltY?: number;
 
       /**
        * The clockwise rotation of a pen stylus around its own major axis, in degrees in the range [0,359] (default: 0).
@@ -13665,8 +14469,8 @@ export namespace Cdp {
     }
 
     /**
-     * This is either obtained from another method or specified as `blob:&lt;uuid&gt;` where
-     * `&lt;uuid&gt` is an UUID of a Blob.
+     * This is either obtained from another method or specified as `blob:<uuid>` where
+     * `<uuid>` is an UUID of a Blob.
      */
     export type StreamHandle = string;
   }
@@ -13791,7 +14595,6 @@ export namespace Cdp {
     export interface CompositingReasonsResult {
       /**
        * A list of strings specifying reasons for the given layer to become composited.
-       * @deprecated
        */
       compositingReasons: string[];
 
@@ -16153,12 +16956,6 @@ export namespace Cdp {
        * Total number of bytes received for this request.
        */
       encodedDataLength: number;
-
-      /**
-       * Set when 1) response was blocked by Cross-Origin Read Blocking and also
-       * 2) this needs to be reported to the DevTools console.
-       */
-      shouldReportCorbBlocking?: boolean;
     }
 
     /**
@@ -16680,6 +17477,7 @@ export namespace Cdp {
       status:
         | 'Ok'
         | 'InvalidArgument'
+        | 'MissingIssuerKeys'
         | 'FailedPrecondition'
         | 'ResourceExhausted'
         | 'AlreadyExists'
@@ -17013,6 +17811,11 @@ export namespace Cdp {
       pushEnd: number;
 
       /**
+       * Started receiving response headers.
+       */
+      receiveHeadersStart: number;
+
+      /**
        * Finished receiving response headers.
        */
       receiveHeadersEnd: number;
@@ -17293,7 +18096,11 @@ export namespace Cdp {
       | 'InsecurePrivateNetwork'
       | 'InvalidPrivateNetworkAccess'
       | 'UnexpectedPrivateNetworkAccess'
-      | 'NoCorsRedirectModeNotFollow';
+      | 'NoCorsRedirectModeNotFollow'
+      | 'PreflightMissingPrivateNetworkAccessId'
+      | 'PreflightMissingPrivateNetworkAccessName'
+      | 'PrivateNetworkAccessPermissionUnavailable'
+      | 'PrivateNetworkAccessPermissionDenied';
 
     export interface CorsErrorStatus {
       corsError: CorsError;
@@ -17700,6 +18507,7 @@ export namespace Cdp {
       | 'SameSiteUnspecifiedTreatedAsLax'
       | 'SameSiteNoneInsecure'
       | 'UserPreferences'
+      | 'ThirdPartyPhaseout'
       | 'ThirdPartyBlockedInFirstPartySet'
       | 'SyntaxError'
       | 'SchemeNotSupported'
@@ -17712,7 +18520,9 @@ export namespace Cdp {
       | 'SchemefulSameSiteUnspecifiedTreatedAsLax'
       | 'SamePartyFromCrossPartyContext'
       | 'SamePartyConflictsWithOtherAttributes'
-      | 'NameValuePairExceedsMaxSize';
+      | 'NameValuePairExceedsMaxSize'
+      | 'DisallowedCharacter'
+      | 'NoCookieContent';
 
     /**
      * Types of reasons why a cookie may not be sent with a request.
@@ -17726,6 +18536,7 @@ export namespace Cdp {
       | 'SameSiteUnspecifiedTreatedAsLax'
       | 'SameSiteNoneInsecure'
       | 'UserPreferences'
+      | 'ThirdPartyPhaseout'
       | 'ThirdPartyBlockedInFirstPartySet'
       | 'UnknownError'
       | 'SchemefulSameSiteStrict'
@@ -18005,7 +18816,7 @@ export namespace Cdp {
       signatures: SignedExchangeSignature[];
 
       /**
-       * Signed exchange header integrity hash in the form of "sha256-<base64-hash-value>".
+       * Signed exchange header integrity hash in the form of `sha256-<base64-hash-value>`.
        */
       headerIntegrity: string;
     }
@@ -18069,7 +18880,7 @@ export namespace Cdp {
     /**
      * List of content encodings supported by the backend.
      */
-    export type ContentEncoding = 'deflate' | 'gzip' | 'br';
+    export type ContentEncoding = 'deflate' | 'gzip' | 'br' | 'zstd';
 
     export type PrivateNetworkRequestPolicy =
       | 'Allow'
@@ -18127,10 +18938,22 @@ export namespace Cdp {
       reportOnlyReportingEndpoint?: string;
     }
 
+    export type ContentSecurityPolicySource = 'HTTP' | 'Meta';
+
+    export interface ContentSecurityPolicyStatus {
+      effectiveDirectives: string;
+
+      isEnforced: boolean;
+
+      source: ContentSecurityPolicySource;
+    }
+
     export interface SecurityIsolationStatus {
       coop?: CrossOriginOpenerPolicyStatus;
 
       coep?: CrossOriginEmbedderPolicyStatus;
+
+      csp?: ContentSecurityPolicyStatus[];
     }
 
     /**
@@ -18740,6 +19563,13 @@ export namespace Cdp {
     ): Promise<Overlay.SetShowIsolatedElementsResult | undefined>;
 
     /**
+     * Show Window Controls Overlay for PWA
+     */
+    setShowWindowControlsOverlay(
+      params: Overlay.SetShowWindowControlsOverlayParams,
+    ): Promise<Overlay.SetShowWindowControlsOverlayResult | undefined>;
+
+    /**
      * Fired when the node should be inspected. This happens after call to `setInspectMode` or when
      * user manually inspects an element.
      */
@@ -19301,6 +20131,21 @@ export namespace Cdp {
     export interface SetShowIsolatedElementsResult {}
 
     /**
+     * Parameters of the 'Overlay.setShowWindowControlsOverlay' method.
+     */
+    export interface SetShowWindowControlsOverlayParams {
+      /**
+       * Window Controls Overlay data, null means hide Window Controls Overlay
+       */
+      windowControlsOverlayConfig?: WindowControlsOverlayConfig;
+    }
+
+    /**
+     * Return value of the 'Overlay.setShowWindowControlsOverlay' method.
+     */
+    export interface SetShowWindowControlsOverlayResult {}
+
+    /**
      * Parameters of the 'Overlay.inspectNodeRequested' event.
      */
     export interface InspectNodeRequestedEvent {
@@ -19732,6 +20577,26 @@ export namespace Cdp {
        * The content box highlight outline color (default: transparent).
        */
       outlineColor?: DOM.RGBA;
+    }
+
+    /**
+     * Configuration for Window Controls Overlay
+     */
+    export interface WindowControlsOverlayConfig {
+      /**
+       * Whether the title bar CSS should be shown when emulating the Window Controls Overlay.
+       */
+      showCSS: boolean;
+
+      /**
+       * Seleted platforms to show the overlay.
+       */
+      selectedPlatform: string;
+
+      /**
+       * The theme color defined in app manifest.
+       */
+      themeColor: string;
     }
 
     export interface ContainerQueryHighlightConfig {
@@ -20210,6 +21075,19 @@ export namespace Cdp {
       params: Page.SetInterceptFileChooserDialogParams,
     ): Promise<Page.SetInterceptFileChooserDialogResult | undefined>;
 
+    /**
+     * Enable/disable prerendering manually.
+     *
+     * This command is a short-term solution for https://crbug.com/1440085.
+     * See https://docs.google.com/document/d/12HVmFxYj5Jc-eJr5OmWsa2bqTJsbgGLKI6ZIyx0_wpA
+     * for more details.
+     *
+     * TODO(https://crbug.com/1440085): Remove this once Puppeteer supports tab targets.
+     */
+    setPrerenderingAllowed(
+      params: Page.SetPrerenderingAllowedParams,
+    ): Promise<Page.SetPrerenderingAllowedResult | undefined>;
+
     on(
       event: 'domContentEventFired',
       listener: (event: Page.DomContentEventFiredEvent) => void,
@@ -20436,6 +21314,12 @@ export namespace Cdp {
        * to false.
        */
       includeCommandLineAPI?: boolean;
+
+      /**
+       * If true, runs the script immediately on existing execution contexts or worlds.
+       * Default: false.
+       */
+      runImmediately?: boolean;
     }
 
     /**
@@ -21042,6 +21926,11 @@ export namespace Cdp {
        * return as stream
        */
       transferMode?: 'ReturnAsBase64' | 'ReturnAsStream';
+
+      /**
+       * Whether or not to generate tagged (accessible) PDF. Defaults to embedder choice.
+       */
+      generateTaggedPDF?: boolean;
     }
 
     /**
@@ -21645,6 +22534,18 @@ export namespace Cdp {
     export interface SetInterceptFileChooserDialogResult {}
 
     /**
+     * Parameters of the 'Page.setPrerenderingAllowed' method.
+     */
+    export interface SetPrerenderingAllowedParams {
+      isAllowed: boolean;
+    }
+
+    /**
+     * Return value of the 'Page.setPrerenderingAllowed' method.
+     */
+    export interface SetPrerenderingAllowedResult {}
+
+    /**
      * Parameters of the 'Page.domContentEventFired' event.
      */
     export interface DomContentEventFiredEvent {
@@ -21666,7 +22567,7 @@ export namespace Cdp {
       mode: 'selectSingle' | 'selectMultiple';
 
       /**
-       * Input node id. Only present for file choosers opened via an <input type="file"> element.
+       * Input node id. Only present for file choosers opened via an `<input type="file">` element.
        */
       backendNodeId?: DOM.BackendNodeId;
     }
@@ -22130,6 +23031,7 @@ export namespace Cdp {
       | 'ch-ect'
       | 'ch-prefers-color-scheme'
       | 'ch-prefers-reduced-motion'
+      | 'ch-prefers-reduced-transparency'
       | 'ch-rtt'
       | 'ch-save-data'
       | 'ch-ua'
@@ -22138,11 +23040,10 @@ export namespace Cdp {
       | 'ch-ua-platform'
       | 'ch-ua-model'
       | 'ch-ua-mobile'
-      | 'ch-ua-full'
+      | 'ch-ua-form-factor'
       | 'ch-ua-full-version'
       | 'ch-ua-full-version-list'
       | 'ch-ua-platform-version'
-      | 'ch-ua-reduced'
       | 'ch-ua-wow64'
       | 'ch-viewport-height'
       | 'ch-viewport-width'
@@ -22177,6 +23078,8 @@ export namespace Cdp {
       | 'payment'
       | 'picture-in-picture'
       | 'private-aggregation'
+      | 'private-state-token-issuance'
+      | 'private-state-token-redemption'
       | 'publickey-credentials-get'
       | 'run-ad-auction'
       | 'screen-wake-lock'
@@ -22187,7 +23090,6 @@ export namespace Cdp {
       | 'smart-card'
       | 'storage-access'
       | 'sync-xhr'
-      | 'trust-token-redemption'
       | 'unload'
       | 'usb'
       | 'vertical-scroll'
@@ -22873,6 +23775,9 @@ export namespace Cdp {
       | 'ActivationNavigationsDisallowedForBug1234857'
       | 'ErrorDocument'
       | 'FencedFramesEmbedder'
+      | 'CookieDisabled'
+      | 'HTTPAuthRequired'
+      | 'CookieFlushed'
       | 'WebSocket'
       | 'WebTransport'
       | 'WebRTC'
@@ -22884,14 +23789,12 @@ export namespace Cdp {
       | 'DocumentLoaded'
       | 'DedicatedWorkerOrWorklet'
       | 'OutstandingNetworkRequestOthers'
-      | 'OutstandingIndexedDBTransaction'
       | 'RequestedMIDIPermission'
       | 'RequestedAudioCapturePermission'
       | 'RequestedVideoCapturePermission'
       | 'RequestedBackForwardCacheBlockedSensors'
       | 'RequestedBackgroundWorkPermission'
       | 'BroadcastChannel'
-      | 'IndexedDBConnection'
       | 'WebXR'
       | 'SharedWorker'
       | 'WebLocks'
@@ -22918,7 +23821,10 @@ export namespace Cdp {
       | 'KeepaliveRequest'
       | 'IndexedDBEvent'
       | 'Dummy'
-      | 'AuthorizationHeader'
+      | 'JsNetworkRequestReceivedCacheControlNoStoreResource'
+      | 'WebRTCSticky'
+      | 'WebTransportSticky'
+      | 'WebSocketSticky'
       | 'ContentSecurityHandler'
       | 'ContentWebAuthenticationAPI'
       | 'ContentFileChooser'
@@ -23273,11 +24179,11 @@ export namespace Cdp {
     ): IDisposable;
 
     /**
-     * Fired when a prerender attempt is completed.
+     * Fired when a preload enabled state is updated.
      */
     on(
-      event: 'prerenderAttemptCompleted',
-      listener: (event: Preload.PrerenderAttemptCompletedEvent) => void,
+      event: 'preloadEnabledStateUpdated',
+      listener: (event: Preload.PreloadEnabledStateUpdatedEvent) => void,
     ): IDisposable;
 
     /**
@@ -23344,25 +24250,18 @@ export namespace Cdp {
     }
 
     /**
-     * Parameters of the 'Preload.prerenderAttemptCompleted' event.
+     * Parameters of the 'Preload.preloadEnabledStateUpdated' event.
      */
-    export interface PrerenderAttemptCompletedEvent {
-      key: PreloadingAttemptKey;
+    export interface PreloadEnabledStateUpdatedEvent {
+      disabledByPreference: boolean;
 
-      /**
-       * The frame id of the frame initiating prerendering.
-       */
-      initiatingFrameId: Page.FrameId;
+      disabledByDataSaver: boolean;
 
-      prerenderingUrl: string;
+      disabledByBatterySaver: boolean;
 
-      finalStatus: PrerenderFinalStatus;
+      disabledByHoldbackPrefetchSpeculationRules: boolean;
 
-      /**
-       * This is used to give users more information about the name of the API call
-       * that is incompatible with prerender and has caused the cancellation of the attempt
-       */
-      disallowedApiMethod?: string;
+      disabledByHoldbackPrerenderSpeculationRules: boolean;
     }
 
     /**
@@ -23379,6 +24278,10 @@ export namespace Cdp {
       prefetchUrl: string;
 
       status: PreloadingStatus;
+
+      prefetchStatus: PrefetchStatus;
+
+      requestId: Network.RequestId;
     }
 
     /**
@@ -23387,14 +24290,15 @@ export namespace Cdp {
     export interface PrerenderStatusUpdatedEvent {
       key: PreloadingAttemptKey;
 
-      /**
-       * The frame id of the frame initiating prerender.
-       */
-      initiatingFrameId: Page.FrameId;
-
-      prerenderingUrl: string;
-
       status: PreloadingStatus;
+
+      prerenderStatus?: PrerenderFinalStatus;
+
+      /**
+       * This is used to give users more information about the name of Mojo interface
+       * that is incompatible with prerender and has caused the cancellation of the attempt.
+       */
+      disallowedMojoInterface?: string;
     }
 
     /**
@@ -23424,7 +24328,7 @@ export namespace Cdp {
 
       /**
        * Source text of JSON representing the rule set. If it comes from
-       * <script> tag, it is the textContent of the node. Note that it is
+       * `<script>` tag, it is the textContent of the node. Note that it is
        * a JSON for valid case.
        *
        * See also:
@@ -23432,7 +24336,39 @@ export namespace Cdp {
        * - https://github.com/WICG/nav-speculation/blob/main/triggers.md
        */
       sourceText: string;
+
+      /**
+       * A speculation rule set is either added through an inline
+       * `<script>` tag or through an external resource via the
+       * 'Speculation-Rules' HTTP header. For the first case, we include
+       * the BackendNodeId of the relevant `<script>` tag. For the second
+       * case, we include the external URL where the rule set was loaded
+       * from, and also RequestId if Network domain is enabled.
+       *
+       * See also:
+       * - https://wicg.github.io/nav-speculation/speculation-rules.html#speculation-rules-script
+       * - https://wicg.github.io/nav-speculation/speculation-rules.html#speculation-rules-header
+       */
+      backendNodeId?: DOM.BackendNodeId;
+
+      url?: string;
+
+      requestId?: Network.RequestId;
+
+      /**
+       * Error information
+       * `errorMessage` is null iff `errorType` is null.
+       */
+      errorType?: RuleSetErrorType;
+
+      /**
+       * TODO(https://crbug.com/1425354): Replace this property with structured error.
+       * @deprecated
+       */
+      errorMessage?: string;
     }
+
+    export type RuleSetErrorType = 'SourceIsNotJsonObject' | 'InvalidRulesSkipped';
 
     /**
      * The type of preloading attempted. It corresponds to
@@ -23489,7 +24425,6 @@ export namespace Cdp {
       | 'LowEndDevice'
       | 'InvalidSchemeRedirect'
       | 'InvalidSchemeNavigation'
-      | 'InProgressNavigation'
       | 'NavigationRequestBlockedByCsp'
       | 'MainFrameNavigation'
       | 'MojoBinderPolicy'
@@ -23501,7 +24436,6 @@ export namespace Cdp {
       | 'NavigationBadHttpStatus'
       | 'ClientCertRequested'
       | 'NavigationRequestNetworkError'
-      | 'MaxNumOfRunningPrerendersExceeded'
       | 'CancelAllHostsForTesting'
       | 'DidFailLoad'
       | 'Stop'
@@ -23512,11 +24446,9 @@ export namespace Cdp {
       | 'AudioOutputDeviceRequested'
       | 'MixedContent'
       | 'TriggerBackgrounded'
-      | 'EmbedderTriggeredAndCrossOriginRedirected'
       | 'MemoryLimitExceeded'
-      | 'FailToGetMemoryUsage'
       | 'DataSaverEnabled'
-      | 'HasEffectiveUrl'
+      | 'TriggerUrlHasEffectiveUrl'
       | 'ActivatedBeforeStarted'
       | 'InactivePageRestriction'
       | 'StartFailed'
@@ -23541,7 +24473,18 @@ export namespace Cdp {
       | 'CrossSiteRedirectInMainFrameNavigation'
       | 'CrossSiteNavigationInMainFrameNavigation'
       | 'SameSiteCrossOriginRedirectNotOptInInMainFrameNavigation'
-      | 'SameSiteCrossOriginNavigationNotOptInInMainFrameNavigation';
+      | 'SameSiteCrossOriginNavigationNotOptInInMainFrameNavigation'
+      | 'MemoryPressureOnTrigger'
+      | 'MemoryPressureAfterTriggered'
+      | 'PrerenderingDisabledByDevTools'
+      | 'SpeculationRuleRemoved'
+      | 'ActivatedWithAuxiliaryBrowsingContexts'
+      | 'MaxNumOfRunningEagerPrerendersExceeded'
+      | 'MaxNumOfRunningNonEagerPrerendersExceeded'
+      | 'MaxNumOfRunningEmbedderPrerendersExceeded'
+      | 'PrerenderingUrlHasEffectiveUrl'
+      | 'RedirectedPrerenderingUrlHasEffectiveUrl'
+      | 'ActivationUrlHasEffectiveUrl';
 
     /**
      * Preloading status values, see also PreloadingTriggeringOutcome. This
@@ -23554,6 +24497,42 @@ export namespace Cdp {
       | 'Success'
       | 'Failure'
       | 'NotSupported';
+
+    /**
+     * TODO(https://crbug.com/1384419): revisit the list of PrefetchStatus and
+     * filter out the ones that aren't necessary to the developers.
+     */
+    export type PrefetchStatus =
+      | 'PrefetchAllowed'
+      | 'PrefetchFailedIneligibleRedirect'
+      | 'PrefetchFailedInvalidRedirect'
+      | 'PrefetchFailedMIMENotSupported'
+      | 'PrefetchFailedNetError'
+      | 'PrefetchFailedNon2XX'
+      | 'PrefetchFailedPerPageLimitExceeded'
+      | 'PrefetchEvicted'
+      | 'PrefetchHeldback'
+      | 'PrefetchIneligibleRetryAfter'
+      | 'PrefetchIsPrivacyDecoy'
+      | 'PrefetchIsStale'
+      | 'PrefetchNotEligibleBrowserContextOffTheRecord'
+      | 'PrefetchNotEligibleDataSaverEnabled'
+      | 'PrefetchNotEligibleExistingProxy'
+      | 'PrefetchNotEligibleHostIsNonUnique'
+      | 'PrefetchNotEligibleNonDefaultStoragePartition'
+      | 'PrefetchNotEligibleSameSiteCrossOriginPrefetchRequiredProxy'
+      | 'PrefetchNotEligibleSchemeIsNotHttps'
+      | 'PrefetchNotEligibleUserHasCookies'
+      | 'PrefetchNotEligibleUserHasServiceWorker'
+      | 'PrefetchNotEligibleBatterySaverEnabled'
+      | 'PrefetchNotEligiblePreloadingDisabled'
+      | 'PrefetchNotFinishedInTime'
+      | 'PrefetchNotStarted'
+      | 'PrefetchNotUsedCookiesChanged'
+      | 'PrefetchProxyNotAvailable'
+      | 'PrefetchResponseUsed'
+      | 'PrefetchSuccessfulButNotUsed'
+      | 'PrefetchNotUsedProbeFailed';
   }
 
   /**
@@ -24264,6 +25243,7 @@ export namespace Cdp {
 
       /**
        * Whether the result is expected to be a JSON object which should be sent by value.
+       * Can be overriden by `serializationOptions`.
        */
       returnByValue?: boolean;
 
@@ -24311,11 +25291,10 @@ export namespace Cdp {
       uniqueContextId?: string;
 
       /**
-       * Whether the result should contain `webDriverValue`, serialized according to
-       * https://w3c.github.io/webdriver-bidi. This is mutually exclusive with `returnByValue`, but
-       * resulting `objectId` is still provided.
+       * Specifies the result serialization. If provided, overrides
+       * `generatePreview` and `returnByValue`.
        */
-      generateWebDriverValue?: boolean;
+      serializationOptions?: SerializationOptions;
     }
 
     /**
@@ -24501,9 +25480,10 @@ export namespace Cdp {
       uniqueContextId?: string;
 
       /**
-       * Whether the result should be serialized according to https://w3c.github.io/webdriver-bidi.
+       * Specifies the result serialization. If provided, overrides
+       * `generatePreview` and `returnByValue`.
        */
-      generateWebDriverValue?: boolean;
+      serializationOptions?: SerializationOptions;
     }
 
     /**
@@ -25019,10 +25999,28 @@ export namespace Cdp {
     export type ScriptId = string;
 
     /**
-     * Represents the value serialiazed by the WebDriver BiDi specification
-     * https://w3c.github.io/webdriver-bidi.
+     * Represents options for serialization. Overrides `generatePreview` and `returnByValue`.
      */
-    export interface WebDriverValue {
+    export interface SerializationOptions {
+      serialization: 'deep' | 'json' | 'idOnly';
+
+      /**
+       * Deep serialization depth. Default is full depth. Respected only in `deep` serialization mode.
+       */
+      maxDepth?: integer;
+
+      /**
+       * Embedder-specific parameters. For example if connected to V8 in Chrome these control DOM
+       * serialization via `maxNodeDepth: integer` and `includeShadowTree: "none" | "open" | "all"`.
+       * Values can be only of type string or integer.
+       */
+      additionalParameters?: any;
+    }
+
+    /**
+     * Represents deep serialized value.
+     */
+    export interface DeepSerializedValue {
       type:
         | 'undefined'
         | 'null'
@@ -25046,11 +26044,19 @@ export namespace Cdp {
         | 'typedarray'
         | 'arraybuffer'
         | 'node'
-        | 'window';
+        | 'window'
+        | 'generator';
 
       value?: any;
 
       objectId?: string;
+
+      /**
+       * Set if value reference met more then once during serialization. In such
+       * case, value is provided only to one of the serialized values. Unique
+       * per value in the scope of one CDP call.
+       */
+      weakLocalObjectReference?: integer;
     }
 
     /**
@@ -25129,9 +26135,9 @@ export namespace Cdp {
       description?: string;
 
       /**
-       * WebDriver BiDi representation of the value.
+       * Deep serialized value.
        */
-      webDriverValue?: WebDriverValue;
+      deepSerializedValue?: DeepSerializedValue;
 
       /**
        * Unique object identifier (for non-primitive values).
@@ -25445,7 +26451,7 @@ export namespace Cdp {
       uniqueId: string;
 
       /**
-       * Embedder-specific auxiliary data.
+       * Embedder-specific auxiliary data likely matching {isDefault: boolean, type: 'default'|'isolated'|'worker', frameId: string}
        */
       auxData?: any;
     }
@@ -26606,6 +27612,41 @@ export namespace Cdp {
     ): Promise<Storage.SetSharedStorageTrackingResult | undefined>;
 
     /**
+     * Set tracking for a storage key's buckets.
+     */
+    setStorageBucketTracking(
+      params: Storage.SetStorageBucketTrackingParams,
+    ): Promise<Storage.SetStorageBucketTrackingResult | undefined>;
+
+    /**
+     * Deletes the Storage Bucket with the given storage key and bucket name.
+     */
+    deleteStorageBucket(
+      params: Storage.DeleteStorageBucketParams,
+    ): Promise<Storage.DeleteStorageBucketResult | undefined>;
+
+    /**
+     * Deletes state for sites identified as potential bounce trackers, immediately.
+     */
+    runBounceTrackingMitigations(
+      params: Storage.RunBounceTrackingMitigationsParams,
+    ): Promise<Storage.RunBounceTrackingMitigationsResult | undefined>;
+
+    /**
+     * https://wicg.github.io/attribution-reporting-api/
+     */
+    setAttributionReportingLocalTestingMode(
+      params: Storage.SetAttributionReportingLocalTestingModeParams,
+    ): Promise<Storage.SetAttributionReportingLocalTestingModeResult | undefined>;
+
+    /**
+     * Enables/disables issuing of Attribution Reporting events.
+     */
+    setAttributionReportingTracking(
+      params: Storage.SetAttributionReportingTrackingParams,
+    ): Promise<Storage.SetAttributionReportingTrackingResult | undefined>;
+
+    /**
      * A cache's contents have been modified.
      */
     on(
@@ -26652,6 +27693,25 @@ export namespace Cdp {
     on(
       event: 'sharedStorageAccessed',
       listener: (event: Storage.SharedStorageAccessedEvent) => void,
+    ): IDisposable;
+
+    on(
+      event: 'storageBucketCreatedOrUpdated',
+      listener: (event: Storage.StorageBucketCreatedOrUpdatedEvent) => void,
+    ): IDisposable;
+
+    on(
+      event: 'storageBucketDeleted',
+      listener: (event: Storage.StorageBucketDeletedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * TODO(crbug.com/1458532): Add other Attribution Reporting events, e.g.
+     * trigger registration.
+     */
+    on(
+      event: 'attributionReportingSourceRegistered',
+      listener: (event: Storage.AttributionReportingSourceRegisteredEvent) => void,
     ): IDisposable;
   }
 
@@ -27107,6 +28167,71 @@ export namespace Cdp {
     export interface SetSharedStorageTrackingResult {}
 
     /**
+     * Parameters of the 'Storage.setStorageBucketTracking' method.
+     */
+    export interface SetStorageBucketTrackingParams {
+      storageKey: string;
+
+      enable: boolean;
+    }
+
+    /**
+     * Return value of the 'Storage.setStorageBucketTracking' method.
+     */
+    export interface SetStorageBucketTrackingResult {}
+
+    /**
+     * Parameters of the 'Storage.deleteStorageBucket' method.
+     */
+    export interface DeleteStorageBucketParams {
+      bucket: StorageBucket;
+    }
+
+    /**
+     * Return value of the 'Storage.deleteStorageBucket' method.
+     */
+    export interface DeleteStorageBucketResult {}
+
+    /**
+     * Parameters of the 'Storage.runBounceTrackingMitigations' method.
+     */
+    export interface RunBounceTrackingMitigationsParams {}
+
+    /**
+     * Return value of the 'Storage.runBounceTrackingMitigations' method.
+     */
+    export interface RunBounceTrackingMitigationsResult {
+      deletedSites: string[];
+    }
+
+    /**
+     * Parameters of the 'Storage.setAttributionReportingLocalTestingMode' method.
+     */
+    export interface SetAttributionReportingLocalTestingModeParams {
+      /**
+       * If enabled, noise is suppressed and reports are sent immediately.
+       */
+      enabled: boolean;
+    }
+
+    /**
+     * Return value of the 'Storage.setAttributionReportingLocalTestingMode' method.
+     */
+    export interface SetAttributionReportingLocalTestingModeResult {}
+
+    /**
+     * Parameters of the 'Storage.setAttributionReportingTracking' method.
+     */
+    export interface SetAttributionReportingTrackingParams {
+      enable: boolean;
+    }
+
+    /**
+     * Return value of the 'Storage.setAttributionReportingTracking' method.
+     */
+    export interface SetAttributionReportingTrackingResult {}
+
+    /**
      * Parameters of the 'Storage.cacheStorageContentUpdated' event.
      */
     export interface CacheStorageContentUpdatedEvent {
@@ -27119,6 +28244,11 @@ export namespace Cdp {
        * Storage key to update.
        */
       storageKey: string;
+
+      /**
+       * Storage bucket to update.
+       */
+      bucketId: string;
 
       /**
        * Name of cache in origin.
@@ -27139,6 +28269,11 @@ export namespace Cdp {
        * Storage key to update.
        */
       storageKey: string;
+
+      /**
+       * Storage bucket to update.
+       */
+      bucketId: string;
     }
 
     /**
@@ -27154,6 +28289,11 @@ export namespace Cdp {
        * Storage key to update.
        */
       storageKey: string;
+
+      /**
+       * Storage bucket to update.
+       */
+      bucketId: string;
 
       /**
        * Database to update.
@@ -27179,6 +28319,11 @@ export namespace Cdp {
        * Storage key to update.
        */
       storageKey: string;
+
+      /**
+       * Storage bucket to update.
+       */
+      bucketId: string;
     }
 
     /**
@@ -27225,6 +28370,29 @@ export namespace Cdp {
       params: SharedStorageAccessParams;
     }
 
+    /**
+     * Parameters of the 'Storage.storageBucketCreatedOrUpdated' event.
+     */
+    export interface StorageBucketCreatedOrUpdatedEvent {
+      bucketInfo: StorageBucketInfo;
+    }
+
+    /**
+     * Parameters of the 'Storage.storageBucketDeleted' event.
+     */
+    export interface StorageBucketDeletedEvent {
+      bucketId: string;
+    }
+
+    /**
+     * Parameters of the 'Storage.attributionReportingSourceRegistered' event.
+     */
+    export interface AttributionReportingSourceRegisteredEvent {
+      registration: AttributionReportingSourceRegistration;
+
+      result: AttributionReportingSourceRegistrationResult;
+    }
+
     export type SerializedStorageKey = string;
 
     /**
@@ -27242,6 +28410,7 @@ export namespace Cdp {
       | 'cache_storage'
       | 'interest_groups'
       | 'shared_storage'
+      | 'storage_buckets'
       | 'all'
       | 'other';
 
@@ -27273,13 +28442,22 @@ export namespace Cdp {
     /**
      * Enum of interest group access types.
      */
-    export type InterestGroupAccessType = 'join' | 'leave' | 'update' | 'loaded' | 'bid' | 'win';
+    export type InterestGroupAccessType =
+      | 'join'
+      | 'leave'
+      | 'update'
+      | 'loaded'
+      | 'bid'
+      | 'win'
+      | 'additionalBid'
+      | 'additionalBidWin'
+      | 'clear';
 
     /**
      * Ad advertising element inside an interest group.
      */
     export interface InterestGroupAd {
-      renderUrl: string;
+      renderURL: string;
 
       metadata?: string;
     }
@@ -27296,13 +28474,13 @@ export namespace Cdp {
 
       joiningOrigin: string;
 
-      biddingUrl?: string;
+      biddingLogicURL?: string;
 
-      biddingWasmHelperUrl?: string;
+      biddingWasmHelperURL?: string;
 
-      updateUrl?: string;
+      updateURL?: string;
 
-      trustedBiddingSignalsUrl?: string;
+      trustedBiddingSignalsURL?: string;
 
       trustedBiddingSignalsKeys: string[];
 
@@ -27437,6 +28615,114 @@ export namespace Cdp {
        */
       ignoreIfPresent?: boolean;
     }
+
+    export type StorageBucketsDurability = 'relaxed' | 'strict';
+
+    export interface StorageBucket {
+      storageKey: SerializedStorageKey;
+
+      /**
+       * If not specified, it is the default bucket of the storageKey.
+       */
+      name?: string;
+    }
+
+    export interface StorageBucketInfo {
+      bucket: StorageBucket;
+
+      id: string;
+
+      expiration: Network.TimeSinceEpoch;
+
+      /**
+       * Storage quota (bytes).
+       */
+      quota: number;
+
+      persistent: boolean;
+
+      durability: StorageBucketsDurability;
+    }
+
+    export type AttributionReportingSourceType = 'navigation' | 'event';
+
+    export type UnsignedInt64AsBase10 = string;
+
+    export type UnsignedInt128AsBase16 = string;
+
+    export type SignedInt64AsBase10 = string;
+
+    export interface AttributionReportingFilterDataEntry {
+      key: string;
+
+      values: string[];
+    }
+
+    export interface AttributionReportingAggregationKeysEntry {
+      key: string;
+
+      value: UnsignedInt128AsBase16;
+    }
+
+    export interface AttributionReportingEventReportWindows {
+      /**
+       * duration in seconds
+       */
+      start: integer;
+
+      /**
+       * duration in seconds
+       */
+      ends: integer[];
+    }
+
+    export interface AttributionReportingSourceRegistration {
+      time: Network.TimeSinceEpoch;
+
+      /**
+       * duration in seconds
+       */
+      expiry: integer;
+
+      eventReportWindows: AttributionReportingEventReportWindows;
+
+      /**
+       * duration in seconds
+       */
+      aggregatableReportWindow: integer;
+
+      type: AttributionReportingSourceType;
+
+      sourceOrigin: string;
+
+      reportingOrigin: string;
+
+      destinationSites: string[];
+
+      eventId: UnsignedInt64AsBase10;
+
+      priority: SignedInt64AsBase10;
+
+      filterData: AttributionReportingFilterDataEntry[];
+
+      aggregationKeys: AttributionReportingAggregationKeysEntry[];
+
+      debugKey?: UnsignedInt64AsBase10;
+    }
+
+    export type AttributionReportingSourceRegistrationResult =
+      | 'success'
+      | 'internalError'
+      | 'insufficientSourceCapacity'
+      | 'insufficientUniqueDestinationCapacity'
+      | 'excessiveReportingOrigins'
+      | 'prohibitedByBrowserPolicy'
+      | 'successNoised'
+      | 'destinationReportingLimitReached'
+      | 'destinationGlobalLimitReached'
+      | 'destinationBothLimitsReached'
+      | 'reportingOriginsPerSiteLimitReached'
+      | 'exceedsMaxChannelCapacity';
   }
 
   /**

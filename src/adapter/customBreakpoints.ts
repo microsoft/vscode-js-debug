@@ -115,6 +115,12 @@ export function customBreakpoints(): Map<string, ICustomBreakpoint> {
     };
   }
 
+  g(`Ad Auction Worklet`, [
+    i('beforeBidderWorkletBiddingStart', l10n.t('Bidder Bidding Phase Start')),
+    i('beforeBidderWorkletReportingStart', l10n.t('Bidder Reporting Phase Start')),
+    i('beforeSellerWorkletScoringStart', l10n.t('Seller Scoring Phase Start')),
+    i('beforeSellerWorkletReportingStart', l10n.t('Seller Reporting Phase Start')),
+  ]);
   g(`Animation`, [
     i('requestAnimationFrame', l10n.t('Request Animation Frame')),
     i('cancelAnimationFrame', l10n.t('Cancel Animation Frame')),
@@ -125,33 +131,70 @@ export function customBreakpoints(): Map<string, ICustomBreakpoint> {
     i('webglErrorFired', l10n.t('WebGL Error Fired')),
     i('webglWarningFired', l10n.t('WebGL Warning Fired')),
   ]);
-  g(`Script`, [
-    i('scriptFirstStatement', l10n.t('Script First Statement')),
-    i('scriptBlockedByCSP', l10n.t('Script Blocked by Content Security Policy')),
+  g(`Clipboard`, [
+    e('copy'),
+    e('cut'),
+    e('paste'),
+    e('beforecopy'),
+    e('beforecut'),
+    e('beforepaste'),
+  ]);
+  g(`Control`, [
+    e('resize'),
+    e('scroll'),
+    e('scrollend'),
+    e('zoom'),
+    e('focus'),
+    e('blur'),
+    e('select'),
+    e('change'),
+    e('submit'),
+    e('reset'),
+  ]);
+  g(`Device`, [e('deviceorientation'), e('devicemotion')]);
+  g(`DOM Mutation`, [
+    e('DOMActivate'),
+    e('DOMFocusIn'),
+    e('DOMFocusOut'),
+    e('DOMAttrModified'),
+    e('DOMCharacterDataModified'),
+    e('DOMNodeInserted'),
+    e('DOMNodeInsertedIntoDocument'),
+    e('DOMNodeRemoved'),
+    e('DOMNodeRemovedFromDocument'),
+    e('DOMSubtreeModified'),
+    e('DOMContentLoaded'),
+  ]);
+  g(`Drag / Drop`, [
+    e('drag'),
+    e('dragstart'),
+    e('dragend'),
+    e('dragenter'),
+    e('dragover'),
+    e('dragleave'),
+    e('drop'),
   ]);
   g(`Geolocation`, [
     i('Geolocation.getCurrentPosition', `getCurrentPosition`),
     i('Geolocation.watchPosition', `watchPosition`),
   ]);
-  g(`Notification`, [i('Notification.requestPermission', `requestPermission`)]);
-  g(`Parse`, [
-    i('Element.setInnerHTML', l10n.t('Set innerHTML')),
-    i('Document.write', `document.write`),
-  ]);
-  g(`Timer`, [
-    i('setTimeout'),
-    i('clearTimeout'),
-    i('setInterval'),
-    i('clearInterval'),
-    i('setTimeout.callback', l10n.t('setTimeout fired')),
-    i('setInterval.callback', l10n.t('setInterval fired')),
-  ]);
-  g(`Window`, [i('DOMWindow.close', `window.close`)]);
-  g(`WebAudio`, [
-    i('audioContextCreated', l10n.t('Create AudioContext')),
-    i('audioContextClosed', l10n.t('Close AudioContext')),
-    i('audioContextResumed', l10n.t('Resume AudioContext')),
-    i('audioContextSuspended', l10n.t('Suspend AudioContext')),
+  g(`Keyboard`, [e('keydown'), e('keyup'), e('keypress'), e('input')]);
+  g(`Load`, [
+    e('load'),
+    e('beforeunload'),
+    e('unload'),
+    e('abort'),
+    e('error'),
+    e('hashchange'),
+    e('popstate'),
+    e('navigate'),
+    e('navigatesuccess'),
+    e('navigateerror'),
+    e('currentchange'),
+    e('nagivateto'),
+    e('navigatefrom'),
+    e('finish'),
+    e('dispose'),
   ]);
   const av = ['audio', 'video'];
   g(`Media`, [
@@ -178,63 +221,6 @@ export function customBreakpoints(): Map<string, ICustomBreakpoint> {
     e('loadeddata', av),
     e('waiting', av),
   ]);
-  g(`Picture-in-Picture`, [
-    e('enterpictureinpicture', 'video'),
-    e('leavepictureinpicture', 'video'),
-    e('resize', 'PictureInPictureWindow'),
-  ]);
-  g(`Clipboard`, [
-    e('copy'),
-    e('cut'),
-    e('paste'),
-    e('beforecopy'),
-    e('beforecut'),
-    e('beforepaste'),
-  ]);
-  g(`Control`, [
-    e('resize'),
-    e('scroll'),
-    e('zoom'),
-    e('focus'),
-    e('blur'),
-    e('select'),
-    e('change'),
-    e('submit'),
-    e('reset'),
-  ]);
-  g(`Device`, [e('deviceorientation'), e('devicemotion')]);
-  g(`DOM Mutation`, [
-    e('DOMActivate'),
-    e('DOMFocusIn'),
-    e('DOMFocusOut'),
-    e('DOMAttrModified'),
-    e('DOMCharacterDataModified'),
-    e('DOMNodeInserted'),
-    e('DOMNodeInsertedIntoDocument'),
-    e('DOMNodeRemoved'),
-    e('DOMNodeRemovedFromDocument'),
-    e('DOMSubtreeModified'),
-    e('DOMContentLoaded'),
-  ]);
-  g(`Drag / drop`, [
-    e('drag'),
-    e('dragstart'),
-    e('dragend'),
-    e('dragenter'),
-    e('dragover'),
-    e('dragleave'),
-    e('drop'),
-  ]);
-  g(`Keyboard`, [e('keydown'), e('keyup'), e('keypress'), e('input')]);
-  g(`Load`, [
-    e('load'),
-    e('beforeunload'),
-    e('unload'),
-    e('abort'),
-    e('error'),
-    e('hashchange'),
-    e('popstate'),
-  ]);
   g(`Mouse`, [
     e('auxclick'),
     e('click'),
@@ -250,6 +236,17 @@ export function customBreakpoints(): Map<string, ICustomBreakpoint> {
     e('wheel'),
     e('contextmenu'),
   ]);
+  g(`Notification`, [i('Notification.requestPermission', `requestPermission`)]);
+  g(`Parse`, [
+    i('Element.setInnerHTML', l10n.t('Set innerHTML')),
+    i('Document.write', `document.write`),
+  ]);
+  g(`Picture-in-Picture`, [
+    e('enterpictureinpicture', 'video'),
+    e('leavepictureinpicture', 'video'),
+    e('resize', 'PictureInPictureWindow'),
+    e('enter', 'documentPictureInPicture'),
+  ]);
   g(`Pointer`, [
     e('pointerover'),
     e('pointerout'),
@@ -261,8 +258,28 @@ export function customBreakpoints(): Map<string, ICustomBreakpoint> {
     e('pointercancel'),
     e('gotpointercapture'),
     e('lostpointercapture'),
+    e('pointerrawupdate'),
+  ]);
+  g(`Script`, [
+    i('scriptFirstStatement', l10n.t('Script First Statement')),
+    i('scriptBlockedByCSP', l10n.t('Script Blocked by Content Security Policy')),
+  ]);
+  g(`Timer`, [
+    i('setTimeout'),
+    i('clearTimeout'),
+    i('setInterval'),
+    i('clearInterval'),
+    i('setTimeout.callback', l10n.t('setTimeout fired')),
+    i('setInterval.callback', l10n.t('setInterval fired')),
   ]);
   g(`Touch`, [e('touchstart'), e('touchmove'), e('touchend'), e('touchcancel')]);
+  g(`WebAudio`, [
+    i('audioContextCreated', l10n.t('Create AudioContext')),
+    i('audioContextClosed', l10n.t('Close AudioContext')),
+    i('audioContextResumed', l10n.t('Resume AudioContext')),
+    i('audioContextSuspended', l10n.t('Suspend AudioContext')),
+  ]);
+  g(`Window`, [i('DOMWindow.close', `window.close`)]);
   g(`Worker`, [e('message'), e('messageerror')]);
   const xhr = ['xmlhttprequest', 'xmlhttprequestupload'];
   g(`XHR`, [

@@ -1214,17 +1214,17 @@ const commands: ReadonlyArray<{
   },
   {
     command: Commands.AddCustomBreakpoints,
-    title: refString('add.browser.breakpoint'),
+    title: refString('add.eventListener.breakpoint'),
     icon: '$(add)',
   },
   {
-    command: Commands.RemoveCustomBreakpoint,
-    title: refString('remove.browser.breakpoint'),
+    command: Commands.RemoveCustomBreakpoints,
+    title: refString('remove.eventListener.breakpoint'),
     icon: '$(remove)',
   },
   {
     command: Commands.RemoveAllCustomBreakpoints,
-    title: refString('remove.browser.breakpoint.all'),
+    title: refString('remove.eventListener.breakpoint.all'),
     icon: '$(close-all)',
   },
   {
@@ -1438,11 +1438,13 @@ const menus: Menus = {
   'view/title': [
     {
       command: Commands.AddCustomBreakpoints,
-      when: `view == ${CustomViews.BrowserBreakpoints}`,
+      when: `view == ${CustomViews.EventListenerBreakpoints}`,
+      group: 'navigation',
     },
     {
       command: Commands.RemoveAllCustomBreakpoints,
-      when: `view == ${CustomViews.BrowserBreakpoints}`,
+      when: `view == ${CustomViews.EventListenerBreakpoints}`,
+      group: 'navigation',
     },
     {
       command: Commands.CallersRemoveAll,
@@ -1467,20 +1469,6 @@ const menus: Menus = {
     },
   ],
   'view/item/context': [
-    {
-      command: Commands.RemoveCustomBreakpoint,
-      when: `view == ${CustomViews.BrowserBreakpoints}`,
-      group: 'inline',
-    },
-    {
-      command: Commands.AddCustomBreakpoints,
-      when: `view == ${CustomViews.BrowserBreakpoints}`,
-    },
-    {
-      command: Commands.RemoveCustomBreakpoint,
-      when: `view == ${CustomViews.BrowserBreakpoints}`,
-    },
-
     {
       command: Commands.CallersGoToCaller,
       group: 'inline',
@@ -1540,8 +1528,8 @@ const viewsWelcome = [
 const views = {
   debug: [
     {
-      id: CustomViews.BrowserBreakpoints,
-      name: 'Browser breakpoints',
+      id: CustomViews.EventListenerBreakpoints,
+      name: 'Event Listener Breakpoints',
       when: forBrowserDebugType('debugType'),
     },
     {
