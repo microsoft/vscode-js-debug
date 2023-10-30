@@ -4,7 +4,6 @@
 
 import { Node as AcornNode, parseExpressionAt, Parser } from 'acorn';
 import { generate } from 'astring';
-import { replace, traverse, VisitorOption } from 'estraverse';
 import {
   Expression,
   ExpressionStatement,
@@ -16,7 +15,13 @@ import {
 } from 'estree';
 import { NullablePosition, Position, SourceMapConsumer, SourceMapGenerator } from 'source-map';
 import { LineColumn } from '../adapter/breakpoints/breakpointBase';
-import { acornOptions, ESTRAVERSE_KEYS, parseProgram } from './sourceCodeManipulations';
+import {
+  acornOptions,
+  parseProgram,
+  replace,
+  traverse,
+  VisitorOption,
+} from './sourceCodeManipulations';
 import { SourceMap } from './sourceMaps/sourceMap';
 
 export const enum SourceConstants {
@@ -98,20 +103,22 @@ export function rewriteTopLevelAwait(code: string): string | undefined {
   let containsReturn = false;
 
   const replaced = replace(program, {
-    keys: ESTRAVERSE_KEYS,
     enter(node, parent) {
       switch (node.type) {
         case 'ClassDeclaration':
-          return makeAssignment(node.id || { type: 'Identifier', name: '_default' }, {
-            ...node,
-            type: 'ClassExpression',
-          });
+          return {
+            replace: makeAssignment(node.id || { type: 'Identifier', name: '_default' }, {
+              ...node,
+              type: 'ClassExpression',
+            }),
+          };
         case 'FunctionDeclaration':
-          this.skip();
-          return makeAssignment(node.id || { type: 'Identifier', name: '_default' }, {
-            ...node,
-            type: 'FunctionExpression',
-          });
+          return {
+            replace: makeAssignment(node.id || { type: 'Identifier', name: '_default' }, {
+              ...node,
+              type: 'FunctionExpression',
+            }),
+          };
         case 'FunctionExpression':
         case 'ArrowFunctionExpression':
         case 'MethodDefinition':
@@ -153,7 +160,7 @@ export function rewriteTopLevelAwait(code: string): string | undefined {
           stmts.splice(stmts.indexOf(node), 1, ...spliced);
       }
     },
-  }) as Program;
+  });
 
   // Top-level return is not allowed.
   if (!containsAwait || containsReturn) {
@@ -162,9 +169,9 @@ export function rewriteTopLevelAwait(code: string): string | undefined {
 
   // If we expect the value (last statement is an expression),
   // return it from the inner function.
-  const last = replaced.body[replaced.body.length - 1];
+  const last = program.body[program.body.length - 1];
   if (last.type === 'ExpressionStatement') {
-    replaced.body[replaced.body.length - 1] = {
+    program.body[program.body.length - 1] = {
       type: 'ReturnStatement',
       argument: last.expression,
     };
@@ -338,7 +345,6 @@ export function getBestSteppableExpressionAt(src: string, offset: number) {
   let other: Node | undefined;
   let steppable: Node | undefined;
   traverse(ast, {
-    keys: ESTRAVERSE_KEYS,
     enter: node => {
       const asAcorn = node as AcornNode;
       if (offset >= asAcorn.start && offset < asAcorn.end) {

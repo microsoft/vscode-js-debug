@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import { expect } from 'chai';
-import dataUriToBuffer from 'data-uri-to-buffer';
+import { dataUriToBuffer } from 'data-uri-to-buffer';
 import { stub } from 'sinon';
 import { RawIndexMap, RawSourceMap } from 'source-map';
 import { IResourceProvider } from '../../adapter/resourceProvider';
@@ -53,7 +53,7 @@ describe('SourceMapFactory', () => {
       fetch(url) {
         return Promise.resolve({
           ok: true,
-          body: dataUriToBuffer(url).toString('utf8'),
+          body: Buffer.from(dataUriToBuffer(url).buffer).toString('utf8'),
           url: url,
           statusCode: 200,
         });

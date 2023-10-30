@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import dataUriToBuffer from 'data-uri-to-buffer';
+import { dataUriToBuffer } from 'data-uri-to-buffer';
 import { LookupAddress, promises as dns } from 'dns';
 import got, { Headers, OptionsOfTextResponseBody, RequestError } from 'got';
 import { inject, injectable, optional } from 'inversify';
@@ -37,7 +37,7 @@ export class BasicResourceProvider implements IResourceProvider {
   ): Promise<Response<string>> {
     try {
       const r = dataUriToBuffer(url);
-      return { ok: true, url, body: r.toString('utf-8'), statusCode: 200 };
+      return { ok: true, url, body: new TextDecoder().decode(r.buffer), statusCode: 200 };
     } catch {
       // assume it's a remote url
     }

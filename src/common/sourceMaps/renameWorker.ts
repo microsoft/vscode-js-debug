@@ -2,10 +2,9 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { traverse } from 'estraverse';
 import { Node, SourceLocation } from 'estree';
 import { isMainThread, parentPort, workerData } from 'worker_threads';
-import { ESTRAVERSE_KEYS, parseProgram } from '../sourceCodeManipulations';
+import { parseProgram, traverse } from '../sourceCodeManipulations';
 import type { FlatTree } from './renameScopeTree';
 
 type TypeWithChildren = { children?: TypeWithChildren[] };
@@ -48,7 +47,6 @@ export function extractScopeRangesWithFactory<T extends TypeWithChildren>(
   let programScope: T | undefined;
 
   traverse(program, {
-    keys: ESTRAVERSE_KEYS,
     enter: node => {
       switch (node.type) {
         // include from the first param to catch function names:
