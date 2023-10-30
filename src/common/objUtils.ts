@@ -340,7 +340,7 @@ export function trailingEdgeThrottle(
  */
 export async function bisectArrayAsync<T>(
   items: ReadonlyArray<T>,
-  predicate: (item: T) => Promise<boolean>,
+  predicate: (item: T) => Promise<boolean> | boolean,
 ): Promise<[T[], T[]]> {
   const a: T[] = [];
   const b: T[] = [];

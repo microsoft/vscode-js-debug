@@ -22,7 +22,7 @@ const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-js-debug-'));
 class Configurator {
   private _setExceptionBreakpointsParams?: Dap.SetExceptionBreakpointsParams;
   private _setBreakpointsParams: { params: Dap.SetBreakpointsParams; ids: number[] }[];
-  private _customBreakpoints = new Set<string>();
+  private _customBreakpoints: string[] = [];
   private lastBreakpointId = 0;
 
   constructor(dap: Dap.Api) {
@@ -47,13 +47,8 @@ class Configurator {
       return {};
     });
 
-    dap.on('enableCustomBreakpoints', async params => {
-      for (const id of params.ids) this._customBreakpoints.add(id);
-      return {};
-    });
-
-    dap.on('disableCustomBreakpoints', async params => {
-      for (const id of params.ids) this._customBreakpoints.delete(id);
+    dap.on('setCustomBreakpoints', async params => {
+      this._customBreakpoints = params.ids;
       return {};
     });
 
@@ -75,7 +70,7 @@ class Configurator {
       await adapter.setExceptionBreakpoints(this._setExceptionBreakpointsParams);
     for (const { params, ids } of this._setBreakpointsParams)
       await adapter.breakpointManager.setBreakpoints(params, ids);
-    await adapter.enableCustomBreakpoints({ ids: Array.from(this._customBreakpoints) });
+    await adapter.setCustomBreakpoints({ ids: Array.from(this._customBreakpoints) });
     await adapter.configurationDone();
   }
 }

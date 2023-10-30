@@ -1,5 +1,5 @@
 {
-  "add.eventListener.breakpoint": "Add Event Listener Breakpoint",
+  "add.eventListener.breakpoint": "Toggle Event Listener Breakpoints",
   "attach.node.process": "Attach to Node Process",
   "base.cascadeTerminateToConfigurations.label": "A list of debug sessions which, when this debug session is terminated, will also be stopped.",
   "base.enableDWARF.label": "Toggles whether the debugger will try to read DWARF debug symbols from WebAssembly, which can be resource intensive. Requires the `ms-vscode.wasm-dwarf-debugging` extension to function.",

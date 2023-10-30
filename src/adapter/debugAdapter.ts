@@ -48,7 +48,7 @@ export class DebugAdapter implements IDisposable {
   readonly sourceContainer: SourceContainer;
   readonly breakpointManager: BreakpointManager;
   private _disposables = new DisposableList();
-  private _customBreakpoints = new Set<string>();
+  private _customBreakpoints: string[] = [];
   private _thread: Thread | undefined;
   private _threadDeferred = getDeferred<Thread>();
   private _configurationDoneDeferred: IDeferred<void>;
@@ -101,9 +101,8 @@ export class DebugAdapter implements IDisposable {
     this.dap.on('evaluate', params => this.onEvaluate(params));
     this.dap.on('completions', params => this._withThread(thread => thread.completions(params)));
     this.dap.on('exceptionInfo', () => this._withThread(thread => thread.exceptionInfo()));
-    this.dap.on('enableCustomBreakpoints', params => this.enableCustomBreakpoints(params));
+    this.dap.on('setCustomBreakpoints', params => this.setCustomBreakpoints(params));
     this.dap.on('toggleSkipFileStatus', params => this._toggleSkipFileStatus(params));
-    this.dap.on('disableCustomBreakpoints', params => this._disableCustomBreakpoints(params));
     this.dap.on('prettyPrintSource', params => this._prettyPrintSource(params));
     this.dap.on('revealPage', () => this._withThread(thread => thread.revealPage()));
     this.dap.on('getPerformance', () =>
@@ -456,8 +455,7 @@ export class DebugAdapter implements IDisposable {
       profile.start(this.dap, this._thread, { type: BasicCpuProfiler.type });
     }
 
-    for (const breakpoint of this._customBreakpoints)
-      this._thread.updateCustomBreakpoint(breakpoint, true);
+    this._thread.updateCustomBreakpoints(this._customBreakpoints);
 
     this.asyncStackPolicy
       .connect(cdp)
@@ -475,27 +473,14 @@ export class DebugAdapter implements IDisposable {
     return this._thread;
   }
 
-  async enableCustomBreakpoints(
-    params: Dap.EnableCustomBreakpointsParams,
-  ): Promise<Dap.EnableCustomBreakpointsResult> {
-    const promises: Promise<void>[] = [];
-    for (const id of params.ids) {
-      this._customBreakpoints.add(id);
-      if (this._thread) promises.push(this._thread.updateCustomBreakpoint(id, true));
+  async setCustomBreakpoints({
+    ids,
+  }: Dap.SetCustomBreakpointsParams): Promise<Dap.SetCustomBreakpointsResult> {
+    this._customBreakpoints = ids;
+    if (this._thread) {
+      await this._thread.updateCustomBreakpoints(ids);
     }
-    await Promise.all(promises);
-    return {};
-  }
 
-  async _disableCustomBreakpoints(
-    params: Dap.DisableCustomBreakpointsParams,
-  ): Promise<Dap.DisableCustomBreakpointsResult> {
-    const promises: Promise<void>[] = [];
-    for (const id of params.ids) {
-      this._customBreakpoints.delete(id);
-      if (this._thread) promises.push(this._thread.updateCustomBreakpoint(id, false));
-    }
-    await Promise.all(promises);
     return {};
   }
 

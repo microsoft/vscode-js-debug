@@ -81,27 +81,14 @@ const makeRequest = (
 
 const dapCustom: JSONSchema4 = {
   definitions: {
-    ...makeRequest('enableCustomBreakpoints', 'Enable custom breakpoints.', {
+    ...makeRequest('setCustomBreakpoints', 'Sets the enabled custom breakpoints.', {
       properties: {
         ids: {
           type: 'array',
           items: {
             type: 'string',
           },
-          description: 'Id of breakpoints to enable.',
-        },
-      },
-      required: ['ids'],
-    }),
-
-    ...makeRequest('disableCustomBreakpoints', 'Disable custom breakpoints.', {
-      properties: {
-        ids: {
-          type: 'array',
-          items: {
-            type: 'string',
-          },
-          description: 'Id of breakpoints to enable.',
+          description: 'Id of breakpoints that should be enabled.',
         },
       },
       required: ['ids'],

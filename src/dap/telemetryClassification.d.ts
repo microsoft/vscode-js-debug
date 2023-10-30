@@ -94,14 +94,8 @@ interface IDAPOperationClassification {
   '!writememory.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   disassemble: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!disassemble.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
-  enablecustombreakpoints: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!enablecustombreakpoints.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
-  disablecustombreakpoints: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!disablecustombreakpoints.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
-  enablexhrbreakpoints: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!enablexhrbreakpoints.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
-  disablexhrbreakpoints: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!disablexhrbreakpoints.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  setcustombreakpoints: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!setcustombreakpoints.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   prettyprintsource: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!prettyprintsource.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   toggleskipfilestatus: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };

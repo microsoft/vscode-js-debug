@@ -25,7 +25,7 @@ export const enum CustomViews {
 }
 
 export const enum Commands {
-  AddCustomBreakpoints = 'extension.js-debug.addCustomBreakpoints',
+  ToggleCustomBreakpoints = 'extension.js-debug.addCustomBreakpoints',
   AttachProcess = 'extension.pwa-node-debug.attachNodeProcess',
   AutoAttachClearVariables = 'extension.js-debug.clearAutoAttachVariables',
   AutoAttachSetVariables = 'extension.js-debug.setAutoAttachVariables',
@@ -38,7 +38,6 @@ export const enum Commands {
   PickProcess = 'extension.js-debug.pickNodeProcess',
   PrettyPrint = 'extension.js-debug.prettyPrint',
   RemoveAllCustomBreakpoints = 'extension.js-debug.removeAllCustomBreakpoints',
-  RemoveCustomBreakpoints = 'extension.js-debug.removeCustomBreakpoint',
   RevealPage = 'extension.js-debug.revealPage',
   RequestCDPProxy = 'extension.js-debug.requestCDPProxy',
   /** Use node-debug's command so existing keybindings work */
@@ -86,7 +85,7 @@ const debugTypes: { [K in DebugType]: null } = {
 };
 
 const commandsObj: { [K in Commands]: null } = {
-  [Commands.AddCustomBreakpoints]: null,
+  [Commands.ToggleCustomBreakpoints]: null,
   [Commands.AttachProcess]: null,
   [Commands.AutoAttachClearVariables]: null,
   [Commands.AutoAttachSetVariables]: null,
@@ -99,7 +98,6 @@ const commandsObj: { [K in Commands]: null } = {
   [Commands.PickProcess]: null,
   [Commands.PrettyPrint]: null,
   [Commands.RemoveAllCustomBreakpoints]: null,
-  [Commands.RemoveCustomBreakpoints]: null,
   [Commands.RevealPage]: null,
   [Commands.StartProfile]: null,
   [Commands.StopProfile]: null,
