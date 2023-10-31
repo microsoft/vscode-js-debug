@@ -27,15 +27,121 @@ export interface IWasmSymbolProvider {
   loadWasmSymbols(script: Cdp.Debugger.ScriptParsedEvent): Promise<IWasmSymbols>;
 }
 
-@injectable()
-export class WasmSymbolProvider implements IWasmSymbolProvider, IDisposable {
-  /** Running worker, `null` signals that the dwarf module was not available */
-  private worker?: IWasmWorker | null;
+export interface IWasmWorkerExt extends IWasmWorker {
+  getStopId(id: string): string;
+}
 
-  private readonly doPrompt = once(() => this.dwarf.prompt());
+export const IWasmWorkerFactory = Symbol('IWasmWorkerFactory');
+
+/** Global factory that creates wasm workers for each session. */
+export interface IWasmWorkerFactory extends IDisposable {
+  /**
+   * Gets a handle to a wasm worker for the given session.
+   */
+  spawn(cdp: Cdp.Api): Promise<IWasmWorkerExt | null>;
+
+  /**
+   * Corresponds to {@link IDwarfModuleProvider.prompt}
+   */
+  prompt(): void;
+}
+
+@injectable()
+export class WasmWorkerFactory implements IWasmWorkerFactory {
+  private cdpCounter = 0;
+  private worker?: Promise<IWasmWorker | null>;
+
+  private readonly cdp = new Map<number, Cdp.Api>();
 
   constructor(
     @inject(IDwarfModuleProvider) private readonly dwarf: IDwarfModuleProvider,
+    @inject(AnyLaunchConfiguration) private readonly launchConfig: AnyLaunchConfiguration,
+  ) {}
+
+  /** @inheritdoc */
+  public readonly prompt = once(() => this.dwarf.prompt());
+
+  /** @inheritdoc */
+  public async spawn(cdp: Cdp.Api): Promise<IWasmWorkerExt | null> {
+    if (!this.launchConfig.enableDWARF) {
+      return null;
+    }
+
+    this.worker ??= this.dwarf.load().then(dwarf => {
+      if (!dwarf) {
+        return null;
+      }
+
+      const worker = dwarf.spawn({
+        getWasmGlobal: (index, stopId) => this.loadWasmValue(`globals[${index}]`, stopId),
+        getWasmLocal: (index, stopId) => this.loadWasmValue(`locals[${index}]`, stopId),
+        getWasmOp: (index, stopId) => this.loadWasmValue(`stack[${index}]`, stopId),
+        getWasmLinearMemory: (offset, length, stopId) =>
+          this.loadWasmValue(
+            `[].slice.call(new Uint8Array(memories[0].buffer, ${+offset}, ${+length}))`,
+            stopId,
+          ).then((v: number[]) => new Uint8Array(v).buffer),
+      });
+
+      worker.rpc.sendMessage('hello', [], false);
+
+      return worker;
+    });
+
+    const worker = await this.worker;
+    if (!worker) {
+      return null;
+    }
+
+    const cdpId = this.cdpCounter++;
+    this.cdp.set(cdpId, cdp);
+
+    return {
+      rpc: worker.rpc,
+      getStopId: id => `${cdpId}:${id}`,
+      dispose: () => {
+        this.cdp.delete(cdpId);
+        return worker.dispose();
+      },
+    };
+  }
+
+  /** @inheritdoc */
+  public async dispose() {
+    await this.worker?.then(w => w?.dispose());
+    this.worker = Promise.resolve(null);
+  }
+
+  private async loadWasmValue(expression: string, stopId: unknown) {
+    const cast = stopId as string;
+    const idx = cast.indexOf(':');
+
+    const cdpId = cast.substring(0, idx);
+    const callFrameId = cast.substring(idx + 1);
+
+    const result = await this.cdp.get(+cdpId)?.Debugger.evaluateOnCallFrame({
+      callFrameId,
+      expression: expression + getSourceSuffix(),
+      silent: true,
+      returnByValue: true,
+      throwOnSideEffect: true,
+    });
+
+    if (!result || result.exceptionDetails) {
+      throw new Error(`evaluate failed: ${result?.exceptionDetails?.text || 'unknown'}`);
+    }
+
+    return result.result.value;
+  }
+}
+
+@injectable()
+export class WasmSymbolProvider implements IWasmSymbolProvider, IDisposable {
+  /** Running worker, `null` signals that the dwarf module was not available */
+  private readonly worker = once(() => this.dwarf.spawn(this.cdp));
+
+  constructor(
+    @inject(IWasmWorkerFactory) private readonly dwarf: IWasmWorkerFactory,
     @inject(ICdpApi) private readonly cdp: Cdp.Api,
     @inject(ILogger) private readonly logger: ILogger,
     @inject(AnyLaunchConfiguration) private readonly launchConfig: AnyLaunchConfiguration,
@@ -46,15 +152,16 @@ export class WasmSymbolProvider implements IWasmSymbolProvider, IDisposable {
       return this.defaultSymbols(script);
     }
 
-    const rpc = await this.getWorker();
-    if (!rpc) {
+    const worker = await this.worker();
+    if (!worker) {
       const syms = this.defaultSymbols(script);
       // disassembly is a good signal for a prompt, since that means a user
       // will have stepped into and be looking at webassembly code.
-      syms.onDidDisassemble = this.doPrompt;
+      syms.onDidDisassemble = this.dwarf.prompt;
       return syms;
     }
 
+    const { rpc } = worker;
     const moduleId = randomUUID();
 
     const symbolsUrl = script.debugSymbols?.externalURL;
@@ -78,13 +185,12 @@ export class WasmSymbolProvider implements IWasmSymbolProvider, IDisposable {
 
     this.logger.info(LogTag.SourceMapParsing, 'parsed files from wasm', { files: result });
 
-    return new WasmSymbols(script, this.cdp, moduleId, rpc, result);
+    return new WasmSymbols(script, this.cdp, moduleId, worker, result);
   }
 
   /** @inheritdoc */
-  public dispose(): void {
-    this.worker?.dispose();
-    this.worker = undefined;
+  public async dispose() {
+    await this.worker.value?.then(w => w?.dispose());
   }
 
   private defaultSymbols(script: Cdp.Debugger.ScriptParsedEvent) {
@@ -95,50 +201,6 @@ export class WasmSymbolProvider implements IWasmSymbolProvider, IDisposable {
     const source = await this.cdp.Debugger.getScriptSource({ scriptId });
     const bytecode = source?.bytecode;
     return bytecode ? Buffer.from(bytecode, 'base64').buffer : undefined;
-  }
-
-  private async getWorker() {
-    if (this.worker !== undefined) {
-      return this.worker?.rpc;
-    }
-
-    const dwarf = await this.dwarf.load();
-    if (!dwarf) {
-      this.worker = null;
-      return undefined;
-    }
-
-    this.worker = dwarf.spawn({
-      getWasmGlobal: (index, stopId) => this.loadWasmValue(`globals[${index}]`, stopId),
-      getWasmLocal: (index, stopId) => this.loadWasmValue(`locals[${index}]`, stopId),
-      getWasmOp: (index, stopId) => this.loadWasmValue(`stack[${index}]`, stopId),
-      getWasmLinearMemory: (offset, length, stopId) =>
-        this.loadWasmValue(
-          `[].slice.call(new Uint8Array(memories[0].buffer, ${+offset}, ${+length}))`,
-          stopId,
-        ).then((v: number[]) => new Uint8Array(v).buffer),
-    });
-
-    this.worker.rpc.sendMessage('hello', [], false);
-
-    return this.worker.rpc;
-  }
-
-  private async loadWasmValue(expression: string, stopId: unknown) {
-    const callFrameId = stopId as string;
-    const result = await this.cdp.Debugger.evaluateOnCallFrame({
-      callFrameId,
-      expression: expression + getSourceSuffix(),
-      silent: true,
-      returnByValue: true,
-      throwOnSideEffect: true,
-    });
-
-    if (!result || result.exceptionDetails) {
-      throw new Error(`evaluate failed: ${result?.exceptionDetails?.text || 'unknown'}`);
-    }
-
-    return result.result.value;
   }
 }
 
@@ -395,7 +457,7 @@ class WasmSymbols extends DecompiledWasmSymbols {
     event: Cdp.Debugger.ScriptParsedEvent,
     cdp: Cdp.Api,
     private readonly moduleId: string,
-    private readonly rpc: IWasmWorker['rpc'],
+    private readonly worker: IWasmWorkerExt,
     files: string[],
   ) {
     super(event, cdp, files);
@@ -405,7 +467,7 @@ class WasmSymbols extends DecompiledWasmSymbols {
   public override async originalPositionFor(
     compiledPosition: IPosition,
   ): Promise<{ url: string; position: IPosition } | undefined> {
-    const locations = await this.rpc.sendMessage('rawLocationToSourceLocation', {
+    const locations = await this.worker.rpc.sendMessage('rawLocationToSourceLocation', {
       codeOffset: compiledPosition.base0.columnNumber - this.codeOffset,
       inlineFrameIndex: compiledPosition.base0.lineNumber,
       rawModuleId: this.moduleId,
@@ -431,7 +493,7 @@ class WasmSymbols extends DecompiledWasmSymbols {
     }
 
     const { lineNumber, columnNumber } = sourcePosition.base0;
-    const locations = await this.rpc.sendMessage('sourceLocationToRawLocation', {
+    const locations = await this.worker.rpc.sendMessage('sourceLocationToRawLocation', {
       lineNumber,
       columnNumber: columnNumber === 0 ? -1 : columnNumber,
       rawModuleId: this.moduleId,
@@ -458,7 +520,7 @@ class WasmSymbols extends DecompiledWasmSymbols {
 
   /** @inheritdoc */
   public override dispose() {
-    return this.rpc.sendMessage('removeRawModule', this.moduleId);
+    return this.worker.rpc.sendMessage('removeRawModule', this.moduleId);
   }
 
   /** @inheritdoc */
@@ -472,7 +534,7 @@ class WasmSymbols extends DecompiledWasmSymbols {
       rawModuleId: this.moduleId,
     };
 
-    const variables = await this.rpc.sendMessage('listVariablesInScope', location);
+    const variables = await this.worker.rpc.sendMessage('listVariablesInScope', location);
 
     return variables.map(
       (v): IWasmVariable => ({
@@ -480,8 +542,13 @@ class WasmSymbols extends DecompiledWasmSymbols {
         scope: v.scope as WasmScope,
         type: v.type,
         evaluate: async () => {
-          const result = await this.rpc.sendMessage('evaluate', v.name, location, callFrameId);
-          return result ? new WasmVariableEvaluation(result, this.rpc) : nullType;
+          const result = await this.worker.rpc.sendMessage(
+            'evaluate',
+            v.name,
+            location,
+            this.worker.getStopId(callFrameId),
+          );
+          return result ? new WasmVariableEvaluation(result, this.worker.rpc) : nullType;
         },
       }),
     );
@@ -489,7 +556,7 @@ class WasmSymbols extends DecompiledWasmSymbols {
 
   /** @inheritdoc */
   public async getFunctionStack(position: IPosition): Promise<{ name: string }[]> {
-    const info = await this.rpc.sendMessage('getFunctionInfo', {
+    const info = await this.worker.rpc.sendMessage('getFunctionInfo', {
       codeOffset: position.base0.columnNumber - this.codeOffset,
       inlineFrameIndex: position.base0.lineNumber,
       rawModuleId: this.moduleId,
@@ -519,7 +586,7 @@ class WasmSymbols extends DecompiledWasmSymbols {
       if (!(mappedPosition && sourceUrl)) {
         return [];
       }
-      return this.rpc.sendMessage('sourceLocationToRawLocation', {
+      return this.worker.rpc.sendMessage('sourceLocationToRawLocation', {
         lineNumber: mappedPosition.base0.lineNumber,
         columnNumber: -1,
         rawModuleId: this.moduleId,
@@ -531,7 +598,7 @@ class WasmSymbols extends DecompiledWasmSymbols {
     switch (direction) {
       case StepDirection.Out: {
         // Step out should step out of inline functions.
-        rawRanges = await this.rpc.sendMessage('getInlinedFunctionRanges', thisLocation);
+        rawRanges = await this.worker.rpc.sendMessage('getInlinedFunctionRanges', thisLocation);
         break;
       }
       case StepDirection.Over: {
@@ -539,7 +606,7 @@ class WasmSymbols extends DecompiledWasmSymbols {
         // intermediary statements on this line, which may exist
         // in WAT assembly but not in source code.
         const ranges = await Promise.all([
-          this.rpc.sendMessage('getInlinedCalleesRanges', thisLocation),
+          this.worker.rpc.sendMessage('getInlinedCalleesRanges', thisLocation),
           getOwnLineRanges(),
         ]);
         rawRanges = flatten(ranges);
@@ -570,7 +637,7 @@ class WasmSymbols extends DecompiledWasmSymbols {
     expression: string,
   ): Promise<Cdp.Runtime.RemoteObject | undefined> {
     try {
-      const r = await this.rpc.sendMessage(
+      const r = await this.worker.rpc.sendMessage(
         'evaluate',
         expression,
         {
@@ -578,7 +645,7 @@ class WasmSymbols extends DecompiledWasmSymbols {
           inlineFrameIndex: position.base0.lineNumber,
           rawModuleId: this.moduleId,
         },
-        callFrameId,
+        this.worker.getStopId(callFrameId),
       );
 
       // cast since types in dwarf-debugging are slightly different than generated cdp API
@@ -598,7 +665,7 @@ class WasmSymbols extends DecompiledWasmSymbols {
 
     const value = (async () => {
       try {
-        const lines = await this.rpc.sendMessage('getMappedLines', this.moduleId, sourceURL);
+        const lines = await this.worker.rpc.sendMessage('getMappedLines', this.moduleId, sourceURL);
         return new Uint32Array(lines?.sort((a, b) => a - b) || []);
       } catch {
         return new Uint32Array();

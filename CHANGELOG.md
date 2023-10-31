@@ -4,7 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
-Nothing, yet
+- fix: reuse the webassembly worker across sessions in the debug tree ([#1830](https://github.com/microsoft/vscode-js-debug/issues/1830))
 
 ## v1.84 (October 2023)
 
