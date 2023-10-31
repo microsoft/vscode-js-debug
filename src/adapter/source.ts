@@ -110,7 +110,9 @@ export class Source {
     if (this.runtimeScriptOffset) {
       return {
         ...obj,
-        lineNumber: obj.lineNumber - this.runtimeScriptOffset.lineOffset,
+        // Line number could go out of bounds if a location (such as a scope range)
+        // refers to information in a module 'wrapper'; this happens in web extensions
+        lineNumber: Math.max(1, obj.lineNumber - this.runtimeScriptOffset.lineOffset),
         columnNumber: obj.columnNumber - this.runtimeScriptOffset.columnOffset,
       };
     }

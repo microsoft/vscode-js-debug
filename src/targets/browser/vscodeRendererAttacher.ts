@@ -66,6 +66,7 @@ export class VSCodeRendererAttacher extends BrowserAttacher<IRendererAttachParam
       port: rendererPort,
       __workspaceFolder: params.__workspaceFolder,
       urlFilter: '',
+      resolveSourceMapLocations: params.resolveSourceMapLocations,
       ...params.rendererDebugOptions,
     }) as IRendererAttachParams;
 

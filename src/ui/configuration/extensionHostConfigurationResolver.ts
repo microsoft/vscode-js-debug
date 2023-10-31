@@ -36,11 +36,11 @@ export class ExtensionHostConfigurationResolver
       };
     }
 
+    applyNodeishDefaults(config);
+
     if (config.debugWebWorkerHost) {
       config.outFiles = []; // will have a runtime script offset which invalidates any predictions
     }
-
-    applyNodeishDefaults(config);
 
     return Promise.resolve({
       ...extensionHostConfigDefaults,
