@@ -109,8 +109,8 @@ export const eventuallyOk = async <T>(
 };
 
 afterEach(async () => {
-  // Retry to avoid flaking with EINVAL if files are written out during deletion
-  for (let retries = 5; retries >= 0; retries--)
+  // Retry to avoid flaking with EINVAL/EBUSY if files are written out during deletion
+  for (let retries = 10; retries >= 0; retries--)
     try {
       await fs.rm(testFixturesDir, { recursive: true, force: true });
       return;
@@ -118,6 +118,7 @@ afterEach(async () => {
       if (retries === 0) {
         throw e;
       }
+      await delay(100);
     }
 });
 
