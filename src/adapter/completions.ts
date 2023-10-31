@@ -4,18 +4,18 @@
 
 import { Node as AcornNode } from 'acorn';
 import { isDummy } from 'acorn-loose';
-import { traverse, VisitorOption } from 'estraverse';
 import { Identifier, MemberExpression, Node, Program } from 'estree';
 import { inject, injectable } from 'inversify';
 import Cdp from '../cdp/api';
 import { ICdpApi } from '../cdp/connection';
 import { IPosition } from '../common/positions';
 import {
-  ESTRAVERSE_KEYS,
   getEnd,
   getStart,
   getText,
   parseProgram,
+  traverse,
+  VisitorOption,
 } from '../common/sourceCodeManipulations';
 import { PositionToOffset } from '../common/stringUtils';
 import Dap from '../dap/api';
@@ -108,7 +108,6 @@ const inferCompletionInfoForDeclaration = (node: Node) => {
 function maybeHasSideEffects(node: Node): boolean {
   let result = false;
   traverse(node, {
-    keys: ESTRAVERSE_KEYS,
     enter(node) {
       if (
         node.type === 'CallExpression' ||
@@ -152,7 +151,6 @@ export class Completions {
     let candidate: () => Promise<ICompletionWithSort[]> = () => Promise.resolve([]);
 
     traverse(source, {
-      keys: ESTRAVERSE_KEYS,
       enter: (node, parent) => {
         const asAcorn = node as AcornNode;
         if (asAcorn.start < offset && offset <= asAcorn.end) {
@@ -220,7 +218,6 @@ export class Completions {
     // Walk through the expression and look for any locally-declared variables or identifiers.
     const localIdentifiers: ICompletionWithSort[] = [];
     traverse(source, {
-      keys: ESTRAVERSE_KEYS,
       enter(node) {
         const completion = inferCompletionInfoForDeclaration(node);
         if (completion?.id?.type === 'Identifier') {

@@ -2,7 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 import { Node as AcornNode, parse as parseStrict } from 'acorn';
-import { Options, isDummy, parse } from 'acorn-loose';
+import { isDummy, Options, parse } from 'acorn-loose';
+import * as evk from 'eslint-visitor-keys';
 import {
   ArrowFunctionExpression,
   CallExpression,
@@ -238,8 +239,93 @@ export function statementToExpression(stmt: Statement): Expression | undefined {
       return undefined;
   }
 }
-/** Extra keys for estraverse functionality they don't support yet */
 
-export const ESTRAVERSE_KEYS: Record<string, string[]> = {
-  StaticBlock: ['body'], // https://github.com/estools/estraverse/pull/120
+export const enum VisitorOption {
+  /** Immediately stop and unwind the transerveral */
+  Break,
+  /** Skip the children of this node */
+  Skip,
+}
+
+/**
+ * estraverse-like method that visits all nodes in the tree.
+ * This is used to replace estraverse which has been abandoned.
+ */
+export const traverse = (
+  node: Node,
+  visitor: {
+    enter: (node: Node, parent?: Node) => VisitorOption | void;
+    leave?: (node: Node) => void;
+  },
+) => {
+  traverseInner(node, visitor);
+};
+
+/**
+ * estraverse-like method that visits and possibly replaces all nodes in the tree.
+ * This is used to replace estraverse which has been abandoned.
+ */
+export const replace = <T extends Node>(
+  node: T,
+  visitor: {
+    enter: (node: Node, parent?: Node) => VisitorOption | { replace: Node } | void;
+    leave?: (node: Node) => void;
+  },
+): T => {
+  const r = traverseInner(node, visitor);
+  if (r && typeof r === 'object') {
+    return r.replace as T;
+  }
+
+  return node;
+};
+
+type VisitorResult = VisitorOption.Break | VisitorOption.Skip | { replace: Node };
+
+const traverseInner = (
+  node: Node,
+  visitor: {
+    enter: (node: Node, parent?: Node) => VisitorResult | void;
+    leave?: (node: Node) => void;
+  },
+  parent?: Node,
+): VisitorOption.Break | { replace: Node } | undefined => {
+  if (!node) {
+    return;
+  }
+
+  const opt = visitor.enter(node, parent);
+  if (opt === VisitorOption.Break) {
+    return VisitorOption.Break;
+  } else if (opt && typeof opt === 'object') {
+    return opt;
+  } else if (opt === VisitorOption.Skip) {
+    return;
+  }
+
+  const keys = evk.KEYS[node.type];
+  if (keys) {
+    for (const key of keys) {
+      const child = (node as unknown as Record<string, Node | Node[]>)[key];
+      if (child instanceof Array) {
+        for (const [i, c] of child.entries()) {
+          const result = traverseInner(c, visitor, node);
+          if (result === VisitorOption.Break) {
+            return VisitorOption.Break;
+          } else if (result && typeof result === 'object') {
+            child[i] = result.replace;
+          }
+        }
+      } else if (child) {
+        const result = traverseInner(child, visitor, node);
+        if (result === VisitorOption.Break) {
+          return VisitorOption.Break;
+        } else if (result && typeof result === 'object') {
+          (node as unknown as Record<string, Node | Node[]>)[key] = result.replace;
+        }
+      }
+    }
+  }
+
+  visitor.leave?.(node);
 };

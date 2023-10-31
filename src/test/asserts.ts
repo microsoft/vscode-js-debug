@@ -3,9 +3,8 @@
  *--------------------------------------------------------*/
 
 import { AssertionError, expect } from 'chai';
-import { traverse } from 'estraverse';
 import { delay } from '../common/promiseUtil';
-import { parseProgram } from '../common/sourceCodeManipulations';
+import { parseProgram, traverse } from '../common/sourceCodeManipulations';
 
 export const assertAstEqual = (a: string, b: string) => {
   const locationFreeParse = (str: string) =>
