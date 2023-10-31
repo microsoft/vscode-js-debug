@@ -824,66 +824,18 @@ export namespace Dap {
     disassembleRequest(params: DisassembleParams): Promise<DisassembleResult>;
 
     /**
-     * Enable custom breakpoints.
+     * Sets the enabled custom breakpoints.
      */
     on(
-      request: 'enableCustomBreakpoints',
-      handler: (
-        params: EnableCustomBreakpointsParams,
-      ) => Promise<EnableCustomBreakpointsResult | Error>,
+      request: 'setCustomBreakpoints',
+      handler: (params: SetCustomBreakpointsParams) => Promise<SetCustomBreakpointsResult | Error>,
     ): () => void;
     /**
-     * Enable custom breakpoints.
+     * Sets the enabled custom breakpoints.
      */
-    enableCustomBreakpointsRequest(
-      params: EnableCustomBreakpointsParams,
-    ): Promise<EnableCustomBreakpointsResult>;
-
-    /**
-     * Disable custom breakpoints.
-     */
-    on(
-      request: 'disableCustomBreakpoints',
-      handler: (
-        params: DisableCustomBreakpointsParams,
-      ) => Promise<DisableCustomBreakpointsResult | Error>,
-    ): () => void;
-    /**
-     * Disable custom breakpoints.
-     */
-    disableCustomBreakpointsRequest(
-      params: DisableCustomBreakpointsParams,
-    ): Promise<DisableCustomBreakpointsResult>;
-
-    /**
-     * Enable XHR/fetch breakpoints.
-     */
-    on(
-      request: 'enableXHRBreakpoints',
-      handler: (params: EnableXHRBreakpointsParams) => Promise<EnableXHRBreakpointsResult | Error>,
-    ): () => void;
-    /**
-     * Enable XHR/fetch breakpoints.
-     */
-    enableXHRBreakpointsRequest(
-      params: EnableXHRBreakpointsParams,
-    ): Promise<EnableXHRBreakpointsResult>;
-
-    /**
-     * Disable XHR/fetch breakpoints.
-     */
-    on(
-      request: 'disableXHRBreakpoints',
-      handler: (
-        params: DisableXHRBreakpointsParams,
-      ) => Promise<DisableXHRBreakpointsResult | Error>,
-    ): () => void;
-    /**
-     * Disable XHR/fetch breakpoints.
-     */
-    disableXHRBreakpointsRequest(
-      params: DisableXHRBreakpointsParams,
-    ): Promise<DisableXHRBreakpointsResult>;
+    setCustomBreakpointsRequest(
+      params: SetCustomBreakpointsParams,
+    ): Promise<SetCustomBreakpointsResult>;
 
     /**
      * Pretty prints source for debugging.
@@ -1700,30 +1652,9 @@ export namespace Dap {
     disassemble(params: DisassembleParams): Promise<DisassembleResult>;
 
     /**
-     * Enable custom breakpoints.
+     * Sets the enabled custom breakpoints.
      */
-    enableCustomBreakpoints(
-      params: EnableCustomBreakpointsParams,
-    ): Promise<EnableCustomBreakpointsResult>;
-
-    /**
-     * Disable custom breakpoints.
-     */
-    disableCustomBreakpoints(
-      params: DisableCustomBreakpointsParams,
-    ): Promise<DisableCustomBreakpointsResult>;
-
-    /**
-     * Enable XHR/fetch breakpoints.
-     */
-    enableXHRBreakpoints(params: EnableXHRBreakpointsParams): Promise<EnableXHRBreakpointsResult>;
-
-    /**
-     * Disable XHR/fetch breakpoints.
-     */
-    disableXHRBreakpoints(
-      params: DisableXHRBreakpointsParams,
-    ): Promise<DisableXHRBreakpointsResult>;
+    setCustomBreakpoints(params: SetCustomBreakpointsParams): Promise<SetCustomBreakpointsResult>;
 
     /**
      * Pretty prints source for debugging.
@@ -2184,15 +2115,6 @@ export namespace Dap {
     canPersist?: boolean;
   }
 
-  export interface DisableCustomBreakpointsParams {
-    /**
-     * Id of breakpoints to enable.
-     */
-    ids: string[];
-  }
-
-  export interface DisableCustomBreakpointsResult {}
-
   export interface DisableSourcemapParams {
     /**
      * Source to be pretty printed.
@@ -2201,15 +2123,6 @@ export namespace Dap {
   }
 
   export interface DisableSourcemapResult {}
-
-  export interface DisableXHRBreakpointsParams {
-    /**
-     * Id of breakpoints to enable.
-     */
-    ids: string[];
-  }
-
-  export interface DisableXHRBreakpointsResult {}
 
   export interface DisassembleParams {
     /**
@@ -2268,24 +2181,6 @@ export namespace Dap {
   }
 
   export interface DisconnectResult {}
-
-  export interface EnableCustomBreakpointsParams {
-    /**
-     * Id of breakpoints to enable.
-     */
-    ids: string[];
-  }
-
-  export interface EnableCustomBreakpointsResult {}
-
-  export interface EnableXHRBreakpointsParams {
-    /**
-     * Id of breakpoints to enable.
-     */
-    ids: string[];
-  }
-
-  export interface EnableXHRBreakpointsResult {}
 
   export interface EvaluateParams {
     /**
@@ -3327,6 +3222,15 @@ export namespace Dap {
      */
     breakpoints: Breakpoint[];
   }
+
+  export interface SetCustomBreakpointsParams {
+    /**
+     * Id of breakpoints that should be enabled.
+     */
+    ids: string[];
+  }
+
+  export interface SetCustomBreakpointsResult {}
 
   export interface SetDataBreakpointsParams {
     /**

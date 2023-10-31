@@ -13,7 +13,7 @@ import { DebugAdapter } from './adapter/debugAdapter';
 import { Binder, IBinderDelegate } from './binder';
 import { ILogger } from './common/logging';
 import { ProxyLogger } from './common/logging/proxyLogger';
-import { getDeferred, IDeferred } from './common/promiseUtil';
+import { IDeferred, getDeferred } from './common/promiseUtil';
 import { AnyResolvingConfiguration } from './configuration';
 import Dap from './dap/api';
 import DapConnection from './dap/connection';
@@ -71,13 +71,9 @@ function collectInitialize(dap: Dap.Api) {
     return {};
   });
 
-  dap.on('enableCustomBreakpoints', async params => {
+  dap.on('setCustomBreakpoints', async params => {
+    customBreakpoints.clear();
     for (const id of params.ids) customBreakpoints.add(id);
-    return {};
-  });
-
-  dap.on('disableCustomBreakpoints', async params => {
-    for (const id of params.ids) customBreakpoints.delete(id);
     return {};
   });
 
@@ -189,7 +185,7 @@ class DapSessionManager implements IBinderDelegate {
       await adapter.setExceptionBreakpoints(init.setExceptionBreakpointsParams);
     for (const { params, ids } of init.setBreakpointsParams)
       await adapter.breakpointManager.setBreakpoints(params, ids);
-    await adapter.enableCustomBreakpoints({ ids: Array.from(init.customBreakpoints) });
+    await adapter.setCustomBreakpoints({ ids: Array.from(init.customBreakpoints) });
     await adapter.onInitialize(init.initializeParams);
     await adapter.configurationDone();
 

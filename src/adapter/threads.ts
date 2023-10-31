@@ -173,6 +173,7 @@ export class Thread implements IVariableStoreLocationProvider {
   private _sourceMapDisabler?: SourceMapDisabler;
   private _expectedPauseReason?: ExpectedPauseReason;
   private _excludedCallers: readonly Dap.ExcludedCaller[] = [];
+  private _enabledCustomBreakpoints?: ReadonlySet<CustomBreakpointId>;
   private readonly stateQueue = new StateQueue();
   private readonly _onPausedEmitter = new EventEmitter<IPausedDetails>();
   private readonly _dap: DeferredContainer<Dap.Api>;
@@ -1249,13 +1250,28 @@ export class Thread implements IVariableStoreLocationProvider {
     return `@ VM${raw.scriptId || 'XX'}:${raw.lineNumber}`;
   }
 
-  async updateCustomBreakpoint(id: CustomBreakpointId, enabled: boolean): Promise<void> {
+  async updateCustomBreakpoints(ids: CustomBreakpointId[]): Promise<void> {
     if (!this.target.supportsCustomBreakpoints()) return;
-    const breakpoint = customBreakpoints().get(id);
-    if (!breakpoint) return;
+    this._enabledCustomBreakpoints ??= new Set();
+
     // Do not fail for custom breakpoints, to account for
     // future changes in cdp vs stale breakpoints saved in the workspace.
-    await breakpoint.apply(this._cdp, enabled);
+    const newIds = new Set(ids);
+    const todo: (Promise<unknown> | undefined)[] = [];
+
+    for (const newId of newIds) {
+      if (!this._enabledCustomBreakpoints.has(newId)) {
+        todo.push(customBreakpoints().get(newId)?.apply(this._cdp, true));
+      }
+    }
+    for (const oldId of this._enabledCustomBreakpoints) {
+      if (!newIds.has(oldId)) {
+        todo.push(customBreakpoints().get(oldId)?.apply(this._cdp, false));
+      }
+    }
+
+    this._enabledCustomBreakpoints = newIds;
+    await Promise.all(todo);
   }
 
   private async _createPausedDetails(event: Cdp.Debugger.PausedEvent): Promise<IPausedDetails> {

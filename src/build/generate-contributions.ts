@@ -1213,14 +1213,9 @@ const commands: ReadonlyArray<{
     category: 'Debug',
   },
   {
-    command: Commands.AddCustomBreakpoints,
+    command: Commands.ToggleCustomBreakpoints,
     title: refString('add.eventListener.breakpoint'),
     icon: '$(add)',
-  },
-  {
-    command: Commands.RemoveCustomBreakpoints,
-    title: refString('remove.eventListener.breakpoint'),
-    icon: '$(remove)',
   },
   {
     command: Commands.RemoveAllCustomBreakpoints,
@@ -1437,7 +1432,7 @@ const menus: Menus = {
   ],
   'view/title': [
     {
-      command: Commands.AddCustomBreakpoints,
+      command: Commands.ToggleCustomBreakpoints,
       when: `view == ${CustomViews.EventListenerBreakpoints}`,
       group: 'navigation',
     },

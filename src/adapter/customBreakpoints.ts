@@ -62,14 +62,25 @@ export function customBreakpoints(): Map<string, ICustomBreakpoint> {
         };
       },
       apply: async (cdp: Cdp.Api, enabled: boolean): Promise<boolean> => {
-        if (enabled)
-          return !!(await cdp.DOMDebugger.setInstrumentationBreakpoint({
-            eventName: instrumentation,
-          }));
-        else
-          return !!(await cdp.DOMDebugger.removeInstrumentationBreakpoint({
-            eventName: instrumentation,
-          }));
+        // DOMDebugger.setInstrumentationBreakpoint was very recently deprecated,
+        // try the old method as a fallback.
+        const ok1 = enabled
+          ? await cdp.EventBreakpoints.setInstrumentationBreakpoint({ eventName: instrumentation })
+          : await cdp.EventBreakpoints.removeInstrumentationBreakpoint({
+              eventName: instrumentation,
+            });
+
+        if (ok1) {
+          return true;
+        }
+
+        const ok2 = enabled
+          ? await cdp.DOMDebugger.setInstrumentationBreakpoint({ eventName: instrumentation })
+          : await cdp.DOMDebugger.removeInstrumentationBreakpoint({
+              eventName: instrumentation,
+            });
+
+        return !!ok2;
       },
     };
   }
