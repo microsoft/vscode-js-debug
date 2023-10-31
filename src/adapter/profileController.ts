@@ -96,7 +96,7 @@ export class ProfileController implements IProfileController {
   private async saveConsoleProfile(dap: Dap.Api, evt: Cdp.Profiler.ConsoleProfileFinishedEvent) {
     let basename: string;
     if (evt.title) {
-      basename = evt.title?.replace(/[\/\\]/g, '-');
+      basename = evt.title.replace(/[\/\\]/g, '-');
       const nth = this.seenConsoleProfileNames[evt.title] || 0;
       this.seenConsoleProfileNames[evt.title] = nth + 1;
       if (nth > 0) {
