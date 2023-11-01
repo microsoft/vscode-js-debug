@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { diffChars } from 'diff';
+import { diffArrays } from 'diff';
 import { Fragment, FunctionComponent, h } from 'preact';
 import { useState } from 'preact/hooks';
 import {
@@ -217,11 +217,14 @@ const TextDiff: FunctionComponent<{ original: string; updated: string }> = ({
   updated,
 }) => (
   <span className="text-diff">
-    {diffChars(original, updated, { ignoreCase: true }).map((diff, i) => (
-      <span className={diff.added ? 'add' : diff.removed ? 'rm' : ''} key={i}>
-        {diff.value}
-      </span>
-    ))}
+    {diffArrays(original.split(/[/\\]/g), updated.split(/[/\\]/g), { ignoreCase: true }).map(
+      (diff, i) => (
+        <span className={diff.added ? 'add' : diff.removed ? 'rm' : ''} key={i}>
+          {i > 0 ? '/' : ''}
+          {diff.value.join('/')}
+        </span>
+      ),
+    )}
   </span>
 );
 
