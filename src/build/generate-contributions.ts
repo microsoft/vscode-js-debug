@@ -1046,7 +1046,7 @@ export const debuggers = [
 function buildDebuggers() {
   // eslint-disable-next-line
   const output: any[] = [];
-  const ensureEntryForType = (type: string, d: typeof debuggers[0]) => {
+  const ensureEntryForType = (type: string, d: (typeof debuggers)[0]) => {
     let entry = output.find(o => o.type === type);
     if (entry) {
       return entry;
