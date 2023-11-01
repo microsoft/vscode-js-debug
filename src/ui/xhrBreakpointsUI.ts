@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 import * as vscode from 'vscode';
 import { l10n } from 'vscode';
-import { IXHRBreakpoint } from '../adapter/XHRBreakpoints';
+import { IXHRBreakpoint } from '../adapter/customBreakpoints';
 import { Commands, CustomViews } from '../common/contributionUtils';
 import { EventEmitter } from '../common/events';
 import { DebugSessionTracker } from './debugSessionTracker';
