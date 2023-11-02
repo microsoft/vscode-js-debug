@@ -116,6 +116,9 @@ export abstract class ChromiumDebugConfigurationResolver<T extends AnyChromiumCo
     }
 
     let config = debugConfiguration as T;
+    if ('port' in config && typeof config.port === 'string') {
+      config.port = Number(config.port);
+    }
 
     if (config.request === 'launch') {
       const resolvedDataDir = await this.ensureNoLockfile(config);
