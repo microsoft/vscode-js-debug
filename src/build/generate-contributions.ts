@@ -1,7 +1,7 @@
 /*---------------------------------------------------------
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
-import { JSONSchema6 } from 'json-schema';
+import { JSONSchema6, JSONSchema6Definition } from 'json-schema';
 import type strings from '../../package.nls.json';
 import {
   allCommands,
@@ -361,6 +361,16 @@ const nodeBaseConfigurationAttributes: ConfigurationAttributes<INodeBaseConfigur
   },
 };
 
+const intOrEvaluated: JSONSchema6Definition[] = [
+  {
+    type: 'integer',
+  },
+  {
+    type: 'string',
+    pattern: '^\\${.*}$',
+  },
+];
+
 /**
  * Node attach configuration.
  */
@@ -418,9 +428,9 @@ const nodeAttachConfig: IDebugger<INodeAttachConfiguration> = {
       default: 'localhost',
     },
     port: {
-      type: 'number',
       description: refString('node.port.description'),
       default: 9229,
+      oneOf: intOrEvaluated,
     },
     websocketAddress: {
       type: 'string',
@@ -633,7 +643,7 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
       default: true,
     },
     attachSimplePort: {
-      type: 'integer',
+      oneOf: intOrEvaluated,
       description: refString('node.attachSimplePort.description'),
       default: 9229,
     },
@@ -753,7 +763,7 @@ const chromiumAttachConfigurationAttributes: ConfigurationAttributes<IChromeAtta
     default: 'localhost',
   },
   port: {
-    type: 'number',
+    oneOf: intOrEvaluated,
     description: refString('browser.attach.port.description'),
     default: 9229,
   },

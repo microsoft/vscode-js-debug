@@ -54,7 +54,7 @@ export class NodeConfigurationResolver extends BaseConfigurationResolver<AnyNode
    * @inheritdoc
    */
   public async resolveDebugConfigurationWithSubstitutedVariables(
-    folder: vscode.WorkspaceFolder | undefined,
+    _folder: vscode.WorkspaceFolder | undefined,
     rawConfig: vscode.DebugConfiguration,
   ): Promise<vscode.DebugConfiguration | undefined> {
     const config = rawConfig as AnyNodeConfiguration;
@@ -64,6 +64,13 @@ export class NodeConfigurationResolver extends BaseConfigurationResolver<AnyNode
       typeof config.processId === 'string'
     ) {
       await resolveProcessId(this.fsUtils, config);
+    }
+
+    if ('port' in config && typeof config.port === 'string') {
+      config.port = Number(config.port);
+    }
+    if ('attachSimplePort' in config && typeof config.attachSimplePort === 'string') {
+      config.attachSimplePort = Number(config.attachSimplePort);
     }
 
     // check that the cwd is valid to avoid mysterious ENOENTs (vscode#133310)
