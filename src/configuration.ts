@@ -599,7 +599,7 @@ export interface IChromiumLaunchConfiguration extends IChromiumBaseConfiguration
   runtimeArgs: ReadonlyArray<string> | null;
 
   /**
-   * Either 'canary', 'stable', 'custom' or path to the browser executable.
+   * Either 'canary', 'stable', 'beta', 'dev', 'custom' or path to the browser executable.
    * Custom means a custom wrapper, custom build or CHROME_PATH
    * environment variable.
    */
