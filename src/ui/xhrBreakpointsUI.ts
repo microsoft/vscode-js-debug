@@ -4,7 +4,7 @@
 import * as vscode from 'vscode';
 import { l10n } from 'vscode';
 import { IXHRBreakpoint } from '../adapter/customBreakpoints';
-import { Commands, CustomViews } from '../common/contributionUtils';
+import { CustomViews } from '../common/contributionUtils';
 import { EventEmitter } from '../common/events';
 import { DebugSessionTracker } from './debugSessionTracker';
 class XHRBreakpoint extends vscode.TreeItem {
@@ -24,6 +24,7 @@ class XHRBreakpoint extends vscode.TreeItem {
     return a.match.localeCompare(b.match);
   }
 }
+
 class XHRBreakpointsDataProvider implements vscode.TreeDataProvider<XHRBreakpoint> {
   private _onDidChangeTreeData = new EventEmitter<XHRBreakpoint | undefined>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
@@ -76,51 +77,52 @@ export function registerXHRBreakpointsUI(
   const view = vscode.window.createTreeView(CustomViews.XHRFetchBreakpoints, {
     treeDataProvider: provider,
   });
+
   view.onDidChangeCheckboxState(e => {
     for (const session of debugSessionTracker.getConcreteSessions())
       session.customRequest(`${e.items[0][1] ? 'enable' : 'disable'}XHRBreakpoints`, {
         ids: [e.items[0][0].id],
       });
   }, debugSessionTracker);
-  context.subscriptions.push(view);
-  context.subscriptions.push(
-    vscode.commands.registerCommand(Commands.AddXHRBreakpoints, () => {
-      const inputBox = vscode.window.createInputBox();
-      inputBox.title = 'Add XHR Breakpoint';
-      inputBox.placeholder = 'Enter a URL or a pattern to match';
-      inputBox.onDidAccept(() => {
-        const match = inputBox.value;
-        provider.addBreakpoints([new XHRBreakpoint({ match }, true)]);
-        inputBox.dispose();
-      });
-      inputBox.show();
-    }),
-  );
+  // context.subscriptions.push(view);
+  // context.subscriptions.push(
+  //   vscode.commands.registerCommand(Commands.AddXHRBreakpoints, () => {
+  //     const inputBox = vscode.window.createInputBox();
+  //     inputBox.title = 'Add XHR Breakpoint';
+  //     inputBox.placeholder = 'Enter a URL or a pattern to match';
+  //     inputBox.onDidAccept(() => {
+  //       const match = inputBox.value;
+  //       provider.addBreakpoints([new XHRBreakpoint({ match }, true)]);
+  //       inputBox.dispose();
+  //     });
+  //     inputBox.show();
+  //   }),
+  // );
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand(Commands.EditXHRBreakpoint, (treeItem: vscode.TreeItem) => {
-      const inputBox = vscode.window.createInputBox();
-      inputBox.title = 'Edit XHR Breakpoint';
-      inputBox.placeholder = 'Enter a URL or a pattern to match';
-      inputBox.value = (treeItem as XHRBreakpoint).match;
-      inputBox.onDidAccept(() => {
-        const match = inputBox.value;
-        provider.removeBreakpoints([treeItem as XHRBreakpoint]);
-        provider.addBreakpoints([new XHRBreakpoint({ match }, treeItem.checkboxState == 1)]);
-        inputBox.dispose();
-      });
-      inputBox.show();
-    }),
-  );
+  // context.subscriptions.push(
+  //   vscode.commands.registerCommand(Commands.EditXHRBreakpoint, (treeItem: vscode.TreeItem) => {
+  //     const inputBox = vscode.window.createInputBox();
+  //     inputBox.title = 'Edit XHR Breakpoint';
+  //     inputBox.placeholder = 'Enter a URL or a pattern to match';
+  //     inputBox.value = (treeItem as XHRBreakpoint).match;
+  //     inputBox.onDidAccept(() => {
+  //       const match = inputBox.value;
+  //       provider.removeBreakpoints([treeItem as XHRBreakpoint]);
+  //       provider.addBreakpoints([new XHRBreakpoint({ match }, treeItem.checkboxState == 1)]);
+  //       inputBox.dispose();
+  //     });
+  //     inputBox.show();
+  //   }),
+  // );
 
-  context.subscriptions.push(
-    vscode.commands.registerCommand(Commands.RemoveAllXHRBreakpoints, () => {
-      provider.removeBreakpoints(provider.xhrBreakpoints);
-    }),
-  );
-  context.subscriptions.push(
-    vscode.commands.registerCommand(Commands.RemoveXHRBreakpoints, (treeItem: vscode.TreeItem) => {
-      provider.removeBreakpoints([treeItem as XHRBreakpoint]);
-    }),
-  );
+  // context.subscriptions.push(
+  //   vscode.commands.registerCommand(Commands.RemoveAllXHRBreakpoints, () => {
+  //     provider.removeBreakpoints(provider.xhrBreakpoints);
+  //   }),
+  // );
+  // context.subscriptions.push(
+  //   vscode.commands.registerCommand(Commands.RemoveXHRBreakpoints, (treeItem: vscode.TreeItem) => {
+  //     provider.removeBreakpoints([treeItem as XHRBreakpoint]);
+  //   }),
+  // );
 }

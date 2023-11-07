@@ -1462,16 +1462,6 @@ const menus: Menus = {
       group: 'navigation',
     },
     {
-      command: Commands.AddXHRBreakpoints,
-      when: `view == ${CustomViews.XHRFetchBreakpoints}`,
-      group: 'navigation',
-    },
-    {
-      command: Commands.RemoveAllXHRBreakpoints,
-      when: `view == ${CustomViews.XHRFetchBreakpoints}`,
-      group: 'navigation',
-    },
-    {
       command: Commands.CallersRemoveAll,
       group: 'navigation',
       when: `view == ${CustomViews.ExcludedCallers}`,
@@ -1496,29 +1486,39 @@ const menus: Menus = {
   'view/item/context': [
     {
       command: Commands.AddXHRBreakpoints,
-      when: `view == ${CustomViews.XHRFetchBreakpoints}`,
+      when: `view == ${CustomViews.EventListenerBreakpoints} && viewItem == xhrBreakpoint`,
     },
     {
       command: Commands.EditXHRBreakpoint,
-      when: `view == ${CustomViews.XHRFetchBreakpoints}`,
+      when: `view == ${CustomViews.EventListenerBreakpoints} && viewItem == xhrBreakpoint`,
       group: 'inline',
     },
     {
       command: Commands.EditXHRBreakpoint,
-      when: `view == ${CustomViews.XHRFetchBreakpoints}`,
+      when: `view == ${CustomViews.EventListenerBreakpoints} && viewItem == xhrBreakpoint`,
     },
     {
       command: Commands.RemoveXHRBreakpoints,
-      when: `view == ${CustomViews.XHRFetchBreakpoints}`,
+      when: `view == ${CustomViews.EventListenerBreakpoints} && viewItem == xhrBreakpoint`,
       group: 'inline',
     },
     {
       command: Commands.RemoveXHRBreakpoints,
-      when: `view == ${CustomViews.XHRFetchBreakpoints}`,
+      when: `view == ${CustomViews.EventListenerBreakpoints} && viewItem == xhrBreakpoint`,
     },
     {
       command: Commands.RemoveAllXHRBreakpoints,
-      when: `view == ${CustomViews.XHRFetchBreakpoints}`,
+      when: `view == ${CustomViews.EventListenerBreakpoints} && viewItem == xhrBreakpoint`,
+    },
+    {
+      command: Commands.AddXHRBreakpoints,
+      when: `view == ${CustomViews.EventListenerBreakpoints} && viewItem == xhrCategory`,
+      group: 'inline',
+    },
+    {
+      command: Commands.RemoveAllXHRBreakpoints,
+      when: `view == ${CustomViews.EventListenerBreakpoints} && viewItem == xhrCategory`,
+      group: 'inline',
     },
     {
       command: Commands.CallersGoToCaller,
