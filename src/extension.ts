@@ -30,7 +30,6 @@ import { registerRevealPage } from './ui/revealPage';
 import { TerminalLinkHandler } from './ui/terminalLinkHandler';
 import { toggleSkippingFile } from './ui/toggleSkippingFile';
 import { VSCodeSessionManager } from './ui/vsCodeSessionManager';
-import { registerXHRBreakpointsUI } from './ui/xhrBreakpointsUI';
 
 export function activate(context: vscode.ExtensionContext) {
   if (vscode.l10n.bundle) {
@@ -94,7 +93,6 @@ export function activate(context: vscode.ExtensionContext) {
 
   registerCompanionBrowserLaunch(context);
   registerCustomBreakpointsUI(context, debugSessionTracker);
-  registerXHRBreakpointsUI(context, debugSessionTracker);
   registerDebugTerminalUI(
     context,
     services.get(DelegateLauncherFactory),

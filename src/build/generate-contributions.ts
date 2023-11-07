@@ -1594,11 +1594,6 @@ const views = {
       when: forBrowserDebugType('debugType'),
     },
     {
-      id: CustomViews.XHRFetchBreakpoints,
-      name: 'XHR/Fetch Breakpoints',
-      when: forBrowserDebugType('debugType'),
-    },
-    {
       id: CustomViews.ExcludedCallers,
       name: 'Excluded Callers',
       when: forAnyDebugType('debugType', 'jsDebugHasExcludedCallers'),
