@@ -7,6 +7,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: reuse the webassembly worker across sessions in the debug tree ([#1830](https://github.com/microsoft/vscode-js-debug/issues/1830))
 - fix: respect sourceMapResolveLocations in the web extension host ([vscode#196781](https://github.com/microsoft/vscode/issues/196781))
 - fix: path diff display in diagnostic tool ([vscode#195891](https://github.com/microsoft/vscode/issues/195891))
+- fix: allow variable substitutions for ports properties ([vscode#192014](https://github.com/microsoft/vscode/issues/192014))
 
 ## v1.84 (October 2023)
 
