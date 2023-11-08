@@ -75,16 +75,10 @@ function collectInitialize(dap: Dap.Api) {
 
   dap.on('setCustomBreakpoints', async params => {
     customBreakpoints.clear();
-    for (const id of params.ids) customBreakpoints.add(id);
-    return {};
-  });
+    xhrBreakpoints.clear();
+    if (params.ids) for (const id of params.ids) customBreakpoints.add(id);
+    if (params.xhr) for (const id of params.xhr) xhrBreakpoints.add(id);
 
-  dap.on('enableXHRBreakpoints', async params => {
-    for (const id of params.ids) xhrBreakpoints.add(id);
-    return {};
-  });
-  dap.on('disableXHRBreakpoints', async params => {
-    for (const id of params.ids) xhrBreakpoints.delete(id);
     return {};
   });
 
@@ -197,8 +191,10 @@ class DapSessionManager implements IBinderDelegate {
       await adapter.setExceptionBreakpoints(init.setExceptionBreakpointsParams);
     for (const { params, ids } of init.setBreakpointsParams)
       await adapter.breakpointManager.setBreakpoints(params, ids);
-    await adapter.setCustomBreakpoints({ ids: Array.from(init.customBreakpoints) });
-    await adapter.enableXHRBreakpoints({ ids: Array.from(init.xhrBreakpoints) });
+    await adapter.setCustomBreakpoints({
+      xhr: Array.from(init.xhrBreakpoints),
+      ids: Array.from(init.customBreakpoints),
+    });
     await adapter.onInitialize(init.initializeParams);
     await adapter.configurationDone();
 

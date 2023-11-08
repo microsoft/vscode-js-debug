@@ -1703,6 +1703,8 @@ export namespace Cdp {
       | 'IdTokenHttpNotFound'
       | 'IdTokenNoResponse'
       | 'IdTokenInvalidResponse'
+      | 'IdTokenIdpErrorResponse'
+      | 'IdTokenCrossSiteIdpErrorResponse'
       | 'IdTokenInvalidRequest'
       | 'IdTokenInvalidContentType'
       | 'ErrorIdToken'
@@ -2938,7 +2940,7 @@ export namespace Cdp {
 
     /**
      * Definition of PermissionDescriptor defined in the Permissions API:
-     * https://w3c.github.io/permissions/#dictdef-permissiondescriptor.
+     * https://w3c.github.io/permissions/#dom-permissiondescriptor.
      */
     export interface PermissionDescriptor {
       /**
@@ -23093,6 +23095,7 @@ export namespace Cdp {
       | 'unload'
       | 'usb'
       | 'vertical-scroll'
+      | 'web-printing'
       | 'web-share'
       | 'window-management'
       | 'window-placement'
@@ -28715,6 +28718,16 @@ export namespace Cdp {
       ends: integer[];
     }
 
+    export interface AttributionReportingTriggerSpec {
+      /**
+       * number instead of integer because not all uint32 can be represented by
+       * int
+       */
+      triggerData: number[];
+
+      eventReportWindows: AttributionReportingEventReportWindows;
+    }
+
     export type AttributionReportingTriggerDataMatching = 'exact' | 'modulus';
 
     export interface AttributionReportingSourceRegistration {
@@ -28725,7 +28738,7 @@ export namespace Cdp {
        */
       expiry: integer;
 
-      eventReportWindows: AttributionReportingEventReportWindows;
+      triggerSpecs: AttributionReportingTriggerSpec[];
 
       /**
        * duration in seconds

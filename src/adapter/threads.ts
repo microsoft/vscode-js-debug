@@ -174,6 +174,7 @@ export class Thread implements IVariableStoreLocationProvider {
   private _expectedPauseReason?: ExpectedPauseReason;
   private _excludedCallers: readonly Dap.ExcludedCaller[] = [];
   private _enabledCustomBreakpoints?: ReadonlySet<CustomBreakpointId>;
+  private _enabledXHRBreakpoints?: ReadonlySet<XHRBreakpointId>;
   private readonly stateQueue = new StateQueue();
   private readonly _onPausedEmitter = new EventEmitter<IPausedDetails>();
   private readonly _dap: DeferredContainer<Dap.Api>;
@@ -1274,16 +1275,37 @@ export class Thread implements IVariableStoreLocationProvider {
     await Promise.all(todo);
   }
 
-  async updateXHRBreakpoint(id: XHRBreakpointId, enabled: boolean): Promise<void> {
+  async updateXHRBreakpoints(ids: XHRBreakpointId[]): Promise<void> {
     if (!this.target.supportsXHRBreakpoints()) return;
-    if (enabled)
-      !!(await this._cdp.DOMDebugger.setXHRBreakpoint({
-        url: id,
-      }));
-    else
-      !!(await this._cdp.DOMDebugger.removeXHRBreakpoint({
-        url: id,
-      }));
+
+    this._enabledXHRBreakpoints ??= new Set();
+
+    // Do not fail for custom breakpoints, to account for
+    // future changes in cdp vs stale breakpoints saved in the workspace.
+    const newIds = new Set(ids);
+    const todo: (Promise<unknown> | undefined)[] = [];
+
+    for (const newId of newIds) {
+      if (!this._enabledXHRBreakpoints.has(newId)) {
+        todo.push(
+          this._cdp.DOMDebugger.setXHRBreakpoint({
+            url: newId,
+          }),
+        );
+      }
+    }
+    for (const oldId of this._enabledXHRBreakpoints) {
+      if (!newIds.has(oldId)) {
+        todo.push(
+          this._cdp.DOMDebugger.removeXHRBreakpoint({
+            url: oldId,
+          }),
+        );
+      }
+    }
+
+    this._enabledXHRBreakpoints = newIds;
+    await Promise.all(todo);
   }
 
   private async _createPausedDetails(event: Cdp.Debugger.PausedEvent): Promise<IPausedDetails> {

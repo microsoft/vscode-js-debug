@@ -90,33 +90,15 @@ const dapCustom: JSONSchema4 = {
           },
           description: 'Id of breakpoints that should be enabled.',
         },
-      },
-      required: ['ids'],
-    }),
-
-    ...makeRequest('enableXHRBreakpoints', 'Enable XHR/fetch breakpoints.', {
-      properties: {
-        ids: {
+        xhr: {
           type: 'array',
           items: {
             type: 'string',
           },
-          description: 'Id of breakpoints to enable.',
+          description: 'strings of XHR breakpoints that should be enabled.',
         },
       },
-      required: ['ids'],
-    }),
-    ...makeRequest('disableXHRBreakpoints', 'Disable XHR/fetch breakpoints.', {
-      properties: {
-        ids: {
-          type: 'array',
-          items: {
-            type: 'string',
-          },
-          description: 'Id of breakpoints to enable.',
-        },
-      },
-      required: ['ids'],
+      required: [],
     }),
 
     ...makeRequest('prettyPrintSource', 'Pretty prints source for debugging.', {
