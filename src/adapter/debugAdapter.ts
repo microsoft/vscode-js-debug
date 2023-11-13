@@ -497,29 +497,6 @@ export class DebugAdapter implements IDisposable {
     return {};
   }
 
-  // async enableXHRBreakpoints(
-  //   params: Dap.EnableXHRBreakpointsParams,
-  // ): Promise<Dap.EnableXHRBreakpointsResult> {
-  //   const promises: Promise<void>[] = [];
-  //   for (const id of params.ids) {
-  //     this._xhrBreakpoints.add(id);
-  //     if (this._thread) promises.push(this._thread.updateXHRBreakpoint(id, true));
-  //   }
-  //   await Promise.all(promises);
-  //   return {};
-  // }
-  // async _disableXHRBreakpoints(
-  //   params: Dap.DisableXHRBreakpointsParams,
-  // ): Promise<Dap.DisableXHRBreakpointsResult> {
-  //   const promises: Promise<void>[] = [];
-  //   for (const id of params.ids) {
-  //     this._xhrBreakpoints.delete(id);
-  //     if (this._thread) promises.push(this._thread.updateXHRBreakpoint(id, false));
-  //   }
-  //   await Promise.all(promises);
-  //   return {};
-  // }
-
   async _toggleSkipFileStatus(
     params: Dap.ToggleSkipFileStatusParams,
   ): Promise<Dap.ToggleSkipFileStatusResult | Dap.Error> {

@@ -204,8 +204,6 @@ class BreakpointsDataProvider
     const xhr = this.xhrBreakpoints.filter(b => b.checkboxState).map(b => b.id);
     for (const session of this._debugSessionTracker.getConcreteSessions()) {
       session.customRequest('setCustomBreakpoints', { xhr, ids });
-      // session.customRequest('enableXHRBreakpoints', { ids: xhr });
-      // session.customRequest('disableXHRBreakpoints', { ids: xhrDisabled });
     }
 
     this._onDidChangeTreeData.fire(undefined);
@@ -218,14 +216,7 @@ class BreakpointsDataProvider
     for (const breakpoint of breakpoints) this.xhrBreakpoints.push(breakpoint);
     for (const session of this._debugSessionTracker.getConcreteSessions())
       session.customRequest('setCustomBreakpoints', { xhr: match });
-    const category = this.categories.get(XHRBreakpointsCategory);
-    if (category) {
-      category.checkboxState =
-        this.xhrBreakpoints.length &&
-        this.xhrBreakpoints.every(b => b.checkboxState === vscode.TreeItemCheckboxState.Checked)
-          ? vscode.TreeItemCheckboxState.Checked
-          : vscode.TreeItemCheckboxState.Unchecked;
-    }
+    this.syncXHRCategoryState(true);
     this._onDidChangeTreeData.fire(undefined);
   }
 
@@ -237,12 +228,21 @@ class BreakpointsDataProvider
 
     // if all XHR breakpoints are removed, disable the category
     if (this.xhrBreakpoints.length == 0) {
-      const category = this.categories.get(XHRBreakpointsCategory);
-      if (category) {
-        category.checkboxState = undefined;
-      }
+      this.syncXHRCategoryState(false);
     }
     this._onDidChangeTreeData.fire(undefined);
+  }
+
+  syncXHRCategoryState(set: boolean = false) {
+    const category = this.categories.get(XHRBreakpointsCategory);
+    if (category) {
+      category.checkboxState = set
+        ? this.xhrBreakpoints.length &&
+          this.xhrBreakpoints.every(b => b.checkboxState === vscode.TreeItemCheckboxState.Checked)
+          ? vscode.TreeItemCheckboxState.Checked
+          : vscode.TreeItemCheckboxState.Unchecked
+        : undefined;
+    }
   }
 }
 
