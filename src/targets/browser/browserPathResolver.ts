@@ -113,6 +113,8 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
       if (await this.fsUtils.exists(net)) {
         return net;
       }
+
+      return abs;
     }
 
     let pathname: string;
