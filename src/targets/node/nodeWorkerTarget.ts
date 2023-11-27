@@ -116,6 +116,10 @@ export class NodeWorkerTarget implements ITarget {
     return false;
   }
 
+  supportsXHRBreakpoints(): boolean {
+    return false;
+  }
+
   scriptUrlToUrl(url: string): string {
     // copied from NodeTarget. Todo: should be merged into the path resolver logic
     const isPath =

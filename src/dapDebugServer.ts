@@ -32,7 +32,8 @@ const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-js-debug-'));
 interface IInitializationCollection {
   setExceptionBreakpointsParams?: Dap.SetExceptionBreakpointsParams;
   setBreakpointsParams: { params: Dap.SetBreakpointsParams; ids: number[] }[];
-  customBreakpoints: Set<string>;
+  customBreakpoints: string[];
+  xhrBreakpoints: string[];
   initializeParams: Dap.InitializeParams;
   launchParams: AnyResolvingConfiguration;
 
@@ -50,7 +51,8 @@ interface IInitializationCollection {
 function collectInitialize(dap: Dap.Api) {
   let setExceptionBreakpointsParams: Dap.SetExceptionBreakpointsParams | undefined;
   const setBreakpointsParams: { params: Dap.SetBreakpointsParams; ids: number[] }[] = [];
-  const customBreakpoints = new Set<string>();
+  let customBreakpoints: string[] = [];
+  let xhrBreakpoints: string[] = [];
   const configurationDone = getDeferred<void>();
   let lastBreakpointId = 0;
   let initializeParams: Dap.InitializeParams;
@@ -72,8 +74,8 @@ function collectInitialize(dap: Dap.Api) {
   });
 
   dap.on('setCustomBreakpoints', async params => {
-    customBreakpoints.clear();
-    for (const id of params.ids) customBreakpoints.add(id);
+    customBreakpoints = params.ids;
+    xhrBreakpoints = params.xhr;
     return {};
   });
 
@@ -115,6 +117,7 @@ function collectInitialize(dap: Dap.Api) {
         setExceptionBreakpointsParams,
         setBreakpointsParams,
         customBreakpoints,
+        xhrBreakpoints,
         launchParams: launchParams as AnyResolvingConfiguration,
         deferred,
       });
@@ -185,7 +188,10 @@ class DapSessionManager implements IBinderDelegate {
       await adapter.setExceptionBreakpoints(init.setExceptionBreakpointsParams);
     for (const { params, ids } of init.setBreakpointsParams)
       await adapter.breakpointManager.setBreakpoints(params, ids);
-    await adapter.setCustomBreakpoints({ ids: Array.from(init.customBreakpoints) });
+    await adapter.setCustomBreakpoints({
+      xhr: init.xhrBreakpoints,
+      ids: init.customBreakpoints,
+    });
     await adapter.onInitialize(init.initializeParams);
     await adapter.configurationDone();
 

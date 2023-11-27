@@ -1703,6 +1703,8 @@ export namespace Cdp {
       | 'IdTokenHttpNotFound'
       | 'IdTokenNoResponse'
       | 'IdTokenInvalidResponse'
+      | 'IdTokenIdpErrorResponse'
+      | 'IdTokenCrossSiteIdpErrorResponse'
       | 'IdTokenInvalidRequest'
       | 'IdTokenInvalidContentType'
       | 'ErrorIdToken'
@@ -2938,7 +2940,7 @@ export namespace Cdp {
 
     /**
      * Definition of PermissionDescriptor defined in the Permissions API:
-     * https://w3c.github.io/permissions/#dictdef-permissiondescriptor.
+     * https://w3c.github.io/permissions/#dom-permissiondescriptor.
      */
     export interface PermissionDescriptor {
       /**
@@ -23093,6 +23095,7 @@ export namespace Cdp {
       | 'unload'
       | 'usb'
       | 'vertical-scroll'
+      | 'web-printing'
       | 'web-share'
       | 'window-management'
       | 'window-placement'
@@ -24323,6 +24326,8 @@ export namespace Cdp {
        * that is incompatible with prerender and has caused the cancellation of the attempt.
        */
       disallowedMojoInterface?: string;
+
+      mismatchedHeaders?: PrerenderMismatchedHeaders[];
     }
 
     /**
@@ -24557,6 +24562,17 @@ export namespace Cdp {
       | 'PrefetchResponseUsed'
       | 'PrefetchSuccessfulButNotUsed'
       | 'PrefetchNotUsedProbeFailed';
+
+    /**
+     * Information of headers to be displayed when the header mismatch occurred.
+     */
+    export interface PrerenderMismatchedHeaders {
+      headerName: string;
+
+      initialValue?: string;
+
+      activationValue?: string;
+    }
   }
 
   /**
@@ -27424,6 +27440,8 @@ export namespace Cdp {
       controlledClients?: Target.TargetID[];
 
       targetId?: Target.TargetID;
+
+      routerRules?: string;
     }
 
     /**
@@ -28700,6 +28718,16 @@ export namespace Cdp {
       ends: integer[];
     }
 
+    export interface AttributionReportingTriggerSpec {
+      /**
+       * number instead of integer because not all uint32 can be represented by
+       * int
+       */
+      triggerData: number[];
+
+      eventReportWindows: AttributionReportingEventReportWindows;
+    }
+
     export type AttributionReportingTriggerDataMatching = 'exact' | 'modulus';
 
     export interface AttributionReportingSourceRegistration {
@@ -28710,7 +28738,7 @@ export namespace Cdp {
        */
       expiry: integer;
 
-      eventReportWindows: AttributionReportingEventReportWindows;
+      triggerSpecs: AttributionReportingTriggerSpec[];
 
       /**
        * duration in seconds

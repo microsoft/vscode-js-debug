@@ -236,6 +236,10 @@ export class BrowserTarget implements ITarget {
     return domDebuggerTypes.has(this.type());
   }
 
+  supportsXHRBreakpoints(): boolean {
+    return domDebuggerTypes.has(this.type());
+  }
+
   scriptUrlToUrl(url: string): string {
     return urlUtils.completeUrl(this._targetInfo.url, url) || url;
   }

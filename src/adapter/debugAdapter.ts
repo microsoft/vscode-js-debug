@@ -49,6 +49,7 @@ export class DebugAdapter implements IDisposable {
   readonly breakpointManager: BreakpointManager;
   private _disposables = new DisposableList();
   private _customBreakpoints: string[] = [];
+  private _xhrBreakpoints: string[] = [];
   private _thread: Thread | undefined;
   private _threadDeferred = getDeferred<Thread>();
   private _configurationDoneDeferred: IDeferred<void>;
@@ -102,6 +103,7 @@ export class DebugAdapter implements IDisposable {
     this.dap.on('completions', params => this._withThread(thread => thread.completions(params)));
     this.dap.on('exceptionInfo', () => this._withThread(thread => thread.exceptionInfo()));
     this.dap.on('setCustomBreakpoints', params => this.setCustomBreakpoints(params));
+    this.dap.on('toggleSkipFileStatus', params => this._toggleSkipFileStatus(params));
     this.dap.on('toggleSkipFileStatus', params => this._toggleSkipFileStatus(params));
     this.dap.on('prettyPrintSource', params => this._prettyPrintSource(params));
     this.dap.on('revealPage', () => this._withThread(thread => thread.revealPage()));
@@ -455,7 +457,7 @@ export class DebugAdapter implements IDisposable {
       profile.start(this.dap, this._thread, { type: BasicCpuProfiler.type });
     }
 
-    this._thread.updateCustomBreakpoints(this._customBreakpoints);
+    this._thread.updateCustomBreakpoints(this._xhrBreakpoints, this._customBreakpoints);
 
     this.asyncStackPolicy
       .connect(cdp)
@@ -475,12 +477,11 @@ export class DebugAdapter implements IDisposable {
 
   async setCustomBreakpoints({
     ids,
+    xhr,
   }: Dap.SetCustomBreakpointsParams): Promise<Dap.SetCustomBreakpointsResult> {
+    await this._thread?.updateCustomBreakpoints(xhr, ids);
     this._customBreakpoints = ids;
-    if (this._thread) {
-      await this._thread.updateCustomBreakpoints(ids);
-    }
-
+    this._xhrBreakpoints = xhr;
     return {};
   }
 

@@ -642,7 +642,7 @@ describe('breakpoints', () => {
       await p.evaluate(`document.querySelector('div').innerHTML = 'foo';`);
 
       p.log('Pausing on innerHTML');
-      await p.dap.setCustomBreakpoints({ ids: ['instrumentation:Element.setInnerHTML'] });
+      await p.dap.setCustomBreakpoints({ ids: ['instrumentation:Element.setInnerHTML'], xhr: [] });
       p.evaluate(`document.querySelector('div').innerHTML = 'bar';`);
       const event = p.log(await p.dap.once('stopped'));
       p.log(await p.dap.continue({ threadId: event.threadId }));

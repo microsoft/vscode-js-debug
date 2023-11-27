@@ -7,7 +7,7 @@ import { dataUriToBuffer } from 'data-uri-to-buffer';
 import { stub } from 'sinon';
 import { RawIndexMap, RawSourceMap } from 'source-map';
 import { IResourceProvider } from '../../adapter/resourceProvider';
-import { stubbedDapApi, StubDapApi } from '../../dap/stubbedApi';
+import { StubDapApi, stubbedDapApi } from '../../dap/stubbedApi';
 import { Logger } from '../logging/logger';
 import { RawIndexMapUnresolved, RootSourceMapFactory } from './sourceMapFactory';
 
