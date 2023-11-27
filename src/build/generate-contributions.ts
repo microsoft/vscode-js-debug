@@ -4,8 +4,6 @@
 import { JSONSchema6, JSONSchema6Definition } from 'json-schema';
 import type strings from '../../package.nls.json';
 import {
-  allCommands,
-  allDebugTypes,
   AutoAttachMode,
   Commands,
   Configuration,
@@ -13,19 +11,14 @@ import {
   CustomViews,
   DebugType,
   IConfigurationTypes,
+  allCommands,
+  allDebugTypes,
   preferredDebugTypes,
 } from '../common/contributionUtils';
 import { knownToolToken } from '../common/knownTools';
 import { mapValues, sortKeys, walkObject } from '../common/objUtils';
 import {
   AnyLaunchConfiguration,
-  baseDefaults,
-  breakpointLanguages,
-  chromeAttachConfigDefaults,
-  chromeLaunchConfigDefaults,
-  edgeAttachConfigDefaults,
-  edgeLaunchConfigDefaults,
-  extensionHostConfigDefaults,
   IBaseConfiguration,
   IChromeAttachConfiguration,
   IChromeLaunchConfiguration,
@@ -39,10 +32,17 @@ import {
   INodeLaunchConfiguration,
   ITerminalLaunchConfiguration,
   KillBehavior,
-  nodeAttachConfigDefaults,
-  nodeLaunchConfigDefaults,
   OutputSource,
   ResolvingConfiguration,
+  baseDefaults,
+  breakpointLanguages,
+  chromeAttachConfigDefaults,
+  chromeLaunchConfigDefaults,
+  edgeAttachConfigDefaults,
+  edgeLaunchConfigDefaults,
+  extensionHostConfigDefaults,
+  nodeAttachConfigDefaults,
+  nodeLaunchConfigDefaults,
   terminalBaseDefaults,
 } from '../configuration';
 
@@ -1056,7 +1056,7 @@ export const debuggers = [
 function buildDebuggers() {
   // eslint-disable-next-line
   const output: any[] = [];
-  const ensureEntryForType = (type: string, d: (typeof debuggers)[0]) => {
+  const ensureEntryForType = (type: string, d: typeof debuggers[0]) => {
     let entry = output.find(o => o.type === type);
     if (entry) {
       return entry;
@@ -1241,11 +1241,6 @@ const commands: ReadonlyArray<{
     command: Commands.RemoveXHRBreakpoints,
     title: refString('remove.xhr.breakpoint'),
     icon: '$(remove)',
-  },
-  {
-    command: Commands.RemoveAllXHRBreakpoints,
-    title: refString('remove.xhr.breakpoint.all'),
-    icon: '$(close-all)',
   },
   {
     command: Commands.EditXHRBreakpoint,
@@ -1517,16 +1512,7 @@ const menus: Menus = {
       when: `view == ${CustomViews.EventListenerBreakpoints} && viewItem == xhrBreakpoint`,
     },
     {
-      command: Commands.RemoveAllXHRBreakpoints,
-      when: `view == ${CustomViews.EventListenerBreakpoints} && viewItem == xhrBreakpoint`,
-    },
-    {
       command: Commands.AddXHRBreakpoints,
-      when: `view == ${CustomViews.EventListenerBreakpoints} && viewItem == xhrCategory`,
-      group: 'inline',
-    },
-    {
-      command: Commands.RemoveAllXHRBreakpoints,
       when: `view == ${CustomViews.EventListenerBreakpoints} && viewItem == xhrCategory`,
       group: 'inline',
     },

@@ -5,13 +5,9 @@
 import * as l10n from '@vscode/l10n';
 import Cdp from '../cdp/api';
 
-export type XHRBreakpointId = string;
-
 export interface IXHRBreakpoint {
   match: string;
 }
-
-export type CustomBreakpointId = string;
 
 export interface ICustomBreakpoint {
   id: string;

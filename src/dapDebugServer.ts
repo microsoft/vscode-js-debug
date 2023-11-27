@@ -32,8 +32,8 @@ const storagePath = fs.mkdtempSync(path.join(os.tmpdir(), 'vscode-js-debug-'));
 interface IInitializationCollection {
   setExceptionBreakpointsParams?: Dap.SetExceptionBreakpointsParams;
   setBreakpointsParams: { params: Dap.SetBreakpointsParams; ids: number[] }[];
-  customBreakpoints: Set<string>;
-  xhrBreakpoints: Set<string>;
+  customBreakpoints: string[];
+  xhrBreakpoints: string[];
   initializeParams: Dap.InitializeParams;
   launchParams: AnyResolvingConfiguration;
 
@@ -51,8 +51,8 @@ interface IInitializationCollection {
 function collectInitialize(dap: Dap.Api) {
   let setExceptionBreakpointsParams: Dap.SetExceptionBreakpointsParams | undefined;
   const setBreakpointsParams: { params: Dap.SetBreakpointsParams; ids: number[] }[] = [];
-  const customBreakpoints = new Set<string>();
-  const xhrBreakpoints = new Set<string>();
+  let customBreakpoints: string[] = [];
+  let xhrBreakpoints: string[] = [];
   const configurationDone = getDeferred<void>();
   let lastBreakpointId = 0;
   let initializeParams: Dap.InitializeParams;
@@ -74,11 +74,8 @@ function collectInitialize(dap: Dap.Api) {
   });
 
   dap.on('setCustomBreakpoints', async params => {
-    customBreakpoints.clear();
-    xhrBreakpoints.clear();
-    if (params.ids) for (const id of params.ids) customBreakpoints.add(id);
-    if (params.xhr) for (const id of params.xhr) xhrBreakpoints.add(id);
-
+    customBreakpoints = params.ids;
+    xhrBreakpoints = params.xhr;
     return {};
   });
 
@@ -192,8 +189,8 @@ class DapSessionManager implements IBinderDelegate {
     for (const { params, ids } of init.setBreakpointsParams)
       await adapter.breakpointManager.setBreakpoints(params, ids);
     await adapter.setCustomBreakpoints({
-      xhr: Array.from(init.xhrBreakpoints),
-      ids: Array.from(init.customBreakpoints),
+      xhr: init.xhrBreakpoints,
+      ids: init.customBreakpoints,
     });
     await adapter.onInitialize(init.initializeParams);
     await adapter.configurationDone();

@@ -29,7 +29,7 @@ import { BreakpointManager, EntryBreakpointMode } from './breakpoints';
 import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
 import { ICompletions } from './completions';
 import { ExceptionMessage, IConsole, QueryObjectsMessage } from './console';
-import { CustomBreakpointId, XHRBreakpointId, customBreakpoints } from './customBreakpoints';
+import { customBreakpoints } from './customBreakpoints';
 import { IEvaluator } from './evaluator';
 import { IExceptionPauseService } from './exceptionPauseService';
 import * as objectPreview from './objectPreview';
@@ -156,6 +156,11 @@ class StateQueue {
   }
 }
 
+const enum CustomBreakpointPrefix {
+  XHR = 'x',
+  Event = 'e',
+}
+
 export class Thread implements IVariableStoreLocationProvider {
   private static _lastThreadId = 0;
   public readonly id: number;
@@ -173,8 +178,7 @@ export class Thread implements IVariableStoreLocationProvider {
   private _sourceMapDisabler?: SourceMapDisabler;
   private _expectedPauseReason?: ExpectedPauseReason;
   private _excludedCallers: readonly Dap.ExcludedCaller[] = [];
-  private _enabledCustomBreakpoints?: ReadonlySet<CustomBreakpointId>;
-  private _enabledXHRBreakpoints?: ReadonlySet<XHRBreakpointId>;
+  private _enabledCustomBreakpoints?: ReadonlySet<string>;
   private readonly stateQueue = new StateQueue();
   private readonly _onPausedEmitter = new EventEmitter<IPausedDetails>();
   private readonly _dap: DeferredContainer<Dap.Api>;
@@ -1251,60 +1255,43 @@ export class Thread implements IVariableStoreLocationProvider {
     return `@ VM${raw.scriptId || 'XX'}:${raw.lineNumber}`;
   }
 
-  async updateCustomBreakpoints(ids: CustomBreakpointId[]): Promise<void> {
+  async updateCustomBreakpoints(xhr: string[], events: string[]): Promise<void> {
     if (!this.target.supportsCustomBreakpoints()) return;
     this._enabledCustomBreakpoints ??= new Set();
 
     // Do not fail for custom breakpoints, to account for
     // future changes in cdp vs stale breakpoints saved in the workspace.
-    const newIds = new Set(ids);
+    const newIds = new Set<string>();
+    for (const x of xhr) {
+      newIds.add(CustomBreakpointPrefix.XHR + x);
+    }
+    for (const e of events) {
+      newIds.add(CustomBreakpointPrefix.Event + e);
+    }
     const todo: (Promise<unknown> | undefined)[] = [];
 
     for (const newId of newIds) {
       if (!this._enabledCustomBreakpoints.has(newId)) {
-        todo.push(customBreakpoints().get(newId)?.apply(this._cdp, true));
+        const id = newId.slice(CustomBreakpointPrefix.XHR.length);
+        todo.push(
+          newId.startsWith(CustomBreakpointPrefix.XHR)
+            ? this._cdp.DOMDebugger.setXHRBreakpoint({ url: id })
+            : customBreakpoints().get(id)?.apply(this._cdp, true),
+        );
       }
     }
     for (const oldId of this._enabledCustomBreakpoints) {
       if (!newIds.has(oldId)) {
-        todo.push(customBreakpoints().get(oldId)?.apply(this._cdp, false));
+        const id = oldId.slice(CustomBreakpointPrefix.XHR.length);
+        todo.push(
+          oldId.startsWith(CustomBreakpointPrefix.XHR)
+            ? this._cdp.DOMDebugger.removeXHRBreakpoint({ url: id })
+            : customBreakpoints().get(id)?.apply(this._cdp, false),
+        );
       }
     }
 
     this._enabledCustomBreakpoints = newIds;
-    await Promise.all(todo);
-  }
-
-  async updateXHRBreakpoints(ids: XHRBreakpointId[]): Promise<void> {
-    if (!this.target.supportsXHRBreakpoints()) return;
-
-    this._enabledXHRBreakpoints ??= new Set();
-
-    // Do not fail for custom breakpoints, to account for
-    // future changes in cdp vs stale breakpoints saved in the workspace.
-    const newIds = new Set(ids);
-    const todo: (Promise<unknown> | undefined)[] = [];
-
-    for (const newId of newIds) {
-      if (!this._enabledXHRBreakpoints.has(newId)) {
-        todo.push(
-          this._cdp.DOMDebugger.setXHRBreakpoint({
-            url: newId,
-          }),
-        );
-      }
-    }
-    for (const oldId of this._enabledXHRBreakpoints) {
-      if (!newIds.has(oldId)) {
-        todo.push(
-          this._cdp.DOMDebugger.removeXHRBreakpoint({
-            url: oldId,
-          }),
-        );
-      }
-    }
-
-    this._enabledXHRBreakpoints = newIds;
     await Promise.all(todo);
   }
 

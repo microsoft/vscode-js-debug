@@ -3227,12 +3227,12 @@ export namespace Dap {
     /**
      * Id of breakpoints that should be enabled.
      */
-    ids?: string[];
+    ids: string[];
 
     /**
      * strings of XHR breakpoints that should be enabled.
      */
-    xhr?: string[];
+    xhr: string[];
   }
 
   export interface SetCustomBreakpointsResult {}

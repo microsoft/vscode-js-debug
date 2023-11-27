@@ -457,8 +457,7 @@ export class DebugAdapter implements IDisposable {
       profile.start(this.dap, this._thread, { type: BasicCpuProfiler.type });
     }
 
-    this._thread.updateCustomBreakpoints(this._customBreakpoints);
-    this._thread.updateXHRBreakpoints(this._xhrBreakpoints);
+    this._thread.updateCustomBreakpoints(this._xhrBreakpoints, this._customBreakpoints);
 
     this.asyncStackPolicy
       .connect(cdp)
@@ -480,20 +479,9 @@ export class DebugAdapter implements IDisposable {
     ids,
     xhr,
   }: Dap.SetCustomBreakpointsParams): Promise<Dap.SetCustomBreakpointsResult> {
-    if (ids) {
-      this._customBreakpoints = ids;
-      if (this._thread) {
-        await this._thread.updateCustomBreakpoints(ids);
-      }
-    }
-
-    if (xhr) {
-      this._xhrBreakpoints = xhr;
-      if (this._thread) {
-        await this._thread.updateXHRBreakpoints(xhr);
-      }
-    }
-
+    await this._thread?.updateCustomBreakpoints(xhr, ids);
+    this._customBreakpoints = ids;
+    this._xhrBreakpoints = xhr;
     return {};
   }
 
