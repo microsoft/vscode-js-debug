@@ -6,11 +6,7 @@
   "editor.insertSpaces": true,
   "editor.tabSize": 2,
   "editor.detectIndentation": false,
-  "eslint.validate": [
-    "javascript",
-    "javascriptreact",
-    "typescript"
-  ],
+  "eslint.validate": ["javascript", "javascriptreact", "typescript"],
   "search.exclude": {
     "**/testdata": true,
     "**/.dynamic-testWorkspace/defaultSearchExcluded": true
@@ -31,8 +27,13 @@
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   },
   "editor.codeActionsOnSave": {
-    "source.organizeImports": true
+    "source.organizeImports": "explicit"
   },
   "editor.formatOnSave": true,
-  "typescript.tsserver.experimental.enableProjectDiagnostics": true
+  "typescript.tsserver.experimental.enableProjectDiagnostics": true,
+  "[go]": {
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "explicit"
+    }
+  }
 }

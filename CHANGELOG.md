@@ -4,6 +4,12 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
+Nothing, yet
+
+## v1.85 (November 2023)
+
+- feat: support XHR breakpoints ([#1856](https://github.com/microsoft/vscode-js-debug/issues/1856))
+- feat: improve instrumentation breakpoints view ([#1853](https://github.com/microsoft/vscode-js-debug/issues/1853))
 - fix: reuse the webassembly worker across sessions in the debug tree ([#1830](https://github.com/microsoft/vscode-js-debug/issues/1830))
 - fix: respect sourceMapResolveLocations in the web extension host ([vscode#196781](https://github.com/microsoft/vscode/issues/196781))
 - fix: path diff display in diagnostic tool ([vscode#195891](https://github.com/microsoft/vscode/issues/195891))
