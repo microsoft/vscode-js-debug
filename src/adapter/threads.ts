@@ -952,7 +952,7 @@ export class Thread implements IVariableStoreLocationProvider {
         if (expectedPauseReason.direction === StepDirection.In) {
           // no-op
         } else {
-          return this._cdp.Debugger.stepOut({});
+          return this._cdp.Debugger.resume({});
         }
       } else {
         // If none of this above, it's pure instrumentation.
