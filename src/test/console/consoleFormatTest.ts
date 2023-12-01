@@ -491,21 +491,19 @@ describe('console format', () => {
       ],
     });
     const handle = await r.runScript('test.js', { outputCapture: OutputSource.Stdio });
-    let todo = Promise.resolve();
+    let output = '';
     r.rootDap().on('output', o => {
-      todo = todo.then(() => handle.log(JSON.stringify(o)));
+      output += o.output;
     });
 
     // use debugger statements to sync chunks of output
     handle.dap.on('stopped', ev => {
-      todo = todo.then(() => {
-        handle.dap.continue({ threadId: ev.threadId! });
-      });
+      handle.dap.continue({ threadId: ev.threadId! });
     });
 
     await handle.load();
     await r.rootDap().once('terminated');
-    await todo;
+    r.log(JSON.stringify(output));
     handle.assertLog();
   });
 });
