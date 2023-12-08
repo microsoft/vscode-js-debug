@@ -82,8 +82,9 @@ async function fetchJsonWithLocalhostFallback<T>(
     return provider.fetchJson<T>(url.toString(), cancellationToken, { host: 'localhost' });
   }
 
-  const urlA = url.toString();
   url.hostname = '127.0.0.1';
+  const urlA = url.toString();
+  url.hostname = '[::1]';
   const urlB = url.toString();
 
   const cts = new CancellationTokenSource(cancellationToken);

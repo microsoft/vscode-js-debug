@@ -15,7 +15,7 @@ import { FS, FsPromises, IInitializeParams, StoragePath } from '../../ioc-extras
 import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
 import { BrowserArgs } from './browserArgs';
 import { BrowserLauncher } from './browserLauncher';
-import { defaultArgs, ILaunchResult } from './launcher';
+import { ILaunchResult, defaultArgs } from './launcher';
 import { RemoteBrowserHelper } from './remoteBrowserHelper';
 
 @injectable()
@@ -63,7 +63,9 @@ export class RemoteBrowserLauncher extends BrowserLauncher<AnyChromiumLaunchConf
     });
 
     return {
-      cdp: new Connection(transport, this.logger, telemetryReporter),
+      canReconnect: false,
+      createConnection: () =>
+        Promise.resolve(new Connection(transport, this.logger, telemetryReporter)),
       process: {
         onExit: new EventEmitter<number>().event,
         onError: new EventEmitter<Error>().event,

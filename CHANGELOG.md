@@ -4,7 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
-Nothing, yet
+- fix: automatically reconnect when debugging browsers in port mode ([vscode#174033](https://github.com/microsoft/vscode/issues/174033))
 
 ## v1.85 (November 2023)
 
