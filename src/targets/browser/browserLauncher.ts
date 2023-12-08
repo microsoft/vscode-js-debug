@@ -210,8 +210,6 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
       this.fireTerminatedEvent();
     };
 
-    let n = 0;
-
     const launchInner = async (): Promise<void> => {
       if (launchCts.token.isCancellationRequested) {
         return;
@@ -219,14 +217,6 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
 
       try {
         const cdp = await launched.createConnection(launchCts.token);
-
-        n++;
-        if (n === 1) {
-          setTimeout(() => {
-            console.log('killing cdp connection');
-            cdp.close();
-          }, 5000);
-        }
 
         const target = await this.launchCdp(params, launched, cdp, {
           ...ctx,
