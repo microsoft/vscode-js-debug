@@ -49,7 +49,8 @@ interface ILaunchOptions {
 }
 
 export interface ILaunchResult {
-  cdp: CdpConnection;
+  canReconnect: boolean;
+  createConnection(cancellationToken: CancellationToken): Promise<CdpConnection>;
   process: IBrowserProcess;
 }
 
@@ -136,7 +137,7 @@ export async function launch(
     browserProcess.stdout?.resume();
   }
 
-  let exitListener = () => {
+  const exitListener = () => {
     if (cleanUp === 'wholeBrowser') {
       browserProcess.kill();
     }
@@ -158,27 +159,25 @@ export async function launch(
       ]).finally(() => listener.dispose());
     }
 
-    const transport = await browserProcess.transport(
-      {
-        connection: actualConnection,
-        inspectUri: inspectUri || undefined,
-        url: url || undefined,
-      },
-      cancellationToken,
-    );
+    return {
+      process: browserProcess,
+      // can only reconnect to debug ports, not pipe connections:
+      canReconnect: typeof actualConnection === 'number',
+      createConnection: async cancellationToken => {
+        const transport = await browserProcess.transport(
+          {
+            connection: actualConnection!,
+            inspectUri: inspectUri || undefined,
+            url: url || undefined,
+          },
+          cancellationToken,
+        );
 
-    const cdp = new CdpConnection(transport, logger, telemetryReporter);
-    exitListener = async () => {
-      if (cleanUp === 'wholeBrowser') {
-        await cdp.rootSession().Browser.close({});
-        browserProcess.kill();
-      } else {
-        cdp.close();
-      }
+        return new CdpConnection(transport, logger, telemetryReporter);
+      },
     };
-    return { cdp: cdp, process: browserProcess };
   } catch (e) {
-    exitListener();
+    browserProcess.kill();
     throw e;
   }
 }
