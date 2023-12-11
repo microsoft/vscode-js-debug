@@ -30,6 +30,7 @@ import { IScriptSkipper } from './scriptSkipper/scriptSkipper';
 import {
   ContentGetter,
   ISourceMapLocationProvider,
+  ISourceScript,
   ISourceWithMap,
   IUiLocation,
   LineColumn,
@@ -139,7 +140,7 @@ export class SourceContainer {
   /**
    * Mapping of CDP script IDs to Script objects.
    */
-  private readonly scriptsById: Map<Cdp.Runtime.ScriptId, Script> = new Map();
+  private readonly scriptsById: Map<Cdp.Runtime.ScriptId, Script | ISourceScript> = new Map();
 
   private onSourceMappedSteppingChangeEmitter = new EventEmitter<boolean>();
   private onScriptEmitter = new EventEmitter<Script>();
@@ -280,16 +281,27 @@ export class SourceContainer {
   /**
    * Adds a new script to the source container.
    */
-  public addScriptById(script: Script) {
+  public addScriptById(script: Script | ISourceScript) {
     this.scriptsById.set(script.scriptId, script);
-    this.onScriptEmitter.fire(script);
+    if ('source' in script) {
+      this.onScriptEmitter.fire(script);
+    }
+  }
+
+  /**
+   * Gets a source script by its script ID. This includes internals scripts
+   * that are not parsed to full Sources.
+   */
+  public getSourceScriptById(scriptId: string): ISourceScript | undefined {
+    return this.scriptsById.get(scriptId);
   }
 
   /**
    * Gets a script by its script ID.
    */
-  public getScriptById(scriptId: string) {
-    return this.scriptsById.get(scriptId);
+  public getScriptById(scriptId: string): Script | undefined {
+    const s = this.scriptsById.get(scriptId);
+    return s && 'source' in s ? s : undefined;
   }
 
   /**

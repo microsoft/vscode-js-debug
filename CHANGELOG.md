@@ -4,6 +4,8 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
+- fix: show errors from conditional breakpoints ([vscode#195062](https://github.com/microsoft/vscode/issues/195062))
+- fix: pausing on exceptions caused by internal scripts ([vscode#195062](https://github.com/microsoft/vscode/issues/195062))
 - fix: automatically reconnect when debugging browsers in port mode ([vscode#174033](https://github.com/microsoft/vscode/issues/174033))
 
 ## v1.85 (November 2023)

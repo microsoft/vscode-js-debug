@@ -596,8 +596,10 @@ describe('breakpoints', () => {
         source: { path: p.workspacePath('web/condition.js') },
         breakpoints: [{ line: 2, column: 0, condition: '(() => { throw "oh no" })()' }],
       });
+      const output = p.dap.once('output');
       p.load();
       await waitForPause(p);
+      await r.log(await output); // an error message
       p.assertLog();
     });
 

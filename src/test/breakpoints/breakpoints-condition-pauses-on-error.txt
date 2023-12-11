@@ -5,4 +5,4 @@
     threadId : <number>
 }
 <anonymous> @ ${workspaceFolder}/web/condition.js:2:3
-stderr> oh no
+stderr> Breakpoint condition error: oh no
