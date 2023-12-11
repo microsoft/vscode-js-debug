@@ -5,3 +5,14 @@
     threadId : <number>
 }
 <anonymous> @ ${workspaceFolder}/web/condition.js:5:1
+{
+    category : stderr
+    column : 64
+    line : 1
+    output : Breakpoint condition error: oh no
+    source : {
+        name : <eval>/VM<xx>
+        path : <eval>/VM<xx>
+        sourceReference : <number>
+    }
+}

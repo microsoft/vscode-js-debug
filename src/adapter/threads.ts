@@ -1517,10 +1517,13 @@ export class Thread implements IVariableStoreLocationProvider {
   }
 
   private _onScriptParsed(event: Cdp.Debugger.ScriptParsedEvent) {
-    if (event.url.endsWith(sourceUtils.SourceConstants.InternalExtension)) {
-      // The customer doesn't care about the internal cdp files, so skip this event
-      return;
-    }
+    const sourceScript: Script | ISourceScript = {
+      url: event.url,
+      hasSourceURL: !!event.hasSourceURL,
+      embedderName: event.embedderName,
+      scriptId: event.scriptId,
+      executionContextId: event.executionContextId,
+    };
 
     // normalize paths paths that old Electron versions can add (#1099)
     if (urlUtils.isAbsolute(event.url)) {
@@ -1528,6 +1531,12 @@ export class Thread implements IVariableStoreLocationProvider {
     }
 
     if (this._sourceContainer.getScriptById(event.scriptId)) {
+      return;
+    }
+
+    if (event.url.endsWith(sourceUtils.SourceConstants.InternalExtension)) {
+      this._sourceContainer.addScriptById(sourceScript);
+      // The customer doesn't care about the internal cdp files, so skip this event
       return;
     }
 
@@ -1619,14 +1628,7 @@ export class Thread implements IVariableStoreLocationProvider {
       return source;
     };
 
-    const script: Script = {
-      url: event.url,
-      hasSourceURL: !!event.hasSourceURL,
-      embedderName: event.embedderName,
-      scriptId: event.scriptId,
-      executionContextId: event.executionContextId,
-      source: createSource(),
-    };
+    const script: Script = { ...sourceScript, source: createSource() };
     script.source.then(s => (script.resolvedSource = s));
     executionContext.scripts.push(script);
 

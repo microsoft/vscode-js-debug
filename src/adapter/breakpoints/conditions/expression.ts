@@ -20,9 +20,7 @@ export class ExpressionCondition implements IBreakpointCondition {
     breakOnError: boolean,
     evaluator: IEvaluator,
   ) {
-    if (breakOnError) {
-      breakCondition = wrapBreakCondition(breakCondition);
-    }
+    breakCondition = wrapBreakCondition(breakCondition, breakOnError);
 
     const err = breakCondition && getSyntaxErrorIn(breakCondition);
     if (err) {
@@ -61,5 +59,5 @@ export class ExpressionCondition implements IBreakpointCondition {
   }
 }
 
-export const wrapBreakCondition = (condition: string) =>
-  `(()=>{try{return ${condition};}catch(e){console.error(e);return true}})()`;
+export const wrapBreakCondition = (condition: string, breakOnError: boolean) =>
+  `(()=>{try{return ${condition};}catch(e){console.error(\`Breakpoint condition error: \${e.message||e}\`);return ${!!breakOnError}}})()`;
