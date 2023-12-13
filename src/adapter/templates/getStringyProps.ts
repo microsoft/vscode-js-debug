@@ -54,6 +54,9 @@ export const getStringyProps = templateFunction(function (
     if (typeof value === 'object' && value) {
       let str: string | undefined;
       for (const sym of runtimeArgs[0]) {
+        if (typeof value[sym] !== 'function') {
+          continue;
+        }
         try {
           str = value[sym]();
           break;
@@ -98,6 +101,9 @@ export const getToStringIfCustom = templateFunction(function (
       Symbol.for(DescriptionSymbols.Generic),
       Symbol.for(DescriptionSymbols.Node),
     ]) {
+      if (typeof (this as Record<symbol, () => string>)[sym] !== 'function') {
+        continue;
+      }
       try {
         str = (this as Record<symbol, () => string>)[sym]();
         break;
