@@ -70,6 +70,7 @@
     "linkifyjs": "^3.0.5",
     "micromatch": "^4.0.5",
     "path-browserify": "^1.0.1",
+    "picomatch": "connor4312/picomatch#2fbe90b12eafa7dde816ff8c16be9e77271b0e0b",
     "preact": "^10.6.6",
     "reflect-metadata": "^0.1.13",
     "signale": "^1.4.0",

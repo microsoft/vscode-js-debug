@@ -817,7 +817,7 @@ export const baseDefaults: IBaseConfiguration = {
   pauseForSourceMap: true,
   resolveSourceMapLocations: null,
   rootPath: '${workspaceFolder}',
-  outFiles: ['${workspaceFolder}/**/*.js', '!**/node_modules/**'],
+  outFiles: ['${workspaceFolder}/**/*.(m|c|)js', '!**/node_modules/**'],
   sourceMapPathOverrides: defaultSourceMapPathOverrides('${workspaceFolder}'),
   enableContentValidation: true,
   cascadeTerminateToConfigurations: [],

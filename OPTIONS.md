@@ -18,7 +18,7 @@
 <h5>Default value:</h4><pre><code>null</pre></code><h4>nodeVersionHint</h4><p>Allows you to explicitly specify the Node version that&#39;s running, which can be used to disable or enable certain behaviors in cases where the automatic version detection does not work.</p>
 <h5>Default value:</h4><pre><code>undefined</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
 <h5>Default value:</h4><pre><code>[
-  "${workspaceFolder}/**/*.js",
+  "${workspaceFolder}/**/*.(m|c|)js",
   "!**/node_modules/**"
 ]</pre></code><h4>outputCapture</h4><p>From where to capture output messages: the default debug API if set to <code>console</code>, or stdout/stderr streams if set to <code>std</code>.</p>
 <h5>Default value:</h4><pre><code>"console"</pre></code><h4>pauseForSourceMap</h4><p>Whether to wait for source maps to load for each incoming script. This has a performance overhead, and might be safely disabled when running off of disk, so long as <code>rootPath</code> is not disabled.</p>
@@ -72,7 +72,7 @@
 <h5>Default value:</h4><pre><code>null</pre></code><h4>nodeVersionHint</h4><p>Allows you to explicitly specify the Node version that&#39;s running, which can be used to disable or enable certain behaviors in cases where the automatic version detection does not work.</p>
 <h5>Default value:</h4><pre><code>undefined</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
 <h5>Default value:</h4><pre><code>[
-  "${workspaceFolder}/**/*.js",
+  "${workspaceFolder}/**/*.(m|c|)js",
   "!**/node_modules/**"
 ]</pre></code><h4>outputCapture</h4><p>From where to capture output messages: the default debug API if set to <code>console</code>, or stdout/stderr streams if set to <code>std</code>.</p>
 <h5>Default value:</h4><pre><code>"console"</pre></code><h4>pauseForSourceMap</h4><p>Whether to wait for source maps to load for each incoming script. This has a performance overhead, and might be safely disabled when running off of disk, so long as <code>rootPath</code> is not disabled.</p>
@@ -125,7 +125,7 @@
 <h5>Default value:</h4><pre><code>null</pre></code><h4>nodeVersionHint</h4><p>Allows you to explicitly specify the Node version that&#39;s running, which can be used to disable or enable certain behaviors in cases where the automatic version detection does not work.</p>
 <h5>Default value:</h4><pre><code>undefined</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
 <h5>Default value:</h4><pre><code>[
-  "${workspaceFolder}/**/*.js",
+  "${workspaceFolder}/**/*.(m|c|)js",
   "!**/node_modules/**"
 ]</pre></code><h4>outputCapture</h4><p>From where to capture output messages: the default debug API if set to <code>console</code>, or stdout/stderr streams if set to <code>std</code>.</p>
 <h5>Default value:</h4><pre><code>"console"</pre></code><h4>pauseForSourceMap</h4><p>Whether to wait for source maps to load for each incoming script. This has a performance overhead, and might be safely disabled when running off of disk, so long as <code>rootPath</code> is not disabled.</p>
@@ -226,7 +226,7 @@
 <h5>Default value:</h4><pre><code>true</pre></code><h4>inspectUri</h4><p>Format to use to rewrite the inspectUri: It&#39;s a template string that interpolates keys in <code>{curlyBraces}</code>. Available keys are:<br> - <code>url.*</code> is the parsed address of the running application. For instance, <code>{url.port}</code>, <code>{url.hostname}</code><br> - <code>port</code> is the debug port that Chrome is listening on.<br> - <code>browserInspectUri</code> is the inspector URI on the launched browser<br> - <code>browserInspectUriPath</code> is the path part of the inspector URI on the launched browser (e.g.: &quot;/devtools/browser/e9ec0098-306e-472a-8133-5e42488929c2&quot;).<br> - <code>wsProtocol</code> is the hinted websocket protocol. This is set to <code>wss</code> if the original URL is <code>https</code>, or <code>ws</code> otherwise.<br></p>
 <h5>Default value:</h4><pre><code>undefined</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
 <h5>Default value:</h4><pre><code>[
-  "${workspaceFolder}/**/*.js",
+  "${workspaceFolder}/**/*.(m|c|)js",
   "!**/node_modules/**"
 ]</pre></code><h4>outputCapture</h4><p>From where to capture output messages: the default debug API if set to <code>console</code>, or stdout/stderr streams if set to <code>std</code>.</p>
 <h5>Default value:</h4><pre><code>"console"</pre></code><h4>pathMapping</h4><p>A mapping of URLs/paths to local folders, to resolve scripts in the Browser to scripts on disk</p>
@@ -276,7 +276,7 @@
 <h5>Default value:</h4><pre><code>true</pre></code><h4>inspectUri</h4><p>Format to use to rewrite the inspectUri: It&#39;s a template string that interpolates keys in <code>{curlyBraces}</code>. Available keys are:<br> - <code>url.*</code> is the parsed address of the running application. For instance, <code>{url.port}</code>, <code>{url.hostname}</code><br> - <code>port</code> is the debug port that Chrome is listening on.<br> - <code>browserInspectUri</code> is the inspector URI on the launched browser<br> - <code>browserInspectUriPath</code> is the path part of the inspector URI on the launched browser (e.g.: &quot;/devtools/browser/e9ec0098-306e-472a-8133-5e42488929c2&quot;).<br> - <code>wsProtocol</code> is the hinted websocket protocol. This is set to <code>wss</code> if the original URL is <code>https</code>, or <code>ws</code> otherwise.<br></p>
 <h5>Default value:</h4><pre><code>undefined</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
 <h5>Default value:</h4><pre><code>[
-  "${workspaceFolder}/**/*.js",
+  "${workspaceFolder}/**/*.(m|c|)js",
   "!**/node_modules/**"
 ]</pre></code><h4>outputCapture</h4><p>From where to capture output messages: the default debug API if set to <code>console</code>, or stdout/stderr streams if set to <code>std</code>.</p>
 <h5>Default value:</h4><pre><code>"console"</pre></code><h4>pathMapping</h4><p>A mapping of URLs/paths to local folders, to resolve scripts in the Browser to scripts on disk</p>
@@ -330,7 +330,7 @@
 <h5>Default value:</h4><pre><code>true</pre></code><h4>inspectUri</h4><p>Format to use to rewrite the inspectUri: It&#39;s a template string that interpolates keys in <code>{curlyBraces}</code>. Available keys are:<br> - <code>url.*</code> is the parsed address of the running application. For instance, <code>{url.port}</code>, <code>{url.hostname}</code><br> - <code>port</code> is the debug port that Chrome is listening on.<br> - <code>browserInspectUri</code> is the inspector URI on the launched browser<br> - <code>browserInspectUriPath</code> is the path part of the inspector URI on the launched browser (e.g.: &quot;/devtools/browser/e9ec0098-306e-472a-8133-5e42488929c2&quot;).<br> - <code>wsProtocol</code> is the hinted websocket protocol. This is set to <code>wss</code> if the original URL is <code>https</code>, or <code>ws</code> otherwise.<br></p>
 <h5>Default value:</h4><pre><code>undefined</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
 <h5>Default value:</h4><pre><code>[
-  "${workspaceFolder}/**/*.js",
+  "${workspaceFolder}/**/*.(m|c|)js",
   "!**/node_modules/**"
 ]</pre></code><h4>outputCapture</h4><p>From where to capture output messages: the default debug API if set to <code>console</code>, or stdout/stderr streams if set to <code>std</code>.</p>
 <h5>Default value:</h4><pre><code>"console"</pre></code><h4>pathMapping</h4><p>A mapping of URLs/paths to local folders, to resolve scripts in the Browser to scripts on disk</p>
@@ -381,7 +381,7 @@
 <h5>Default value:</h4><pre><code>true</pre></code><h4>inspectUri</h4><p>Format to use to rewrite the inspectUri: It&#39;s a template string that interpolates keys in <code>{curlyBraces}</code>. Available keys are:<br> - <code>url.*</code> is the parsed address of the running application. For instance, <code>{url.port}</code>, <code>{url.hostname}</code><br> - <code>port</code> is the debug port that Chrome is listening on.<br> - <code>browserInspectUri</code> is the inspector URI on the launched browser<br> - <code>browserInspectUriPath</code> is the path part of the inspector URI on the launched browser (e.g.: &quot;/devtools/browser/e9ec0098-306e-472a-8133-5e42488929c2&quot;).<br> - <code>wsProtocol</code> is the hinted websocket protocol. This is set to <code>wss</code> if the original URL is <code>https</code>, or <code>ws</code> otherwise.<br></p>
 <h5>Default value:</h4><pre><code>undefined</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
 <h5>Default value:</h4><pre><code>[
-  "${workspaceFolder}/**/*.js",
+  "${workspaceFolder}/**/*.(m|c|)js",
   "!**/node_modules/**"
 ]</pre></code><h4>outputCapture</h4><p>From where to capture output messages: the default debug API if set to <code>console</code>, or stdout/stderr streams if set to <code>std</code>.</p>
 <h5>Default value:</h4><pre><code>"console"</pre></code><h4>pathMapping</h4><p>A mapping of URLs/paths to local folders, to resolve scripts in the Browser to scripts on disk</p>

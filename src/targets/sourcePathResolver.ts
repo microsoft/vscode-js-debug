@@ -54,7 +54,7 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
     const prefix = location.startsWith('!') ? '!' : '';
 
     // replace extensions with anything, to allow both .js and .map
-    let suffix = location.slice(prefix.length).replace(/\.[a-z0-9]+$/, '.*');
+    let suffix = location.slice(prefix.length).replace(/\..+$/, '.*');
     if (!isAbsolute(suffix)) {
       return forceForwardSlashes(location);
     }
