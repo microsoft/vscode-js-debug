@@ -30,7 +30,7 @@ export class BasicCpuProfiler implements IProfiler<IBasicProfileParams> {
   public static readonly extension = '.cpuprofile';
   public static readonly label = l10n.t('CPU Profile');
   public static readonly description = l10n.t(
-    'Generates a .cpuprofile file you can open in the Chrome devtools',
+    'Generates a .cpuprofile file you can open in VS Code or the Edge/Chrome devtools',
   );
   public static readonly editable = true;
 

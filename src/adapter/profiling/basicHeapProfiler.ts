@@ -25,7 +25,7 @@ export class BasicHeapProfiler implements IProfiler<{}> {
   public static readonly extension = '.heapprofile';
   public static readonly label = l10n.t('Heap Profile');
   public static readonly description = l10n.t(
-    'Generates a .heapprofile file you can open in the Chrome devtools',
+    'Generates a .heapprofile file you can open in VS Code or the Edge/Chrome devtools',
   );
   public static readonly editable = true;
 
