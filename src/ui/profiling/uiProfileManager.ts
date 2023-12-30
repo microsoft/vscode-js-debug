@@ -328,7 +328,7 @@ export class UiProfileManager implements IDisposable {
     }
 
     const chosen = await this.pickWithLastDefault(
-      l10n.t('Type of profile:'),
+      l10n.t('Type of profile'),
       ProfilerFactory.ctors.filter(ctor => ctor.canApplyTo(params)),
       this.lastChosenType,
     );
@@ -354,7 +354,7 @@ export class UiProfileManager implements IDisposable {
     }
 
     const chosen = await this.pickWithLastDefault(
-      l10n.t('How long to run the profile:'),
+      l10n.t('How long to run the profile'),
       this.terminationConditions,
       this.lastChosenTermination,
     );
