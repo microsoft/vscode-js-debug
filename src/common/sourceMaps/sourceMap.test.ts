@@ -1,12 +1,12 @@
 /*---------------------------------------------------------
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
+import { AnyMap, EncodedSourceMap, SectionedSourceMap } from '@jridgewell/trace-mapping';
 import { expect } from 'chai';
-import { RawIndexMap, RawSourceMap, SourceMapConsumer } from 'source-map';
 import { SourceMap } from './sourceMap';
 
 const sampleSource = 'console.log(123)';
-const basicSourceMap: RawSourceMap = {
+const basicSourceMap: EncodedSourceMap = {
   version: 3,
   sources: ['one.js'],
   sourcesContent: [sampleSource],
@@ -14,7 +14,7 @@ const basicSourceMap: RawSourceMap = {
   file: '',
   mappings: '',
 };
-const indexedSourceMap: RawIndexMap = {
+const indexedSourceMap: SectionedSourceMap = {
   version: 3,
   sections: [
     {
@@ -27,7 +27,7 @@ const indexedSourceMap: RawIndexMap = {
 describe('SourceMap', () => {
   it('loads basic source-maps', async () => {
     const map = new SourceMap(
-      await new SourceMapConsumer(basicSourceMap),
+      new AnyMap(basicSourceMap),
       {
         sourceMapUrl: JSON.stringify(basicSourceMap),
         compiledPath: 'one.js',
@@ -42,7 +42,7 @@ describe('SourceMap', () => {
 
   it('loads indexed source-maps', async () => {
     const map = new SourceMap(
-      await new SourceMapConsumer(indexedSourceMap),
+      new AnyMap(indexedSourceMap),
       {
         sourceMapUrl: JSON.stringify(indexedSourceMap),
         compiledPath: 'one.js',

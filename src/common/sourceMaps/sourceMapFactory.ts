@@ -2,15 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { AnyMap, EncodedSourceMap, SectionedSourceMap } from '@jridgewell/trace-mapping';
 import { inject, injectable } from 'inversify';
-import {
-  Position,
-  RawIndexMap,
-  RawSection,
-  RawSourceMap,
-  SourceMapConsumer,
-  StartOfSourceMap,
-} from 'source-map';
 import { IResourceProvider } from '../../adapter/resourceProvider';
 import Dap from '../../dap/api';
 import { IRootDapApi } from '../../dap/connection';
@@ -73,18 +66,22 @@ export class SourceMapFactory implements ISourceMapFactory {
 }
 
 interface RawExternalSection {
-  offset: Position;
+  offset: { line: number; column: number };
   url: string;
 }
 
 /**
- * The typings for source-map don't support this, but the spec does.
+ * Type of the source map before external maps.
  * @see https://sourcemaps.info/spec.html#h.535es3xeprgt
  */
-export interface RawIndexMapUnresolved extends StartOfSourceMap {
-  version: number;
-  sections: (RawExternalSection | RawSection)[];
-}
+export type UnresolvedSourceMap = Omit<SectionedSourceMap, 'sections'> & {
+  sections: (SectionedSourceMap['sections'][0] | RawExternalSection)[];
+};
+
+/**
+ * Raw source map, once external sections are resolved.
+ */
+export type AnySourceMap = EncodedSourceMap | SectionedSourceMap;
 
 /**
  * Base implementation of the ISourceMapFactory.
@@ -118,22 +115,26 @@ export class RootSourceMapFactory implements IRootSourceMapFactory {
     // to `/foo.ts` as if the source map refers to the root of the filesystem.
     // This would prevent us from being able to see that it's actually in
     // a parent directory, so we make the sourceRoot empty but show it here.
-    const actualRoot = basic.sourceRoot;
-    basic.sourceRoot = undefined;
+    let actualRoot: string | undefined;
+    if ('sourceRoot' in basic) {
+      actualRoot = basic.sourceRoot;
+      basic.sourceRoot = undefined;
+    }
 
     let hasNames = false;
 
     // The source map library (also) "helpfully" normalizes source URLs, so
     // preserve them in the same way. Then, rename the sources to prevent any
     // of their names colliding (e.g. "webpack://./index.js" and "webpack://../index.js")
-    let actualSources: string[] = [];
+    let actualSources: (string | null)[] = [];
     if ('sections' in basic) {
       actualSources = [];
       let i = 0;
       for (const section of basic.sections) {
-        actualSources.push(...section.map.sources);
-        section.map.sources = section.map.sources.map(() => `source${i++}.js`);
-        hasNames ||= !!section.map.names?.length;
+        const map = section.map as EncodedSourceMap;
+        actualSources.push(...map.sources);
+        map.sources = map.sources.map(() => `source${i++}.js`);
+        hasNames ||= !!map.names?.length;
       }
     } else if ('sources' in basic && Array.isArray(basic.sources)) {
       actualSources = basic.sources;
@@ -141,20 +142,14 @@ export class RootSourceMapFactory implements IRootSourceMapFactory {
       hasNames = !!basic.names?.length;
     }
 
-    return new SourceMap(
-      await new SourceMapConsumer(basic),
-      metadata,
-      actualRoot ?? '',
-      actualSources,
-      hasNames,
-    );
+    return new SourceMap(new AnyMap(basic), metadata, actualRoot ?? '', actualSources, hasNames);
   }
 
   private async parseSourceMap(
     resourceProvider: IResourceProvider,
     sourceMapUrl: string,
-  ): Promise<RawSourceMap | RawIndexMap> {
-    let sm: RawSourceMap | RawIndexMapUnresolved | undefined;
+  ): Promise<AnySourceMap> {
+    let sm: UnresolvedSourceMap | undefined;
     try {
       sm = await this.parseSourceMapDirect(resourceProvider, sourceMapUrl);
     } catch (e) {
@@ -169,7 +164,7 @@ export class RootSourceMapFactory implements IRootSourceMapFactory {
         sm.sections.map((s, i) =>
           'url' in s
             ? this.parseSourceMap(resourceProvider, s.url)
-                .then(map => ({ offset: s.offset, map: map as RawSourceMap }))
+                .then(map => ({ offset: s.offset, map }))
                 .catch(e => {
                   this.logger.warn(LogTag.SourceMapParsing, `Error parsing nested map ${i}: ${e}`);
                   return undefined;
@@ -181,7 +176,7 @@ export class RootSourceMapFactory implements IRootSourceMapFactory {
       sm.sections = resolved.filter(truthy);
     }
 
-    return sm as RawSourceMap | RawIndexMap;
+    return sm as AnySourceMap;
   }
 
   private async parsePathMappedSourceMap(resourceProvider: IResourceProvider, url: string) {
@@ -233,7 +228,7 @@ export class RootSourceMapFactory implements IRootSourceMapFactory {
   private async parseSourceMapDirect(
     resourceProvider: IResourceProvider,
     sourceMapUrl: string,
-  ): Promise<RawSourceMap | RawIndexMapUnresolved> {
+  ): Promise<UnresolvedSourceMap> {
     let absolutePath = fileUrlToAbsolutePath(sourceMapUrl);
     if (absolutePath) {
       absolutePath = this.pathResolve.rebaseRemoteToLocal(absolutePath);
@@ -269,13 +264,6 @@ export class CachingSourceMapFactory extends RootSourceMapFactory {
   >(s => s.toLowerCase());
 
   /**
-   * Sourcemaps who have been overwritten by newly loaded maps. We can't
-   * destroy these since sessions might still references them. Once finalizers
-   * are available this can be removed.
-   */
-  private overwrittenSourceMaps: Promise<SourceMap>[] = [];
-
-  /**
    * @inheritdoc
    */
   public load(
@@ -292,7 +280,6 @@ export class CachingSourceMapFactory extends RootSourceMapFactory {
     // If asked to reload, do so if either map is missing a mtime, or they aren't the same
     if (existing.reloadIfNoMtime) {
       if (!(curKey && prevKey && curKey === prevKey)) {
-        this.overwrittenSourceMaps.push(existing.prom);
         return this.loadNewSourceMap(resourceProvider, metadata);
       } else {
         existing.reloadIfNoMtime = false;
@@ -302,7 +289,6 @@ export class CachingSourceMapFactory extends RootSourceMapFactory {
 
     // Otherwise, only reload if times are present and the map definitely changed.
     if (prevKey && curKey && curKey !== prevKey) {
-      this.overwrittenSourceMaps.push(existing.prom);
       return this.loadNewSourceMap(resourceProvider, metadata);
     }
 
@@ -319,20 +305,6 @@ export class CachingSourceMapFactory extends RootSourceMapFactory {
    * @inheritdoc
    */
   public dispose() {
-    for (const map of this.knownMaps.values()) {
-      map.prom.then(
-        m => m.destroy(),
-        () => undefined,
-      );
-    }
-
-    for (const map of this.overwrittenSourceMaps) {
-      map.then(
-        m => m.destroy(),
-        () => undefined,
-      );
-    }
-
     this.knownMaps.clear();
   }
 

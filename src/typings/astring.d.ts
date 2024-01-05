@@ -4,7 +4,6 @@
 
 declare module 'astring' {
   import { Node } from 'estree';
-  import { Mapping, SourceMapGenerator } from 'source-map';
   import { Writable } from 'stream';
 
   /**
@@ -36,7 +35,14 @@ declare module 'astring' {
     /**
      * If present, source mappings will be written to the generator.
      */
-    sourceMap?: SourceMapGenerator;
+    sourceMap?: {
+      file?: string;
+      addMapping(mapping: {
+        original: { line: number; column: number };
+        generated: { line: number; column: number };
+        source: string | undefined;
+      });
+    };
     /**
      * String to use for indentation, defaults to "  ".
      */

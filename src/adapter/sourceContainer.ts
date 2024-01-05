@@ -2,9 +2,9 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { GREATEST_LOWER_BOUND, LEAST_UPPER_BOUND } from '@jridgewell/trace-mapping';
 import { inject, injectable } from 'inversify';
 import { xxHash32 } from 'js-xxhash';
-import { NullableMappedPosition, SourceMapConsumer } from 'source-map';
 import Cdp from '../cdp/api';
 import { MapUsingProjection } from '../common/datastructure/mapUsingProjection';
 import { EventEmitter } from '../common/events';
@@ -580,13 +580,13 @@ export class SourceContainer {
         new Base1Position(uiLocation.lineNumber, uiLocation.columnNumber),
       );
     }
-    const value = this.sourceMapFactory.guardSourceMapFn<NullableMappedPosition>(
+    const value = this.sourceMapFactory.guardSourceMapFn(
       sourceMap,
       () => {
         const glb = sourceMap.originalPositionFor({
           line: uiLocation.lineNumber,
           column: uiLocation.columnNumber - 1,
-          bias: SourceMapConsumer.GREATEST_LOWER_BOUND,
+          bias: GREATEST_LOWER_BOUND,
         });
 
         if (glb.line !== null) {
@@ -596,7 +596,7 @@ export class SourceContainer {
         return sourceMap.originalPositionFor({
           line: uiLocation.lineNumber,
           column: uiLocation.columnNumber - 1,
-          bias: SourceMapConsumer.LEAST_UPPER_BOUND,
+          bias: LEAST_UPPER_BOUND,
         });
       },
       getFallbackPosition,
@@ -832,9 +832,7 @@ export class SourceContainer {
       source.toDap().then(dap => this._dap.loadedSource({ reason: 'removed', source: dap }));
     }
 
-    if (isSourceWithSourceMap(source)) {
-      source.sourceMap.value.settledValue?.destroy();
-    } else if (isSourceWithWasm(source)) {
+    if (isSourceWithWasm(source)) {
       source.sourceMap.value.promise.then(w => w?.dispose());
     }
 
@@ -846,6 +844,10 @@ export class SourceContainer {
   async _addSourceMapSources(compiled: ISourceWithMap, map: SourceMap) {
     const todo: Promise<unknown>[] = [];
     for (const url of map.sources) {
+      if (url === null) {
+        continue;
+      }
+
       const absolutePath = await this.sourcePathResolver.urlToAbsolutePath({ url, map });
       const resolvedUrl = absolutePath
         ? utils.absolutePathToFileUrl(absolutePath)
@@ -881,7 +883,7 @@ export class SourceContainer {
       const fileUrl = absolutePath && utils.absolutePathToFileUrl(absolutePath);
       const smContent = this.sourceMapFactory.guardSourceMapFn(
         map,
-        () => map.sourceContentFor(url, true),
+        () => map.sourceContentFor(url),
         () => null,
       );
 
