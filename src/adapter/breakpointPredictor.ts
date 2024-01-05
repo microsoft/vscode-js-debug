@@ -113,6 +113,10 @@ export abstract class BreakpointSearch {
           const discovered: DiscoveredMetadata[] = [];
           const map = await this.sourceMapFactory.load(metadata);
           for (const url of map.sources) {
+            if (url === null) {
+              continue;
+            }
+
             const resolvedPath = this.sourcePathResolver
               ? await this.sourcePathResolver.urlToAbsolutePath({ url, map })
               : urlUtils.fileUrlToAbsolutePath(url);

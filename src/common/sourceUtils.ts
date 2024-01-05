@@ -2,7 +2,9 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { Node as AcornNode, parseExpressionAt, Parser } from 'acorn';
+import * as genMap from '@jridgewell/gen-mapping';
+import { AnyMap, GREATEST_LOWER_BOUND } from '@jridgewell/trace-mapping';
+import { Node as AcornNode, Parser, parseExpressionAt } from 'acorn';
 import { generate } from 'astring';
 import {
   Expression,
@@ -13,16 +15,15 @@ import {
   Program,
   Statement,
 } from 'estree';
-import { NullablePosition, Position, SourceMapConsumer, SourceMapGenerator } from 'source-map';
 import { LineColumn } from '../adapter/breakpoints/breakpointBase';
 import {
+  VisitorOption,
   acornOptions,
   parseProgram,
   replace,
   traverse,
-  VisitorOption,
 } from './sourceCodeManipulations';
-import { SourceMap } from './sourceMaps/sourceMap';
+import { NullableGeneratedPosition, SourceMap } from './sourceMaps/sourceMap';
 
 export const enum SourceConstants {
   /**
@@ -46,30 +47,28 @@ export async function prettyPrintAsSourceMap(
   sourceMapUrl: string,
 ): Promise<SourceMap | undefined> {
   const ast = Parser.parse(minified, { locations: true, ecmaVersion: 'latest' });
-  const sourceMap = new SourceMapGenerator({ file: fileName });
+  const sourceMap = new genMap.GenMapping({ file: fileName });
 
   // provide a fake SourceMapGenerator since we want to actually add the
   // *reversed* mappings -- we're creating a fake 'original' source.
   const beautified = generate(ast, {
     sourceMap: {
-      setSourceContent: (file, content) => sourceMap.setSourceContent(file, content),
-      applySourceMap: (smc, file, path) => sourceMap.applySourceMap(smc, file, path),
-      toJSON: () => sourceMap.toJSON(),
-      toString: () => sourceMap.toString(),
       addMapping: mapping =>
-        sourceMap.addMapping({
-          generated: mapping.original,
-          original: { column: mapping.generated.column, line: mapping.generated.line },
-          source: fileName,
-          name: mapping.name,
-        }),
+        genMap.addSegment(
+          sourceMap,
+          mapping.original.line - 1,
+          mapping.original.column,
+          fileName,
+          mapping.generated.line - 1,
+          mapping.generated.column,
+        ),
     },
   });
 
-  sourceMap.setSourceContent(fileName, beautified);
+  genMap.setSourceContent(sourceMap, fileName, beautified);
 
   return new SourceMap(
-    await SourceMapConsumer.fromSourceMap(sourceMap),
+    new AnyMap(genMap.toDecodedMap(sourceMap)),
     {
       sourceMapUrl,
       compiledPath,
@@ -267,21 +266,21 @@ interface INotNullRange {
 export function getOptimalCompiledPosition(
   sourceUrl: string,
   uiLocation: LineColumn,
-  map: SourceMapConsumer,
-): NullablePosition {
+  map: SourceMap,
+): NullableGeneratedPosition {
   const prevLocation = map.generatedPositionFor({
     source: sourceUrl,
     line: uiLocation.lineNumber,
     column: uiLocation.columnNumber - 1, // source map columns are 0-indexed
-    bias: SourceMapConsumer.GREATEST_LOWER_BOUND,
+    bias: GREATEST_LOWER_BOUND,
   });
 
-  const getVariance = (position: NullablePosition) => {
+  const getVariance = (position: NullableGeneratedPosition) => {
     if (position.line === null || position.column === null) {
       return 10e10;
     }
 
-    const original = map.originalPositionFor(position as Position);
+    const original = map.originalPositionFor(position);
     return original.line !== null ? Math.abs(uiLocation.lineNumber - original.line) : 10e10;
   };
 

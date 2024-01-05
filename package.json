@@ -50,6 +50,8 @@
   },
   "dependencies": {
     "@c4312/chromehash": "^0.3.0",
+    "@jridgewell/gen-mapping": "^0.3.3",
+    "@jridgewell/trace-mapping": "^0.3.20",
     "@vscode/js-debug-browsers": "^1.1.0",
     "@vscode/l10n": "^0.0.16",
     "@vscode/win32-app-container-tokens": "^0.1.0",
@@ -74,7 +76,6 @@
     "preact": "^10.6.6",
     "reflect-metadata": "^0.1.13",
     "signale": "^1.4.0",
-    "source-map": "0.8.0-beta.0",
     "source-map-support": "^0.5.21",
     "split2": "^4.2.0",
     "to-absolute-glob": "^2.0.2",

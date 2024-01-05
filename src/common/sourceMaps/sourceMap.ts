@@ -3,15 +3,18 @@
  *--------------------------------------------------------*/
 
 import {
-  BasicSourceMapConsumer,
-  IndexedSourceMapConsumer,
-  MappedPosition,
-  MappingItem,
-  NullableMappedPosition,
-  NullablePosition,
-  Position,
-  SourceMapConsumer,
-} from 'source-map';
+  allGeneratedPositionsFor,
+  eachMapping,
+  EachMapping,
+  GeneratedMapping,
+  generatedPositionFor,
+  InvalidGeneratedMapping,
+  InvalidOriginalMapping,
+  OriginalMapping,
+  originalPositionFor,
+  TraceMap,
+} from '@jridgewell/trace-mapping';
+import { SourceNeedle } from '@jridgewell/trace-mapping/dist/types/types';
 import { fixDriveLetterAndSlashes } from '../pathUtils';
 import { completeUrlEscapingRoot, isDataUri } from '../urlUtils';
 
@@ -21,10 +24,13 @@ export interface ISourceMapMetadata {
   compiledPath: string;
 }
 
+export type NullableMappedPosition = InvalidOriginalMapping | OriginalMapping;
+export type NullableGeneratedPosition = InvalidGeneratedMapping | GeneratedMapping;
+
 /**
  * Wrapper for a parsed sourcemap.
  */
-export class SourceMap implements SourceMapConsumer {
+export class SourceMap {
   private static idCounter = 0;
 
   /**
@@ -39,10 +45,10 @@ export class SourceMap implements SourceMapConsumer {
   public readonly id = SourceMap.idCounter++;
 
   constructor(
-    private readonly original: BasicSourceMapConsumer | IndexedSourceMapConsumer,
+    private readonly original: TraceMap,
     public readonly metadata: Readonly<ISourceMapMetadata>,
     private readonly actualRoot: string,
-    public readonly actualSources: ReadonlyArray<string>,
+    public readonly actualSources: ReadonlyArray<string | null>,
     public readonly hasNames: boolean,
   ) {
     if (actualSources.length !== original.sources.length) {
@@ -50,8 +56,12 @@ export class SourceMap implements SourceMapConsumer {
     }
 
     for (let i = 0; i < actualSources.length; i++) {
-      this.sourceActualToOriginal.set(actualSources[i], original.sources[i]);
-      this.sourceOriginalToActual.set(original.sources[i], actualSources[i]);
+      const a = actualSources[i];
+      const o = original.sources[i];
+      if (a !== null && o !== null) {
+        this.sourceActualToOriginal.set(a, o);
+        this.sourceOriginalToActual.set(o, a);
+      }
     }
   }
 
@@ -91,17 +101,12 @@ export class SourceMap implements SourceMapConsumer {
   /**
    * @inheritdoc
    */
-  computeColumnSpans(): void {
-    this.original.computeColumnSpans();
-  }
-
-  /**
-   * @inheritdoc
-   */
-  originalPositionFor(
-    generatedPosition: Position & { bias?: number | undefined },
-  ): NullableMappedPosition {
-    const mapped = this.original.originalPositionFor(generatedPosition);
+  originalPositionFor(generatedPosition: {
+    line: number;
+    column: number;
+    bias?: 1 | -1;
+  }): NullableMappedPosition {
+    const mapped = originalPositionFor(this.original, generatedPosition);
     if (mapped.source) {
       mapped.source = this.sourceOriginalToActual.get(mapped.source) ?? mapped.source;
     }
@@ -112,10 +117,13 @@ export class SourceMap implements SourceMapConsumer {
   /**
    * @inheritdoc
    */
-  generatedPositionFor(
-    originalPosition: MappedPosition & { bias?: number | undefined },
-  ): NullablePosition {
-    return this.original.generatedPositionFor({
+  generatedPositionFor(originalPosition: {
+    line: number;
+    column: number;
+    bias?: 1 | -1;
+    source: string;
+  }): NullableGeneratedPosition {
+    return generatedPositionFor(this.original, {
       ...originalPosition,
       source: this.sourceActualToOriginal.get(originalPosition.source) ?? originalPosition.source,
     });
@@ -124,8 +132,8 @@ export class SourceMap implements SourceMapConsumer {
   /**
    * @inheritdoc
    */
-  allGeneratedPositionsFor(originalPosition: MappedPosition): NullablePosition[] {
-    return this.original.allGeneratedPositionsFor({
+  allGeneratedPositionsFor(originalPosition: SourceNeedle): GeneratedMapping[] {
+    return allGeneratedPositionsFor(this.original, {
       ...originalPosition,
       source: this.sourceActualToOriginal.get(originalPosition.source) ?? originalPosition.source,
     });
@@ -134,35 +142,13 @@ export class SourceMap implements SourceMapConsumer {
   /**
    * @inheritdoc
    */
-  hasContentsOfAllSources(): boolean {
-    return this.original.hasContentsOfAllSources();
+  sourceContentFor(source: string): string | null {
+    source = this.sourceActualToOriginal.get(source) ?? source;
+    const index = this.original.sources.indexOf(source);
+    return index === -1 ? null : this.original.sourcesContent?.[index] ?? null;
   }
 
-  /**
-   * @inheritdoc
-   */
-  sourceContentFor(source: string, returnNullOnMissing?: boolean | undefined): string | null {
-    return this.original.sourceContentFor(
-      this.sourceActualToOriginal.get(source) ?? source,
-      returnNullOnMissing,
-    );
-  }
-
-  /**
-   * @inheritdoc
-   */
-  eachMapping<ThisArg = void>(
-    callback: (this: ThisArg, mapping: MappingItem) => void,
-    context?: ThisArg,
-    order?: number | undefined,
-  ): void {
-    return this.original.eachMapping(callback, context, order);
-  }
-
-  /**
-   * @inheritdoc
-   */
-  destroy(): void {
-    this.original.destroy();
+  eachMapping(callback: (mapping: EachMapping) => void): void {
+    eachMapping(this.original, callback);
   }
 }
