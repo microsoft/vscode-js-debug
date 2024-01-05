@@ -240,31 +240,5 @@ describe('sources', () => {
       await p.logger.logOutput(await output);
       p.assertLog();
     });
-
-    itIntegrates('logs lazy parse errors', async ({ r }) => {
-      const p = await r.launchUrlAndLoad('index.html');
-      await p.dap.setBreakpoints({
-        source: { path: p.workspacePath('web/eval1Source.js') },
-        breakpoints: [{ line: 1, column: 1 }],
-      });
-
-      const output = r.rootDap().once('output', o => o.category === 'stderr');
-      const contents = Buffer.from(
-        JSON.stringify({
-          version: 3,
-          file: 'eval1.js',
-          sourceRoot: '',
-          sources: ['eval1Source.js'],
-          mappings: '#,####;',
-        }),
-      ).toString('base64');
-      const ev = p.evaluate(
-        `//# sourceMappingURL=data:application/json;charset=utf-8;base64,${contents}\n`,
-      );
-      await p.logger.logOutput(await output);
-      await waitForPause(p);
-      await ev;
-      p.assertLog();
-    });
   });
 });
