@@ -4,6 +4,11 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
+Nothing, yet
+
+## v1.86 (January 2024)
+
+- fix: respect resolveSourceMapLocations with remoteRoot ([#1921](https://github.com/microsoft/vscode-js-debug/issues/1921))
 - fix: match mjs and cjs in outFiles by default ([vscode#200665](https://github.com/microsoft/vscode/issues/200665))
 - fix: show errors from conditional breakpoints ([vscode#195062](https://github.com/microsoft/vscode/issues/195062))
 - fix: pausing on exceptions caused by internal scripts ([vscode#195062](https://github.com/microsoft/vscode/issues/195062))
