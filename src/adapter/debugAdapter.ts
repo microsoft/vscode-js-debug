@@ -252,7 +252,7 @@ export class DebugAdapter implements IDisposable {
       supportTerminateDebuggee: true,
       supportsDelayedStackTraceLoading: true,
       supportsLoadedSourcesRequest: true,
-      supportsLogPoints: true,
+      supportsLogPoints: false,
       supportsTerminateThreadsRequest: false,
       supportsSetExpression: true,
       supportsTerminateRequest: false,
