@@ -1,0 +1,11 @@
+{
+    allThreadsStopped : false
+    description : Paused on debugger statement
+    reason : pause
+    threadId : <number>
+}
+<anonymous> @ ${fixturesDir}/test.js:1:74
+exports.foo @ ${fixturesDir}/nested/a.js:1:23 <hidden: Skipped by skipFiles>
+<anonymous> @ ${fixturesDir}/test.js:1:62
+exports.foo @ ${fixturesDir}/@nested/a.js:1:23
+<anonymous> @ ${fixturesDir}/test.js:1:27

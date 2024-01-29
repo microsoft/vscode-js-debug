@@ -22,6 +22,7 @@ import { ITarget } from '../../targets/targets';
 import { ISourceScript, ISourceWithMap, Source, SourceFromMap, isSourceWithMap } from '../source';
 import { SourceContainer } from '../sourceContainer';
 import { getSourceSuffix } from '../templates';
+import { IScriptSkipper } from './scriptSkipper';
 import { simpleGlobsToRe } from './simpleGlobToRe';
 
 interface ISharedSkipToggleEvent {
@@ -61,7 +62,7 @@ function preprocessAuthoredGlobs(
 }
 
 @injectable()
-export class ScriptSkipper {
+export class ScriptSkipper implements IScriptSkipper {
   private static sharedSkipsEmitter = new EventEmitter<ISharedSkipToggleEvent>();
 
   /**
@@ -71,7 +72,9 @@ export class ScriptSkipper {
   private _authoredGlobs: readonly string[];
 
   /** Memoized computer for non-<node_internals> skipfiles */
-  private _regexForAuthored = memoizeLast(simpleGlobsToRe);
+  private _regexForAuthored = memoizeLast((re: readonly string[]) =>
+    simpleGlobsToRe(re, s => urlUtils.charRangeToUrlReGroup(s, 0, s.length, true, true)),
+  );
 
   /**
    * Globs for node internals. These are treated specially, at least until we

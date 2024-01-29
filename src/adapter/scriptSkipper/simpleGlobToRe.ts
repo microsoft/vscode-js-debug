@@ -14,19 +14,19 @@ import { escapeRegexSpecialChars } from '../../common/stringUtils';
  * This is used in the scriptSkipper because `Debugger.setBlackboxPatterns`
  * only supports a list of regexes to match again.
  */
-export function simpleGlobsToRe(globs: readonly string[]) {
+export function simpleGlobsToRe(globs: readonly string[], processPart = escapeRegexSpecialChars) {
   const res: string[] = [];
   for (let i = 0; i < globs.length; i++) {
     const g = globs[i];
     if (g.startsWith('!')) {
       // Add each negation as a negative lookahead. This is not the fastest for
       // regex engines to compute, but is far faster than previous approaches...
-      const re = globToRe(g.slice(1));
+      const re = globToRe(g.slice(1), processPart);
       for (let i = 0; i < res.length; i++) {
         res[i] = `^(?!${re.slice(1)})${res[i].slice(1)}`;
       }
     } else {
-      res.push(globToRe(g));
+      res.push(globToRe(g, processPart));
     }
   }
 
@@ -37,7 +37,7 @@ export function simpleGlobsToRe(globs: readonly string[]) {
  * Simple glob to re implementation. We could use micromatch.makeRe, but that
  * inclues a lot of cruft we don't care about when matching against URLs.
  */
-function globToRe(glob: string) {
+function globToRe(glob: string, processPart = escapeRegexSpecialChars) {
   const parts = glob.split('/');
   const regexParts = [];
   for (let j = 0; j < parts.length; j++) {
@@ -53,9 +53,9 @@ function globToRe(glob: string) {
     } else {
       if (p.includes('*')) {
         const wildcards = p.split('*');
-        regexParts.push(wildcards.map(s => escapeRegexSpecialChars(s)).join('[^\\/]*'));
+        regexParts.push(wildcards.map(s => processPart(s)).join('[^\\/]*'));
       } else {
-        regexParts.push(escapeRegexSpecialChars(p));
+        regexParts.push(processPart(p));
       }
 
       regexParts.push(j < parts.length - 1 ? '\\/' : '$');

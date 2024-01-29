@@ -373,14 +373,20 @@ const createReGroup = (patterns: ReadonlySet<string>): string => {
 };
 
 const charToUrlReGroupSet = new Set<string>();
-const charRangeToUrlReGroup = (str: string, start: number, end: number, escapeRegex: boolean) => {
+export function charRangeToUrlReGroup(
+  str: string,
+  start: number,
+  end: number,
+  escapeRegex: boolean,
+  _isCaseSensitive = isCaseSensitive,
+) {
   let re = '';
 
   // Loop through each character of the string. Convert the char to a regex,
   // creating a group, and then append that to the match.
   // Note that using "for..of" is important here to loop over UTF code points.
   for (const char of str.slice(start, end)) {
-    if (isCaseSensitive) {
+    if (_isCaseSensitive) {
       urlToRegexChar(char, charToUrlReGroupSet, escapeRegex);
     } else {
       urlToRegexChar(char.toLowerCase(), charToUrlReGroupSet, escapeRegex);
@@ -391,7 +397,7 @@ const charRangeToUrlReGroup = (str: string, start: number, end: number, escapeRe
     charToUrlReGroupSet.clear();
   }
   return re;
-};
+}
 
 /**
  * Converts and escape the file URL to a regular expression.
