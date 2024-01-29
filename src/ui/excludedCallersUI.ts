@@ -54,7 +54,7 @@ export class ExcludedCaller {
       caller,
     )} will be skipped`;
 
-    this.id = this.treeItem.id = createHash('sha1')
+    this.id = this.treeItem.id = createHash('sha256')
       .update(JSON.stringify([caller, target]))
       .digest('base64');
   }
