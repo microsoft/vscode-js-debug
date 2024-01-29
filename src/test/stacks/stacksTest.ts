@@ -4,7 +4,8 @@
 
 import { delay } from '../../common/promiseUtil';
 import { Dap } from '../../dap/api';
-import { TestP, testWorkspace } from '../test';
+import { createFileTree } from '../createFileTree';
+import { TestP, testFixturesDir, testWorkspace } from '../test';
 import { itIntegrates, waitForPause } from '../testIntegrationUtils';
 
 describe('stacks', () => {
@@ -324,6 +325,22 @@ describe('stacks', () => {
       await p.logger.logStackTrace(event.threadId!);
 
       p.assertLog();
+    });
+
+    itIntegrates('handles special chars in stack (#203408)', async ({ r }) => {
+      createFileTree(testFixturesDir, {
+        'nested/a.js': 'exports.foo = (fn) => fn()',
+        '@nested/a.js': 'exports.foo = (fn) => fn()',
+        'test.js': [
+          'require("./@nested/a.js").foo(() => require("./nested/a.js").foo(() => { debugger }))',
+        ],
+      });
+      const handle = await r.runScript('test.js', {
+        skipFiles: ['**/a.js', '!**/@nested/**'],
+      });
+      handle.load();
+      await waitForPause(handle);
+      handle.assertLog({ substring: true });
     });
   });
 

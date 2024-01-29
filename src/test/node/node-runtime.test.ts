@@ -50,7 +50,6 @@ describe('node runtime', () => {
   }
 
   describe('skipFiles', () => {
-    console.log('described skipFiles');
     itIntegrates('skipFiles skip node internals', async ({ r }) => {
       await r.initialize;
       const cwd = join(testWorkspace, 'simpleNode');

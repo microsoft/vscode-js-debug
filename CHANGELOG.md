@@ -4,7 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
-Nothing, yet
+- fix: skipFiles not matching/negating with special chars ([vscode#203408](https://github.com/microsoft/vscode/issues/203408))
 
 ## v1.86 (January 2024)
 
