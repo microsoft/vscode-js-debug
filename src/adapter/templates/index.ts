@@ -117,7 +117,9 @@ export class RemoteObjectId {
  * arguments should be simple objects.
  */
 export function remoteFunction<Args extends unknown[], R>(fn: string | ((...args: Args) => R)) {
-  const stringified = ('' + fn).replace('}', getSourceSuffix() + '}');
+  let stringified = '' + fn;
+  const endIndex = stringified.lastIndexOf('}');
+  stringified = stringified.slice(0, endIndex) + getSourceSuffix() + stringified.slice(endIndex);
 
   // Some ugly typing here, but it gets us type safety. Mainly we want to:
   //  1. Have args that extend the function arg and omit the args we provide (easy)
