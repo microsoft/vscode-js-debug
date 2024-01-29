@@ -33,7 +33,7 @@ export abstract class NodeAttacherBase<T extends AnyNodeConfiguration> extends N
       '})()' +
       getSourceSuffix();
 
-    for (let retries = 0; retries < 5; retries++) {
+    for (let retries = 0; retries < 200; retries++) {
       const result = await cdp.Runtime.evaluate({
         contextId: 1,
         returnByValue: true,
