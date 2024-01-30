@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import del from 'del';
+import { promises as fs } from 'fs';
 import * as gulp from 'gulp';
 import { tmpdir } from 'os';
 import * as path from 'path';
@@ -256,7 +256,7 @@ export class TestP implements ITestHandle {
     await this.dap.attach({});
     this._cdp!.Page.enable({});
     this._cdp!.Page.navigate({ url: this._root._launchUrl! });
-    await new Promise(f => this._cdp!.Page.on('loadEventFired', f));
+    await new Promise(f => this._cdp!.Page.on('frameStoppedLoading', f));
     await this._cdp!.Page.disable({});
   }
 }
@@ -507,7 +507,9 @@ export class TestRoot {
       // private prefix, but Chrome sees it, so make sure it matches here.
       tmpPath = `/private/${tmpPath}`;
     }
-    after(() => del(`${forceForwardSlashes(tmpPath)}/**`, { force: true }));
+    after(async () => {
+      await fs.rm(tmpPath, { recursive: true, force: true });
+    });
 
     await new Promise((resolve, reject) =>
       gulp

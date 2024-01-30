@@ -217,15 +217,21 @@ export class ScriptSkipper implements IScriptSkipper {
       }
 
       if (isSkippedSource !== inSkipRange) {
-        const locations = await this._sourceContainer.currentSiblingUiLocations(
-          { source: authoredSource, lineNumber: 1, columnNumber: 1 },
-          source,
-        );
-        if (locations[0]) {
-          skipRanges.push({
-            lineNumber: locations[0].lineNumber - 1,
-            columnNumber: locations[0].columnNumber - 1,
-          });
+        const [[start], [end]] = await Promise.all([
+          this._sourceContainer.currentSiblingUiLocations(
+            { source: authoredSource, lineNumber: 1, columnNumber: 1 },
+            source,
+          ),
+          this._sourceContainer.currentSiblingUiLocations(
+            { source: authoredSource, lineNumber: Infinity, columnNumber: 1 },
+            source,
+          ),
+        ]);
+        if (start && end) {
+          skipRanges.push(
+            { lineNumber: start.lineNumber - 1, columnNumber: start.columnNumber - 1 },
+            { lineNumber: end.lineNumber - 1, columnNumber: end.columnNumber - 1 },
+          );
           inSkipRange = !inSkipRange;
         } else {
           this.logger.error(
@@ -242,10 +248,10 @@ export class ScriptSkipper implements IScriptSkipper {
       targets.forEach(t => this._scriptsWithSkipping.delete(t.scriptId));
     }
 
-    await Promise.all(
-      targets.map(({ scriptId }) =>
-        this.cdp.Debugger.setBlackboxedRanges({ scriptId, positions: skipRanges }),
-      ),
+    // todo(conno4312): it seems like the current version of Chrome used in
+    // playwright tests doesn't send a response to this method :/
+    targets.map(({ scriptId }) =>
+      this.cdp.Debugger.setBlackboxedRanges({ scriptId, positions: skipRanges }),
     );
   }
 

@@ -138,6 +138,7 @@ export class GoldenText {
 
     return value
       .replace(/VM\d+/g, 'VM<xx>')
+      .replace(/logpoint-.*?\.cdp/g, 'logpoint-<hash>.cdp')
       .replace(/\r\n/g, '\n')
       .replace(/@\ .*vscode-pwa(\/|\\)/g, '@ ')
       .replace(/data:text\/html;base64,[a-zA-Z0-9+/]*=?/g, '<data-url>');

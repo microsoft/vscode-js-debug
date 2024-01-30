@@ -26,14 +26,17 @@ result: 3
     > [[Prototype]]: TypedArray
     > [[Prototype]]: Object
 
-> result: ArrayBuffer(3) {byteLength: 3}
+> result: ArrayBuffer(3) {byteLength: 3, maxByteLength: 3, resizable: false, detached: false}
     byteLength: 3
+    detached: false
+    maxByteLength: 3
+    resizable: false
     [[ArrayBufferByteLength]]: 3
     > [[Int8Array]]: Int8Array(3)
     > [[Prototype]]: ArrayBuffer
     > [[Uint8Array]]: Uint8Array(3)
 
-> result: Proxy {a: 1}
+> result: Proxy(Object) {a: 1}
     > [[Handler]]: Object
     [[IsRevoked]]: false
     > [[Target]]: Object

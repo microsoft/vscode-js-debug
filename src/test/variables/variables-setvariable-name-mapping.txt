@@ -14,7 +14,6 @@ Window.test @ ${workspaceFolder}/web/minified/index.js:6:5
   > scope #1: Local: test
       > hitDebugger: ƒ c(n,t){debugger}
       inner1: 1
-      inner2: undefined
   scope #2: Global [expensive]
 
 <anonymous> @ <eval>/VM<xx>:1:1

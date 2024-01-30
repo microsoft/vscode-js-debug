@@ -2,10 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-const del = require('del');
-const filter = require('gulp-filter');
 const gulp = require('gulp');
-const minimist = require('minimist');
+const glob = require('glob');
 const path = require('path');
 const rename = require('gulp-rename');
 const merge = require('merge2');
@@ -74,6 +72,11 @@ async function readJson(file) {
   const contents = await readFile(path.join(__dirname, file), 'utf-8');
   return JSON.parse(contents);
 }
+
+const del = async patterns => {
+  const files = glob.sync(patterns, { cwd: __dirname });
+  await Promise.all(files.map(f => fs.promises.rm(path.join(__dirname, f), { force: true, recursive: true })));
+};
 
 gulp.task('clean-assertions', () => del(['src/test/**/*.txt.actual']));
 

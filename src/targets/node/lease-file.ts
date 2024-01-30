@@ -29,7 +29,7 @@ export class LeaseFile implements IDisposable {
   /**
    * Update timer.
    */
-  private updateInterval?: NodeJS.Timer;
+  private updateInterval?: NodeJS.Timeout;
 
   constructor() {
     this.file = fs.open(this.path, 'w');

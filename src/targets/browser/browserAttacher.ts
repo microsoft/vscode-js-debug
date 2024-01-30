@@ -33,7 +33,7 @@ export class BrowserAttacher<
   T extends AnyChromiumAttachConfiguration = AnyChromiumAttachConfiguration,
 > implements ILauncher
 {
-  private _attemptTimer: NodeJS.Timer | undefined;
+  private _attemptTimer: NodeJS.Timeout | undefined;
   private _connection: CdpConnection | undefined;
   private _targetManager: BrowserTargetManager | undefined;
   private _disposables: IDisposable[] = [];

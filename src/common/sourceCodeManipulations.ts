@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 import { Node as AcornNode, parse as parseStrict } from 'acorn';
-import { isDummy, Options, parse } from 'acorn-loose';
+import { Options, isDummy, parse } from 'acorn-loose';
 import * as evk from 'eslint-visitor-keys';
 import {
   ArrowFunctionExpression,
@@ -46,7 +46,8 @@ export const parseSource: (str: string) => (Statement & AcornNode)[] = str => {
   // as a program, which creates an invalid name. But this isn't actually necesary.
   for (const stmt of parsed.body) {
     if (stmt.type === 'FunctionDeclaration' && stmt.id && isDummy(stmt.id)) {
-      stmt.id = null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (stmt as any).id = null;
     }
   }
   return parsed.body;

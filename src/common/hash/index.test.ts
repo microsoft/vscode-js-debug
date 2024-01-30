@@ -3,7 +3,6 @@
  *--------------------------------------------------------*/
 
 import { expect } from 'chai';
-import del from 'del';
 import esbuild from 'esbuild';
 import { promises as fs } from 'fs';
 import { join, resolve } from 'path';
@@ -39,7 +38,7 @@ describe('hash process', function () {
   });
 
   afterEach(async () => {
-    await del(testDir, { force: true });
+    await fs.rm(testDir, { recursive: true, force: true });
   });
 
   after(() => {

@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import { expect } from 'chai';
-import del from 'del';
+import { promises as fs } from 'fs';
 import { join } from 'path';
 import { readfile } from '../../common/fsUtils';
 import { forceForwardSlashes } from '../../common/pathUtils';
@@ -97,11 +97,9 @@ describe('breakpoints', () => {
       // and makes sure it works identically.
       const cwd = r.workspacePath('web/tmp');
 
-      after(() =>
-        del([`${forceForwardSlashes(cwd)}/**`], {
-          force: true /* delete outside cwd */,
-        }),
-      );
+      after(async () => {
+        await fs.rm(cwd, { recursive: true, force: true });
+      });
 
       createFileTree(cwd, {
         'pause.js': await readfile(r.workspacePath('web/browserify/pause.js')),
@@ -141,11 +139,9 @@ describe('breakpoints', () => {
     itIntegrates("source map that's path mapped", async ({ r }) => {
       const cwd = r.workspacePath('web/tmp');
 
-      after(() =>
-        del([`${forceForwardSlashes(cwd)}/**`], {
-          force: true /* delete outside cwd */,
-        }),
-      );
+      after(async () => {
+        await fs.rm(cwd, { recursive: true, force: true });
+      });
 
       createFileTree(cwd, {
         'app.ts': await readfile(r.workspacePath('web/pathMapped/app.ts')),

@@ -1928,7 +1928,12 @@ export class Thread implements IVariableStoreLocationProvider {
   }
 
   private _shouldEnablePerScriptSms(event: Cdp.Debugger.PausedEvent) {
-    if (event.data?.url.includes('@vite/client')) {
+    const script = this._sourceContainer.getScriptById(event.callFrames[0]?.location.scriptId);
+    if (!script) {
+      return false;
+    }
+
+    if (script.url.includes('@vite/client')) {
       return true;
     }
 
@@ -1936,7 +1941,7 @@ export class Thread implements IVariableStoreLocationProvider {
       return false;
     }
 
-    return event.data.url?.startsWith('webpack') || event.data.url?.startsWith('ng:');
+    return script.url.startsWith('webpack') || script.url.startsWith('ng:');
   }
 
   setSourceMapDisabler(sourceMapDisabler?: SourceMapDisabler) {
