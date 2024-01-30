@@ -161,6 +161,7 @@ export class BrowserAttacher<
       if (!targetManager.targetList().length) {
         // graceful exit
         this._onTerminatedEmitter.fire({ killed: true, code: 0 });
+        this._connection?.close();
       }
     });
 
