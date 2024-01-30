@@ -186,6 +186,7 @@ export class DebugAdapter implements IDisposable {
 
   public async launchBlocker(): Promise<void> {
     await this._configurationDoneDeferred.promise;
+    await this._thread?.debuggerReady.promise;
     await this._services.get<IExceptionPauseService>(IExceptionPauseService).launchBlocker;
     await this.breakpointManager.launchBlocker();
   }

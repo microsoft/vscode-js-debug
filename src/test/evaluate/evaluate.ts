@@ -350,6 +350,7 @@ describe('evaluate', () => {
 
   itIntegrates('escapes strings', async ({ r }) => {
     const p = await r.launchAndLoad('blank');
+    console.log('ready');
     for (const context of ['watch', 'hover', 'repl'] as const) {
       p.log(`context=${context}`);
       await p.logger.evaluateAndLog(JSON.stringify('1\n2\r3\t\\4'), { depth: 0 }, context);

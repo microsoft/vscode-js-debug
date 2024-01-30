@@ -8,8 +8,8 @@ stdout> foo barbaz
 stdout> barbaz
 stdout> barbaz
 stdout> Error: oof
-    at eval (logpoint-ea01de6.cdp:3:11)
-    at eval (logpoint-ea01de6.cdp:7:3)
+    at eval (logpoint-<hash>.cdp:3:11)
+    at eval (logpoint-<hash>.cdp:7:3)
     at f (http://localhost:8001/logging.js:22:3)
     at http://localhost:8001/logging.js:24:1
 stdout> hi

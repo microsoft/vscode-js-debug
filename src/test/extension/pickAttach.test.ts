@@ -4,17 +4,15 @@
 
 import { expect } from 'chai';
 import { ChildProcess, spawn } from 'child_process';
-import del from 'del';
 import { promises as fsPromises } from 'fs';
 import { tmpdir } from 'os';
 import * as path from 'path';
-import { createSandbox, SinonSandbox } from 'sinon';
+import { SinonSandbox, createSandbox } from 'sinon';
 import split from 'split2';
 import * as vscode from 'vscode';
 import { Commands, DebugType } from '../../common/contributionUtils';
 import { findOpenPort } from '../../common/findOpenPort';
 import { LocalFsUtils } from '../../common/fsUtils';
-import { forceForwardSlashes } from '../../common/pathUtils';
 import { delay } from '../../common/promiseUtil';
 import { nodeAttachConfigDefaults } from '../../configuration';
 import { resolveProcessId } from '../../ui/processPicker';
@@ -34,8 +32,8 @@ describe('pick and attach', () => {
     sandbox?.restore();
     child?.kill();
 
-    await del([`${forceForwardSlashes(testDir)}/**`], {
-      force: true /* delete outside cwd */,
+    after(async () => {
+      await fsPromises.rm(testDir, { recursive: true, force: true });
     });
   });
 

@@ -141,7 +141,7 @@ export class TerminalProcess implements IProgram {
         resolve({ code: 0, killed });
       }),
   );
-  private loop?: { timer: NodeJS.Timer; processId: number };
+  private loop?: { timer: NodeJS.Timeout; processId: number };
 
   constructor(
     private readonly terminalResult: Dap.RunInTerminalResult,

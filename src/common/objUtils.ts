@@ -280,7 +280,7 @@ export function memoizeWeak<T extends object, R>(fn: (arg: T) => R): (arg: T) =>
  * Debounces the function call for an interval.
  */
 export function debounce(duration: number, fn: () => void): (() => void) & { clear: () => void } {
-  let timeout: NodeJS.Timer | void;
+  let timeout: NodeJS.Timeout | void;
   const debounced = () => {
     if (timeout !== undefined) {
       clearTimeout(timeout);
@@ -310,7 +310,7 @@ export function trailingEdgeThrottle(
   duration: number,
   fn: () => void,
 ): (() => void) & { clear: () => void; queued: () => boolean } {
-  let timeout: NodeJS.Timer | void;
+  let timeout: NodeJS.Timeout | void;
   const debounced = () => {
     if (timeout !== undefined) {
       return;

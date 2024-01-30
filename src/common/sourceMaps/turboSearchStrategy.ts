@@ -102,7 +102,7 @@ export class TurboSearchStrategy implements ISearchStrategy {
     await Promise.all(
       [...files.explode()].map(
         glob =>
-          new Promise((resolve, reject) =>
+          new Promise<void>((resolve, reject) =>
             globStream(
               [
                 glob.pattern,
@@ -113,12 +113,11 @@ export class TurboSearchStrategy implements ISearchStrategy {
               ],
               {
                 ignore: glob.negations,
-                matchBase: true,
                 cwd: glob.cwd,
               },
             )
               .on('data', onFile)
-              .on('finish', resolve)
+              .on('end', resolve)
               .on('error', reject),
           ),
       ),

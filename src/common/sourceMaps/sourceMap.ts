@@ -8,6 +8,7 @@ import {
   EachMapping,
   GeneratedMapping,
   generatedPositionFor,
+  GREATEST_LOWER_BOUND,
   InvalidGeneratedMapping,
   InvalidOriginalMapping,
   OriginalMapping,
@@ -123,10 +124,19 @@ export class SourceMap {
     bias?: 1 | -1;
     source: string;
   }): NullableGeneratedPosition {
-    return generatedPositionFor(this.original, {
-      ...originalPosition,
-      source: this.sourceActualToOriginal.get(originalPosition.source) ?? originalPosition.source,
-    });
+    const source =
+      this.sourceActualToOriginal.get(originalPosition.source) ?? originalPosition.source;
+
+    // For non-finite lines, get the any closest location to the desired bounds
+    if (!isFinite(originalPosition.line)) {
+      const bias = originalPosition.bias || GREATEST_LOWER_BOUND;
+      return this.getBestGeneratedForOriginal(
+        source,
+        (a, b) => sortOriginalLocationAscending(a, b) * bias,
+      );
+    }
+
+    return generatedPositionFor(this.original, { ...originalPosition, source });
   }
 
   /**
@@ -151,4 +161,25 @@ export class SourceMap {
   eachMapping(callback: (mapping: EachMapping) => void): void {
     eachMapping(this.original, callback);
   }
+
+  private getBestGeneratedForOriginal(
+    source: string,
+    picker: (is: EachMapping, betterThan: EachMapping) => number,
+  ): NullableGeneratedPosition {
+    let best: EachMapping | undefined;
+    this.eachMapping(mapping => {
+      if (mapping.source === source && (!best || picker(mapping, best) > 0)) {
+        best = mapping;
+      }
+    });
+
+    return best
+      ? { column: best.generatedColumn, line: best.generatedLine }
+      : { column: null, line: null };
+  }
 }
+
+const sortOriginalLocationAscending = (
+  { originalLine: l1, originalColumn: c1 }: EachMapping,
+  { originalLine: l2, originalColumn: c2 }: EachMapping,
+) => (l1 || 0) - (l2 || 0) || (c1 || 0) - (c2 || 0);

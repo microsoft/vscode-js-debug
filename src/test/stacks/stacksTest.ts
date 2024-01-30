@@ -304,7 +304,7 @@ describe('stacks', () => {
     });
 
     itIntegrates('toggle authored ts', async ({ r }) => {
-      const p = await r.launchUrlAndLoad('basic.html');
+      const p = await r.launchUrl('basic.html');
       const path = p.workspacePath('web/basic.ts');
       const source: Dap.Source = {
         path: path,
