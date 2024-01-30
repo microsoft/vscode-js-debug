@@ -269,7 +269,12 @@ function reportTelemetry(env: BootloaderEnvironment) {
     return;
   }
 
-  fs.writeFileSync(callbackFile, JSON.stringify(telemetry));
+  try {
+    fs.writeFileSync(callbackFile, JSON.stringify(telemetry));
+  } catch {
+    // ignored, #1797, debug could have torn down
+  }
+
   env.updateInspectorOption('fileCallback', undefined);
 }
 
