@@ -4,6 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
+- fix: pages not loading in browser after attach browser disconnect ([#1795](https://github.com/microsoft/vscode-js-debug/issues/1795))
 - fix: skipFiles not matching/negating with special chars ([vscode#203408](https://github.com/microsoft/vscode/issues/203408))
 
 ## v1.86 (January 2024)
