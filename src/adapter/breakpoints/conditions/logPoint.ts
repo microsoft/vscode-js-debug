@@ -83,6 +83,11 @@ export class LogPointCompiler {
         break;
       }
 
+      // tranform property shortand `{{foo}}` to `{({foo})}`, reparse:
+      if (block.body.length === 1 && block.body[0].type === 'BlockStatement') {
+        block.body = parseSource(`(${msg.slice(start + 1, end - 2)}})`);
+      }
+
       args.push(generate(this.serializeLogStatements(block.body)));
       formatParts.push('%O');
     }

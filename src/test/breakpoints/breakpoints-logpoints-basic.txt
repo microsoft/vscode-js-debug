@@ -13,3 +13,9 @@ stdout> Error: oof
     at f (http://localhost:8001/logging.js:22:3)
     at http://localhost:8001/logging.js:24:1
 stdout> hi
+stdout> {foo: 'bar'}
+stdout> > {foo: 'bar'}
+stdout>     > arg1: {foo: 'bar'}
+stdout> {f: ƒ}
+stdout> > {f: ƒ}
+stdout>     > arg1: {f: ƒ}
