@@ -421,6 +421,8 @@ describe('breakpoints', () => {
         { line: 12, column: 0, logMessage: '{(x=>x+baz)(bar)}' },
         { line: 13, column: 0, logMessage: '{throw new Error("oof")}' },
         { line: 14, column: 0, logMessage: "{'hi'}" },
+        { line: 15, column: 0, logMessage: "{{foo: 'bar'}}" },
+        { line: 16, column: 0, logMessage: '{{f}}' },
       ];
       await p.dap.setBreakpoints({
         source,
