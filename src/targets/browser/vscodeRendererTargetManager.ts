@@ -55,7 +55,10 @@ export class VSCodeRendererTargetManager extends BrowserTargetManager {
   public readonly filter: TargetFilter = target => {
     const { debugWebWorkerExtHost, debugWebviews } = this.launchParams as IRendererAttachParams;
     if (debugWebWorkerExtHost) {
-      if (target.type === BrowserTargetType.Worker && target.title === 'DebugWorkerExtensionHost') {
+      if (
+        target.type === BrowserTargetType.Worker &&
+        target.title.startsWith('DebugWorkerExtensionHost')
+      ) {
         return true;
       }
 
