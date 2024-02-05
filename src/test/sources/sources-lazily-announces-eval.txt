@@ -1,0 +1,41 @@
+Evaluating#1: 42
+Evaluating#2: window.hello = m => console.log(m)
+Evaluating#3: hello()
+
+Source event for eval
+{
+    reason : new
+    source : {
+        name : <eval>/VM<xx>
+        path : <eval>/VM<xx>
+        sourceReference : <number>
+    }
+}
+window.hello = m => console.log(m)
+
+---------
+
+Loaded sources: {
+    sources : [
+        [0] : {
+            name : localhost꞉8001/inlinescript.html꞉2:11
+            path : ${workspaceFolder}/web/inlinescript.html
+            sourceReference : <number>
+        }
+        [1] : {
+            name : <eval>/VM<xx>
+            path : <eval>/VM<xx>
+            sourceReference : <number>
+        }
+        [2] : {
+            name : <eval>/VM<xx>
+            path : <eval>/VM<xx>
+            sourceReference : <number>
+        }
+        [3] : {
+            name : localhost꞉8001/eval3.js
+            path : localhost꞉8001/eval3.js
+            sourceReference : <number>
+        }
+    ]
+}

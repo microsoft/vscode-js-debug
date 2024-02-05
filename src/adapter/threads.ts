@@ -1067,7 +1067,7 @@ export class Thread implements IVariableStoreLocationProvider {
         continue;
       }
 
-      firstSource ??= await first.source.toDapShallow();
+      firstSource ??= await first.source.toDap();
       if (!sourcesEqual(firstSource, target.source)) {
         continue;
       }
@@ -1092,7 +1092,7 @@ export class Thread implements IVariableStoreLocationProvider {
           continue;
         }
 
-        const source = (stackAsDap[i] ??= await r.source.toDapShallow());
+        const source = (stackAsDap[i] ??= await r.source.toDap());
         if (sourcesEqual(source, caller.source)) {
           return true;
         }
