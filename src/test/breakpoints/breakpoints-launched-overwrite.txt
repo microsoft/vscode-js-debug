@@ -1,10 +1,16 @@
+Evaluating#1:
+        function foo() {
+          var x = 3;
+          return 2;
+        }
+
 {
     allThreadsStopped : false
     description : Paused on breakpoint
     reason : breakpoint
     threadId : <number>
 }
-Window.foo @ <eval>/VM<xx>:3:19
+Window.foo @ localhost꞉8001/eval1.js:3:19
 <anonymous> @ localhost꞉8001/test.js:1:1
 {
     allThreadsStopped : false

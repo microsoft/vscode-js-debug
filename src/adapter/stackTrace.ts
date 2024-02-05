@@ -751,7 +751,7 @@ export class InlinedFrame implements IStackFrameElement {
       name: this.name,
       column: columnNumber,
       line: lineNumber,
-      source: await source.toDapShallow(),
+      source: await source.toDap(),
     });
   }
 

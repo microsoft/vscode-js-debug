@@ -4,6 +4,35 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
+- feat: lazily announce evaluated scripts ([#1939](https://github.com/microsoft/vscode-js-debug/issues/1939))
+- fix: support object property shorthand in logpoints ([#1788](https://github.com/microsoft/vscode-js-debug/issues/1788))
+- fix: pages not loading in browser after attach browser disconnect ([#1795](https://github.com/microsoft/vscode-js-debug/issues/1795))
+- fix: skipFiles not matching/negating with special chars ([vscode#203408](https://github.com/microsoft/vscode/issues/203408))
+
+## v1.86 (January 2024)
+
+- fix: respect resolveSourceMapLocations with remoteRoot ([#1921](https://github.com/microsoft/vscode-js-debug/issues/1921))
+- fix: match mjs and cjs in outFiles by default ([vscode#200665](https://github.com/microsoft/vscode/issues/200665))
+- fix: show errors from conditional breakpoints ([vscode#195062](https://github.com/microsoft/vscode/issues/195062))
+- fix: pausing on exceptions caused by internal scripts ([vscode#195062](https://github.com/microsoft/vscode/issues/195062))
+- fix: automatically reconnect when debugging browsers in port mode ([vscode#174033](https://github.com/microsoft/vscode/issues/174033))
+
+## v1.85 (November 2023)
+
+- feat: support XHR breakpoints ([#1856](https://github.com/microsoft/vscode-js-debug/issues/1856))
+- feat: improve instrumentation breakpoints view ([#1853](https://github.com/microsoft/vscode-js-debug/issues/1853))
+- fix: reuse the webassembly worker across sessions in the debug tree ([#1830](https://github.com/microsoft/vscode-js-debug/issues/1830))
+- fix: respect sourceMapResolveLocations in the web extension host ([vscode#196781](https://github.com/microsoft/vscode/issues/196781))
+- fix: path diff display in diagnostic tool ([vscode#195891](https://github.com/microsoft/vscode/issues/195891))
+- fix: allow variable substitutions for ports properties ([vscode#192014](https://github.com/microsoft/vscode/issues/192014))
+
+## v1.84 (October 2023)
+
+- feat: improve event listener breakpoints view ([#1853](https://github.com/microsoft/vscode-js-debug/issues/1853))
+- fix: envFiles variables appending rather than replacing in attach ([vscode#1935510](https://github.com/microsoft/vscode/issues/1935510))
+- fix: cache-bust sourcemaps if the underlying content changes ([#1803](https://github.com/microsoft/vscode-js-debug/issues/1803))
+- fix: make source map renames scope-aware
+- fix: breakpoints not setting in webpack `eval`-type sourcemaps ([vscode#194988](https://github.com/microsoft/vscode/issues/194988))
 - fix: error when processing private properties with a map ([#1824](https://github.com/microsoft/vscode-js-debug/issues/1824))
 
 ## v1.83 (September 2023)

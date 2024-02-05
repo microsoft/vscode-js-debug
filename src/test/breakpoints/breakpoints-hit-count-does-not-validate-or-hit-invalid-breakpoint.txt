@@ -1,3 +1,12 @@
+Evaluating#1:
+        function foo() {
+          for (let i = 0; i < 10; i++) {
+            console.log(i);
+            console.log(i);
+            console.log(i);
+          }
+        }
+
 {
     breakpoints : [
         [0] : {
@@ -11,4 +20,4 @@
     category : stderr
     output : Invalid hit condition "potato". Expected an expression like "> 42" or "== 2".
 }
-Evaluating#1: foo();
+Evaluating#2: foo();

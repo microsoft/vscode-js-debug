@@ -673,7 +673,9 @@ export class SourceContainer {
     }
 
     this.scriptSkipper.initializeSkippingValueForSource(source);
-    source.toDap().then(dap => this._dap.loadedSource({ reason: 'new', source: dap }));
+    if (!source.sendLazy) {
+      this.emitLoadedSource(source);
+    }
 
     if (isSourceWithSourceMap(source)) {
       this._finishAddSourceWithSourceMap(source);
@@ -812,7 +814,7 @@ export class SourceContainer {
       this._temporarilyDisabledSourceMaps.delete(source);
     }
 
-    if (!silent) {
+    if (!silent && source.hasBeenAnnounced) {
       source.toDap().then(dap => this._dap.loadedSource({ reason: 'removed', source: dap }));
     }
 
@@ -825,6 +827,14 @@ export class SourceContainer {
     if (isSourceWithMap(source)) {
       this._removeSourceMapSources(source, silent);
     }
+  }
+
+  /**
+   * Sends a 'loadedSource' event for the given source.
+   */
+  public emitLoadedSource(source: Source): Promise<void> {
+    source.hasBeenAnnounced = true;
+    return source.toDap().then(dap => this._dap.loadedSource({ reason: 'new', source: dap }));
   }
 
   async _addSourceMapSources(compiled: ISourceWithMap, map: SourceMap) {

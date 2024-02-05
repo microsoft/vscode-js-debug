@@ -62,6 +62,17 @@ export class Source {
   private _scripts: ISourceScript[] = [];
 
   /**
+   * Gets whether the source should be sent to the client lazily.
+   * This is true for evaluated scripts. (#1939)
+   */
+  public get sendLazy() {
+    return !this.url;
+  }
+
+  /** @internal */
+  public hasBeenAnnounced = false;
+
+  /**
    * @param inlineScriptOffset Offset of the start location of the script in
    * its source file. This is used on scripts in HTML pages, where the script
    * is nested in the content.
@@ -249,15 +260,9 @@ export class Source {
 
   /**
    * Returns a DAP representation of the source.
+   * Has a side-effect of announcing the script if it has not yet been annoucned.
    */
-  async toDap(): Promise<Dap.Source> {
-    return this.toDapShallow();
-  }
-
-  /**
-   * Returns a DAP representation without including any nested sources.
-   */
-  public async toDapShallow(): Promise<Dap.Source> {
+  public async toDap(): Promise<Dap.Source> {
     const existingAbsolutePath = await this._existingAbsolutePath;
     const dap: Dap.Source = {
       name: this._name,
@@ -270,6 +275,11 @@ export class Source {
     if (existingAbsolutePath) {
       dap.sourceReference = 0;
       dap.path = existingAbsolutePath;
+    }
+
+    if (!this.hasBeenAnnounced) {
+      this.hasBeenAnnounced = true;
+      this._container.emitLoadedSource(this);
     }
 
     return dap;

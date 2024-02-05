@@ -207,13 +207,11 @@ describe('breakpoints', () => {
     itIntegrates('ref', async ({ r }) => {
       // Breakpoint in eval script set after launch using source reference.
       const p = await r.launchUrlAndLoad('index.html');
-      p.cdp.Runtime.evaluate({
-        expression: `
-        function foo() {
-          return 2;
-        }
-      `,
-      });
+      p.evaluate(`
+      function foo() {
+        return 2;
+      }
+    `);
       const { source } = await p.waitForSource('eval');
       source.path = undefined;
       await p.dap.setBreakpoints({ source, breakpoints: [{ line: 3 }] });
@@ -226,13 +224,11 @@ describe('breakpoints', () => {
     itIntegrates('remove', async ({ r }) => {
       // Breakpoint in eval script set after launch and immediately removed.
       const p = await r.launchUrlAndLoad('index.html');
-      p.cdp.Runtime.evaluate({
-        expression: `
+      p.evaluate(`
         function foo() {
           return 2;
         }
-      `,
-      });
+      `);
       const { source } = await p.waitForSource('eval');
       source.path = undefined;
       await p.dap.setBreakpoints({ source, breakpoints: [{ line: 3 }] });
@@ -245,14 +241,12 @@ describe('breakpoints', () => {
     itIntegrates('overwrite', async ({ r }) => {
       // Breakpoint in eval script set after launch and immediately overwritten.
       const p = await r.launchUrlAndLoad('index.html');
-      p.cdp.Runtime.evaluate({
-        expression: `
+      p.evaluate(`
         function foo() {
           var x = 3;
           return 2;
         }
-      `,
-      });
+      `);
       const { source } = await p.waitForSource('eval');
       source.path = undefined;
       await p.dap.setBreakpoints({ source, breakpoints: [{ line: 4 }] });
@@ -950,8 +944,7 @@ describe('breakpoints', () => {
   describe('hit count', () => {
     const doTest = async (r: TestRoot, run: (p: TestP, source: Dap.Source) => Promise<void>) => {
       const p = await r.launchUrlAndLoad('index.html');
-      p.cdp.Runtime.evaluate({
-        expression: `
+      p.evaluate(`
         function foo() {
           for (let i = 0; i < 10; i++) {
             console.log(i);
@@ -959,8 +952,7 @@ describe('breakpoints', () => {
             console.log(i);
           }
         }
-      `,
-      });
+      `);
       const { source } = await p.waitForSource('eval');
       source.path = undefined;
       await run(p, source);
