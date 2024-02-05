@@ -53,20 +53,6 @@ Source event for dir/helloworld
 console.log('Hello, world!');
 
 ---------
-Evaluating#2: 42
-
-Source event for eval
-{
-    reason : new
-    source : {
-        name : <eval>/VM<xx>
-        path : <eval>/VM<xx>
-        sourceReference : <number>
-    }
-}
-42
-
----------
 
 Loaded sources: {
     sources : [
@@ -98,11 +84,6 @@ Loaded sources: {
         [5] : {
             name : localhost꞉8001/dir/helloworld.js
             path : ${workspaceFolder}/web/dir/helloworld.js
-            sourceReference : <number>
-        }
-        [6] : {
-            name : <eval>/VM<xx>
-            path : <eval>/VM<xx>
             sourceReference : <number>
         }
     ]

@@ -52,7 +52,7 @@ export class SourceAnnotationHelper {
         });
 
         return Promise.all(
-          locations.map(async loc => ({ ...loc, source: await loc.source.toDapShallow() })),
+          locations.map(async loc => ({ ...loc, source: await loc.source.toDap() })),
         );
       })(),
     });

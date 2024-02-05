@@ -34,8 +34,21 @@ describe('sources', () => {
     await dumpSource(p, await p.waitForSource('doesnotexist'), 'does not exist');
     p.addScriptTag('dir/helloworld.js');
     await dumpSource(p, await p.waitForSource('helloworld'), 'dir/helloworld');
-    p.evaluate('42', '');
-    await dumpSource(p, await p.waitForSource('eval'), 'eval');
+
+    p.log(await p.dap.loadedSources({}), '\nLoaded sources: ');
+    p.assertLog();
+  });
+
+  itIntegrates('lazily announces eval', async ({ r }) => {
+    const p = await r.launchUrlAndLoad('inlinescript.html');
+
+    const src = p.waitForSource('eval');
+    p.evaluate('42', ''); // sohuld never be announced
+    p.evaluate('window.hello = m => console.log(m)', ''); // announced when its source is in the console
+
+    p.evaluate('hello()');
+
+    await dumpSource(p, await src, 'eval');
     p.log(await p.dap.loadedSources({}), '\nLoaded sources: ');
     p.assertLog();
   });
