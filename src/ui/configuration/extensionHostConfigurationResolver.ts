@@ -2,17 +2,22 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
+import execa from 'execa';
 import { promises as fs } from 'fs';
 import { injectable } from 'inversify';
-import { join } from 'path';
+import { dirname, join } from 'path';
 import * as vscode from 'vscode';
+import { TaskCancelledError } from '../../common/cancellation';
 import { DebugType } from '../../common/contributionUtils';
+import { canAccess } from '../../common/fsUtils';
+import { nearestDirectoryWhere } from '../../common/urlUtils';
 import {
+  IExtensionHostLaunchConfiguration,
+  ResolvingExtensionHostConfiguration,
   applyNodeishDefaults,
   extensionHostConfigDefaults,
-  IExtensionHostLaunchConfiguration,
   resolveVariableInConfig,
-  ResolvingExtensionHostConfiguration,
 } from '../../configuration';
 import { BaseConfigurationResolver } from './baseConfigurationResolver';
 
@@ -48,6 +53,34 @@ export class ExtensionHostConfigurationResolver
     });
   }
 
+  /**
+   * @inheritdoc
+   */
+  public async resolveDebugConfigurationWithSubstitutedVariables(
+    _folder: vscode.WorkspaceFolder | undefined,
+    debugConfiguration: vscode.DebugConfiguration,
+  ): Promise<vscode.DebugConfiguration | undefined> {
+    const config = debugConfiguration as ResolvingExtensionHostConfiguration;
+    try {
+      const testCfg = await resolveTestConfiguration(config);
+      if (testCfg) {
+        config.env = { ...config.env, ...testCfg.env };
+        config.args = [
+          ...(config.args || []),
+          `--extensionDevelopmentPath=${testCfg.extensionDevelopmentPath}`,
+          `--extensionTestsPath=${testCfg.extensionTestsPath}`,
+        ];
+      }
+    } catch (e) {
+      if (e instanceof TaskCancelledError) {
+        return undefined;
+      }
+      throw e;
+    }
+
+    return config;
+  }
+
   protected getType() {
     return DebugType.ExtensionHost as const;
   }
@@ -78,4 +111,70 @@ const getExtensionKind = async (
   }
 
   return extensionKind instanceof Array ? extensionKind : [extensionKind];
+};
+
+const resolveTestConfiguration = async (config: ResolvingExtensionHostConfiguration) => {
+  const { testConfiguration } = config;
+  let { testConfigurationLabel } = config;
+  if (!testConfiguration) {
+    return;
+  }
+
+  const suffix = join('node_modules', '@vscode', 'test-cli', 'out', 'bin.mjs');
+  const dirWithModules = await nearestDirectoryWhere(testConfiguration, dir => {
+    const binary = join(dir, suffix);
+    return canAccess(fs, binary);
+  });
+
+  if (!dirWithModules) {
+    throw new Error(
+      l10n.t('Cannot find `{0}` installed in {1}', '@vscode/test-cli', dirname(testConfiguration)),
+    );
+  }
+
+  const result = await execa(
+    process.execPath,
+    [join(dirWithModules, suffix), '--config', testConfiguration, '--list-configuration'],
+    {
+      env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
+    },
+  );
+
+  const configs: {
+    config: { label?: string };
+    extensionTestsPath: string;
+    extensionDevelopmentPath: string;
+    env: Record<string, string>;
+  }[] = JSON.parse(result.stdout);
+
+  if (configs.length === 1) {
+    return configs[0];
+  }
+
+  if (configs.length && !testConfigurationLabel) {
+    testConfigurationLabel = await vscode.window.showQuickPick(
+      configs.map((c, i) => c.config.label || String(i)),
+      {
+        title: l10n.t('Select test configuration to run'),
+      },
+    );
+    if (!testConfigurationLabel) {
+      throw new TaskCancelledError('cancelled');
+    }
+  }
+
+  const found = configs.find(
+    (c, i) => c.config.label === testConfigurationLabel || String(i) === testConfigurationLabel,
+  );
+  if (!found) {
+    throw new Error(
+      l10n.t(
+        'Cannot find test configuration with label `{0}`, got: {1}',
+        String(testConfigurationLabel),
+        configs.map((c, i) => c.config.label || i).join(', '),
+      ),
+    );
+  }
+
+  return found;
 };

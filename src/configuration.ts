@@ -248,6 +248,18 @@ export interface IExtensionHostLaunchConfiguration extends IExtensionHostBaseCon
   rendererDebugOptions: Partial<IChromeAttachConfiguration>;
 
   /**
+   * Path to a test configuration file for the test CLI.
+   * @see https://code.visualstudio.com/api/working-with-extensions/testing-extension#quick-setup-the-test-cli
+   */
+  testConfiguration?: string;
+
+  /**
+   * A single configuration to run from the file. If not specified, the user
+   * may be asked to pick.
+   */
+  testConfigurationLabel?: string;
+
+  /**
    * Port the extension host is listening on.
    */
   port?: number;
