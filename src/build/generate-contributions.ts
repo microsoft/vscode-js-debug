@@ -916,7 +916,7 @@ const extensionHostConfig: IDebugger<IExtensionHostLaunchConfiguration> = {
   request: 'launch',
   label: refString('extensionHost.label'),
   languages: commonLanguages,
-  required: ['args'],
+  required: [],
   configurationSnippets: [
     {
       label: refString('extensionHost.snippet.launch.label'),
@@ -963,6 +963,16 @@ const extensionHostConfig: IDebugger<IExtensionHostLaunchConfiguration> = {
         webRoot: '${workspaceFolder}',
       },
       properties: chromiumAttachConfigurationAttributes as { [key: string]: JSONSchema6 },
+    },
+    testConfiguration: {
+      markdownDescription: refString('extensionHost.launch.testConfiguration'),
+      type: 'string',
+      default: '${workspaceaceFolder}/.vscode-test.js',
+    },
+    testConfigurationLabel: {
+      markdownDescription: refString('extensionHost.launch.testConfigurationLabel'),
+      type: 'string',
+      default: '',
     },
   },
   defaults: extensionHostConfigDefaults,

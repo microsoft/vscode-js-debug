@@ -105,6 +105,8 @@
   "extensionHost.launch.debugWebWorkerHost": "Configures whether we should try to attach to the web worker extension host.",
   "extensionHost.launch.env.description": "Environment variables passed to the extension host.",
   "extensionHost.launch.rendererDebugOptions": "Chrome launch options used when attaching to the renderer process, with `debugWebviews` or `debugWebWorkerHost`.",
+  "extensionHost.launch.testConfiguration": "Path to a test configuration file for the [test CLI](https://code.visualstudio.com/api/working-with-extensions/testing-extension#quick-setup-the-test-cli).",
+  "extensionHost.launch.testConfigurationLabel": "A single configuration to run from the file. If not specified, you may be asked to pick.",
   "extensionHost.launch.runtimeExecutable.description": "Absolute path to VS Code.",
   "extensionHost.launch.stopOnEntry.description": "Automatically stop the extension host after launch.",
   "extensionHost.snippet.launch.description": "Launch a VS Code extension in debug mode",
