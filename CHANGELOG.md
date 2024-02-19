@@ -4,6 +4,10 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
+Nothing yet
+
+## v1.87 (February 2024)
+
 - feat: lazily announce evaluated scripts ([#1939](https://github.com/microsoft/vscode-js-debug/issues/1939))
 - feat: support running extension test CLI from launch.json ([vscode#199211](https://github.com/microsoft/vscode/issues/199211))
 - fix: support object property shorthand in logpoints ([#1788](https://github.com/microsoft/vscode-js-debug/issues/1788))
