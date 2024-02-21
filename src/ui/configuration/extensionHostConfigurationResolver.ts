@@ -67,6 +67,7 @@ export class ExtensionHostConfigurationResolver
         config.env = { ...config.env, ...testCfg.env };
         config.args = [
           ...(config.args || []),
+          ...(testCfg.config.launchArgs || []),
           `--extensionDevelopmentPath=${testCfg.extensionDevelopmentPath}`,
           `--extensionTestsPath=${testCfg.extensionTestsPath}`,
         ];
@@ -141,7 +142,7 @@ const resolveTestConfiguration = async (config: ResolvingExtensionHostConfigurat
   );
 
   const configs: {
-    config: { label?: string };
+    config: { label?: string; launchArgs?: string[] };
     extensionTestsPath: string;
     extensionDevelopmentPath: string;
     env: Record<string, string>;

@@ -967,7 +967,7 @@ const extensionHostConfig: IDebugger<IExtensionHostLaunchConfiguration> = {
     testConfiguration: {
       markdownDescription: refString('extensionHost.launch.testConfiguration'),
       type: 'string',
-      default: '${workspaceaceFolder}/.vscode-test.js',
+      default: '${workspaceFolder}/.vscode-test.js',
     },
     testConfigurationLabel: {
       markdownDescription: refString('extensionHost.launch.testConfigurationLabel'),
