@@ -4,7 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
-Nothing yet
+- fix: off-by-one error leading to invalid renames ([#1948](https://github.com/microsoft/vscode-js-debug/issues/1948))
 
 ## v1.87 (February 2024)
 

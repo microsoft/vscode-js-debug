@@ -4,7 +4,7 @@
 
 import { Position as ESTreePosition } from 'estree';
 import { Worker } from 'worker_threads';
-import { Base01Position, Base0Position, IPosition, Range } from '../positions';
+import { Base01Position, IPosition, Range } from '../positions';
 import { extractScopeRangesWithFactory } from './renameWorker';
 
 export type FlatTree = { start: ESTreePosition; end: ESTreePosition; children?: FlatTree[] };
@@ -22,8 +22,8 @@ export class ScopeNode<T> {
   public static hydrate<T>(node: FlatTree): ScopeNode<T> {
     const hydrated = new ScopeNode<T>(
       new Range(
-        new Base0Position(node.start.line, node.start.column),
-        new Base0Position(node.end.line, node.end.column),
+        new Base01Position(node.start.line, node.start.column),
+        new Base01Position(node.end.line, node.end.column),
       ),
     );
 
