@@ -117,6 +117,10 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
       return abs;
     }
 
+    // It's possible the source might be using the `sourceURL`, so apply
+    // any source map overrides now (fixes vscode#204784)
+    url = this.sourceMapOverrides.apply(url);
+
     let pathname: string;
     try {
       const parsed = new URL(url);

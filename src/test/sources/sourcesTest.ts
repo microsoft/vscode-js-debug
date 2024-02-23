@@ -222,6 +222,21 @@ describe('sources', () => {
     handle.assertLog();
   });
 
+  itIntegrates.only(
+    'applies sourcemap path mappings to sourceURLs (vscode#204784)',
+    async ({ r }) => {
+      const handle = await r.launchUrl('vscode-204784/index.html', {
+        sourceMapPathOverrides: { 'mapped://*': '${workspaceFolder}/web/vscode-204784/*' },
+        resolveSourceMapLocations: ['${workspaceFolder}/web/vscode-204784/**'],
+      });
+
+      handle.load();
+      const src = await handle.waitForSource('original');
+      handle.log(src, undefined, []);
+      handle.assertLog();
+    },
+  );
+
   itIntegrates('removes any query from node paths (#529)', async ({ r }) => {
     const handle = await r.runScript(
       join(testWorkspace, 'simpleNode', 'simpleWebpackWithQuery.js'),
