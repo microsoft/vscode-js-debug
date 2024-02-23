@@ -83,9 +83,21 @@
   "debug.terminal.program.description": "Command to run in the launched terminal. If not provided, the terminal will open without launching a program.",
   "debug.terminal.snippet.label": "Run \"npm start\" in a debug terminal",
   "debug.terminal.toggleAuto": "Toggle Terminal Node.js Auto Attach",
-  "debug.terminal.welcome": "[JavaScript Debug Terminal](command:extension.js-debug.createDebuggerTerminal)\n\nYou can use the JavaScript Debug Terminal to debug Node.js processes run on the command line.",
-  "debug.terminal.welcomeWithLink": "[JavaScript Debug Terminal](command:extension.js-debug.createDebuggerTerminal)\n\nYou can use the JavaScript Debug Terminal to debug Node.js processes run on the command line.\n\n[Debug URL](command:extension.js-debug.debugLink)",
-  "debug.unverifiedBreakpoints": "Some of your breakpoints could not be set. If you're having an issue, you can [troubleshoot your launch configuration](command:extension.js-debug.createDiagnostics).",
+  "debug.terminal.welcome": {
+    "message": "[JavaScript Debug Terminal](command:extension.js-debug.createDebuggerTerminal)\n\nYou can use the JavaScript Debug Terminal to debug Node.js processes run on the command line.",
+    "comment": ["{Locked='](command:extension.js-debug.createDebuggerTerminal)'}"]
+  },
+  "debug.terminal.welcomeWithLink": {
+    "message": "[JavaScript Debug Terminal](command:extension.js-debug.createDebuggerTerminal)\n\nYou can use the JavaScript Debug Terminal to debug Node.js processes run on the command line.\n\n[Debug URL](command:extension.js-debug.debugLink)",
+    "comment": [
+      "{Locked='](command:extension.js-debug.createDebuggerTerminal)'}",
+      "{Locked='](command:extension.js-debug.debugLink)'}"
+    ]
+  },
+  "debug.unverifiedBreakpoints": {
+    "message": "Some of your breakpoints could not be set. If you're having an issue, you can [troubleshoot your launch configuration](command:extension.js-debug.createDiagnostics).",
+    "comment": ["{Locked='](command:extension.js-debug.createDiagnostics)'}"]
+  },
   "debugLink.label": "Open Link",
   "edge.address.description": "When debugging webviews, the IP address or hostname the webview is listening on. Will be automatically discovered if not set.",
   "edge.attach.description": "Attach to an instance of Edge already in debug mode",
