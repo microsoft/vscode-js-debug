@@ -1,0 +1,8 @@
+{
+    reason : new
+    source : {
+        name : vscode-204784/src/original.js
+        path : ${workspaceFolder}/web/vscode-204784/src/original.js
+        sourceReference : 0
+    }
+}

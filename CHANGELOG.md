@@ -5,6 +5,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 ## Nightly (only)
 
 - fix: off-by-one error leading to invalid renames ([#1948](https://github.com/microsoft/vscode-js-debug/issues/1948))
+- fix: apply sourceMapPathOverrides to sourceURL scripts ([vscode#204784](https://github.com/microsoft/vscode/issues/204784))
 
 ## v1.87 (February 2024)
 
