@@ -139,7 +139,13 @@ interface IInstrumentationPauseAuxData {
 class StateQueue {
   private queue?: { operation: string; result: Promise<unknown> };
 
-  public enqueue<T>(operation: string, fn: () => Promise<T>) {
+  public async enqueue<T>(operation: string, fn: () => Promise<T>) {
+    // If we would no-op the task because it's already ongoing, make sure we flush
+    // microtasks first to avoid a race https://github.com/microsoft/vscode/issues/204581
+    if (this.queue?.operation === operation) {
+      await new Promise<void>(r => queueMicrotask(r));
+    }
+
     if (!this.queue || this.queue.operation !== operation) {
       const promise = this.queue?.result.then(fn, fn) ?? fn();
       const queued = (this.queue = {
