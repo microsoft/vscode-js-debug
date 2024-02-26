@@ -957,7 +957,6 @@ export class Thread implements IVariableStoreLocationProvider {
         // and an instrumentation pause in step out should not be possible.
         if (expectedPauseReason.direction === StepDirection.In) {
           // no-op
-          debugger;
         } else {
           return this._cdp.Debugger.resume({});
         }
