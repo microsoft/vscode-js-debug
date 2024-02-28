@@ -174,6 +174,15 @@ export function removeQueryString(url: string) {
   }
 }
 
+export function getPathName(url: string) {
+  try {
+    const parsed = new URL(url);
+    return parsed.pathname;
+  } catch {
+    return undefined;
+  }
+}
+
 // This function allows relative path to escape the root:
 // "http://example.com/foo/bar.js" + "../../baz/qux.js" => "http://example.com/../baz/qux.js"
 // This allows relative source map sources to reference outside of webRoot.
