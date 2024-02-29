@@ -143,6 +143,8 @@ interface ICDPOperationClassification {
   // Domain: FedCm
   'fedcm.dialogshown': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!fedcm.dialogshown.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  'fedcm.dialogclosed': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!fedcm.dialogclosed.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
 
   // Domain: Fetch
   'fetch.requestpaused': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
@@ -427,6 +429,10 @@ interface ICDPOperationClassification {
   '!storage.indexeddblistupdated.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   'storage.interestgroupaccessed': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!storage.interestgroupaccessed.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  'storage.interestgroupauctioneventoccurred': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!storage.interestgroupauctioneventoccurred.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  'storage.interestgroupauctionnetworkrequestcreated': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!storage.interestgroupauctionnetworkrequestcreated.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   'storage.sharedstorageaccessed': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!storage.sharedstorageaccessed.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   'storage.storagebucketcreatedorupdated': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
@@ -435,6 +441,8 @@ interface ICDPOperationClassification {
   '!storage.storagebucketdeleted.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   'storage.attributionreportingsourceregistered': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!storage.attributionreportingsourceregistered.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  'storage.attributionreportingtriggerregistered': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!storage.attributionreportingtriggerregistered.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
 
   // Domain: SystemInfo
 

@@ -137,7 +137,7 @@ export namespace Cdp {
     /**
      * Query a DOM node's accessibility subtree for accessible name and role.
      * This command computes the name and role for all nodes in the subtree, including those that are
-     * ignored for accessibility, and returns those that mactch the specified name and role. If no DOM
+     * ignored for accessibility, and returns those that match the specified name and role. If no DOM
      * node is specified, or the DOM node does not exist, the command returns an error. If neither
      * `accessibleName` or `role` is specified, it returns all the accessibility nodes in the subtree.
      */
@@ -235,7 +235,7 @@ export namespace Cdp {
 
       /**
        * The frame for whose document the AX tree should be retrieved.
-       * If omited, the root frame is used.
+       * If omitted, the root frame is used.
        */
       frameId?: Page.FrameId;
     }
@@ -976,6 +976,9 @@ export namespace Cdp {
 
       /**
        * `Animation`'s start time.
+       * Milliseconds for time based animations and
+       * percentage [0 - 100] for scroll driven animations
+       * (i.e. when viewOrScrollTimeline exists).
        */
       startTime: number;
 
@@ -999,6 +1002,45 @@ export namespace Cdp {
        * animation/transition.
        */
       cssId?: string;
+
+      /**
+       * View or scroll timeline
+       */
+      viewOrScrollTimeline?: ViewOrScrollTimeline;
+    }
+
+    /**
+     * Timeline instance
+     */
+    export interface ViewOrScrollTimeline {
+      /**
+       * Scroll container node
+       */
+      sourceNodeId?: DOM.BackendNodeId;
+
+      /**
+       * Represents the starting scroll position of the timeline
+       * as a length offset in pixels from scroll origin.
+       */
+      startOffset?: number;
+
+      /**
+       * Represents the ending scroll position of the timeline
+       * as a length offset in pixels from scroll origin.
+       */
+      endOffset?: number;
+
+      /**
+       * The element whose principal box's visibility in the
+       * scrollport defined the progress of the timeline.
+       * Does not exist for animations with ScrollTimeline
+       */
+      subjectNodeId?: DOM.BackendNodeId;
+
+      /**
+       * Orientation of the scroll
+       */
+      axis: DOM.ScrollOrientation;
     }
 
     /**
@@ -1027,6 +1069,9 @@ export namespace Cdp {
 
       /**
        * `AnimationEffect`'s iteration duration.
+       * Milliseconds for time based animations and
+       * percentage [0 - 100] for scroll driven animations
+       * (i.e. when viewOrScrollTimeline exists).
        */
       duration: number;
 
@@ -1343,6 +1388,7 @@ export namespace Cdp {
       | 'Frame'
       | 'Image'
       | 'Import'
+      | 'JSON'
       | 'Manifest'
       | 'Ping'
       | 'PluginData'
@@ -1352,6 +1398,7 @@ export namespace Cdp {
       | 'Script'
       | 'ServiceWorker'
       | 'SharedWorker'
+      | 'SpeculationRules'
       | 'Stylesheet'
       | 'Track'
       | 'Video'
@@ -1547,7 +1594,12 @@ export namespace Cdp {
       | 'InvalidRegisterOsTriggerHeader'
       | 'WebAndOsHeaders'
       | 'NoWebOrOsSupport'
-      | 'NavigationRegistrationWithoutTransientUserActivation';
+      | 'NavigationRegistrationWithoutTransientUserActivation'
+      | 'InvalidInfoHeader'
+      | 'NoRegisterSourceHeader'
+      | 'NoRegisterTriggerHeader'
+      | 'NoRegisterOsSourceHeader'
+      | 'NoRegisterOsTriggerHeader';
 
     /**
      * Details for issues around "Attribution Reporting API" usage.
@@ -2084,7 +2136,7 @@ export namespace Cdp {
      */
     export interface AddressUI {
       /**
-       * A two dimension array containing the repesentation of values from an address profile.
+       * A two dimension array containing the representation of values from an address profile.
        */
       addressFields: AddressFields[];
     }
@@ -2124,6 +2176,16 @@ export namespace Cdp {
        * The filling strategy
        */
       fillingStrategy: FillingStrategy;
+
+      /**
+       * The frame the field belongs to
+       */
+      frameId: Page.FrameId;
+
+      /**
+       * The form field's DOM node
+       */
+      fieldId: DOM.BackendNodeId;
     }
   }
 
@@ -2531,7 +2593,7 @@ export namespace Cdp {
       /**
        * Whether to allow all or deny all download requests, or use default Chrome behavior if
        * available (otherwise deny). |allowAndName| allows download and names files according to
-       * their dowmload guids.
+       * their download guids.
        */
       behavior: 'deny' | 'allow' | 'allowAndName' | 'default';
 
@@ -2912,6 +2974,7 @@ export namespace Cdp {
       | 'audioCapture'
       | 'backgroundSync'
       | 'backgroundFetch'
+      | 'capturedSurfaceControl'
       | 'clipboardReadWrite'
       | 'clipboardSanitizedWrite'
       | 'displayCapture'
@@ -2929,6 +2992,7 @@ export namespace Cdp {
       | 'protectedMediaIdentifier'
       | 'sensors'
       | 'storageAccess'
+      | 'speakerSelection'
       | 'topLevelStorageAccess'
       | 'videoCapture'
       | 'videoCapturePanTiltZoom'
@@ -3859,6 +3923,13 @@ export namespace Cdp {
        * Text position of a new rule in the target style sheet.
        */
       location: SourceRange;
+
+      /**
+       * NodeId for the DOM node in whose context custom property declarations for registered properties should be
+       * validated. If omitted, declarations in the new rule text can only be validated statically, which may produce
+       * incorrect results if the declaration contains a var() for example.
+       */
+      nodeForPropertySyntaxValidation?: DOM.NodeId;
     }
 
     /**
@@ -4082,6 +4153,11 @@ export namespace Cdp {
        * A list of CSS property registrations matching this node.
        */
       cssPropertyRegistrations?: CSSPropertyRegistration[];
+
+      /**
+       * A font-palette-values rule matching this node.
+       */
+      cssFontPaletteValuesRule?: CSSFontPaletteValuesRule;
 
       /**
        * Id of the first parent element that does not have display: contents.
@@ -4366,6 +4442,13 @@ export namespace Cdp {
      */
     export interface SetStyleTextsParams {
       edits: StyleDeclarationEdit[];
+
+      /**
+       * NodeId for the DOM node in whose context custom property declarations for registered properties should be
+       * validated. If omitted, declarations in the new rule text can only be validated statically, which may produce
+       * incorrect results if the declaration contains a var() for example.
+       */
+      nodeForPropertySyntaxValidation?: DOM.NodeId;
     }
 
     /**
@@ -4616,7 +4699,7 @@ export namespace Cdp {
 
       /**
        * Stylesheet resource URL. Empty if this is a constructed stylesheet created using
-       * new CSSStyleSheet() (but non-empty if this is a constructed sylesheet imported
+       * new CSSStyleSheet() (but non-empty if this is a constructed stylesheet imported
        * as a CSS module script).
        */
       sourceURL: string;
@@ -5161,6 +5244,11 @@ export namespace Cdp {
       familyName: string;
 
       /**
+       * Font's PostScript name reported by platform.
+       */
+      postScriptName: string;
+
+      /**
        * Indicates if the font was downloaded or resolved locally.
        */
       isCustomFont: boolean;
@@ -5316,6 +5404,32 @@ export namespace Cdp {
       inherits: boolean;
 
       syntax: string;
+    }
+
+    /**
+     * CSS font-palette-values rule representation.
+     */
+    export interface CSSFontPaletteValuesRule {
+      /**
+       * The css style sheet identifier (absent for user agent stylesheet and user-specified
+       * stylesheet rules) this rule came from.
+       */
+      styleSheetId?: StyleSheetId;
+
+      /**
+       * Parent stylesheet's origin.
+       */
+      origin: StyleSheetOrigin;
+
+      /**
+       * Associated font palette name.
+       */
+      fontPaletteName: Value;
+
+      /**
+       * Associated style declaration.
+       */
+      style: CSSStyle;
     }
 
     /**
@@ -7879,7 +7993,7 @@ export namespace Cdp {
      */
     export interface GetAttributesParams {
       /**
-       * Id of the node to retrieve attibutes for.
+       * Id of the node to retrieve attributes for.
        */
       nodeId: NodeId;
     }
@@ -9073,6 +9187,11 @@ export namespace Cdp {
      * ContainerSelector logical axes
      */
     export type LogicalAxes = 'Inline' | 'Block' | 'Both';
+
+    /**
+     * Physical scroll orientation
+     */
+    export type ScrollOrientation = 'horizontal' | 'vertical';
 
     /**
      * DOM interaction is implemented in terms of mirror objects that represent the actual DOM nodes.
@@ -10676,6 +10795,7 @@ export namespace Cdp {
   export interface EmulationApi {
     /**
      * Tells whether emulation is supported.
+     * @deprecated
      */
     canEmulate(params: Emulation.CanEmulateParams): Promise<Emulation.CanEmulateResult | undefined>;
 
@@ -10788,7 +10908,7 @@ export namespace Cdp {
     ): Promise<Emulation.SetSensorOverrideEnabledResult | undefined>;
 
     /**
-     * Updates the sensor readings reported by a sensor type previously overriden
+     * Updates the sensor readings reported by a sensor type previously overridden
      * by setSensorOverrideEnabled.
      */
     setSensorOverrideReadings(
@@ -10880,6 +11000,7 @@ export namespace Cdp {
 
     /**
      * Allows overriding user agent with the given string.
+     * `userAgentMetadata` must be set for Client Hint headers to be sent.
      */
     setUserAgentOverride(
       params: Emulation.SetUserAgentOverrideParams,
@@ -11083,6 +11204,12 @@ export namespace Cdp {
        * is turned-off.
        */
       displayFeature?: DisplayFeature;
+
+      /**
+       * If set, the posture of a foldable device. If not set the posture is set
+       * to continuous.
+       */
+      devicePosture?: DevicePosture;
     }
 
     /**
@@ -11402,8 +11529,9 @@ export namespace Cdp {
      */
     export interface SetTimezoneOverrideParams {
       /**
-       * The timezone identifier. If empty, disables the override and
-       * restores default host system timezone.
+       * The timezone identifier. List of supported timezones:
+       * https://source.chromium.org/chromium/chromium/deps/icu.git/+/faee8bc70570192d82d2978a71e2a615788597d1:source/data/misc/metaZones.txt
+       * If empty, disables the override and restores default host system timezone.
        */
       timezoneId: string;
     }
@@ -11473,7 +11601,7 @@ export namespace Cdp {
       userAgent: string;
 
       /**
-       * Browser langugage to emulate.
+       * Browser language to emulate.
        */
       acceptLanguage?: string;
 
@@ -11548,6 +11676,13 @@ export namespace Cdp {
       maskLength: integer;
     }
 
+    export interface DevicePosture {
+      /**
+       * Current posture of the device
+       */
+      type: 'continuous' | 'folded';
+    }
+
     export interface MediaFeature {
       name: string;
 
@@ -11563,7 +11698,7 @@ export namespace Cdp {
     export type VirtualTimePolicy = 'advance' | 'pause' | 'pauseIfNetworkFetchesPending';
 
     /**
-     * Used to specify User Agent Cient Hints to emulate. See https://wicg.github.io/ua-client-hints
+     * Used to specify User Agent Client Hints to emulate. See https://wicg.github.io/ua-client-hints
      */
     export interface UserAgentBrandVersion {
       brand: string;
@@ -11572,7 +11707,7 @@ export namespace Cdp {
     }
 
     /**
-     * Used to specify User Agent Cient Hints to emulate. See https://wicg.github.io/ua-client-hints
+     * Used to specify User Agent Client Hints to emulate. See https://wicg.github.io/ua-client-hints
      * Missing optional values will be filled in by the target with what it would normally use.
      */
     export interface UserAgentMetadata {
@@ -11749,13 +11884,11 @@ export namespace Cdp {
       params: FedCm.SelectAccountParams,
     ): Promise<FedCm.SelectAccountResult | undefined>;
 
-    /**
-     * Only valid if the dialog type is ConfirmIdpLogin. Acts as if the user had
-     * clicked the continue button.
-     */
-    confirmIdpLogin(
-      params: FedCm.ConfirmIdpLoginParams,
-    ): Promise<FedCm.ConfirmIdpLoginResult | undefined>;
+    clickDialogButton(
+      params: FedCm.ClickDialogButtonParams,
+    ): Promise<FedCm.ClickDialogButtonResult | undefined>;
+
+    openUrl(params: FedCm.OpenUrlParams): Promise<FedCm.OpenUrlResult | undefined>;
 
     dismissDialog(
       params: FedCm.DismissDialogParams,
@@ -11770,6 +11903,12 @@ export namespace Cdp {
     ): Promise<FedCm.ResetCooldownResult | undefined>;
 
     on(event: 'dialogShown', listener: (event: FedCm.DialogShownEvent) => void): IDisposable;
+
+    /**
+     * Triggered when a dialog is closed, either by user action, JS abort,
+     * or a command below.
+     */
+    on(event: 'dialogClosed', listener: (event: FedCm.DialogClosedEvent) => void): IDisposable;
   }
 
   /**
@@ -11818,16 +11957,34 @@ export namespace Cdp {
     export interface SelectAccountResult {}
 
     /**
-     * Parameters of the 'FedCm.confirmIdpLogin' method.
+     * Parameters of the 'FedCm.clickDialogButton' method.
      */
-    export interface ConfirmIdpLoginParams {
+    export interface ClickDialogButtonParams {
       dialogId: string;
+
+      dialogButton: DialogButton;
     }
 
     /**
-     * Return value of the 'FedCm.confirmIdpLogin' method.
+     * Return value of the 'FedCm.clickDialogButton' method.
      */
-    export interface ConfirmIdpLoginResult {}
+    export interface ClickDialogButtonResult {}
+
+    /**
+     * Parameters of the 'FedCm.openUrl' method.
+     */
+    export interface OpenUrlParams {
+      dialogId: string;
+
+      accountIndex: integer;
+
+      accountUrlType: AccountUrlType;
+    }
+
+    /**
+     * Return value of the 'FedCm.openUrl' method.
+     */
+    export interface OpenUrlResult {}
 
     /**
      * Parameters of the 'FedCm.dismissDialog' method.
@@ -11873,15 +12030,32 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'FedCm.dialogClosed' event.
+     */
+    export interface DialogClosedEvent {
+      dialogId: string;
+    }
+
+    /**
      * Whether this is a sign-up or sign-in action for this account, i.e.
      * whether this account has ever been used to sign in to this RP before.
      */
     export type LoginState = 'SignIn' | 'SignUp';
 
     /**
-     * Whether the dialog shown is an account chooser or an auto re-authentication dialog.
+     * The types of FedCM dialogs.
      */
-    export type DialogType = 'AccountChooser' | 'AutoReauthn' | 'ConfirmIdpLogin';
+    export type DialogType = 'AccountChooser' | 'AutoReauthn' | 'ConfirmIdpLogin' | 'Error';
+
+    /**
+     * The buttons on the FedCM dialog.
+     */
+    export type DialogButton = 'ConfirmIdpLoginContinue' | 'ErrorGotIt' | 'ErrorMoreDetails';
+
+    /**
+     * The URLs that each account has
+     */
+    export type AccountUrlType = 'TermsOfService' | 'PrivacyPolicy';
 
     /**
      * Corresponds to IdentityRequestAccount
@@ -13549,7 +13723,7 @@ export namespace Cdp {
     insertText(params: Input.InsertTextParams): Promise<Input.InsertTextResult | undefined>;
 
     /**
-     * This method sets the current candidate text for ime.
+     * This method sets the current candidate text for IME.
      * Use imeCommitComposition to commit the final text.
      * Use imeSetComposition with empty string as text to cancel composition.
      */
@@ -14419,7 +14593,7 @@ export namespace Cdp {
       handle: StreamHandle;
 
       /**
-       * Seek to the specified offset before reading (if not specificed, proceed with offset
+       * Seek to the specified offset before reading (if not specified, proceed with offset
        * following the last read). Some types of streams may only support sequential reads.
        */
       offset?: integer;
@@ -14791,7 +14965,7 @@ export namespace Cdp {
      */
     export interface LayerTreeDidChangeEvent {
       /**
-       * Layer tree, absent if not in the comspositing mode.
+       * Layer tree, absent if not in the compositing mode.
        */
       layers?: Layer[];
     }
@@ -15705,7 +15879,7 @@ export namespace Cdp {
     ): Promise<Network.ContinueInterceptedRequestResult | undefined>;
 
     /**
-     * Deletes browser cookies with matching name and url or domain/path pair.
+     * Deletes browser cookies with matching name and url or domain/path/partitionKey pair.
      */
     deleteCookies(
       params: Network.DeleteCookiesParams,
@@ -15856,6 +16030,14 @@ export namespace Cdp {
     setUserAgentOverride(
       params: Network.SetUserAgentOverrideParams,
     ): Promise<Network.SetUserAgentOverrideResult | undefined>;
+
+    /**
+     * Enables streaming of the response for the given requestId.
+     * If enabled, the dataReceived event contains the data that was received during streaming.
+     */
+    streamResourceContent(
+      params: Network.StreamResourceContentParams,
+    ): Promise<Network.StreamResourceContentResult | undefined>;
 
     /**
      * Returns information about the COEP/COOP isolation status.
@@ -16293,6 +16475,12 @@ export namespace Cdp {
        * If specified, deletes only cookies with the exact path.
        */
       path?: string;
+
+      /**
+       * If specified, deletes only cookies with the the given name and partitionKey where domain
+       * matches provided URL.
+       */
+      partitionKey?: string;
     }
 
     /**
@@ -16765,7 +16953,7 @@ export namespace Cdp {
       userAgent: string;
 
       /**
-       * Browser langugage to emulate.
+       * Browser language to emulate.
        */
       acceptLanguage?: string;
 
@@ -16784,6 +16972,26 @@ export namespace Cdp {
      * Return value of the 'Network.setUserAgentOverride' method.
      */
     export interface SetUserAgentOverrideResult {}
+
+    /**
+     * Parameters of the 'Network.streamResourceContent' method.
+     */
+    export interface StreamResourceContentParams {
+      /**
+       * Identifier of the request to stream.
+       */
+      requestId: RequestId;
+    }
+
+    /**
+     * Return value of the 'Network.streamResourceContent' method.
+     */
+    export interface StreamResourceContentResult {
+      /**
+       * Data that has been buffered until streaming is enabled. (Encoded as a base64 string when passed over JSON)
+       */
+      bufferedData: string;
+    }
 
     /**
      * Parameters of the 'Network.getSecurityIsolationStatus' method.
@@ -16868,6 +17076,11 @@ export namespace Cdp {
        * Actual bytes received (might be less than dataLength for compressed encodings).
        */
       encodedDataLength: integer;
+
+      /**
+       * Data that was received. (Encoded as a base64 string when passed over JSON)
+       */
+      data?: string;
     }
 
     /**
@@ -16920,7 +17133,7 @@ export namespace Cdp {
       type: ResourceType;
 
       /**
-       * User friendly error message.
+       * Error message. List of network errors: https://cs.chromium.org/chromium/src/net/base/net_error_list.h
        */
       errorText: string;
 
@@ -17389,9 +17602,9 @@ export namespace Cdp {
 
       /**
        * A list of cookies potentially associated to the requested URL. This includes both cookies sent with
-       * the request and the ones not sent; the latter are distinguished by having blockedReason field set.
+       * the request and the ones not sent; the latter are distinguished by having blockedReasons field set.
        */
-      associatedCookies: BlockedCookieWithReason[];
+      associatedCookies: AssociatedCookie[];
 
       /**
        * Raw request headers as they will be sent over the wire.
@@ -17461,9 +17674,15 @@ export namespace Cdp {
       cookiePartitionKey?: string;
 
       /**
-       * True if partitioned cookies are enabled, but the partition key is not serializeable to string.
+       * True if partitioned cookies are enabled, but the partition key is not serializable to string.
        */
       cookiePartitionKeyOpaque?: boolean;
+
+      /**
+       * A list of cookies which should have been blocked by 3PCD but are exempted and stored from
+       * the response with the corresponding reason.
+       */
+      exemptedCookies?: ExemptedSetCookieWithReason[];
     }
 
     /**
@@ -17910,7 +18129,7 @@ export namespace Cdp {
 
       /**
        * True if this resource request is considered to be the 'same site' as the
-       * request correspondinfg to the main frame.
+       * request corresponding to the main frame.
        */
       isSameSite?: boolean;
     }
@@ -18156,6 +18375,21 @@ export namespace Cdp {
       | 'unspecifiedReason';
 
     /**
+     * Source of service worker router.
+     */
+    export type ServiceWorkerRouterSource =
+      | 'network'
+      | 'cache'
+      | 'fetch-event'
+      | 'race-network-and-fetch-handler';
+
+    export interface ServiceWorkerRouterInfo {
+      ruleIdMatched: integer;
+
+      matchedSourceType: ServiceWorkerRouterSource;
+    }
+
+    /**
      * HTTP response data.
      */
     export interface Response {
@@ -18189,6 +18423,11 @@ export namespace Cdp {
        * Resource mimeType as determined by the browser.
        */
       mimeType: string;
+
+      /**
+       * Resource charset as determined by the browser (if applicable).
+       */
+      charset: string;
 
       /**
        * Refined HTTP request headers that were actually transmitted over the network.
@@ -18235,6 +18474,11 @@ export namespace Cdp {
        * Specifies that the request was served from the prefetch cache.
        */
       fromPrefetchCache?: boolean;
+
+      /**
+       * Information about how Service Worker Static Router was used.
+       */
+      serviceWorkerRouterInfo?: ServiceWorkerRouterInfo;
 
       /**
        * Total number of bytes received for this request so far.
@@ -18472,6 +18716,7 @@ export namespace Cdp {
 
       /**
        * True if cookie is SameParty.
+       * @deprecated
        */
       sameParty: boolean;
 
@@ -18548,6 +18793,20 @@ export namespace Cdp {
       | 'NameValuePairExceedsMaxSize';
 
     /**
+     * Types of reasons why a cookie should have been blocked by 3PCD but is exempted for the request.
+     */
+    export type CookieExemptionReason =
+      | 'None'
+      | 'UserSetting'
+      | 'TPCDMetadata'
+      | 'TPCDDeprecationTrial'
+      | 'TPCDHeuristics'
+      | 'EnterprisePolicy'
+      | 'StorageAccess'
+      | 'TopLevelStorageAccess'
+      | 'CorsOptIn';
+
+    /**
      * A cookie which was not stored from a response with the corresponding reason.
      */
     export interface BlockedSetCookieWithReason {
@@ -18571,18 +18830,41 @@ export namespace Cdp {
     }
 
     /**
-     * A cookie with was not sent with a request with the corresponding reason.
+     * A cookie should have been blocked by 3PCD but is exempted and stored from a response with the
+     * corresponding reason. A cookie could only have at most one exemption reason.
      */
-    export interface BlockedCookieWithReason {
+    export interface ExemptedSetCookieWithReason {
       /**
-       * The reason(s) the cookie was blocked.
+       * The reason the cookie was exempted.
        */
-      blockedReasons: CookieBlockedReason[];
+      exemptionReason: CookieExemptionReason;
 
+      /**
+       * The cookie object representing the cookie.
+       */
+      cookie: Cookie;
+    }
+
+    /**
+     * A cookie associated with the request which may or may not be sent with it.
+     * Includes the cookies itself and reasons for blocking or exemption.
+     */
+    export interface AssociatedCookie {
       /**
        * The cookie object representing the cookie which was not sent.
        */
       cookie: Cookie;
+
+      /**
+       * The reason(s) the cookie was blocked. If empty means the cookie is included.
+       */
+      blockedReasons: CookieBlockedReason[];
+
+      /**
+       * The reason the cookie should have been blocked by 3PCD but is exempted. A cookie could
+       * only have at most one exemption reason.
+       */
+      exemptionReason?: CookieExemptionReason;
     }
 
     /**
@@ -18874,7 +19156,7 @@ export namespace Cdp {
       securityDetails?: SecurityDetails;
 
       /**
-       * Errors occurred while handling the signed exchagne.
+       * Errors occurred while handling the signed exchange.
        */
       errors?: SignedExchangeError[];
     }
@@ -19416,8 +19698,8 @@ export namespace Cdp {
 
     /**
      * Highlights owner element of the frame with given id.
-     * Deprecated: Doesn't work reliablity and cannot be fixed due to process
-     * separatation (the owner node might be in a different process). Determine
+     * Deprecated: Doesn't work reliably and cannot be fixed due to process
+     * separation (the owner node might be in a different process). Determine
      * the owner node in the client and use highlightNode.
      * @deprecated
      */
@@ -20184,7 +20466,7 @@ export namespace Cdp {
      */
     export interface SourceOrderConfig {
       /**
-       * the color to outline the givent element in.
+       * the color to outline the given element in.
        */
       parentOutlineColor: DOM.RGBA;
 
@@ -20591,7 +20873,7 @@ export namespace Cdp {
       showCSS: boolean;
 
       /**
-       * Seleted platforms to show the overlay.
+       * Selected platforms to show the overlay.
        */
       selectedPlatform: string;
 
@@ -20771,14 +21053,6 @@ export namespace Cdp {
     getAppId(params: Page.GetAppIdParams): Promise<Page.GetAppIdResult | undefined>;
 
     getAdScriptId(params: Page.GetAdScriptIdParams): Promise<Page.GetAdScriptIdResult | undefined>;
-
-    /**
-     * Returns all browser cookies for the page and all of its subframes. Depending
-     * on the backend support, will return detailed cookie information in the
-     * `cookies` field.
-     * @deprecated
-     */
-    getCookies(params: Page.GetCookiesParams): Promise<Page.GetCookiesResult | undefined>;
 
     /**
      * Returns present frame tree structure.
@@ -21013,7 +21287,7 @@ export namespace Cdp {
 
     /**
      * Requests backend to produce compilation cache for the specified scripts.
-     * `scripts` are appeneded to the list of scripts for which the cache
+     * `scripts` are appended to the list of scripts for which the cache
      * would be produced. The list may be reset during page navigation.
      * When script with a matching URL is encountered, the cache is optionally
      * produced upon backend discretion, based on internal heuristics.
@@ -21600,21 +21874,6 @@ export namespace Cdp {
     }
 
     /**
-     * Parameters of the 'Page.getCookies' method.
-     */
-    export interface GetCookiesParams {}
-
-    /**
-     * Return value of the 'Page.getCookies' method.
-     */
-    export interface GetCookiesResult {
-      /**
-       * Array of cookie objects.
-       */
-      cookies: Network.Cookie[];
-    }
-
-    /**
      * Parameters of the 'Page.getFrameTree' method.
      */
     export interface GetFrameTreeParams {}
@@ -21933,6 +22192,11 @@ export namespace Cdp {
        * Whether or not to generate tagged (accessible) PDF. Defaults to embedder choice.
        */
       generateTaggedPDF?: boolean;
+
+      /**
+       * Whether or not to embed the document outline into the PDF.
+       */
+      generateDocumentOutline?: boolean;
     }
 
     /**
@@ -22845,7 +23109,7 @@ export namespace Cdp {
      */
     export interface BackForwardCacheNotUsedEvent {
       /**
-       * The loader id for the associated navgation.
+       * The loader id for the associated navigation.
        */
       loaderId: Network.LoaderId;
 
@@ -23027,6 +23291,7 @@ export namespace Cdp {
       | 'bluetooth'
       | 'browsing-topics'
       | 'camera'
+      | 'captured-surface-control'
       | 'ch-dpr'
       | 'ch-device-memory'
       | 'ch-downlink'
@@ -23082,6 +23347,7 @@ export namespace Cdp {
       | 'private-aggregation'
       | 'private-state-token-issuance'
       | 'private-state-token-redemption'
+      | 'publickey-credentials-create'
       | 'publickey-credentials-get'
       | 'run-ad-auction'
       | 'screen-wake-lock'
@@ -23090,10 +23356,13 @@ export namespace Cdp {
       | 'shared-storage'
       | 'shared-storage-select-url'
       | 'smart-card'
+      | 'speaker-selection'
       | 'storage-access'
+      | 'sub-apps'
       | 'sync-xhr'
       | 'unload'
       | 'usb'
+      | 'usb-unrestricted'
       | 'vertical-scroll'
       | 'web-printing'
       | 'web-share'
@@ -23448,7 +23717,7 @@ export namespace Cdp {
       message: string;
 
       /**
-       * If criticial, this is a non-recoverable parse error.
+       * If critical, this is a non-recoverable parse error.
        */
       critical: integer;
 
@@ -23712,7 +23981,7 @@ export namespace Cdp {
     }
 
     /**
-     * Enum of possible auto-reponse for permisison / prompt dialogs.
+     * Enum of possible auto-response for permission / prompt dialogs.
      */
     export type AutoResponseMode = 'none' | 'autoAccept' | 'autoReject' | 'autoOptOut';
 
@@ -23790,7 +24059,6 @@ export namespace Cdp {
       | 'SubresourceHasCacheControlNoCache'
       | 'ContainsPlugins'
       | 'DocumentLoaded'
-      | 'DedicatedWorkerOrWorklet'
       | 'OutstandingNetworkRequestOthers'
       | 'RequestedMIDIPermission'
       | 'RequestedAudioCapturePermission'
@@ -23828,6 +24096,10 @@ export namespace Cdp {
       | 'WebRTCSticky'
       | 'WebTransportSticky'
       | 'WebSocketSticky'
+      | 'SmartCard'
+      | 'LiveMediaStreamTrack'
+      | 'UnloadHandler'
+      | 'ParserAborted'
       | 'ContentSecurityHandler'
       | 'ContentWebAuthenticationAPI'
       | 'ContentFileChooser'
@@ -24159,7 +24431,7 @@ export namespace Cdp {
 
       /**
        * The event type, as specified in https://w3c.github.io/performance-timeline/#dom-performanceentry-entrytype
-       * This determines which of the optional "details" fiedls is present.
+       * This determines which of the optional "details" fields is present.
        */
       type: string;
 
@@ -24435,7 +24707,7 @@ export namespace Cdp {
      * that had a speculation rule that triggered the attempt, and the
      * BackendNodeIds of <a href> or <area href> elements that triggered the
      * attempt (in the case of attempts triggered by a document rule). It is
-     * possible for mulitple rule sets and links to trigger a single attempt.
+     * possible for multiple rule sets and links to trigger a single attempt.
      */
     export interface PreloadingAttemptSource {
       key: PreloadingAttemptKey;
@@ -24539,7 +24811,8 @@ export namespace Cdp {
       | 'PrefetchFailedNetError'
       | 'PrefetchFailedNon2XX'
       | 'PrefetchFailedPerPageLimitExceeded'
-      | 'PrefetchEvicted'
+      | 'PrefetchEvictedAfterCandidateRemoved'
+      | 'PrefetchEvictedForNewerPrefetch'
       | 'PrefetchHeldback'
       | 'PrefetchIneligibleRetryAfter'
       | 'PrefetchIsPrivacyDecoy'
@@ -26970,7 +27243,7 @@ export namespace Cdp {
       certificateNetworkError?: string;
 
       /**
-       * True if the certificate uses a weak signature aglorithm.
+       * True if the certificate uses a weak signature algorithm.
        */
       certificateHasWeakSignature: boolean;
 
@@ -27605,6 +27878,14 @@ export namespace Cdp {
     ): Promise<Storage.SetInterestGroupTrackingResult | undefined>;
 
     /**
+     * Enables/Disables issuing of interestGroupAuctionEventOccurred and
+     * interestGroupAuctionNetworkRequestCreated.
+     */
+    setInterestGroupAuctionTracking(
+      params: Storage.SetInterestGroupAuctionTrackingParams,
+    ): Promise<Storage.SetInterestGroupAuctionTrackingResult | undefined>;
+
+    /**
      * Gets metadata for an origin's shared storage.
      */
     getSharedStorageMetadata(
@@ -27721,11 +28002,32 @@ export namespace Cdp {
     ): IDisposable;
 
     /**
-     * One of the interest groups was accessed by the associated page.
+     * One of the interest groups was accessed. Note that these events are global
+     * to all targets sharing an interest group store.
      */
     on(
       event: 'interestGroupAccessed',
       listener: (event: Storage.InterestGroupAccessedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * An auction involving interest groups is taking place. These events are
+     * target-specific.
+     */
+    on(
+      event: 'interestGroupAuctionEventOccurred',
+      listener: (event: Storage.InterestGroupAuctionEventOccurredEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Specifies which auctions a particular network fetch may be related to, and
+     * in what role. Note that it is not ordered with respect to
+     * Network.requestWillBeSent (but will happen before loadingFinished
+     * loadingFailed).
+     */
+    on(
+      event: 'interestGroupAuctionNetworkRequestCreated',
+      listener: (event: Storage.InterestGroupAuctionNetworkRequestCreatedEvent) => void,
     ): IDisposable;
 
     /**
@@ -27747,13 +28049,14 @@ export namespace Cdp {
       listener: (event: Storage.StorageBucketDeletedEvent) => void,
     ): IDisposable;
 
-    /**
-     * TODO(crbug.com/1458532): Add other Attribution Reporting events, e.g.
-     * trigger registration.
-     */
     on(
       event: 'attributionReportingSourceRegistered',
       listener: (event: Storage.AttributionReportingSourceRegisteredEvent) => void,
+    ): IDisposable;
+
+    on(
+      event: 'attributionReportingTriggerRegistered',
+      listener: (event: Storage.AttributionReportingTriggerRegisteredEvent) => void,
     ): IDisposable;
   }
 
@@ -28109,6 +28412,18 @@ export namespace Cdp {
     export interface SetInterestGroupTrackingResult {}
 
     /**
+     * Parameters of the 'Storage.setInterestGroupAuctionTracking' method.
+     */
+    export interface SetInterestGroupAuctionTrackingParams {
+      enable: boolean;
+    }
+
+    /**
+     * Return value of the 'Storage.setInterestGroupAuctionTracking' method.
+     */
+    export interface SetInterestGroupAuctionTrackingResult {}
+
+    /**
      * Parameters of the 'Storage.getSharedStorageMetadata' method.
      */
     export interface GetSharedStorageMetadataParams {
@@ -28379,6 +28694,61 @@ export namespace Cdp {
       ownerOrigin: string;
 
       name: string;
+
+      /**
+       * For topLevelBid/topLevelAdditionalBid, and when appropriate,
+       * win and additionalBidWin
+       */
+      componentSellerOrigin?: string;
+
+      /**
+       * For bid or somethingBid event, if done locally and not on a server.
+       */
+      bid?: number;
+
+      bidCurrency?: string;
+
+      /**
+       * For non-global events --- links to interestGroupAuctionEvent
+       */
+      uniqueAuctionId?: InterestGroupAuctionId;
+    }
+
+    /**
+     * Parameters of the 'Storage.interestGroupAuctionEventOccurred' event.
+     */
+    export interface InterestGroupAuctionEventOccurredEvent {
+      eventTime: Network.TimeSinceEpoch;
+
+      type: InterestGroupAuctionEventType;
+
+      uniqueAuctionId: InterestGroupAuctionId;
+
+      /**
+       * Set for child auctions.
+       */
+      parentAuctionId?: InterestGroupAuctionId;
+
+      /**
+       * Set for started and configResolved
+       */
+      auctionConfig?: any;
+    }
+
+    /**
+     * Parameters of the 'Storage.interestGroupAuctionNetworkRequestCreated' event.
+     */
+    export interface InterestGroupAuctionNetworkRequestCreatedEvent {
+      type: InterestGroupAuctionFetchType;
+
+      requestId: Network.RequestId;
+
+      /**
+       * This is the set of the auctions using the worklet that issued this
+       * request.  In the case of trusted signals, it's possible that only some of
+       * them actually care about the keys being queried.
+       */
+      auctions: InterestGroupAuctionId[];
     }
 
     /**
@@ -28406,7 +28776,7 @@ export namespace Cdp {
       ownerOrigin: string;
 
       /**
-       * The sub-parameters warapped by `params` are all optional and their
+       * The sub-parameters wrapped by `params` are all optional and their
        * presence/absence depends on `type`.
        */
       params: SharedStorageAccessParams;
@@ -28433,6 +28803,17 @@ export namespace Cdp {
       registration: AttributionReportingSourceRegistration;
 
       result: AttributionReportingSourceRegistrationResult;
+    }
+
+    /**
+     * Parameters of the 'Storage.attributionReportingTriggerRegistered' event.
+     */
+    export interface AttributionReportingTriggerRegisteredEvent {
+      registration: AttributionReportingTriggerRegistration;
+
+      eventLevel: AttributionReportingEventLevelResult;
+
+      aggregatable: AttributionReportingAggregatableResult;
     }
 
     export type SerializedStorageKey = string;
@@ -28482,6 +28863,11 @@ export namespace Cdp {
     }
 
     /**
+     * Protected audience interest group auction identifier.
+     */
+    export type InterestGroupAuctionId = string;
+
+    /**
      * Enum of interest group access types.
      */
     export type InterestGroupAccessType =
@@ -28493,7 +28879,24 @@ export namespace Cdp {
       | 'win'
       | 'additionalBid'
       | 'additionalBidWin'
+      | 'topLevelBid'
+      | 'topLevelAdditionalBid'
       | 'clear';
+
+    /**
+     * Enum of auction events.
+     */
+    export type InterestGroupAuctionEventType = 'started' | 'configResolved';
+
+    /**
+     * Enum of network fetches auctions can do.
+     */
+    export type InterestGroupAuctionFetchType =
+      | 'bidderJs'
+      | 'bidderWasm'
+      | 'sellerJs'
+      | 'bidderTrustedSignals'
+      | 'sellerTrustedSignals';
 
     /**
      * Ad advertising element inside an interest group.
@@ -28567,11 +28970,26 @@ export namespace Cdp {
      * Details for an origin's shared storage.
      */
     export interface SharedStorageMetadata {
+      /**
+       * Time when the origin's shared storage was last created.
+       */
       creationTime: Network.TimeSinceEpoch;
 
+      /**
+       * Number of key-value pairs stored in origin's shared storage.
+       */
       length: integer;
 
+      /**
+       * Current amount of bits of entropy remaining in the navigation budget.
+       */
       remainingBudget: number;
+
+      /**
+       * Total number of bytes stored as key-value pairs in origin's shared
+       * storage.
+       */
+      bytesUsed: integer;
     }
 
     /**
@@ -28700,6 +29118,21 @@ export namespace Cdp {
       values: string[];
     }
 
+    export interface AttributionReportingFilterConfig {
+      filterValues: AttributionReportingFilterDataEntry[];
+
+      /**
+       * duration in seconds
+       */
+      lookbackWindow?: integer;
+    }
+
+    export interface AttributionReportingFilterPair {
+      filters: AttributionReportingFilterConfig[];
+
+      notFilters: AttributionReportingFilterConfig[];
+    }
+
     export interface AttributionReportingAggregationKeysEntry {
       key: string;
 
@@ -28779,6 +29212,107 @@ export namespace Cdp {
       | 'destinationBothLimitsReached'
       | 'reportingOriginsPerSiteLimitReached'
       | 'exceedsMaxChannelCapacity';
+
+    export type AttributionReportingSourceRegistrationTimeConfig = 'include' | 'exclude';
+
+    export interface AttributionReportingAggregatableValueDictEntry {
+      key: string;
+
+      /**
+       * number instead of integer because not all uint32 can be represented by
+       * int
+       */
+      value: number;
+    }
+
+    export interface AttributionReportingAggregatableValueEntry {
+      values: AttributionReportingAggregatableValueDictEntry[];
+
+      filters: AttributionReportingFilterPair;
+    }
+
+    export interface AttributionReportingEventTriggerData {
+      data: UnsignedInt64AsBase10;
+
+      priority: SignedInt64AsBase10;
+
+      dedupKey?: UnsignedInt64AsBase10;
+
+      filters: AttributionReportingFilterPair;
+    }
+
+    export interface AttributionReportingAggregatableTriggerData {
+      keyPiece: UnsignedInt128AsBase16;
+
+      sourceKeys: string[];
+
+      filters: AttributionReportingFilterPair;
+    }
+
+    export interface AttributionReportingAggregatableDedupKey {
+      dedupKey?: UnsignedInt64AsBase10;
+
+      filters: AttributionReportingFilterPair;
+    }
+
+    export interface AttributionReportingTriggerRegistration {
+      filters: AttributionReportingFilterPair;
+
+      debugKey?: UnsignedInt64AsBase10;
+
+      aggregatableDedupKeys: AttributionReportingAggregatableDedupKey[];
+
+      eventTriggerData: AttributionReportingEventTriggerData[];
+
+      aggregatableTriggerData: AttributionReportingAggregatableTriggerData[];
+
+      aggregatableValues: AttributionReportingAggregatableValueEntry[];
+
+      debugReporting: boolean;
+
+      aggregationCoordinatorOrigin?: string;
+
+      sourceRegistrationTimeConfig: AttributionReportingSourceRegistrationTimeConfig;
+
+      triggerContextId?: string;
+    }
+
+    export type AttributionReportingEventLevelResult =
+      | 'success'
+      | 'successDroppedLowerPriority'
+      | 'internalError'
+      | 'noCapacityForAttributionDestination'
+      | 'noMatchingSources'
+      | 'deduplicated'
+      | 'excessiveAttributions'
+      | 'priorityTooLow'
+      | 'neverAttributedSource'
+      | 'excessiveReportingOrigins'
+      | 'noMatchingSourceFilterData'
+      | 'prohibitedByBrowserPolicy'
+      | 'noMatchingConfigurations'
+      | 'excessiveReports'
+      | 'falselyAttributedSource'
+      | 'reportWindowPassed'
+      | 'notRegistered'
+      | 'reportWindowNotStarted'
+      | 'noMatchingTriggerData';
+
+    export type AttributionReportingAggregatableResult =
+      | 'success'
+      | 'internalError'
+      | 'noCapacityForAttributionDestination'
+      | 'noMatchingSources'
+      | 'excessiveAttributions'
+      | 'excessiveReportingOrigins'
+      | 'noHistograms'
+      | 'insufficientBudget'
+      | 'noMatchingSourceFilterData'
+      | 'notRegistered'
+      | 'prohibitedByBrowserPolicy'
+      | 'deduplicated'
+      | 'reportWindowPassed'
+      | 'excessiveReports';
   }
 
   /**
@@ -29111,7 +29645,7 @@ export namespace Cdp {
      *
      * Injected object will be available as `window[bindingName]`.
      *
-     * The object has the follwing API:
+     * The object has the following API:
      * - `binding.send(json)` - a method to send messages over the remote debugging protocol
      * - `binding.onmessage = json => handleMessage(json)` - a callback that will be called for the protocol notifications and command responses.
      */
@@ -29746,6 +30280,9 @@ export namespace Cdp {
     export interface TargetInfo {
       targetId: TargetID;
 
+      /**
+       * List of types: https://source.chromium.org/chromium/chromium/src/+/main:content/browser/devtools/devtools_agent_host_impl.cc?ss=chromium&q=f:devtools%20-f:out%20%22::kTypeTab%5B%5D%22
+       */
       type: string;
 
       title: string;
@@ -29786,7 +30323,7 @@ export namespace Cdp {
      */
     export interface FilterEntry {
       /**
-       * If set, causes exclusion of mathcing targets from the list.
+       * If set, causes exclusion of matching targets from the list.
        */
       exclude?: boolean;
 
@@ -30738,6 +31275,14 @@ export namespace Cdp {
     ): Promise<WebAuthn.SetAutomaticPresenceSimulationResult | undefined>;
 
     /**
+     * Allows setting credential properties.
+     * https://w3c.github.io/webauthn/#sctn-automation-set-credential-properties
+     */
+    setCredentialProperties(
+      params: WebAuthn.SetCredentialPropertiesParams,
+    ): Promise<WebAuthn.SetCredentialPropertiesResult | undefined>;
+
+    /**
      * Triggered when a credential is added to an authenticator.
      */
     on(
@@ -30942,6 +31487,24 @@ export namespace Cdp {
     export interface SetAutomaticPresenceSimulationResult {}
 
     /**
+     * Parameters of the 'WebAuthn.setCredentialProperties' method.
+     */
+    export interface SetCredentialPropertiesParams {
+      authenticatorId: AuthenticatorId;
+
+      credentialId: string;
+
+      backupEligibility?: boolean;
+
+      backupState?: boolean;
+    }
+
+    /**
+     * Return value of the 'WebAuthn.setCredentialProperties' method.
+     */
+    export interface SetCredentialPropertiesResult {}
+
+    /**
      * Parameters of the 'WebAuthn.credentialAdded' event.
      */
     export interface CredentialAddedEvent {
@@ -31026,6 +31589,20 @@ export namespace Cdp {
        * Defaults to false.
        */
       isUserVerified?: boolean;
+
+      /**
+       * Credentials created by this authenticator will have the backup
+       * eligibility (BE) flag set to this value. Defaults to false.
+       * https://w3c.github.io/webauthn/#sctn-credential-backup
+       */
+      defaultBackupEligibility?: boolean;
+
+      /**
+       * Credentials created by this authenticator will have the backup state
+       * (BS) flag set to this value. Defaults to false.
+       * https://w3c.github.io/webauthn/#sctn-credential-backup
+       */
+      defaultBackupState?: boolean;
     }
 
     export interface Credential {
@@ -31062,6 +31639,20 @@ export namespace Cdp {
        * See https://w3c.github.io/webauthn/#sctn-large-blob-extension (Encoded as a base64 string when passed over JSON)
        */
       largeBlob?: string;
+
+      /**
+       * Assertions returned by this credential will have the backup eligibility
+       * (BE) flag set to this value. Defaults to the authenticator's
+       * defaultBackupEligibility value.
+       */
+      backupEligibility?: boolean;
+
+      /**
+       * Assertions returned by this credential will have the backup state (BS)
+       * flag set to this value. Defaults to the authenticator's
+       * defaultBackupState value.
+       */
+      backupState?: boolean;
     }
   }
 }
