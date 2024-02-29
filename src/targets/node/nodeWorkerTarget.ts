@@ -74,7 +74,9 @@ export class NodeWorkerTarget implements ITarget {
     // order matters! The runtime must be enabled first so we know what
     // execution contexts scripts are in
     await this.cdp.Runtime.enable({});
-    await this.cdp.Debugger.enable({});
+    if (!this.launchConfig.noDebug) {
+      await this.cdp.Debugger.enable({});
+    }
     this.attached = true;
     return this.cdp;
   }

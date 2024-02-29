@@ -704,10 +704,7 @@ export class Thread implements IVariableStoreLocationProvider {
       this._executionContextDestroyed(event.executionContextId);
     });
     this._cdp.Runtime.on('executionContextsCleared', () => {
-      if (!this.launchConfig.noDebug) {
-        this._ensureDebuggerEnabledAndRefreshDebuggerId();
-      }
-
+      this._ensureDebuggerEnabledAndRefreshDebuggerId();
       this.replVariables.clear();
       this._executionContextsCleared();
     });
@@ -743,9 +740,9 @@ export class Thread implements IVariableStoreLocationProvider {
     // console.profile/console.endProfile. Otherwise, these just no-op.
     this._cdp.Profiler.enable({});
 
-    if (!this.launchConfig.noDebug) {
-      this._ensureDebuggerEnabledAndRefreshDebuggerId();
-    } else {
+    this._ensureDebuggerEnabledAndRefreshDebuggerId();
+
+    if (this.launchConfig.noDebug) {
       this.logger.info(LogTag.RuntimeLaunch, 'Running with noDebug, so debug domains are disabled');
     }
 
@@ -893,6 +890,10 @@ export class Thread implements IVariableStoreLocationProvider {
   }
 
   _ensureDebuggerEnabledAndRefreshDebuggerId() {
+    if (this.launchConfig.noDebug) {
+      return this.debuggerReady.resolve();
+    }
+
     // There is a bug in Chrome that does not retain debugger id
     // across cross-process navigations. Refresh it upon clearing contexts.
     this._cdp.Debugger.enable({}).then(response => {
