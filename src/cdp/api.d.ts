@@ -17,7 +17,7 @@ export namespace Cdp {
     readonly session: import('./connection').CDPSession;
 
     /**
-     * Pauses events being sent through the aPI.
+     * Pauses events being sent through the Api.
      */
     pause(): void;
     /**

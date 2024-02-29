@@ -233,7 +233,7 @@ async function generate() {
 
   function appendPauseResume() {
     result.push(`/**`);
-    result.push(` * Pauses events being sent through the aPI.`);
+    result.push(` * Pauses events being sent through the Api.`);
     result.push(` */`);
     result.push(`pause(): void;`);
     result.push(`/**`);
