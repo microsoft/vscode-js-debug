@@ -15,6 +15,7 @@ const util = require('util');
 const esbuild = require('esbuild');
 const esbuildPlugins = require('./src/build/esbuildPlugins');
 const got = require('got').default;
+const HttpsProxyAgent = require("hpagent").HttpsProxyAgent;
 const jszip = require('jszip');
 const stream = require('stream');
 
@@ -351,7 +352,21 @@ gulp.task('package:createVSIX', () =>
 );
 
 gulp.task('l10n:bundle-download', async () => {
-  const res = await got('https://github.com/microsoft/vscode-loc/archive/main.zip').buffer();
+  const opts = {};
+  const proxy = process.env.https_proxy || process.env.HTTPS_PROXY || null;
+  if (proxy)
+    opts.agent = {
+      https: new HttpsProxyAgent({
+        keepAlive: true,
+			  keepAliveMsecs: 1000,
+			  maxSockets: 256,
+			  maxFreeSockets: 256,
+			  scheduling: 'lifo',
+			  proxy
+      })
+    };
+    
+  const res = await got('https://github.com/microsoft/vscode-loc/archive/main.zip', opts).buffer();
   const content = await jszip.loadAsync(res);
 
   for (const fileName of Object.keys(content.files)) {
