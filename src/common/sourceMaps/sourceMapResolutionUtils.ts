@@ -4,7 +4,6 @@
 
 import { promises as fs } from 'fs';
 import * as path from 'path';
-import { URL } from 'url';
 import * as utils from '../../common/urlUtils';
 import { PathMapping } from '../../configuration';
 import { IFsUtils } from '../fsUtils';
@@ -54,7 +53,7 @@ export async function getComputedSourceRoot(
       absSourceRoot = resolveRelativeToFile(generatedPath, sourceRoot);
     } else {
       // generatedPath is a URL so runtime script is not on disk, resolve the sourceRoot location on disk.
-      const generatedUrlPath = new URL(generatedPath).pathname;
+      const generatedUrlPath = utils.getPathName(generatedPath) || '/';
       const mappedPath = await resolver(generatedUrlPath, pathMapping, logger);
       const mappedDirname = path.dirname(mappedPath);
       absSourceRoot = properJoin(mappedDirname, sourceRoot);
@@ -68,7 +67,7 @@ export async function getComputedSourceRoot(
     });
   } else {
     // No sourceRoot and runtime script is not on disk, resolve the sourceRoot location on disk
-    const urlPathname = new URL(generatedPath).pathname || '/placeholder.js'; // could be debugadapter://123, no other info.
+    const urlPathname = utils.getPathName(generatedPath) || '/placeholder.js'; // could be debugadapter://123, no other info.
     const mappedPath = await resolver(urlPathname, pathMapping, logger);
     const scriptPathDirname = mappedPath ? path.dirname(mappedPath) : '';
     absSourceRoot = scriptPathDirname;
