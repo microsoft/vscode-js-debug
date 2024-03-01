@@ -1,0 +1,21 @@
+<body>
+  <script>
+    // easier to reason about in its own file instead of inline with the rest of the console tests
+    var obj = {
+      a: 'single\' quote\\',
+      b: 'double" quote\\',
+      c: 'bacl` quote\\',
+      d: 'mixed\' " ` quote\\',
+    };
+    var xa = obj.a;
+    var xb = obj.b;
+    var xc = obj.c;
+    var xd = obj.d;
+
+    console.log(obj);
+    console.log(xa);
+    console.log(xb);
+    console.log(xc);
+    console.log(xd);
+  </script>
+</body>
