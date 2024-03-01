@@ -133,6 +133,8 @@ interface ICDPOperationClassification {
   '!domstorage.domstorageitemscleared.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
 
   // Domain: DotnetDebugger
+  'dotnetdebugger.reportblazordebugerror': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!dotnetdebugger.reportblazordebugerror.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
 
   // Domain: Emulation
   'emulation.virtualtimebudgetexpired': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };

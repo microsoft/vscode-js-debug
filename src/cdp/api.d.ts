@@ -10725,6 +10725,14 @@ export namespace Cdp {
     setSymbolOptions(
       params: DotnetDebugger.SetSymbolOptionsParams,
     ): Promise<DotnetDebugger.SetSymbolOptionsResult | undefined>;
+
+    /**
+     * Fired when the attached Blazor DotnetDebugger itself, not the blazor app being debugged, encounters an error.
+     */
+    on(
+      event: 'reportBlazorDebugError',
+      listener: (event: DotnetDebugger.ReportBlazorDebugErrorEvent) => void,
+    ): IDisposable;
   }
 
   /**
@@ -10766,6 +10774,21 @@ export namespace Cdp {
      * Return value of the 'DotnetDebugger.setSymbolOptions' method.
      */
     export interface SetSymbolOptionsResult {}
+
+    /**
+     * Parameters of the 'DotnetDebugger.reportBlazorDebugError' event.
+     */
+    export interface ReportBlazorDebugErrorEvent {
+      /**
+       * Specifies the type of exception.
+       */
+      exceptionType: 'uncaughtException' | 'unhandledRejection';
+
+      /**
+       * The error message.
+       */
+      error: 'unknown' | 'undefined';
+    }
 
     /**
      * Arguments for "setDebuggerProperty" request. Properties are determined by debugger.
