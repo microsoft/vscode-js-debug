@@ -24,7 +24,7 @@ extends:
   parameters:
     publishExtension: ${{ parameters.publishExtension }}
     vscePackageArgs: --no-dependencies
-    cgIgnoreDirectories: 'testdata,demos,.vscode-test,src/test,testWorkspace'
+    cgIgnoreDirectories: "testdata,demos,.vscode-test,src/test,testWorkspace"
     ${{ if eq(parameters.publishGhRelease, true) }}:
       ghCreateRelease: true
       ghReleaseAddChangeLog: true
@@ -49,12 +49,13 @@ extends:
     tsa:
       enabled: true
       options:
-        codebaseName: 'devdiv_$(Build.Repository.Name)'
-        serviceTreeID: '053e3ba6-924d-456c-ace0-67812c5ccc52'
-        instanceUrl: 'https://devdiv.visualstudio.com/defaultcollection'
-        projectName: 'DevDiv'
+        codebaseName: "devdiv_$(Build.Repository.Name)"
+        serviceTreeID: "053e3ba6-924d-456c-ace0-67812c5ccc52"
+        instanceUrl: "https://devdiv.visualstudio.com/defaultcollection"
+        projectName: "DevDiv"
         areaPath: 'DevDiv\\VS Code (compliance tracking only)\\Visual Studio Code Debugging Extensions'
         notificationAliases:
-          - 'stbatt@microsoft.com'
-          - 'lszomoru@microsoft.com'
-          - 'copeet@microsoft.com'
+          - "stbatt@microsoft.com"
+          - "lszomoru@microsoft.com"
+          - "copeet@microsoft.com"
+    apiScanSoftwareVersion: "1"
