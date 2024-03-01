@@ -60,6 +60,27 @@ export default {
           description: 'Sets options for locating symbols.',
         },
       ],
+      events: [
+        {
+          name: 'reportBlazorDebugError',
+          description:
+            'Fired when the attached Blazor DotnetDebugger itself, not the blazor app being debugged, encounters an error.',
+          parameters: [
+            {
+              name: 'exceptionType',
+              description: 'Specifies the type of exception.',
+              type: 'string',
+              enum: ['uncaughtException', 'unhandledRejection'],
+            },
+            {
+              name: 'error',
+              description: 'The error message.',
+              type: 'string',
+              enum: ['unknown', 'undefined'],
+            },
+          ],
+        },
+      ],
     },
   ],
 };
