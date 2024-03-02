@@ -322,8 +322,23 @@ function renderPropertyPreview(
     return appendKeyValue(name, ': ', '{\u2026}', characterBudget);
   if (typeof prop.value === 'undefined')
     return appendKeyValue(name, ': ', `<${prop.type}>`, characterBudget);
-  if (prop.type === 'string') return appendKeyValue(name, ': ', `'${prop.value}'`, characterBudget);
+  if (prop.type === 'string')
+    return appendKeyValue(name, ': ', quoteStringValue(prop.value), characterBudget);
   return appendKeyValue(name, ': ', prop.value ?? 'unknown', characterBudget);
+}
+
+function quoteStringValue(value: string) {
+  // Try a quote style that doesn't appear in the string, preferring/falling back to single quotes
+  const quoteStyle = value.includes("'")
+    ? value.includes('"')
+      ? value.includes('`')
+        ? "'"
+        : '`'
+      : '"'
+    : "'";
+
+  const replacer = new RegExp(`[${quoteStyle}\\\\]`, 'g');
+  return `${quoteStyle}${value.replace(replacer, '\\$&')}${quoteStyle}`;
 }
 
 function renderValue(
@@ -339,7 +354,7 @@ function renderValue(
       quote = false;
     }
     const value = stringUtils.trimMiddle(stringValue, quote ? budget - 2 : budget);
-    return quote ? `'${value}'` : value;
+    return quote ? quoteStringValue(value) : value;
   }
 
   if (object.type === 'undefined') {

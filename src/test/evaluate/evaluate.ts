@@ -364,7 +364,7 @@ describe('evaluate', () => {
             'context=hover',
             "result: '1\\n2\\r3\\t\\\\4'",
             'context=repl',
-            "\nresult: '1\n2\r3\t\\4'",
+            "\nresult: '1\n2\r3\t\\\\4'",
             '',
           ].join('\n'),
         ),

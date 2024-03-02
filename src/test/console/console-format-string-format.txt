@@ -1,0 +1,31 @@
+stdout> single' quote\
+stdout> double" quote\
+stdout> bacl` quote\
+stdout> mixed' " ` quote\
+stdout> {a: "single' quote\\", b: 'double" quote\\', c: 'bacl` quote\\', d: 'mixed\' " ` quote\\'}
+stdout> > {a: "single' quote\\", b: 'double" quote\\', c: 'bacl` quote\\', d: 'mixed\' " ` quote\\'}
+stdout>     a: "single' quote\\"
+stdout>     b: 'double" quote\\'
+stdout>     c: 'bacl` quote\\'
+stdout>     d: 'mixed\' " ` quote\\'
+stdout>     > [[Prototype]]: Object
+> result: {a: "single' quote\\", b: 'double" quote\\', c: 'bacl` quote\\', d: 'mixed\' " ` quote\\'}
+    a: "single' quote\\"
+    b: 'double" quote\\'
+    c: 'bacl` quote\\'
+    d: 'mixed\' " ` quote\\'
+    > [[Prototype]]: Object
+result: "single' quote\\"
+result: 'double" quote\\'
+result: 'bacl` quote\\'
+result: 'mixed\' " ` quote\\'
+> result: {a: "single' quote\\", b: 'double" quote\\', c: 'bacl` quote\\', d: 'mixed\' " ` quote\\'}
+    a: "single' quote\\"
+    b: 'double" quote\\'
+    c: 'bacl` quote\\'
+    d: 'mixed\' " ` quote\\'
+    > [[Prototype]]: Object
+result: "single' quote\\"
+result: 'double" quote\\'
+result: 'bacl` quote\\'
+result: 'mixed\' " ` quote\\'

@@ -31,6 +31,28 @@ describe('console format', () => {
     p.assertLog();
   });
 
+  itIntegrates('string format', async ({ r }) => {
+    const handle = await r.launchUrl('stringFormats.html');
+    handle.load();
+
+    const obj = await handle.dap.once('output');
+    for (let i = 0; i < 4; i++) {
+      // xa - xd
+      await handle.logger.logOutput(await handle.dap.once('output'));
+    }
+    await handle.logger.logOutput(obj);
+
+    for (const context of ['hover', 'repl'] as const) {
+      await handle.logger.evaluateAndLog('obj', { depth: 1 }, context);
+      await handle.logger.evaluateAndLog('xa', { depth: 1 }, context);
+      await handle.logger.evaluateAndLog('xb', { depth: 1 }, context);
+      await handle.logger.evaluateAndLog('xc', { depth: 1 }, context);
+      await handle.logger.evaluateAndLog('xd', { depth: 1 }, context);
+    }
+
+    handle.assertLog();
+  });
+
   itIntegrates('popular types', async ({ r }) => {
     const p = await r.launchAndLoad(`
         <p id="p"></p>
