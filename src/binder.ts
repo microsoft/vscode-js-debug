@@ -410,6 +410,19 @@ export class Binder implements IDisposable {
     const debugAdapter = new DebugAdapter(dap, this._asyncStackPolicy, launchParams, container);
     const thread = debugAdapter.createThread(cdp, target);
 
+    const isBlazor = 'inspectUri' in launchParams && !!launchParams.inspectUri;
+    if (isBlazor) {
+      const telemetryReporter = this._rootServices.get(ITelemetryReporter) as ITelemetryReporter;
+      const isVsCode = this._rootServices.get(IsVSCode);
+      cdp.DotnetDebugger.on('reportBlazorDebugError', event => {
+        telemetryReporter.report('blazorDebugError', {
+          exceptionType: event.exceptionType,
+          '!error': event.error,
+          error: isVsCode ? undefined : event.error,
+        });
+      });
+    }
+
     const startThread = async () => {
       await debugAdapter.launchBlocker();
       target.runIfWaitingForDebugger();
