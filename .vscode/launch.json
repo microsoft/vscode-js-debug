@@ -5,13 +5,13 @@
       "type": "node",
       "request": "launch",
       "name": "Generate CDP API",
-      "program": "${workspaceFolder}/scripts/generate-cdp-api.js"
+      "program": "${workspaceFolder}/dist/src/build/generateCdp.js"
     },
     {
       "type": "node",
       "request": "launch",
       "name": "Generate DAP API",
-      "program": "${workspaceFolder}/scripts/generate-dap-api.js"
+      "program": "${workspaceFolder}/dist/src/build/generateDap.js"
     },
     {
       "type": "node",
