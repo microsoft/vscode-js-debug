@@ -222,6 +222,12 @@ export const createLoggers = (sendEvent: (event: Dap.OutputEventParams) => void)
       { ...globalMetrics, ...metrics },
     );
 
+  const blazorDebugError = (metrics: IErrorMetrics) =>
+    publicLog2<IGlobalMetrics & IErrorMetrics, IErrorClassification & IGlobalClassification>(
+      'blazor-debug/blazorDebugError',
+      { ...globalMetrics, ...metrics },
+    );
+
   const browserVersion = (metrics: IBrowserVersionMetrics) => {
     globalMetrics.browser =
       (metrics.targetProject || metrics.targetProject) + '/' + metrics.targetVersion;
@@ -295,6 +301,7 @@ export const createLoggers = (sendEvent: (event: Dap.OutputEventParams) => void)
     nodeRuntime,
     diagnosticPrompt,
     setGlobalMetric,
+    blazorDebugError,
   };
 };
 

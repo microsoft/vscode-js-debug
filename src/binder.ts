@@ -11,6 +11,7 @@ import { DebugAdapter } from './adapter/debugAdapter';
 import { DiagnosticToolSuggester } from './adapter/diagnosticToolSuggester';
 import { SelfProfile } from './adapter/selfProfile';
 import { Thread } from './adapter/threads';
+import Cdp from './cdp/api';
 import { CancellationTokenSource } from './common/cancellation';
 import { DisposableList } from './common/disposable';
 import { EventEmitter, IDisposable } from './common/events';
@@ -410,6 +411,15 @@ export class Binder implements IDisposable {
     const debugAdapter = new DebugAdapter(dap, this._asyncStackPolicy, launchParams, container);
     const thread = debugAdapter.createThread(cdp, target);
 
+    const isBlazor = 'inspectUri' in launchParams && !!launchParams.inspectUri;
+    if (isBlazor) {
+      this.attachDotnetDebuggerEvent(
+        cdp,
+        this._rootServices.get(ITelemetryReporter),
+        this._rootServices.get(IsVSCode),
+      );
+    }
+
     const startThread = async () => {
       await debugAdapter.launchBlocker();
       target.runIfWaitingForDebugger();
@@ -439,6 +449,20 @@ export class Binder implements IDisposable {
     }
 
     await target.afterBind();
+  }
+
+  private attachDotnetDebuggerEvent(
+    cdp: Cdp.Api,
+    telemetryReporter: ITelemetryReporter,
+    isVsCode?: boolean,
+  ) {
+    cdp.DotnetDebugger.on('reportBlazorDebugError', event => {
+      telemetryReporter.report('blazorDebugError', {
+        exceptionType: event.exceptionType,
+        '!error': event.error,
+        error: isVsCode ? undefined : event.error,
+      });
+    });
   }
 
   private _attachToNewTargets(targets: ITarget[], launcher: ILauncher) {
