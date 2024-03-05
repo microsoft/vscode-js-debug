@@ -69,7 +69,10 @@ export class ProfileController implements IProfileController {
 
     this.cdp.Profiler.on('consoleProfileFinished', async evt => {
       const promise = this.saveConsoleProfile(dap, evt);
-      const shutdownBlocker = this.shutdown.register(ShutdownOrder.BeforeScripts, () => promise);
+      const shutdownBlocker = this.shutdown.register(
+        ShutdownOrder.ExecutionContexts,
+        () => promise,
+      );
       await promise;
       shutdownBlocker.dispose();
     });

@@ -2,6 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { expect } from 'chai';
 import { delay } from '../../common/promiseUtil';
 import { Dap } from '../../dap/api';
 import { createFileTree } from '../createFileTree';
@@ -370,5 +371,22 @@ describe('stacks', () => {
 
     await dumpStackAndContinue(p, false);
     p.assertLog();
+  });
+
+  itIntegrates('shows sourcemapped stack during shutdown', async ({ r }) => {
+    createFileTree(testFixturesDir, {
+      'input.js': [
+        "console.log(new Error('asdf'));",
+        "throw new Error('asdf');",
+        '//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiaW5wdXQuanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyJpbnB1dC50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiQUFBQSxPQUFPLENBQUMsR0FBRyxDQUFDLElBQUksS0FBSyxDQUFDLE1BQU0sQ0FBQyxDQUFDLENBQUM7QUFDL0IsTUFBTSxJQUFJLEtBQUssQ0FBQyxNQUFNLENBQUMsQ0FBQyJ9',
+      ],
+      'input.ts': ["console.log(new Error('asdf'));", "throw new Error('asdf');"],
+    });
+    const handle = await r.runScript('input.js');
+    handle.load();
+    const output1 = (await handle.dap.once('output'))?.output;
+    expect(output1).to.contain('input.ts');
+    const output2 = (await handle.dap.once('output'))?.output;
+    expect(output2).to.contain('input.ts');
   });
 });
