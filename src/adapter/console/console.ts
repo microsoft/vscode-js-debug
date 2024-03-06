@@ -50,11 +50,13 @@ export class Console implements IConsole {
     @inject(IDapApi) private readonly dap: Dap.Api,
     @inject(IShutdownParticipants) shutdown: IShutdownParticipants,
   ) {
-    shutdown.register(ShutdownOrder.BeforeScripts, async () => {
+    shutdown.register(ShutdownOrder.ExecutionContexts, async final => {
       if (this.length) {
         await new Promise(r => this.onDrained(r));
       }
-      this.dispose();
+      if (final) {
+        this.dispose();
+      }
     });
   }
 

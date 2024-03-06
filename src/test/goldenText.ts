@@ -125,6 +125,7 @@ export class GoldenText {
 
     value = String(value);
     replacePath(this._workspaceFolder, '${workspaceFolder}');
+    replacePath(this._workspaceFolder.replace(/\\/g, '\\\\'), '${workspaceFolder}'); // string escaping on windows
     replacePath(testFixturesDir, '${fixturesDir}');
     value = value.replace(/testWorkspace/g, '${workspaceFolder}');
     value = value.replace('/private${fixturesDir}', '${fixturesDir}'); // for osx

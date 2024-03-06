@@ -875,18 +875,20 @@ export class Thread implements IVariableStoreLocationProvider {
     this._executionContexts.set(description.id, context);
   }
 
-  _executionContextDestroyed(contextId: number) {
+  async _executionContextDestroyed(contextId: number) {
     const context = this._executionContexts.get(contextId);
     if (!context) return;
     this._executionContexts.delete(contextId);
+    await this.shutdown.shutdownContext();
     context.remove(this._sourceContainer);
   }
 
-  _executionContextsCleared() {
+  async _executionContextsCleared() {
+    this._executionContexts.clear();
+    await this.shutdown.shutdownContext();
     this._removeAllScripts();
     this._breakpointManager.executionContextWasCleared();
     if (this._pausedDetails) this.onResumed();
-    this._executionContexts.clear();
   }
 
   _ensureDebuggerEnabledAndRefreshDebuggerId() {
@@ -1126,9 +1128,8 @@ export class Thread implements IVariableStoreLocationProvider {
    * @inheritdoc
    */
   async dispose() {
+    await this.shutdown.shutdownAll();
     this.disposed = true;
-
-    await this.shutdown.shutdown();
 
     for (const [debuggerId, thread] of Thread._allThreadsByDebuggerId) {
       if (thread === this) Thread._allThreadsByDebuggerId.delete(debuggerId);
