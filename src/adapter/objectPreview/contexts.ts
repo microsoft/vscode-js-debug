@@ -32,7 +32,7 @@ export const enum PreviewContextType {
 }
 
 const escape = (str: string) =>
-  str.replace(/\\/gm, '\\\\').replace(/\n/gm, '\\n').replace(/\r/gm, '\\r').replace(/\t/gm, '\\t');
+  str.replace(/\n/gm, '\\n').replace(/\r/gm, '\\r').replace(/\t/gm, '\\t');
 
 const repl: IPreviewContext = { budget: 100_000, quoted: true };
 const hover: IPreviewContext = {

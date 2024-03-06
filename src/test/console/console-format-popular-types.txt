@@ -271,10 +271,10 @@ stdout> (1) [{…}]
 stdout> > (1) [{…}]
 
 Evaluating: 'console.log(domException())'
-stdout> DOMException: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node. {stack: <accessor>, code: 8, name: 'NotFoundError', message: 'Failed to execute 'removeChild' on 'Node': T…e to be removed is not a child of this node.'}
+stdout> DOMException: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node. {stack: <accessor>, code: 8, name: 'NotFoundError', message: "Failed to execute 'removeChild' on 'Node': T…e to be removed is not a child of this node."}
 
 stdout>
-> DOMException: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node. {stack: <accessor>, code: 8, name: 'NotFoundError', message: 'Failed to execute 'removeChild' on 'Node': T…e to be removed is not a child of this node.'}
+> DOMException: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node. {stack: <accessor>, code: 8, name: 'NotFoundError', message: "Failed to execute 'removeChild' on 'Node': T…e to be removed is not a child of this node."}
 
 Evaluating: 'console.log([domException()])'
 stdout> (1) [DOMException: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of t…]
