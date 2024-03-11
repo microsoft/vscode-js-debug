@@ -67,7 +67,7 @@
     "execa": "^5.1.1",
     "glob-stream": "^8.0.0",
     "got": "^11.8.6",
-    "hpagent": "^1.2.0",
+    "https-proxy-agent": "^7.0.4",
     "inversify": "^6.0.2",
     "js-xxhash": "^3.0.1",
     "jsonc-parser": "^3.2.1",
