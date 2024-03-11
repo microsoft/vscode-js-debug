@@ -164,17 +164,49 @@ export class WasmSymbolProvider implements IWasmSymbolProvider, IDisposable {
     const { rpc } = worker;
     const moduleId = randomUUID();
 
-    const symbolsUrl = script.debugSymbols?.externalURL;
-    let result: MethodReturn<'addRawModule'>;
+    let symbolsUrl: URL | undefined;
     try {
-      result = await rpc.sendMessage('addRawModule', moduleId, symbolsUrl, {
-        url: script.url,
-        code:
-          !symbolsUrl && script.url.startsWith('wasm://')
-            ? await this.getBytecode(script.scriptId)
-            : undefined,
-      });
+      symbolsUrl = script.debugSymbols?.externalURL
+        ? new URL(script.debugSymbols?.externalURL)
+        : undefined;
     } catch {
+      // ignored
+    }
+
+    // Do the same ipv4/ipv6 attempts as we do in the IResourceProvider, but
+    // fetching is handled internally by the wasm module, so we manually
+    // attempt both loopbacks, which is a little less nice.
+    const scriptUrl = new URL(script.url);
+    const attemptHostname =
+      scriptUrl.hostname === 'localhost'
+        ? ['127.0.0.1', '[::1]', 'localhost']
+        : [scriptUrl.hostname];
+    const symbolsAreLocalhostToo = symbolsUrl?.hostname === 'localhost';
+
+    let result: MethodReturn<'addRawModule'> | undefined;
+    for (const hostname of attemptHostname) {
+      scriptUrl.hostname = hostname;
+      if (symbolsUrl && symbolsAreLocalhostToo) {
+        symbolsUrl.hostname = hostname;
+      }
+
+      try {
+        result = await rpc.sendMessage('addRawModule', moduleId, symbolsUrl?.toString(), {
+          url: scriptUrl.toString(),
+          code:
+            !symbolsUrl && scriptUrl.protocol.startsWith('wasm:')
+              ? await this.getBytecode(script.scriptId)
+              : undefined,
+        });
+      } catch (e) {
+        this.logger.warn(LogTag.SourceMapParsing, `failed to load wasm symbols for ${scriptUrl}`, {
+          error: e,
+        });
+        // ignored
+      }
+    }
+
+    if (!result) {
       return this.defaultSymbols(script);
     }
 
