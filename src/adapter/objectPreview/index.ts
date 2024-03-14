@@ -479,7 +479,7 @@ function formatAsNumber(
       return param.unserializableValue;
     }
 
-    const value = param.value || +param.description;
+    const value = param.value !== undefined ? param.value : +param.description;
     return format?.hex ? value.toString(16) : String(value);
   }
 
