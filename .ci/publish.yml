@@ -48,7 +48,7 @@ extends:
           sbomBuildDropPath: $(Build.ArtifactStagingDirectory)/sbom-dap-server
           sbomEnabled: ${{ eq(parameters.publishExtension, true) }}
           targetPath: $(Build.ArtifactStagingDirectory)/dap-server
-        artifact: Publish DAP Debug Server Bundle
+        displayName: Publish DAP Debug Server Bundle
 
       - script: npm run compile -- package:hoist
         displayName: Package Stable
