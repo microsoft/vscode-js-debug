@@ -346,7 +346,7 @@ gulp.task('package:createVSIX', () =>
   vsce.createVSIX({
     ...vsceUrls,
     cwd: buildDir,
-    useYarn: true,
+    dependencies: false,
     packagePath: path.join(buildDir, `${extensionName}.vsix`),
   }),
 );
@@ -358,7 +358,7 @@ gulp.task('l10n:bundle-download', async () => {
     opts.agent = {
       https: new HttpsProxyAgent(proxy)
     };
-    
+
   const res = await got('https://github.com/microsoft/vscode-loc/archive/main.zip', opts).buffer();
   const content = await jszip.loadAsync(res);
 
@@ -429,7 +429,7 @@ gulp.task('publish:vsce', () =>
     ...vsceUrls,
     noVerify: true, // for proposed API usage
     pat: process.env.MARKETPLACE_TOKEN,
-    useYarn: true,
+    dependencies: false,
     cwd: buildDir,
   }),
 );
