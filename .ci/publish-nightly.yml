@@ -31,3 +31,8 @@ extends:
 
       - script: npm run compile -- package:hoist --nightly
         displayName: Package
+    tsa:
+      config:
+        areaPath: 'Visual Studio Code Debugging Extensions'
+        serviceTreeID: "053e3ba6-924d-456c-ace0-67812c5ccc52"
+      enabled: true
