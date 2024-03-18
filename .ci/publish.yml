@@ -24,7 +24,7 @@ extends:
   parameters:
     publishExtension: ${{ parameters.publishExtension }}
     vscePackageArgs: --no-dependencies
-    cgIgnoreDirectories: "testdata,demos,.vscode-test,src/test,testWorkspace"
+    cgIgnoreDirectories: 'testdata,demos,.vscode-test,src/test,testWorkspace'
     ${{ if eq(parameters.publishGhRelease, true) }}:
       ghCreateRelease: true
       ghReleaseAddChangeLog: true
@@ -41,14 +41,20 @@ extends:
       - script: node src/build/archiveDapBundle $(Build.ArtifactStagingDirectory)/dap-server
         displayName: Package DAP Debug Server Bundle
 
-      - publish: $(Build.ArtifactStagingDirectory)/dap-server
-        artifact: Publish DAP Debug Server Bundle
+      - task: 1ES.PublishPipelineArtifact@1
+        inputs:
+          artifactName: 'Publish DAP Debug Server Bundle'
+          sbomBuildComponentPath: $(Build.SourcesDirectory)/dist
+          sbomBuildDropPath: $(Build.ArtifactStagingDirectory)/sbom-dap-server
+          sbomEnabled: ${{ eq(parameters.publishExtension, true) }}
+          targetPath: $(Build.ArtifactStagingDirectory)/dap-server
+        displayName: Publish DAP Debug Server Bundle
 
       - script: npm run compile -- package:hoist
         displayName: Package Stable
     tsa:
       config:
         areaPath: 'Visual Studio Code Debugging Extensions'
-        serviceTreeID: "053e3ba6-924d-456c-ace0-67812c5ccc52"
+        serviceTreeID: '053e3ba6-924d-456c-ace0-67812c5ccc52'
       enabled: true
-    apiScanSoftwareVersion: "1"
+    apiScanSoftwareVersion: '1'
