@@ -323,7 +323,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
 
     const baseEnvOpts = baseEnv.lookup('NODE_OPTIONS');
     if (baseEnvOpts) {
-      env.NODE_OPTIONS += ` ${baseEnvOpts}`;
+      env.NODE_OPTIONS += ` ${baseEnvOpts} `;
     }
 
     const globalOpts = EnvironmentVars.processEnv().lookup('NODE_OPTIONS');
