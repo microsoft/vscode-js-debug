@@ -3,9 +3,9 @@ path_classifiers:
     - "**/*.test.ts"
     - "src/test/**/*.ts"
     - .vscode-test
+    - testWorkspace
 
   generated:
-    - testWorkspace
     - dist
 
   library:
