@@ -4,6 +4,10 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
+Nothing, yet
+
+## v1.88 (March 2024)
+
 - fix: stacktraces during process shutdown not being sourcemapped ([vscode#178814](https://github.com/microsoft/vscode/issues/178814))
 - fix: inconsistent display of strings with quotes ([vscode#182835](https://github.com/microsoft/vscode/issues/182835))
 - fix: 'start without debugging' not working ([vscode#206524](https://github.com/microsoft/vscode/issues/206524))
