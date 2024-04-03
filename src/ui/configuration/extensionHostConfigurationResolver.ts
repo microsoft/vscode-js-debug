@@ -122,9 +122,9 @@ const resolveTestConfiguration = async (config: ResolvingExtensionHostConfigurat
   }
 
   const suffix = join('node_modules', '@vscode', 'test-cli', 'out', 'bin.mjs');
-  const dirWithModules = await nearestDirectoryWhere(testConfiguration, dir => {
+  const dirWithModules = await nearestDirectoryWhere(testConfiguration, async dir => {
     const binary = join(dir, suffix);
-    return canAccess(fs, binary);
+    return (await canAccess(fs, binary)) ? dir : undefined;
   });
 
   if (!dirWithModules) {

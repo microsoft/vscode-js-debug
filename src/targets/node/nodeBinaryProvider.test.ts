@@ -12,6 +12,7 @@ import { Semver } from '../../common/semver';
 import { ErrorCodes } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
 import { Capability, NodeBinary, NodeBinaryProvider } from '../../targets/node/nodeBinaryProvider';
+import { createFileTree, getTestDir } from '../../test/createFileTree';
 import { testWorkspace } from '../../test/test';
 import { IPackageJsonProvider } from './packageJsonProvider';
 
@@ -190,6 +191,25 @@ describe('NodeBinaryProvider', function () {
       expect(binary.path).to.equal('/snap-alt/bin/node');
       expect(binary.version).to.be.undefined;
     });
+  });
+
+  it('automatically finds programs in node_modules/.bin', async () => {
+    const dir = getTestDir();
+    createFileTree(dir, {
+      'node_modules/.bin': {
+        'mocha.cmd': '',
+        mocha: '',
+      },
+    });
+
+    const binary = await p.resolveAndValidate(
+      env('up-to-date').update('PATHEXT', '.EXE;.CMD;.BAT'),
+      'mocha',
+      undefined,
+      dir,
+    );
+
+    expect(binary.path).to.match(/node_modules[\\/]\.bin[\\/]mocha(\.cmd)?/);
   });
 });
 
