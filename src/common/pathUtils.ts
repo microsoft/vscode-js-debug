@@ -22,6 +22,15 @@ export const getRandomPipe = () =>
     `node-cdp.${process.pid}-${randomBytes(4).toString('hex')}-${pipeCounter++}.sock`,
   );
 
+function pathExtensions(env: EnvironmentVars) {
+  if (process.platform !== 'win32') {
+    return [''];
+  }
+
+  const pathExts = env.lookup('PATHEXT');
+  return pathExts?.split(';') || ['.exe'];
+}
+
 /*
  * Lookup the given program on the PATH and return its absolute path on success and undefined otherwise.
  */
@@ -87,14 +96,10 @@ export async function findExecutable(
   }
 
   if (process.platform === 'win32' && !path.extname(program)) {
-    const pathExtension = env.lookup('PATHEXT');
-    if (pathExtension) {
-      const executableExtensions = pathExtension.split(';');
-      for (const extension of executableExtensions) {
-        const path = program + extension;
-        if (await existsInjected(fs, path)) {
-          return path;
-        }
+    for (const extension of pathExtensions(env)) {
+      const path = program + extension;
+      if (await existsInjected(fs, path)) {
+        return path;
       }
     }
   }

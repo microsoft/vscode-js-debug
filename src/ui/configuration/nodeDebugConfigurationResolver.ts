@@ -12,18 +12,18 @@ import { writeToConsole } from '../../common/console';
 import { DebugType } from '../../common/contributionUtils';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { findOpenPort } from '../../common/findOpenPort';
-import { existsInjected, IFsUtils, LocalFsUtils } from '../../common/fsUtils';
+import { IFsUtils, LocalFsUtils, existsInjected } from '../../common/fsUtils';
 import { forceForwardSlashes, isSubpathOrEqualTo } from '../../common/pathUtils';
 import { some } from '../../common/promiseUtil';
 import { getNormalizedBinaryName, nearestDirectoryWhere } from '../../common/urlUtils';
 import {
   AnyNodeConfiguration,
+  ResolvingNodeAttachConfiguration,
+  ResolvingNodeLaunchConfiguration,
   applyNodeDefaults,
   baseDefaults,
   breakpointLanguages,
   resolveVariableInConfig,
-  ResolvingNodeAttachConfiguration,
-  ResolvingNodeLaunchConfiguration,
 } from '../../configuration';
 import { ExtensionContext } from '../../ioc-extras';
 import { INvmResolver } from '../../targets/node/nvmResolver';
@@ -283,9 +283,10 @@ async function guessOutFiles(
     return;
   }
 
-  const root = await nearestDirectoryWhere(
-    programLocation,
-    async p => !p.includes('node_modules') && (await fsUtils.exists(path.join(p, 'package.json'))),
+  const root = await nearestDirectoryWhere(programLocation, async p =>
+    !p.includes('node_modules') && (await fsUtils.exists(path.join(p, 'package.json')))
+      ? p
+      : undefined,
   );
 
   if (root) {

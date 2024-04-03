@@ -79,15 +79,16 @@ export const getNormalizedBinaryName = (binaryPath: string) => {
 };
 
 /**
- * Returns the closest parent directory where the predicate returns true.
+ * Returns the closest parent directory where the predicate returns truthy.
  */
-export const nearestDirectoryWhere = async (
+export const nearestDirectoryWhere = async <T>(
   rootDir: string,
-  predicate: (dir: string) => Promise<boolean>,
-): Promise<string | undefined> => {
+  predicate: (dir: string) => Promise<T | undefined>,
+): Promise<T | undefined> => {
   while (true) {
-    if (await predicate(rootDir)) {
-      return rootDir;
+    const value = await predicate(rootDir);
+    if (value !== undefined) {
+      return value;
     }
 
     const parent = path.dirname(rootDir);
@@ -103,7 +104,9 @@ export const nearestDirectoryWhere = async (
  * Returns the closest parent directory that contains a file with the given name.
  */
 export const nearestDirectoryContaining = (fsUtils: IFsUtils, rootDir: string, file: string) =>
-  nearestDirectoryWhere(rootDir, p => fsUtils.exists(path.join(p, file)));
+  nearestDirectoryWhere<string>(rootDir, async p =>
+    (await fsUtils.exists(path.join(p, file))) ? p : undefined,
+  );
 
 // todo: not super correct, and most node libraries don't handle this accurately
 const knownLoopbacks = new Set<string>(['localhost', '127.0.0.1', '::1']);

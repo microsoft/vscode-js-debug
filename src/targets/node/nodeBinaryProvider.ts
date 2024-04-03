@@ -4,7 +4,7 @@
 
 import * as l10n from '@vscode/l10n';
 import { inject, injectable, optional } from 'inversify';
-import { basename, dirname, extname, isAbsolute, resolve } from 'path';
+import { basename, dirname, extname, isAbsolute, join, resolve } from 'path';
 import type * as vscodeType from 'vscode';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { existsInjected } from '../../common/fsUtils';
@@ -12,11 +12,11 @@ import { ILogger, LogTag } from '../../common/logging';
 import { findExecutable, findInPath } from '../../common/pathUtils';
 import { spawnAsync } from '../../common/processUtils';
 import { Semver } from '../../common/semver';
-import { getNormalizedBinaryName } from '../../common/urlUtils';
+import { getNormalizedBinaryName, nearestDirectoryWhere } from '../../common/urlUtils';
 import {
+  ErrorCodes,
   cannotFindNodeBinary,
   cwdDoesNotExist,
-  ErrorCodes,
   isErrorOfType,
   nodeBinaryOutOfDate,
 } from '../../dap/errors';
@@ -199,7 +199,7 @@ export interface INodeBinaryProvider {
  * it's a debuggable version./
  */
 @injectable()
-export class NodeBinaryProvider {
+export class NodeBinaryProvider implements INodeBinaryProvider {
   /**
    * A set of binary paths we know are good and which can skip additional
    * validation. We don't store bad mappings, because a user might reinstall
@@ -245,13 +245,31 @@ export class NodeBinaryProvider {
     return Promise.resolve(false);
   }
 
+  private async resolveNodeModulesLocation(
+    env: EnvironmentVars,
+    executable: string,
+    cwd: string | undefined,
+  ) {
+    if (!cwd || isAbsolute(executable) || !isAbsolute(cwd)) {
+      return undefined;
+    }
+
+    return nearestDirectoryWhere(cwd, dir =>
+      findExecutable(this.fs, join(dir, 'node_modules', '.bin', executable), env),
+    );
+  }
+
   private async resolveAndValidateInner(
     env: EnvironmentVars,
     executable: string,
     explicitVersion: number | undefined,
     cwd: string | undefined,
   ): Promise<NodeBinary> {
-    const location = await this.resolveBinaryLocation(executable, env);
+    let location = await this.resolveBinaryLocation(executable, env);
+    if (!location) {
+      location = await this.resolveNodeModulesLocation(env, executable, cwd);
+    }
+
     this.logger.info(LogTag.RuntimeLaunch, 'Using binary at', { location, executable });
     if (!location) {
       throw new ProtocolError(cannotFindNodeBinary(executable, l10n.t('path does not exist')));
