@@ -5,6 +5,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 ## Nightly (only)
 
 - feat: resolve executables from `node_modules/.bin` automatically ([#1984](https://github.com/microsoft/vscode-js-debug/issues/1984))
+- fix: avoid forcing attach PID into debug mode with default args ([vscode#206683](https://github.com/microsoft/vscode/issues/206683))
 
 ## v1.88 (March 2024)
 

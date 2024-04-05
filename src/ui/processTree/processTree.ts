@@ -78,9 +78,13 @@ export function analyseArguments(args: string) {
   // match --inspect, --inspect=1234, --inspect-brk, --inspect-brk=1234
   let matches = DEBUG_FLAGS_PATTERN.exec(args);
   if (matches && matches.length >= 1) {
+    port = 9229;
+    address = '127.0.0.1';
+
     if (matches.length >= 5 && matches[4]) {
       address = matches[4];
     }
+
     if (matches.length >= 6 && matches[5]) {
       port = parseInt(matches[5]);
     }
@@ -89,6 +93,7 @@ export function analyseArguments(args: string) {
   // a --inspect-port=1234 overrides the port
   matches = DEBUG_PORT_PATTERN.exec(args);
   if (matches && matches.length === 2) {
+    address = '127.0.0.1';
     port = parseInt(matches[1]);
   }
 
