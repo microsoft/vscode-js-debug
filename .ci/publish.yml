@@ -24,6 +24,7 @@ extends:
   parameters:
     publishExtension: ${{ parameters.publishExtension }}
     vscePackageArgs: --no-dependencies
+    apiScanExcludes: '**/w32appcontainertokens-*.node'
     cgIgnoreDirectories: 'testdata,demos,.vscode-test,src/test,testWorkspace'
     ${{ if eq(parameters.publishGhRelease, true) }}:
       ghCreateRelease: true
