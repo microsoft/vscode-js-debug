@@ -9,7 +9,6 @@ const minimist = require('minimist');
 const path = require('path');
 const rename = require('gulp-rename');
 const merge = require('merge2');
-const vsce = require('vsce');
 const execSync = require('child_process').execSync;
 const fs = require('fs');
 const cp = require('child_process');
@@ -304,16 +303,6 @@ const vsceUrls = {
   baseImagesUrl: 'https://github.com/microsoft/vscode-js-debug/raw/main',
 };
 
-/** Create a VSIX package using the vsce command line tool */
-gulp.task('package:createVSIX', () =>
-  vsce.createVSIX({
-    ...vsceUrls,
-    cwd: buildDir,
-    useYarn: true,
-    packagePath: path.join(buildDir, `${extensionName}.vsix`),
-  }),
-);
-
 gulp.task('l10n:bundle-download', async () => {
   const res = await got('https://github.com/microsoft/vscode-loc/archive/main.zip').buffer();
   const content = await jszip.loadAsync(res);
@@ -333,18 +322,15 @@ gulp.task('l10n:bundle-download', async () => {
 
 /** Clean, compile, bundle, and create vsix for the extension */
 gulp.task(
-  'package:prepare',
+  'package',
   gulp.series(
     'clean',
     'compile:static',
     'compile:build-scripts',
     'compile:dynamic',
     'compile:extension',
-    'package:createVSIX',
   ),
 );
-
-gulp.task('package', gulp.series('package:prepare', 'package:createVSIX'));
 
 gulp.task('flatSessionBundle', gulp.series('clean', 'compile', 'flatSessionBundle:webpack-bundle'));
 

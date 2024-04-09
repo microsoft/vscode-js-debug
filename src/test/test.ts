@@ -6,7 +6,6 @@ import del from 'del';
 import * as gulp from 'gulp';
 import { tmpdir } from 'os';
 import * as path from 'path';
-import playwright from 'playwright';
 import * as stream from 'stream';
 import { ExtensionContext } from 'vscode';
 import { DebugAdapter } from '../adapter/debugAdapter';
@@ -452,7 +451,6 @@ export class TestRoot {
       rootPath: this._workspaceRoot,
       skipNavigateForTest: true,
       trace: { logFile: tmpLogPath },
-      runtimeExecutable: playwright.chromium.executablePath(),
       outFiles: [`${this._workspaceRoot}/**/*.js`, '!**/node_modules/**'],
       __workspaceFolder: this._workspaceRoot,
       cleanUp: 'wholeBrowser', // We want the tests to clean up chrome afterwards
