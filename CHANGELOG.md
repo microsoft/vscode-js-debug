@@ -4,6 +4,10 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
+Nothing, yet
+
+## v1.89 (April 2024)
+
 - feat: resolve executables from `node_modules/.bin` automatically ([#1984](https://github.com/microsoft/vscode-js-debug/issues/1984))
 - fix: add new source map path patterns for turbopack ([#1996](https://github.com/microsoft/vscode-js-debug/issues/1996))
 - fix: avoid forcing attach PID into debug mode with default args ([vscode#206683](https://github.com/microsoft/vscode/issues/206683))
