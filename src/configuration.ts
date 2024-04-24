@@ -977,6 +977,7 @@ export function defaultSourceMapPathOverrides(webRoot: string): { [key: string]:
     'webpack://?:*/*': `${webRoot}/*`,
     'webpack:///([a-z]):/(.+)': '$1:/$2',
     'meteor://💻app/*': `${webRoot}/*`,
+    "turbopack://[project]/*": "${workspaceFolder}/*"
   };
 }
 
