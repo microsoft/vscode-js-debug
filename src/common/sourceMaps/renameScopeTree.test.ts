@@ -42,7 +42,10 @@ describe('extractScopeRanges', () => {
 
   for (const [source, expected] of tcases) {
     it(source, async () => {
-      const actual = calculateActual(source, await extractScopeRanges<void>(source));
+      const actual = calculateActual(
+        source,
+        await extractScopeRanges<void>(source, () => undefined),
+      );
       expect(actual).to.deep.equal(expected);
     });
   }
@@ -60,7 +63,7 @@ describe('extractScopeRanges', () => {
       '}',
     ].join('\n');
 
-    const tree = await extractScopeRanges<void>(src);
+    const tree = await extractScopeRanges<void>(src, () => undefined);
     tree.filterHoist(n => n.range.begin.base0.lineNumber % 2 === 0);
     const actual = calculateActual(src, tree);
     expect(actual).to.deep.equal([
@@ -84,7 +87,7 @@ describe('extractScopeRanges', () => {
       '}',
     ].join('\n');
 
-    const tree = await extractScopeRanges<number>(src);
+    const tree = await extractScopeRanges<number>(src, () => undefined);
     let i = 0;
     tree.forEach(n => (n.data = i++));
 
