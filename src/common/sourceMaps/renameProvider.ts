@@ -8,9 +8,9 @@ import { StackFrame } from '../../adapter/stackTrace';
 import { AnyLaunchConfiguration } from '../../configuration';
 import { iteratorFirst } from '../arrayUtils';
 import { ILogger, LogTag } from '../logging';
-import { Base01Position, IPosition, Range } from '../positions';
-import { PositionToOffset } from '../stringUtils';
-import { ScopeNode, extractScopeRanges } from './renameScopeTree';
+import { IPosition, Range } from '../positions';
+import { extractScopeRenames } from './renameScopeAndSourceMap';
+import { ScopeNode } from './renameScopeTree';
 import { SourceMap } from './sourceMap';
 import { ISourceMapFactory } from './sourceMapFactory';
 
@@ -18,9 +18,6 @@ export interface IRename {
   original: string;
   compiled: string;
 }
-
-/** Very approximate regex for JS identifiers */
-const identifierRe = /[$a-z_][$0-9A-Z_$]*/iy;
 
 export interface IRenameProvider {
   /**
@@ -108,46 +105,16 @@ export class RenameProvider implements IRenameProvider {
 
   private async createFromSourceMap(sourceMap: SourceMap, content: string) {
     const start = Date.now();
+
     let scopeTree: ScopeNode<IRename[]>;
     try {
-      scopeTree = await extractScopeRanges(content);
+      scopeTree = await extractScopeRenames(content, sourceMap);
     } catch (e) {
       this.logger.info(LogTag.Runtime, `Error parsing content for source tree: ${e}}`, {
         url: sourceMap.metadata.compiledPath,
       });
       return RenameMapping.None;
     }
-
-    const toOffset = new PositionToOffset(content);
-
-    sourceMap.eachMapping(mapping => {
-      if (!mapping.name) {
-        return;
-      }
-
-      const position = new Base01Position(mapping.generatedLine, mapping.generatedColumn).base0;
-      const start = toOffset.convert(position);
-      identifierRe.lastIndex = start;
-      const match = identifierRe.exec(content);
-      if (!match) {
-        return;
-      }
-
-      const compiled = match[0];
-      if (compiled === mapping.name) {
-        return; // it happens sometimes 🤷
-      }
-
-      const scope = scopeTree.search(position) || scopeTree;
-      scope.data ??= [];
-
-      // some tools emit name mapping each time the identifier is used, avoid duplicates.
-      if (!scope.data.some(r => r.compiled == compiled)) {
-        scope.data.push({ compiled, original: mapping.name });
-      }
-    });
-
-    scopeTree.filterHoist(node => !!node.data);
 
     const end = Date.now();
     this.logger.info(LogTag.Runtime, `renames calculated in ${end - start}ms`, {

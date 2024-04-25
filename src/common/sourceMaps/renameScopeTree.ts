@@ -5,9 +5,9 @@
 import { Position as ESTreePosition } from 'estree';
 import { Worker } from 'worker_threads';
 import { Base01Position, IPosition, Range } from '../positions';
-import { extractScopeRangesWithFactory } from './renameWorker';
+import { extractScopeRangesWithFactory as extractScopeFlatTree } from './renameWorker';
 
-export type FlatTree = { start: ESTreePosition; end: ESTreePosition; children?: FlatTree[] };
+export type FlatTree = { start: ESTreePosition; end: ESTreePosition; depth: number }[];
 
 /**
  * A tree node extracted via `extractScopeRanges`.
@@ -19,17 +19,45 @@ export class ScopeNode<T> {
   public data?: T;
 
   /** Hydrates a serialized tree */
-  public static hydrate<T>(node: FlatTree): ScopeNode<T> {
-    const hydrated = new ScopeNode<T>(
+  public static hydrate<T>(
+    flat: FlatTree,
+    depthFirstHydration: (node: ScopeNode<T>) => T | undefined,
+  ): ScopeNode<T> {
+    const root = new ScopeNode<T>(
       new Range(
-        new Base01Position(node.start.line, node.start.column),
-        new Base01Position(node.end.line, node.end.column),
+        new Base01Position(flat[0].start.line, flat[0].start.column),
+        new Base01Position(flat[0].end.line, flat[0].end.column),
       ),
     );
 
-    hydrated.children = node.children?.map(ScopeNode.hydrate) as ScopeNode<T>[];
+    const stack = [root];
+    let stackLen = 1;
 
-    return hydrated;
+    for (let i = 1; i < flat.length; i++) {
+      const node = flat[i];
+      while (node.depth < stackLen) {
+        stackLen--;
+        stack[stackLen].data = depthFirstHydration(stack[stackLen]);
+      }
+
+      const hydrated = new ScopeNode<T>(
+        new Range(
+          new Base01Position(node.start.line, node.start.column),
+          new Base01Position(node.end.line, node.end.column),
+        ),
+      );
+
+      const parent = stack[stackLen - 1];
+      parent.children ??= [];
+      parent.children.push(hydrated);
+      stack[stackLen++] = hydrated;
+    }
+
+    for (let i = stackLen - 1; i >= 0; i--) {
+      stack[i].data = depthFirstHydration(stack[i]);
+    }
+
+    return root;
   }
 
   constructor(public readonly range: Range) {}
@@ -97,10 +125,16 @@ export class ScopeNode<T> {
     }
   }
 
-  /** Runs the function on each node in the tree. */
+  /** Runs the function on each node in the tree, breadth-first. */
   public forEach(fn: (node: ScopeNode<T>) => void) {
     fn(this);
     this.children?.forEach(c => c.forEach(fn));
+  }
+
+  /** Runs the function on each node in the tree, depth-first */
+  public forEachDepthFirst(fn: (node: ScopeNode<T>) => void) {
+    this.children?.forEach(c => c.forEach(fn));
+    fn(this);
   }
 
   public toJSON() {
@@ -117,10 +151,16 @@ const WORKER_SIZE_THRESHOLD = 1024 * 512;
  * Gets ranges of scopes in the source code. It returns ranges where variables
  * declared in those ranges apply to all child scopes. For example,
  * `function(foo) { bar(); }` emits `(foo) { bar(); }` as a range.
+ *
+ * `depthFirstHydration` is called on each node in a depth-first order to
+ * allow creating data as serialization/deserialization happens.
  */
-export function extractScopeRanges<T>(source: string) {
+export function extractScopeRanges<T>(
+  source: string,
+  depthFirstHydration: (node: ScopeNode<T>) => T | undefined,
+) {
   if (source.length < WORKER_SIZE_THRESHOLD) {
-    return extractScopeRangesMainProcess<T>(source);
+    return ScopeNode.hydrate<T>(extractScopeFlatTree(source), depthFirstHydration);
   }
 
   return new Promise<ScopeNode<T>>((resolve, reject) => {
@@ -128,21 +168,8 @@ export function extractScopeRanges<T>(source: string) {
       workerData: source,
     });
 
-    worker.on('message', msg => resolve(ScopeNode.hydrate<T>(msg)));
+    worker.on('message', msg => resolve(ScopeNode.hydrate<T>(msg, depthFirstHydration)));
     worker.on('error', reject);
     worker.on('exit', () => reject('rename worker exited'));
   });
-}
-
-function extractScopeRangesMainProcess<T>(source: string) {
-  return extractScopeRangesWithFactory(
-    source,
-    (start, end) =>
-      new ScopeNode<T>(
-        new Range(
-          new Base01Position(start.start.line, start.start.column).base0,
-          new Base01Position(end.end.line, end.end.column).base0,
-        ),
-      ),
-  );
 }

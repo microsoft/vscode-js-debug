@@ -4,7 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
-Nothing, yet
+- fix: improve main-thread performance of source map rename ([vscode#210518](https://github.com/microsoft/vscode/issues/210518))
 
 ## v1.89 (April 2024)
 

@@ -4,6 +4,7 @@
 
 import {
   allGeneratedPositionsFor,
+  decodedMappings,
   eachMapping,
   EachMapping,
   GeneratedMapping,
@@ -160,6 +161,16 @@ export class SourceMap {
 
   eachMapping(callback: (mapping: EachMapping) => void): void {
     eachMapping(this.original, callback);
+  }
+
+  /** Gets internal decoded mappings from the sourcemap. */
+  decodedMappings() {
+    return decodedMappings(this.original);
+  }
+
+  /** Gets internal decoded names from the sourcemap. */
+  names() {
+    return this.original.names;
   }
 
   private getBestGeneratedForOriginal(
