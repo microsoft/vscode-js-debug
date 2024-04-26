@@ -61,8 +61,8 @@ export class StreamSplitter extends Transform {
   }
 
   override _flush(callback: (error?: Error | null, data?: unknown) => void): void {
-    for (const buf of this.prefix) {
-      this.push(buf);
+    if (this.prefix.length) {
+      this.push(Buffer.concat([...this.prefix, this.splitSuffix]));
     }
 
     callback();

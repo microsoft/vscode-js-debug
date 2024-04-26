@@ -11,8 +11,9 @@ import { Commands, DebugType, runCommand } from '../../common/contributionUtils'
 import { DisposableList } from '../../common/disposable';
 import { EventEmitter } from '../../common/events';
 import { delay } from '../../common/promiseUtil';
+import Dap from '../../dap/api';
 import { createFileTree } from '../createFileTree';
-import { ITestHandle, testFixturesDir, testWorkspace } from '../test';
+import { ITestHandle, NodeTestHandle, testFixturesDir, testWorkspace } from '../test';
 import { eventuallyOk, itIntegrates } from '../testIntegrationUtils';
 
 describe('profiling', () => {
@@ -63,6 +64,28 @@ describe('profiling', () => {
     });
   });
 
+  const setBreakpointsAndWaitForVerification = async (
+    handle: NodeTestHandle,
+    bps: Dap.SetBreakpointsParams,
+  ) => {
+    const r = await handle.dap.setBreakpoints(bps);
+
+    return await Promise.all(
+      r.breakpoints.map(async bp => {
+        if (bp.verified) {
+          return bp;
+        }
+
+        return (
+          await handle.dap.once(
+            'breakpoint',
+            ev => ev.breakpoint.id === bp.id && ev.breakpoint.verified,
+          )
+        ).breakpoint;
+      }),
+    );
+  };
+
   describe('cpu-profiling', () => {
     itIntegrates('cpu sanity test', async ({ r }) => {
       await r.initialize;
@@ -83,7 +106,7 @@ describe('profiling', () => {
         const handle = await r.runScript(script);
         await handle.load();
         handle.log(
-          await handle.dap.setBreakpoints({
+          await setBreakpointsAndWaitForVerification(handle, {
             source: { path: script },
             breakpoints: [{ line: 21, column: 1 }],
           }),
@@ -104,7 +127,7 @@ describe('profiling', () => {
         const handle = await r.runScript(script);
         await handle.load();
         handle.log(
-          await handle.dap.setBreakpoints({
+          await setBreakpointsAndWaitForVerification(handle, {
             source: { path: script },
             breakpoints: [{ line: 21, column: 1 }],
           }),
@@ -125,7 +148,7 @@ describe('profiling', () => {
         const handle = await r.runScript(script);
         await handle.load();
         handle.log(
-          await handle.dap.setBreakpoints({
+          await setBreakpointsAndWaitForVerification(handle, {
             source: { path: script },
             breakpoints: [{ line: 6, column: 1 }],
           }),
@@ -150,8 +173,8 @@ describe('profiling', () => {
 
         const handle = await r.runScript(script);
         await handle.load();
-        const { breakpoints } = handle.log(
-          await handle.dap.setBreakpoints({
+        const breakpoints = handle.log(
+          await setBreakpointsAndWaitForVerification(handle, {
             source: { path: script },
             breakpoints: [
               { line: 6, column: 1 },
@@ -422,7 +445,7 @@ describe('profiling', () => {
         const handle = await r.runScript(script);
         await handle.load();
         handle.log(
-          await handle.dap.setBreakpoints({
+          await setBreakpointsAndWaitForVerification(handle, {
             source: { path: script },
             breakpoints: [{ line: 21, column: 1 }],
           }),
@@ -443,7 +466,7 @@ describe('profiling', () => {
         const handle = await r.runScript(script);
         await handle.load();
         handle.log(
-          await handle.dap.setBreakpoints({
+          await setBreakpointsAndWaitForVerification(handle, {
             source: { path: script },
             breakpoints: [{ line: 21, column: 1 }],
           }),
@@ -464,7 +487,7 @@ describe('profiling', () => {
         const handle = await r.runScript(script);
         await handle.load();
         handle.log(
-          await handle.dap.setBreakpoints({
+          await setBreakpointsAndWaitForVerification(handle, {
             source: { path: script },
             breakpoints: [{ line: 6, column: 1 }],
           }),
@@ -489,8 +512,8 @@ describe('profiling', () => {
 
         const handle = await r.runScript(script);
         await handle.load();
-        const { breakpoints } = handle.log(
-          await handle.dap.setBreakpoints({
+        const breakpoints = handle.log(
+          await setBreakpointsAndWaitForVerification(handle, {
             source: { path: script },
             breakpoints: [
               { line: 6, column: 1 },

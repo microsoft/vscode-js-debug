@@ -1,29 +1,27 @@
-{
-    breakpoints : [
-        [0] : {
-            column : 16
-            id : 0
-            line : 6
-            source : {
-                name : simpleNode/profilePlayground.js
-                path : ${workspaceFolder}/simpleNode/profilePlayground.js
-                sourceReference : 0
-            }
-            verified : true
+[
+    [0] : {
+        column : 16
+        id : 0
+        line : 6
+        source : {
+            name : simpleNode/profilePlayground.js
+            path : ${workspaceFolder}/simpleNode/profilePlayground.js
+            sourceReference : 0
         }
-        [1] : {
-            column : 3
-            id : 1
-            line : 17
-            source : {
-                name : simpleNode/profilePlayground.js
-                path : ${workspaceFolder}/simpleNode/profilePlayground.js
-                sourceReference : 0
-            }
-            verified : true
+        verified : true
+    }
+    [1] : {
+        column : 3
+        id : 1
+        line : 17
+        source : {
+            name : simpleNode/profilePlayground.js
+            path : ${workspaceFolder}/simpleNode/profilePlayground.js
+            sourceReference : 0
         }
-    ]
-}
+        verified : true
+    }
+]
 {
     breakpoint : {
         id : 0
