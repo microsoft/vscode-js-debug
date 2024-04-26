@@ -5,6 +5,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 ## Nightly (only)
 
 - fix: improve main-thread performance of source map rename ([vscode#210518](https://github.com/microsoft/vscode/issues/210518))
+- fix: improve protocol handling performance in all cases ([#2001](https://github.com/microsoft/vscode-js-debug/issues/2001))
 
 ## v1.89 (April 2024)
 

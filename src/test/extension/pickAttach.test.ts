@@ -8,12 +8,12 @@ import { promises as fsPromises } from 'fs';
 import { tmpdir } from 'os';
 import * as path from 'path';
 import { SinonSandbox, createSandbox } from 'sinon';
-import split from 'split2';
 import * as vscode from 'vscode';
 import { Commands, DebugType } from '../../common/contributionUtils';
 import { findOpenPort } from '../../common/findOpenPort';
 import { LocalFsUtils } from '../../common/fsUtils';
 import { delay } from '../../common/promiseUtil';
+import { StreamSplitter } from '../../common/streamSplitter';
 import { nodeAttachConfigDefaults } from '../../configuration';
 import { resolveProcessId } from '../../ui/processPicker';
 import { createFileTree } from '../createFileTree';
@@ -89,8 +89,11 @@ describe('pick and attach', () => {
       child = spawn('node', ['--inspect-brk', `--inspect-port=${port}`], { stdio: 'pipe' });
       child.on('error', console.error);
       child
-        .stderr!.pipe(split())
-        .on('data', (line: string) => (attached = attached || line.includes('Debugger attached')));
+        .stderr!.pipe(new StreamSplitter('\n'))
+        .on(
+          'data',
+          (line: string) => (attached = attached || line.toString().includes('Debugger attached')),
+        );
     });
 
     it('end to end', async function () {
