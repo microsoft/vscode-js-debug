@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import { ChildProcessWithoutNullStreams, spawn as defaultSpawn } from 'child_process';
-import split2 from 'split2';
+import { StreamSplitter } from '../../common/streamSplitter';
 import { IProcess, IProcessTree } from './processTree';
 
 /**
@@ -27,8 +27,8 @@ export abstract class BaseProcessTree implements IProcessTree {
 
       proc.on('error', reject);
       proc.stderr.on('error', data => reject(`Error finding processes: ${data.toString()}`));
-      proc.stdout.pipe(split2(/\r?\n/)).on('data', line => {
-        const process = parser(line);
+      proc.stdout.pipe(new StreamSplitter('\n')).on('data', line => {
+        const process = parser(line.toString().trim());
         if (process) {
           value = onEntry(process, value);
         }

@@ -2,12 +2,12 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import split from 'split2';
 import { Duplex, Readable, Writable } from 'stream';
 import { EventEmitter } from '../common/events';
 import { HrTime } from '../common/hrnow';
 import { ILogger, LogTag } from '../common/logging';
 import { once } from '../common/objUtils';
+import { StreamSplitter } from '../common/streamSplitter';
 import { ITransport } from './transport';
 
 export class RawPipeTransport implements ITransport {
@@ -57,8 +57,8 @@ export class RawPipeTransport implements ITransport {
     this.streams = {
       read: read
         .on('error', error => this.logger.error(LogTag.Internal, 'pipeRead error', { error }))
-        .pipe(split('\0'))
-        .on('data', json => this.messageEmitter.fire([json, new HrTime()]))
+        .pipe(new StreamSplitter(0))
+        .on('data', (json: Buffer) => this.messageEmitter.fire([json.toString(), new HrTime()]))
         .on('end', this.onceEnded),
       write: pipeWrite.on('end', this.onceEnded).on('error', this.onWriteError),
     };

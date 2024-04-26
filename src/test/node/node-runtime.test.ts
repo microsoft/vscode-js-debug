@@ -7,13 +7,17 @@ import { ChildProcess, spawn } from 'child_process';
 import { promises as fsPromises } from 'fs';
 import { dirname, join } from 'path';
 import { stub } from 'sinon';
-import split from 'split2';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { findOpenPort } from '../../common/findOpenPort';
 import { once } from '../../common/objUtils';
 import { findInPath } from '../../common/pathUtils';
 import { delay } from '../../common/promiseUtil';
-import { INodeLaunchConfiguration, nodeLaunchConfigDefaults } from '../../configuration';
+import { StreamSplitter } from '../../common/streamSplitter';
+import {
+  INodeLaunchConfiguration,
+  OutputSource,
+  nodeLaunchConfigDefaults,
+} from '../../configuration';
 import Dap from '../../dap/api';
 import { TerminalProgramLauncher } from '../../targets/node/terminalProgramLauncher';
 import { createFileTree } from '../createFileTree';
@@ -441,7 +445,7 @@ describe('node runtime', () => {
         stdio: 'pipe',
       });
       const lines: string[] = [];
-      child.stderr?.pipe(split()).on('data', line => lines.push(line));
+      child.stderr?.pipe(new StreamSplitter('\n')).on('data', line => lines.push(line.toString()));
 
       const handle = await r.attachNode(0, { port, restart: true });
       await handle.dap.once('stopped');
@@ -710,6 +714,48 @@ describe('node runtime', () => {
       handle.dap.evaluate({ expression: 'process.exit(1)' });
       handle.log(await handle.dap.once('terminated'));
       handle.assertLog({ substring: true });
+    });
+  });
+
+  describe('etx', () => {
+    itIntegrates('stdio without etx', async ({ r }) => {
+      await r.initialize;
+
+      createFileTree(testFixturesDir, {
+        'test.js': ['process.stdout.write("hello world!");', 'debugger;'],
+      });
+      const handle = await r.runScript('test.js', { outputCapture: OutputSource.Stdio });
+      handle.load();
+      let logs = '';
+      r.rootDap().on('output', p => (logs += p.output));
+      await handle.dap.once('stopped');
+      expect(logs).to.deep.equal('hello world!');
+    });
+
+    itIntegrates('stdio with etx', async ({ r }) => {
+      await r.initialize;
+
+      createFileTree(testFixturesDir, {
+        'test.js': [
+          'process.stdout.write("etx\u0003start");',
+          'process.stdout.write("well defined\u0003");',
+          'process.stdout.write("chunks\u0003\u0003now!\u0003");',
+        ],
+      });
+      const handle = await r.runScript('test.js', { outputCapture: OutputSource.Stdio });
+      handle.load();
+      const logs: string[] = [];
+      r.rootDap().on('output', p => logs.push(p.output));
+      await handle.dap.once('terminated');
+
+      expect(logs).to.deep.equal([
+        'etx\n',
+        'startwell defined\n',
+        'chunks\n',
+        '\n',
+        'now!\n',
+        'Waiting for the debugger to disconnect...\n',
+      ]);
     });
   });
 });

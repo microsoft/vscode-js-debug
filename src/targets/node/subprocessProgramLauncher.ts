@@ -4,15 +4,14 @@
 
 import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
 import { inject, injectable } from 'inversify';
-import split from 'split2';
-import { Transform } from 'stream';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { ILogger } from '../../common/logging';
+import { StreamSplitter } from '../../common/streamSplitter';
 import * as urlUtils from '../../common/urlUtils';
 import { INodeLaunchConfiguration, OutputSource } from '../../configuration';
 import Dap from '../../dap/api';
 import { ILaunchContext } from '../targets';
-import { getNodeLaunchArgs, IProgramLauncher } from './processLauncher';
+import { IProgramLauncher, getNodeLaunchArgs } from './processLauncher';
 import { SubprocessProgram } from './program';
 
 /**
@@ -64,12 +63,12 @@ export class SubprocessProgramLauncher implements IProgramLauncher {
    */
   private captureStdio(dap: Dap.Api, child: ChildProcessWithoutNullStreams) {
     child.stdout
-      .pipe(EtxSplitter.stream())
-      .on('data', output => dap.output({ category: 'stdout', output }))
+      .pipe(new EtxSplitter())
+      .on('data', output => dap.output({ category: 'stdout', output: output.toString() }))
       .resume();
     child.stderr
-      .pipe(EtxSplitter.stream())
-      .on('data', output => dap.output({ category: 'stderr', output }))
+      .pipe(new EtxSplitter())
+      .on('data', output => dap.output({ category: 'stderr', output: output.toString() }))
       .resume();
   }
 
@@ -158,7 +157,7 @@ const formatArguments = (executable: string, args: ReadonlyArray<string>, cwd: s
 };
 
 const enum Char {
-  ETX = '\u0003',
+  ETX = 3,
 }
 
 /**
@@ -168,22 +167,28 @@ const enum Char {
  * finds any, it will switch from splitting the stream on newlines to
  * splitting on ETX characters.
  */
-export class EtxSplitter {
+export class EtxSplitter extends StreamSplitter {
   private etxSpotted = false;
 
-  public static stream(): Transform {
-    return split(new EtxSplitter());
+  constructor() {
+    super(Char.ETX);
+    this.splitSuffix = Buffer.from('\n');
   }
 
-  [Symbol.split](str: string) {
-    this.etxSpotted ||= str.includes(Char.ETX);
-    if (!this.etxSpotted) {
-      return [str, ''];
+  override _transform(
+    chunk: Buffer,
+    _encoding: string,
+    callback: (error?: Error | null | undefined, data?: unknown) => void,
+  ): void {
+    if (!this.etxSpotted && chunk.includes(Char.ETX)) {
+      this.etxSpotted = true;
     }
 
-    const split = str.split(Char.ETX);
+    if (!this.etxSpotted) {
+      this.push(chunk);
+      return callback();
+    }
 
-    // restore or add new lines between each record for proper debug console display
-    return split.length > 1 ? split.map((s, i) => (i < split.length - 1 ? `${s}\n` : s)) : split;
+    return super._transform(chunk, _encoding, callback);
   }
 }
