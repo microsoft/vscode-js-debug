@@ -28,7 +28,7 @@ export abstract class BaseProcessTree implements IProcessTree {
       proc.on('error', reject);
       proc.stderr.on('error', data => reject(`Error finding processes: ${data.toString()}`));
       proc.stdout.pipe(new StreamSplitter('\n')).on('data', line => {
-        const process = parser(line.toString().trim());
+        const process = parser(line.toString());
         if (process) {
           value = onEntry(process, value);
         }

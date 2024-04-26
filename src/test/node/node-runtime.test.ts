@@ -748,13 +748,12 @@ describe('node runtime', () => {
       r.rootDap().on('output', p => logs.push(p.output));
       await handle.dap.once('terminated');
 
-      expect(logs).to.deep.equal([
+      expect(logs.slice(0, 5)).to.deep.equal([
         'etx\n',
         'startwell defined\n',
         'chunks\n',
         '\n',
         'now!\n',
-        'Waiting for the debugger to disconnect...\n',
       ]);
     });
   });

@@ -1,1 +1,1 @@
-"helloworldnew line\nasdfnow ext\nthis should be bulkedwith this!\nWaiting for the debugger to disconnect...\ntrailing"
+"helloworldnew line\nasdfnow ext\nthis should be bulkedwith this!\nWaiting for the debugger to disconnect...\ntrailing\n"
