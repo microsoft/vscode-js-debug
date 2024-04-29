@@ -141,6 +141,7 @@ export class UserDefinedBreakpoint extends Breakpoint {
    * used for statistics and notifying the UI.
    */
   private async notifyResolved(): Promise<void> {
-    await this._manager.notifyBreakpointChange(this, this.completedSet.hasSettled());
+    await this.completedSet.promise;
+    await this._manager.notifyBreakpointChange(this, true);
   }
 }
