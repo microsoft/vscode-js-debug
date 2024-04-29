@@ -884,11 +884,19 @@ export class Thread implements IVariableStoreLocationProvider {
   }
 
   async _executionContextsCleared() {
+    const removedContexts = [...this._executionContexts.values()];
+    const pausedDetails = this._pausedDetails;
     this._executionContexts.clear();
+
     await this.shutdown.shutdownContext();
-    this._removeAllScripts();
+    for (const context of removedContexts) {
+      context.remove(this._sourceContainer);
+    }
     this._breakpointManager.executionContextWasCleared();
-    if (this._pausedDetails) this.onResumed();
+
+    if (pausedDetails && pausedDetails === this._pausedDetails) {
+      this.onResumed();
+    }
   }
 
   _ensureDebuggerEnabledAndRefreshDebuggerId() {
@@ -1538,7 +1546,8 @@ export class Thread implements IVariableStoreLocationProvider {
       event.url = urlUtils.absolutePathToFileUrl(event.url);
     }
 
-    if (this._sourceContainer.getScriptById(event.scriptId)) {
+    const existing = this._sourceContainer.getScriptById(event.scriptId);
+    if (existing && this._executionContexts.has(existing.executionContextId)) {
       return;
     }
 

@@ -198,6 +198,7 @@ export class WasmSymbolProvider implements IWasmSymbolProvider, IDisposable {
               ? await this.getBytecode(script.scriptId)
               : undefined,
         });
+        break;
       } catch (e) {
         this.logger.warn(LogTag.SourceMapParsing, `failed to load wasm symbols for ${scriptUrl}`, {
           error: e,
