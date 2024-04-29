@@ -6,7 +6,7 @@ import { spawnSync } from 'child_process';
 import { DefaultJsDebugPorts, IFindOpenPortOptions } from './findOpenPort';
 import { randomInRange } from './random';
 
-export { acquirePortNumber, IFindOpenPortOptions } from './findOpenPort';
+export { IFindOpenPortOptions, acquirePortNumber } from './findOpenPort';
 
 export function findOpenPortSync({
   min = DefaultJsDebugPorts.Min,
@@ -29,7 +29,7 @@ export function findOpenPortSync({
 
 const makeTester = () => {
   const testFast = (port: number) => {
-    const r = spawnSync('nc', ['-z', '127.0.0.1', String(port)]);
+    const r = spawnSync('lsof', ['-i', `@127.0.0.1:${+port}`]);
     if ((r.error as NodeJS.ErrnoException)?.code === 'ENOENT') {
       tester = testSlow;
     }
