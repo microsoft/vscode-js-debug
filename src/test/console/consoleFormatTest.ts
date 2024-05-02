@@ -157,7 +157,7 @@ describe('console format', () => {
       'new class { toString() { return "custom to string" } }',
       'new class { toString() { return "long custom to string".repeat(500) } }',
       'new class { [Symbol.for("debug.description")]() { return "some custom repr" } }',
-      'new class { [Symbol.for("nodejs.util.inspect.custom")]() { return "some node repr" } }',
+      'new class { [Symbol.for("nodejs.util.inspect.custom")](depth) { return "some node repr, depth: " + depth } }',
     ];
     const expressions = variables.map(v => [`console.log(${v})`, `console.log([${v}])`]);
     await p.logger.evaluateAndLog(([] as string[]).concat(...expressions), { depth: 0 });
