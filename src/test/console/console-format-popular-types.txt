@@ -366,11 +366,11 @@ Evaluating: 'console.log([new class { [Symbol.for("debug.description")]() { retu
 stdout> (1) [{…}]
 stdout> > (1) [{…}]
 
-Evaluating: 'console.log(new class { [Symbol.for("nodejs.util.inspect.custom")]() { return "some node repr" } })'
+Evaluating: 'console.log(new class { [Symbol.for("nodejs.util.inspect.custom")](depth) { return "some node repr, depth: " + depth } })'
 stdout> {}
-stdout> > some node repr
+stdout> > some node repr, depth: 2
 
-Evaluating: 'console.log([new class { [Symbol.for("nodejs.util.inspect.custom")]() { return "some node repr" } }])'
+Evaluating: 'console.log([new class { [Symbol.for("nodejs.util.inspect.custom")](depth) { return "some node repr, depth: " + depth } }])'
 stdout> (1) [{…}]
 stdout> > (1) [{…}]
 

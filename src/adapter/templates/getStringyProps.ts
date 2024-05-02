@@ -9,6 +9,9 @@ const enum DescriptionSymbols {
   Generic = 'debug.description',
   // Node.js-specific symbol that is used for some Node types https://nodejs.org/api/util.html#utilinspectcustom
   Node = 'nodejs.util.inspect.custom',
+
+  // Depth for `nodejs.util.inspect.custom`
+  Depth = 2,
 }
 
 /**
@@ -58,7 +61,7 @@ export const getStringyProps = templateFunction(function (
           continue;
         }
         try {
-          str = value[sym]();
+          str = value[sym](DescriptionSymbols.Depth);
           break;
         } catch {
           // ignored
@@ -101,11 +104,11 @@ export const getToStringIfCustom = templateFunction(function (
       Symbol.for(DescriptionSymbols.Generic),
       Symbol.for(DescriptionSymbols.Node),
     ]) {
-      if (typeof (this as Record<symbol, () => string>)[sym] !== 'function') {
+      if (typeof (this as Record<symbol, (depth?: number) => string>)[sym] !== 'function') {
         continue;
       }
       try {
-        str = (this as Record<symbol, () => string>)[sym]();
+        str = (this as Record<symbol, (depth?: number) => string>)[sym](DescriptionSymbols.Depth);
         break;
       } catch {
         // ignored
