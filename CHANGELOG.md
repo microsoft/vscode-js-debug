@@ -4,7 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
-Nothing, yet
+- fix: hanging on certain Linux environments ([vscode#214872](https://github.com/microsoft/vscode/issues/214872))
 
 ## v1.90 (May 2024)
 
