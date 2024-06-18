@@ -80,7 +80,7 @@
     "source-map-support": "^0.5.21",
     "to-absolute-glob": "^3.0.0",
     "vscode-tas-client": "^0.1.84",
-    "ws": "^8.16.0"
+    "ws": "^8.17.1"
   },
   "prettier": {
     "trailingComma": "all",
