@@ -4,6 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
+- feat: show correct values of shadowed variables in hovers ([#2022](https://github.com/microsoft/vscode-js-debug/issues/2022))
 - fix: hanging on certain Linux environments ([vscode#214872](https://github.com/microsoft/vscode/issues/214872))
 
 ## v1.90 (May 2024)

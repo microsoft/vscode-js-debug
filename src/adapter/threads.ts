@@ -30,7 +30,7 @@ import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
 import { ICompletions } from './completions';
 import { ExceptionMessage, IConsole, QueryObjectsMessage } from './console';
 import { customBreakpoints } from './customBreakpoints';
-import { IEvaluator } from './evaluator';
+import { IEvaluator, LocationEvaluateOptions } from './evaluator';
 import { IExceptionPauseService } from './exceptionPauseService';
 import * as objectPreview from './objectPreview';
 import { PreviewContextType, getContextForType } from './objectPreview/contexts';
@@ -524,7 +524,6 @@ export class Thread implements IVariableStoreLocationProvider {
     args: Dap.EvaluateParamsExtended,
     variables: VariableStore,
   ): Promise<Dap.Variable> {
-    const callFrameId = stackFrame?.root.callFrameId();
     // For clipboard evaluations, return a safe JSON-stringified string.
     const params: Cdp.Runtime.EvaluateParams =
       args.context === 'clipboard'
@@ -560,6 +559,16 @@ export class Thread implements IVariableStoreLocationProvider {
         type: 'evaluation',
       });
 
+    let location: LocationEvaluateOptions | undefined;
+    if (args.source && args.line && args.column) {
+      const variables = this._pausedVariables;
+      const source = this._sourceContainer.source(args.source);
+      if (source && variables) {
+        location = { source, position: new Base1Position(args.line, args.column), variables };
+      }
+    }
+
+    const callFrameId = stackFrame?.root.callFrameId();
     const responsePromise = this.evaluator.evaluate(
       callFrameId
         ? { ...params, callFrameId }
@@ -567,7 +576,7 @@ export class Thread implements IVariableStoreLocationProvider {
             ...params,
             contextId: this._selectedContext ? this._selectedContext.description.id : undefined,
           },
-      { isInternalScript: false, stackFrame: stackFrame?.root },
+      { isInternalScript: false, stackFrame: stackFrame?.root, location },
     );
 
     // Report result for repl immediately so that the user could see the expression they entered.

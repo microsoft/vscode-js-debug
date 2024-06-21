@@ -2211,6 +2211,23 @@ export namespace Dap {
     frameId?: integer;
 
     /**
+     * The contextual line where the expression should be evaluated. In the 'hover' context, this should be set to the start of the expression being hovered.
+     */
+    line?: integer;
+
+    /**
+     * The contextual column where the expression should be evaluated. This may be provided if `line` is also provided.
+     *
+     * It is measured in UTF-16 code units and the client capability `columnsStartAt1` determines whether it is 0- or 1-based.
+     */
+    column?: integer;
+
+    /**
+     * The contextual source in which the `line` is found. This must be provided if `line` is provided.
+     */
+    source?: Source;
+
+    /**
      * The context in which the evaluate request is used.
      */
     context?: 'watch' | 'repl' | 'hover' | 'clipboard' | 'variables';

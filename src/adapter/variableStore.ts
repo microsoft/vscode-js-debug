@@ -545,7 +545,7 @@ class Variable implements IVariable {
 
   constructor(
     protected readonly context: VariableContext,
-    protected readonly remoteObject: Cdp.Runtime.RemoteObject,
+    public readonly remoteObject: Cdp.Runtime.RemoteObject,
   ) {}
 
   /**
@@ -1392,14 +1392,16 @@ export class VariableStore {
    * Gets variable names from a known {@link IVariableContainer}. An optimized
    * version of `getVariables` that saves work generating previews.
    */
-  public async getVariableNames(params: Dap.VariablesParams): Promise<string[]> {
+  public async getVariableNames(
+    params: Dap.VariablesParams,
+  ): Promise<{ name: string; remoteObject: Cdp.Runtime.RemoteObject }[]> {
     const container = this.vars.get(params.variablesReference);
     if (!container) {
       return [];
     }
 
     const children = await container.getChildren(params);
-    return children.filter(isInstanceOf(Variable)).map(v => v.name);
+    return children.filter(isInstanceOf(Variable));
   }
 
   /** Gets variables from a known {@link IVariableContainer} */

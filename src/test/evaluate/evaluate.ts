@@ -510,6 +510,40 @@ describe('evaluate', () => {
     r.assertLog();
   });
 
+  itIntegrates('shadowed variables', async ({ r }) => {
+    const p = await r.launchAndLoad('blank');
+
+    p.dap.evaluate({
+      expression: `(function () {
+          let foo = 1;
+          if (true) {
+              let foo = 2;
+              if (true) {
+                  let foo = 3;
+                  debugger;
+                  console.log(foo);
+              }
+          }
+        })();`,
+    });
+    const sourcePromise = p.dap.once('loadedSource');
+    const { threadId } = await p.dap.once('stopped');
+
+    const frameId = (
+      await p.dap.stackTrace({
+        threadId: threadId!,
+      })
+    ).stackFrames[0].id;
+    const { source } = await sourcePromise;
+    await p.logger.evaluateAndLog('foo', { params: { frameId } });
+    for (let line = 1; line <= 7; line++) {
+      p.log(`line ${line}:`);
+      await p.logger.evaluateAndLog('foo', { params: { frameId, line, column: 1, source } });
+    }
+
+    r.assertLog();
+  });
+
   itIntegrates('supports bigint map keys (#1277)', async ({ r }) => {
     const p = await r.launchUrlAndLoad('index.html');
     await p.logger.evaluateAndLog(`new Map([[1n, 'one'], [2n, 'two']])`);

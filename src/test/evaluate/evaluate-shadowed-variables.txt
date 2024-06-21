@@ -1,0 +1,15 @@
+result: 3
+line 1:
+result: 3
+line 2:
+result: 1
+line 3:
+result: 1
+line 4:
+result: 2
+line 5:
+result: 2
+line 6:
+result: 3
+line 7:
+result: 3
