@@ -13,6 +13,7 @@ import { IPosition } from '../common/positions';
 import { parseProgram, replace } from '../common/sourceCodeManipulations';
 import { IRenameProvider, RenameMapping } from '../common/sourceMaps/renameProvider';
 import { isInPatternSlot } from '../common/sourceUtils';
+import { Source } from './source';
 import { StackFrame } from './stackTrace';
 import { getSourceSuffix } from './templates';
 
@@ -121,6 +122,12 @@ export interface IEvaluateOptions extends IEvaluatorBaseOptions {
    * necessary to allow for renamed properties.
    */
   stackFrame?: StackFrame;
+
+  /**
+   * A manually-provided source location for the evaluation, as an alternative
+   * to {@link stackFrame}
+   */
+  location?: { source: Source; position: IPosition };
 }
 
 /**
@@ -210,7 +217,13 @@ export class Evaluator implements IEvaluator {
     }
 
     let prepareOptions: IPrepareOptions | undefined = options;
-    if (options?.stackFrame) {
+    if (options?.location) {
+      const mapping = await this.renameProvider.provideForSource(options.location.source);
+      prepareOptions = {
+        ...prepareOptions,
+        renames: { mapping, position: options.location.position },
+      };
+    } else if (options?.stackFrame) {
       const mapping = await this.renameProvider.provideOnStackframe(options.stackFrame);
       prepareOptions = {
         ...prepareOptions,

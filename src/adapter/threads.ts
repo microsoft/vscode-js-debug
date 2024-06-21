@@ -30,7 +30,7 @@ import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
 import { ICompletions } from './completions';
 import { ExceptionMessage, IConsole, QueryObjectsMessage } from './console';
 import { customBreakpoints } from './customBreakpoints';
-import { IEvaluator } from './evaluator';
+import { IEvaluateOptions, IEvaluator } from './evaluator';
 import { IExceptionPauseService } from './exceptionPauseService';
 import * as objectPreview from './objectPreview';
 import { PreviewContextType, getContextForType } from './objectPreview/contexts';
@@ -560,6 +560,14 @@ export class Thread implements IVariableStoreLocationProvider {
         type: 'evaluation',
       });
 
+    let location: IEvaluateOptions['location'];
+    if (args.source && args.line && args.column) {
+      const source = this._sourceContainer.source(args.source);
+      if (source) {
+        location = { source, position: new Base1Position(args.line, args.column) };
+      }
+    }
+
     const responsePromise = this.evaluator.evaluate(
       callFrameId
         ? { ...params, callFrameId }
@@ -567,7 +575,7 @@ export class Thread implements IVariableStoreLocationProvider {
             ...params,
             contextId: this._selectedContext ? this._selectedContext.description.id : undefined,
           },
-      { isInternalScript: false, stackFrame: stackFrame?.root },
+      { isInternalScript: false, stackFrame: stackFrame?.root, location },
     );
 
     // Report result for repl immediately so that the user could see the expression they entered.
