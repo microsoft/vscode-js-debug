@@ -143,6 +143,13 @@ export class Source {
     return obj;
   }
 
+  public async equalsDap(s: Dap.Source) {
+    const existingAbsolutePath = await this._existingAbsolutePath;
+    return existingAbsolutePath
+      ? !s.sourceReference && existingAbsolutePath === s.path
+      : s.sourceReference === this.sourceReference;
+  }
+
   private setSourceMapUrl(sourceMapMetadata?: ISourceMapMetadata) {
     if (!sourceMapMetadata) {
       this.sourceMap = undefined;

@@ -46,6 +46,19 @@ export function some<T>(
   });
 }
 
+export async function findIndexAsync<T>(
+  array: ReadonlyArray<T>,
+  predicate: (item: T) => Promise<unknown>,
+): Promise<number> {
+  for (let i = 0; i < array.length; i++) {
+    if (await predicate(array[i])) {
+      return i;
+    }
+  }
+
+  return -1;
+}
+
 export function getDeferred<T>(): IDeferred<T> {
   // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
   let resolve: IDeferred<T>['resolve'] = null!;

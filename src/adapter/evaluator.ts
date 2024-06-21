@@ -9,13 +9,15 @@ import { ConditionalExpression, Expression } from 'estree';
 import { inject, injectable } from 'inversify';
 import Cdp from '../cdp/api';
 import { ICdpApi } from '../cdp/connection';
-import { IPosition } from '../common/positions';
+import { Base1Position, IPosition, Range } from '../common/positions';
+import { findIndexAsync } from '../common/promiseUtil';
 import { parseProgram, replace } from '../common/sourceCodeManipulations';
 import { IRenameProvider, RenameMapping } from '../common/sourceMaps/renameProvider';
 import { isInPatternSlot } from '../common/sourceUtils';
 import { Source } from './source';
 import { StackFrame } from './stackTrace';
 import { getSourceSuffix } from './templates';
+import { VariableStore } from './variableStore';
 
 export const returnValueStr = '$returnValue';
 
@@ -25,12 +27,16 @@ const makeHoistedName = () => hoistedPrefix + randomBytes(8).toString('hex');
 
 export const IEvaluator = Symbol('IEvaluator');
 
+export type PreparedHoistFn = (
+  variable: string,
+) => Promise<Cdp.Runtime.RemoteObject | undefined> | Cdp.Runtime.RemoteObject | undefined;
+
 /**
  * Prepared call that can be invoked later on a callframe..
  */
 export type PreparedCallFrameExpr = (
   params: Omit<Cdp.Debugger.EvaluateOnCallFrameParams, 'expression'>,
-  hoisted?: { [key: string]: Cdp.Runtime.RemoteObject },
+  hoist?: PreparedHoistFn,
 ) => Promise<Cdp.Debugger.EvaluateOnCallFrameResult | undefined>;
 
 /**
@@ -110,13 +116,13 @@ export interface IPrepareOptions extends IEvaluatorBaseOptions {
 
 export type RenamePrepareOptions = { position: IPosition; mapping: RenameMapping };
 
-export interface IEvaluateOptions extends IEvaluatorBaseOptions {
-  /**
-   * Replaces the identifiers in the associated script with references to the
-   * given remote objects.
-   */
-  hoist?: ReadonlyArray<string>;
+export type LocationEvaluateOptions = {
+  source: Source;
+  position: IPosition;
+  variables: VariableStore;
+};
 
+export interface IEvaluateOptions extends IEvaluatorBaseOptions {
   /**
    * Stack frame object on which the evaluation is being run. This is
    * necessary to allow for renamed properties.
@@ -127,7 +133,7 @@ export interface IEvaluateOptions extends IEvaluatorBaseOptions {
    * A manually-provided source location for the evaluation, as an alternative
    * to {@link stackFrame}
    */
-  location?: { source: Source; position: IPosition };
+  location?: LocationEvaluateOptions;
 }
 
 /**
@@ -188,10 +194,13 @@ export class Evaluator implements IEvaluator {
 
     return {
       canEvaluateDirectly: false,
-      invoke: (params, hoistMap = {}) =>
+      invoke: (params, doHoist) =>
         Promise.all(
-          [...toHoist].map(([ident, hoisted]) =>
-            this.hoistValue(ident === returnValueStr ? this.returnValue : hoistMap[ident], hoisted),
+          [...toHoist].map(async ([ident, hoisted]) =>
+            this.hoistValue(
+              ident === returnValueStr ? this.returnValue : await doHoist?.(ident),
+              hoisted,
+            ),
           ),
         ).then(() => this.cdp.Debugger.evaluateOnCallFrame({ ...params, expression: transformed })),
     };
@@ -209,35 +218,49 @@ export class Evaluator implements IEvaluator {
   ): Promise<Cdp.Runtime.EvaluateResult>;
   public async evaluate(
     params: Cdp.Debugger.EvaluateOnCallFrameParams | Cdp.Runtime.EvaluateParams,
-    options?: IEvaluateOptions,
+    options: IEvaluateOptions = {},
   ) {
     // no call frame means there will not be any relevant $returnValue to reference
     if (!('callFrameId' in params)) {
       return this.cdp.Runtime.evaluate(params);
     }
 
-    let prepareOptions: IPrepareOptions | undefined = options;
-    if (options?.location) {
-      const mapping = await this.renameProvider.provideForSource(options.location.source);
-      prepareOptions = {
-        ...prepareOptions,
-        renames: { mapping, position: options.location.position },
-      };
-    } else if (options?.stackFrame) {
-      const mapping = await this.renameProvider.provideOnStackframe(options.stackFrame);
-      prepareOptions = {
-        ...prepareOptions,
-        renames: { mapping, position: options.stackFrame.rawPosition },
-      };
+    const prepareOptions: IPrepareOptions | undefined = { ...options };
+    const { location, stackFrame } = options;
+    let hoist: PreparedHoistFn | undefined;
+    if (location) {
+      await Promise.all([
+        // 1. Get the rename mapping at the desired position
+        Promise.resolve(this.renameProvider.provideForSource(location.source)).then(mapping => {
+          prepareOptions.renames = { mapping, position: location.position };
+        }),
+        // 2. Hoist variables that may be shadowed. Identify the scope containing
+        // the location and mark any variables that appear in a higher scope
+        // (and therefore could be shadowed) as hoistable.
+        stackFrame &&
+          this.setupShadowedVariableHoisting(location, stackFrame).then(r => {
+            if (r) {
+              hoist = r.doHoist;
+              prepareOptions.hoist = [...r.hoistable];
+            }
+          }),
+      ]);
+    } else if (stackFrame) {
+      const mapping = await this.renameProvider.provideOnStackframe(stackFrame);
+      prepareOptions.renames = { mapping, position: stackFrame.rawPosition };
     }
 
-    return this.prepare(params.expression, prepareOptions).invoke(params);
+    return this.prepare(params.expression, prepareOptions).invoke(params, hoist);
   }
 
   /**
    * Hoists the return value of the expression to the `globalThis`.
    */
   public async hoistValue(object: Cdp.Runtime.RemoteObject | undefined, hoistedVar: string) {
+    if (object === undefined) {
+      return;
+    }
+
     const objectId = object?.objectId;
     const dehoist = `setTimeout(() => { delete globalThis.${hoistedVar} }, 0)`;
 
@@ -254,6 +277,61 @@ export class Evaluator implements IEvaluator {
           getSourceSuffix(),
       });
     }
+  }
+
+  /**
+   * Returns shadowed variables at the given location in the stack's scopes
+   * and a function that can be used to hoist the variables.
+   *
+   * It does this by identifying the scope the evaluation is being run in,
+   * marking all variables found in scopes above it as hoistable, and
+   * creating a function that will return the RemoteObject of a given
+   * shadowed variable.
+   */
+  private async setupShadowedVariableHoisting(
+    { position, source, variables }: LocationEvaluateOptions,
+    stackFrame: StackFrame,
+  ) {
+    const { scopes } = await stackFrame.scopes();
+
+    const scopeIndex = await findIndexAsync(
+      scopes,
+      async s =>
+        s.source &&
+        s.line &&
+        s.endLine &&
+        new Range(
+          new Base1Position(s.line, s.column || 1),
+          new Base1Position(s.endLine, s.endColumn || Infinity),
+        ).contains(position) &&
+        (await source.equalsDap(s.source)),
+    );
+    if (scopeIndex === -1) {
+      return;
+    }
+
+    const hoistable = new Set<string>();
+    await Promise.all(
+      scopes.slice(0, scopeIndex).map(async s => {
+        const vars = await variables.getVariableNames({
+          variablesReference: s.variablesReference,
+        });
+        for (const { name } of vars) {
+          hoistable.add(name);
+        }
+      }),
+    );
+
+    const doHoist: PreparedHoistFn = async variable => {
+      for (let i = scopeIndex; i < scopes.length; i++) {
+        const vars = await variables.getVariableNames({
+          variablesReference: scopes[i].variablesReference,
+        });
+        return vars.find(v => v.name === variable)?.remoteObject;
+      }
+    };
+
+    return { hoistable, doHoist };
   }
 
   /**

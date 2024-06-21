@@ -168,7 +168,9 @@ export class ExceptionPauseService implements IExceptionPauseService {
   }
 
   private async evalCondition(evt: Cdp.Debugger.PausedEvent, method: PreparedCallFrameExpr) {
-    const r = await method({ callFrameId: evt.callFrames[0].callFrameId }, { error: evt.data });
+    const r = await method({ callFrameId: evt.callFrames[0].callFrameId }, v =>
+      v === 'error' ? evt.data : undefined,
+    );
     return !!r?.result.value;
   }
 

@@ -377,6 +377,11 @@ export class StackFrame implements IStackFrameElement {
     return new Base1Position(this._rawLocation.lineNumber, this._rawLocation.columnNumber);
   }
 
+  /** Raw chain from the runtime, applicable only to debug-triggered traces */
+  public get rawScopeChain() {
+    return this._scope?.chain || [];
+  }
+
   static fromRuntime(
     thread: Thread,
     callFrame: Cdp.Runtime.CallFrame,
@@ -674,7 +679,7 @@ export class StackFrame implements IStackFrameElement {
           .getVariableNames({
             variablesReference: scopeVariable.id,
           })
-          .then(variables => variables.map(label => ({ label, type: 'property' }))),
+          .then(variables => variables.map(({ name }) => ({ label: name, type: 'property' }))),
       );
     }
     const completions = await Promise.all(promises);
