@@ -545,7 +545,7 @@ export class SourceContainer {
           getFallbackPosition,
         );
 
-        if (!entry) {
+        if (!entry || entry.line === null) {
           continue;
         }
 
