@@ -94,19 +94,19 @@ export const launchVirtualTerminalParent = (
       // Skip targets the consumer asked to filter out.
       if (!filterTarget(target)) {
         target.detach();
-        return;
+        continue;
       }
 
       // Check that we didn't detach from the parent session.
       if (target.targetInfo.openerId && !target.parent()) {
         target.detach();
-        return;
+        continue;
       }
 
       // Detach from targets if workspace trust was not granted
       if (!trusted) {
         target.detach();
-        return;
+        continue;
       }
 
       if (!target.parent()) {
