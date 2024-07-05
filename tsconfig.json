@@ -1,8 +1,8 @@
 {
   "compilerOptions": {
     "module": "commonjs",
-    "target": "ES2018",
-    "lib": ["ES2018"],
+    "target": "ES2021",
+    "lib": ["ES2022"],
     "moduleResolution": "node",
     "noImplicitAny": true,
     "noImplicitThis": true,

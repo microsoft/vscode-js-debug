@@ -6,11 +6,12 @@ import * as l10n from '@vscode/l10n';
 import execa from 'execa';
 import { promises as fs } from 'fs';
 import { injectable } from 'inversify';
-import { dirname, join } from 'path';
+import * as path from 'path';
 import * as vscode from 'vscode';
 import { TaskCancelledError } from '../../common/cancellation';
 import { DebugType } from '../../common/contributionUtils';
 import { canAccess } from '../../common/fsUtils';
+import { ProcessArgs } from '../../common/processArgs';
 import { nearestDirectoryWhere } from '../../common/urlUtils';
 import {
   IExtensionHostLaunchConfiguration,
@@ -20,6 +21,8 @@ import {
   resolveVariableInConfig,
 } from '../../configuration';
 import { BaseConfigurationResolver } from './baseConfigurationResolver';
+
+const defaultExtensionKind = ['workspace'];
 
 /**
  * Configuration provider for Extension host debugging.
@@ -33,8 +36,10 @@ export class ExtensionHostConfigurationResolver
     folder: vscode.WorkspaceFolder | undefined,
     config: ResolvingExtensionHostConfiguration,
   ): Promise<IExtensionHostLaunchConfiguration | undefined> {
+    const args = new ProcessArgs(config.args);
+    const pkgJson = await readExtensionPackageJson(folder, config, args);
     if (config.debugWebWorkerHost === undefined) {
-      const extensionKind = await getExtensionKind(folder, config);
+      const extensionKind = pkgJson?.value.extensionKind ?? defaultExtensionKind;
       config = {
         ...config,
         debugWebWorkerHost: extensionKind.length === 1 && extensionKind[0] === 'web',
@@ -45,6 +50,13 @@ export class ExtensionHostConfigurationResolver
 
     if (config.debugWebWorkerHost) {
       config.outFiles = []; // will have a runtime script offset which invalidates any predictions
+    }
+
+    if (!config.outFiles && pkgJson && folder) {
+      const outFiles = await guessOutFiles(folder, pkgJson);
+      if (outFiles) {
+        config.outFiles = outFiles;
+      }
     }
 
     return Promise.resolve({
@@ -87,31 +99,54 @@ export class ExtensionHostConfigurationResolver
   }
 }
 
-const devPathArg = '--extensionDevelopmentPath=';
+const guessOutFiles = async (wf: vscode.WorkspaceFolder, pkgJson: IPackageJsonInfo) => {
+  if (!pkgJson.value.main) {
+    return undefined;
+  }
 
-const getExtensionKind = async (
+  const extensionMain = path.resolve(path.dirname(pkgJson.path), pkgJson.value.main);
+  const relativeToExt = path.relative(wf.uri.fsPath, path.dirname(pkgJson.path));
+  const relativeToMain = path.relative(path.dirname(pkgJson.path), extensionMain);
+  const subdirOfMain = relativeToMain.split(path.sep)[0];
+
+  return [
+    path.join('${workspaceFolder}', relativeToExt, subdirOfMain, '**/*.js').replaceAll('\\', '/'),
+  ];
+};
+
+const devPathArg = '--extensionDevelopmentPath';
+
+interface IPackageJsonInfo {
+  path: string;
+  value: {
+    main?: string;
+    extensionKind?: string;
+  };
+}
+
+const readExtensionPackageJson = async (
   folder: vscode.WorkspaceFolder | undefined,
   config: ResolvingExtensionHostConfiguration,
-) => {
-  const arg = config.args?.find(a => a.startsWith(devPathArg));
+  args: ProcessArgs,
+): Promise<IPackageJsonInfo | undefined> => {
+  const arg = args.get(devPathArg);
   if (!arg) {
-    return ['workspace'];
+    return undefined;
   }
 
   const resolvedFolder = resolveVariableInConfig(
-    arg.slice(devPathArg.length),
+    arg,
     'workspaceFolder',
     folder?.uri.fsPath ?? config.__workspaceFolder ?? '',
   );
-  let extensionKind: string | string[];
-  try {
-    const json = await fs.readFile(join(resolvedFolder, 'package.json'), 'utf-8');
-    extensionKind = JSON.parse(json).extensionKind ?? 'workspace';
-  } catch {
-    return ['workspace'];
-  }
 
-  return extensionKind instanceof Array ? extensionKind : [extensionKind];
+  try {
+    const pkgPath = path.join(resolvedFolder, 'package.json');
+    const json = await fs.readFile(pkgPath, 'utf-8');
+    return { value: JSON.parse(json), path: pkgPath };
+  } catch {
+    return undefined;
+  }
 };
 
 const resolveTestConfiguration = async (config: ResolvingExtensionHostConfiguration) => {
@@ -121,21 +156,25 @@ const resolveTestConfiguration = async (config: ResolvingExtensionHostConfigurat
     return;
   }
 
-  const suffix = join('node_modules', '@vscode', 'test-cli', 'out', 'bin.mjs');
+  const suffix = path.join('node_modules', '@vscode', 'test-cli', 'out', 'bin.mjs');
   const dirWithModules = await nearestDirectoryWhere(testConfiguration, async dir => {
-    const binary = join(dir, suffix);
+    const binary = path.join(dir, suffix);
     return (await canAccess(fs, binary)) ? dir : undefined;
   });
 
   if (!dirWithModules) {
     throw new Error(
-      l10n.t('Cannot find `{0}` installed in {1}', '@vscode/test-cli', dirname(testConfiguration)),
+      l10n.t(
+        'Cannot find `{0}` installed in {1}',
+        '@vscode/test-cli',
+        path.dirname(testConfiguration),
+      ),
     );
   }
 
   const result = await execa(
     process.execPath,
-    [join(dirWithModules, suffix), '--config', testConfiguration, '--list-configuration'],
+    [path.join(dirWithModules, suffix), '--config', testConfiguration, '--list-configuration'],
     {
       env: { ...process.env, ELECTRON_RUN_AS_NODE: '1' },
     },
