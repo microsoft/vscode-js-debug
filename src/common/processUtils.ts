@@ -4,6 +4,7 @@
 
 import { spawn, SpawnOptionsWithoutStdio } from 'child_process';
 import { ExecaReturnValue } from 'execa';
+import { platformPathToPreferredCase } from './urlUtils';
 
 /**
  * Thrown from {@link spawnAsync} if an error or non-zero exit code occurs.
@@ -39,7 +40,13 @@ export function spawnAsync(
   options?: SpawnOptionsWithoutStdio,
 ): Promise<{ stdout: string; stderr: string }> {
   return new Promise((resolve, reject) => {
-    const process = spawn(command, args, { ...options, stdio: 'pipe' });
+    const fmt = formatSubprocessArguments(command, args, options?.cwd);
+    const process = spawn(fmt.executable, fmt.args, {
+      ...options,
+      cwd: fmt.cwd,
+      shell: fmt.shell,
+      stdio: 'pipe',
+    });
 
     const stderr: Buffer[] = [];
     const stdout: Buffer[] = [];
@@ -68,3 +75,44 @@ export function spawnAsync(
     );
   });
 }
+
+const windowsShellScriptRe = /\.(bat|cmd)$/i;
+
+/**
+ * Formats arguments to avoid issues on Windows:
+ *
+ * - CVE-2024-27980 mitigation https://github.com/nodejs/node/issues/52554
+ * - https://github.com/microsoft/vscode/issues/45832
+ *   Note that the handling for CVE-2024-27980 applies the behavior from this
+ *   issue to a superset of cases for which it originally applied.
+ *
+ * Originally from https://github.com/microsoft/vscode-node-debug/blob/47747454bc6e8c9e48d8091eddbb7ffb54a19bbe/src/node/nodeDebug.ts#L1120
+ */
+export const formatSubprocessArguments = (
+  executable: string,
+  args: ReadonlyArray<string>,
+  cwd?: string | URL,
+) => {
+  if (process.platform === 'win32') {
+    executable = platformPathToPreferredCase(executable);
+    if (cwd) {
+      cwd = platformPathToPreferredCase(cwd.toString());
+    }
+
+    if (executable.endsWith('.ps1')) {
+      args = ['-File', executable, ...args];
+      executable = 'powershell.exe';
+    }
+  }
+
+  if (process.platform !== 'win32' || !windowsShellScriptRe.test(executable)) {
+    return { executable, args, shell: false, cwd };
+  }
+
+  return {
+    executable: `"${executable}"`,
+    args: args.map(a => (a.includes(' ') ? `"${a}"` : a)),
+    shell: true,
+    cwd,
+  };
+};

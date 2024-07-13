@@ -6,8 +6,8 @@ import { ChildProcessWithoutNullStreams, spawn } from 'child_process';
 import { inject, injectable } from 'inversify';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { ILogger } from '../../common/logging';
+import { formatSubprocessArguments } from '../../common/processUtils';
 import { StreamSplitter } from '../../common/streamSplitter';
-import * as urlUtils from '../../common/urlUtils';
 import { INodeLaunchConfiguration, OutputSource } from '../../configuration';
 import Dap from '../../dap/api';
 import { ILaunchContext } from '../targets';
@@ -30,7 +30,7 @@ export class SubprocessProgramLauncher implements IProgramLauncher {
     config: INodeLaunchConfiguration,
     context: ILaunchContext,
   ) {
-    const { executable, args, shell, cwd } = formatArguments(
+    const { executable, args, shell, cwd } = formatSubprocessArguments(
       binary,
       getNodeLaunchArgs(config),
       config.cwd,
@@ -117,44 +117,6 @@ export class SubprocessProgramLauncher implements IProgramLauncher {
     child.stderr.resume();
   }
 }
-
-// Fix for: https://github.com/microsoft/vscode/issues/45832,
-// which still seems to be a thing according to the issue tracker.
-// From: https://github.com/microsoft/vscode-node-debug/blob/47747454bc6e8c9e48d8091eddbb7ffb54a19bbe/src/node/nodeDebug.ts#L1120
-const formatArguments = (executable: string, args: ReadonlyArray<string>, cwd: string) => {
-  if (process.platform === 'win32') {
-    executable = urlUtils.platformPathToPreferredCase(executable);
-    cwd = urlUtils.platformPathToPreferredCase(cwd);
-
-    if (executable.endsWith('.ps1')) {
-      args = ['-File', executable, ...args];
-      executable = 'powershell.exe';
-    }
-  }
-
-  if (process.platform !== 'win32' || !executable.includes(' ')) {
-    return { executable, args, shell: false, cwd };
-  }
-
-  let foundArgWithSpace = false;
-
-  // check whether there is one arg with a space
-  const output: string[] = [];
-  for (const a of args) {
-    if (a.includes(' ')) {
-      output.push(`"${a}"`);
-      foundArgWithSpace = true;
-    } else {
-      output.push(a);
-    }
-  }
-
-  if (foundArgWithSpace) {
-    return { executable: `"${executable}"`, args: output, shell: true, cwd: cwd };
-  }
-
-  return { executable, args, shell: false, cwd };
-};
 
 const enum Char {
   ETX = 3,
