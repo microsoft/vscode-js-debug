@@ -7,6 +7,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: automatically guess outFiles in extension development ([#2032](https://github.com/microsoft/vscode-js-debug/issues/2032))
 - fix: breakpoints at unmapped locations setting in wrong locations ([vscode#219031](https://github.com/microsoft/vscode/issues/219031))
 - fix: debug targets orphaned when a detached child starts after a parent exits ([vscode#219673](https://github.com/microsoft/vscode/issues/219673))
+- fix: adopt changes required for CVE-2024-27980 patch
 
 ## v1.91 (June 2024)
 
