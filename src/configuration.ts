@@ -2,6 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { homedir } from 'os';
 import { SourceMapTimeouts } from './adapter/sourceContainer';
 import { DebugType } from './common/contributionUtils';
 import { assertNever, filterValues } from './common/objUtils';
@@ -1103,7 +1104,8 @@ export function removeOptionalWorkspaceFolderUsages<T extends AnyLaunchConfigura
   }
 
   if ('cwd' in cast && cast.cwd?.includes(token)) {
-    cast.cwd = undefined;
+    // cwd is required (only) for node launch types
+    cast.cwd = cast.request === 'launch' && cast.type === DebugType.Node ? homedir() : undefined;
   }
 
   if ('webRoot' in cast && cast.webRoot?.includes(token)) {
