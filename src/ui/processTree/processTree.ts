@@ -4,6 +4,7 @@
 
 import { promises as fsPromises } from 'fs';
 import { LocalFsUtils } from '../../common/fsUtils';
+import { once } from '../../common/objUtils';
 import { DarwinProcessTree } from './darwinProcessTree';
 import { PosixProcessTree } from './posixProcessTree';
 import { WindowsProcessTree } from './windowsProcessTree';
@@ -64,36 +65,66 @@ export const processTree: IProcessTree =
     ? new DarwinProcessTree(fsUtils)
     : new PosixProcessTree(fsUtils);
 
+const DEBUG_FLAGS_PATTERN = once(() => {
+  const parts = [
+    // base inspect argument
+    '--inspect(?:-brk)?',
+
+    // START = argument. (Note that --inspect does not allow a space delimiter, so no need to handle it)
+    '(?:=',
+
+    // Host+port or port alternate:
+    [
+      '(?:',
+
+      // Address or hostname with optional port:
+      [
+        '(?:',
+        // IPv6, IPv4, or hostname
+        '(?<address>\\[[0-9a-f:]*\\]|[0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+|(?:[a-z][a-z0-9\\.]*))',
+        // Optional port
+        '(?::(?<port1>\\d+))?',
+        ')',
+      ],
+
+      '|',
+
+      // Simple port:
+      '(?<port2>\\d+)?',
+
+      ')',
+    ],
+
+    // END = argument
+    ')?',
+  ]
+    .flat(Infinity)
+    .join('');
+
+  return new RegExp(parts, 'i');
+});
+
 /*
  * Analyse the given command line arguments and extract debug port and protocol from it.
  */
 export function analyseArguments(args: string) {
-  const DEBUG_FLAGS_PATTERN =
-    /--inspect(-brk)?(=((\[[0-9a-fA-F:]*\]|[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+|[a-zA-Z0-9\.]*):)?(\d+))?/;
   const DEBUG_PORT_PATTERN = /--inspect-port=(\d+)/;
 
   let address: string | undefined;
   let port: number | undefined;
 
   // match --inspect, --inspect=1234, --inspect-brk, --inspect-brk=1234
-  let matches = DEBUG_FLAGS_PATTERN.exec(args);
-  if (matches && matches.length >= 1) {
-    port = 9229;
-    address = '127.0.0.1';
-
-    if (matches.length >= 5 && matches[4]) {
-      address = matches[4];
-    }
-
-    if (matches.length >= 6 && matches[5]) {
-      port = parseInt(matches[5]);
-    }
+  let matches = DEBUG_FLAGS_PATTERN().exec(args);
+  if (matches?.groups) {
+    const portStr = matches.groups.port1 || matches.groups.port2;
+    port = portStr ? Number(portStr) : 9229;
+    address = matches.groups.address ?? '127.0.0.1';
   }
 
   // a --inspect-port=1234 overrides the port
   matches = DEBUG_PORT_PATTERN.exec(args);
   if (matches && matches.length === 2) {
-    address = '127.0.0.1';
+    address ||= '127.0.0.1';
     port = parseInt(matches[1]);
   }
 
