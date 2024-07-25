@@ -4,7 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
-Nothing, yet
+- fix: hover evaluation incorrectly showing undefined ([vscode#221503](https://github.com/microsoft/vscode/issues/221503))
 
 ## v1.92 (July 2024)
 

@@ -21,6 +21,7 @@ module.exports = {
     '@typescript-eslint/no-use-before-define': 'off',
     '@typescript-eslint/explicit-function-return-type': 'off',
     '@typescript-eslint/no-namespace': 'off',
+    'prefer-const': ['error', { destructuring: 'all' }],
     '@typescript-eslint/explicit-module-boundary-types': 'off',
     'header/header': [
       'error',
