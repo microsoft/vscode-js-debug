@@ -9,6 +9,7 @@ import { ConditionalExpression, Expression } from 'estree';
 import { inject, injectable } from 'inversify';
 import Cdp from '../cdp/api';
 import { ICdpApi } from '../cdp/connection';
+import { ILogger, LogTag } from '../common/logging';
 import { Base1Position, IPosition, Range } from '../common/positions';
 import { findIndexAsync } from '../common/promiseUtil';
 import { parseProgram, replace } from '../common/sourceCodeManipulations';
@@ -153,6 +154,7 @@ export class Evaluator implements IEvaluator {
   constructor(
     @inject(ICdpApi) private readonly cdp: Cdp.Api,
     @inject(IRenameProvider) private readonly renameProvider: IRenameProvider,
+    @inject(ILogger) private readonly logger: ILogger,
   ) {}
 
   /**
@@ -183,7 +185,7 @@ export class Evaluator implements IEvaluator {
       toHoist.set(key, makeHoistedName());
     }
 
-    const { transformed, hoisted } = this.replaceVariableInExpression(expression, toHoist, renames);
+    let { transformed, hoisted } = this.replaceVariableInExpression(expression, toHoist, renames);
     if (!hoisted.size) {
       return {
         canEvaluateDirectly: true,
@@ -196,12 +198,18 @@ export class Evaluator implements IEvaluator {
       canEvaluateDirectly: false,
       invoke: (params, doHoist) =>
         Promise.all(
-          [...toHoist].map(async ([ident, hoisted]) =>
-            this.hoistValue(
+          [...toHoist].map(async ([ident, hoisted]) => {
+            const ok = await this.hoistValue(
               ident === returnValueStr ? this.returnValue : await doHoist?.(ident),
               hoisted,
-            ),
-          ),
+            );
+
+            if (!ok) {
+              // naive replace here since the identifier is a complex random
+              // string and not likely to exist in the expression otherwise
+              transformed = transformed.replaceAll(hoisted, ident);
+            }
+          }),
         ).then(() => this.cdp.Debugger.evaluateOnCallFrame({ ...params, expression: transformed })),
     };
   }
@@ -255,28 +263,34 @@ export class Evaluator implements IEvaluator {
 
   /**
    * Hoists the return value of the expression to the `globalThis`.
+   * Returns whether the hoisting was successful.
    */
-  public async hoistValue(object: Cdp.Runtime.RemoteObject | undefined, hoistedVar: string) {
+  private async hoistValue(
+    object: Cdp.Runtime.RemoteObject | undefined,
+    hoistedVar: string,
+  ): Promise<boolean> {
     if (object === undefined) {
-      return;
+      return false;
     }
 
     const objectId = object?.objectId;
     const dehoist = `setTimeout(() => { delete globalThis.${hoistedVar} }, 0)`;
 
+    let r: Cdp.Runtime.CallFunctionOnResult | Cdp.Runtime.EvaluateResult | undefined;
     if (objectId) {
-      await this.cdp.Runtime.callFunctionOn({
+      r = await this.cdp.Runtime.callFunctionOn({
         objectId,
         functionDeclaration: `function() { globalThis.${hoistedVar} = this; ${dehoist}; ${getSourceSuffix()} }`,
       });
     } else {
-      await this.cdp.Runtime.evaluate({
+      r = await this.cdp.Runtime.evaluate({
         expression:
           `globalThis.${hoistedVar} = ${JSON.stringify(object?.value)};` +
           `${dehoist};` +
           getSourceSuffix(),
       });
     }
+    return !!r && !r.exceptionDetails;
   }
 
   /**
@@ -309,6 +323,11 @@ export class Evaluator implements IEvaluator {
     if (scopeIndex === -1) {
       return;
     }
+
+    this.logger.verbose(
+      LogTag.Runtime,
+      `Evaluating expression in scope ${scopes[scopeIndex].name}`,
+    );
 
     const hoistable = new Set<string>();
     await Promise.all(
