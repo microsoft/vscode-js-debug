@@ -5,6 +5,7 @@
 import { Container } from 'inversify';
 import { IDwarfModuleProvider } from '../adapter/dwarf/dwarfModuleProvider';
 import { IRequestOptionsProvider } from '../adapter/resourceProvider/requestOptionsProvider';
+import { ITerminalLinkProvider } from '../common/terminalLinkProvider';
 import { IExtensionContribution, trackDispose, VSCodeApi } from '../ioc-extras';
 import { TerminalNodeLauncher } from '../targets/node/terminalNodeLauncher';
 import { ILauncher } from '../targets/targets';
@@ -68,9 +69,13 @@ export const registerUiComponents = (container: Container) => {
   container.bind(ILinkedBreakpointLocation).to(LinkedBreakpointLocationUI).inSingletonScope();
   container.bind(DebugSessionTracker).toSelf().inSingletonScope().onActivation(trackDispose);
   container.bind(UiProfileManager).toSelf().inSingletonScope().onActivation(trackDispose);
-  container.bind(TerminalLinkHandler).toSelf().inSingletonScope();
   container.bind(DisableSourceMapUI).toSelf().inSingletonScope();
   container.bind(IDwarfModuleProvider).to(DwarfModuleProvider).inSingletonScope();
+  container
+    .bind(ITerminalLinkProvider)
+    .to(TerminalLinkHandler)
+    .inSingletonScope()
+    .onActivation(trackDispose);
 
   container
     .bind(ITerminationConditionFactory)

@@ -17,6 +17,7 @@ import {
 } from '../common/contributionUtils';
 import { EventEmitter } from '../common/events';
 import { ProxyLogger } from '../common/logging/proxyLogger';
+import { ITerminalLinkProvider } from '../common/terminalLinkProvider';
 import {
   applyDefaults,
   ITerminalLaunchConfiguration,
@@ -32,7 +33,6 @@ import { NodeOnlyPathResolverFactory } from '../targets/sourcePathResolverFactor
 import { MutableTargetOrigin } from '../targets/targetOrigin';
 import { ITarget } from '../targets/targets';
 import { DapTelemetryReporter } from '../telemetry/dapTelemetryReporter';
-import { TerminalLinkHandler } from './terminalLinkHandler';
 
 export const launchVirtualTerminalParent = (
   delegate: DelegateLauncherFactory,
@@ -203,7 +203,6 @@ class ProfileTerminalLauncher extends TerminalNodeLauncher {
 export function registerDebugTerminalUI(
   context: vscode.ExtensionContext,
   delegateFactory: DelegateLauncherFactory,
-  linkHandler: TerminalLinkHandler,
   services: Container,
 ) {
   const terminals = new Map<
@@ -218,6 +217,7 @@ export function registerDebugTerminalUI(
       services.get(FS),
       services.get(NodeOnlyPathResolverFactory),
       services.get(IPortLeaseTracker),
+      services.get(ITerminalLinkProvider),
     );
 
   /**
@@ -263,7 +263,6 @@ export function registerDebugTerminalUI(
 
     launcher.onTerminalCreated(terminal => {
       terminals.set(terminal, { launcher, folder: workspaceFolder, cwd: defaultConfig?.cwd });
-      linkHandler.enableHandlingInTerminal(terminal);
     });
 
     try {
@@ -306,6 +305,7 @@ export function registerDebugTerminalUI(
               services.get(FS),
               services.get(NodeOnlyPathResolverFactory),
               services.get(IPortLeaseTracker),
+              services.get(ITerminalLinkProvider),
             );
 
             launcher.onOptionsReady(options => resolve(new vscode.TerminalProfile(options)));
@@ -314,6 +314,5 @@ export function registerDebugTerminalUI(
           }),
         ),
     }),
-    vscode.window.registerTerminalLinkProvider?.(linkHandler),
   );
 }

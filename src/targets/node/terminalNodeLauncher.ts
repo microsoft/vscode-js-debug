@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import { randomBytes } from 'crypto';
-import { inject, injectable } from 'inversify';
+import { inject, injectable, optional } from 'inversify';
 import { tmpdir } from 'os';
 import * as path from 'path';
 import * as vscode from 'vscode';
@@ -12,6 +12,7 @@ import { DebugType } from '../../common/contributionUtils';
 import { EventEmitter } from '../../common/events';
 import { ILogger } from '../../common/logging';
 import { delay } from '../../common/promiseUtil';
+import { ITerminalLinkProvider } from '../../common/terminalLinkProvider';
 import { AnyLaunchConfiguration, ITerminalLaunchConfiguration } from '../../configuration';
 import { ErrorCodes } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
@@ -77,6 +78,9 @@ export class TerminalNodeLauncher extends NodeLauncherBase<ITerminalLaunchConfig
     @inject(FS) private readonly fs: FsPromises,
     @inject(ISourcePathResolverFactory) pathResolverFactory: ISourcePathResolverFactory,
     @inject(IPortLeaseTracker) portLeaseTracker: IPortLeaseTracker,
+    @optional()
+    @inject(ITerminalLinkProvider)
+    private readonly terminalLinkProvider: ITerminalLinkProvider | undefined,
   ) {
     super(pathProvider, logger, portLeaseTracker, pathResolverFactory);
   }
@@ -137,6 +141,7 @@ export class TerminalNodeLauncher extends NodeLauncherBase<ITerminalLaunchConfig
       env: hideDebugInfoFromConsole(binary, env).defined(),
       isTransient: true,
     });
+    this.terminalLinkProvider?.enableHandlingInTerminal(terminal);
     this.terminalCreatedEmitter.fire(terminal);
 
     terminal.show();
