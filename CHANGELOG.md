@@ -5,6 +5,10 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 ## Nightly (only)
 
 - feat: support "debug url" in terminals created through the `node-terminal` launch type ([#2049](https://github.com/microsoft/vscode-js-debug/issues/2049))
+- fix: hover evaluation incorrectly showing undefined ([vscode#221503](https://github.com/microsoft/vscode/issues/221503))
+
+## v1.92 (July 2024)
+
 - fix: automatically guess outFiles in extension development ([#2032](https://github.com/microsoft/vscode-js-debug/issues/2032))
 - fix: breakpoints at unmapped locations setting in wrong locations ([vscode#219031](https://github.com/microsoft/vscode/issues/219031))
 - fix: debug targets orphaned when a detached child starts after a parent exits ([vscode#219673](https://github.com/microsoft/vscode/issues/219673))

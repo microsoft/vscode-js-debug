@@ -5,6 +5,7 @@
 import { expect } from 'chai';
 import Cdp from '../cdp/api';
 import { stubbedCdpApi, StubCdpApi } from '../cdp/stubbedApi';
+import { Logger } from '../common/logging/logger';
 import { Base01Position, Range } from '../common/positions';
 import { IRename, RenameMapping } from '../common/sourceMaps/renameProvider';
 import { ScopeNode } from '../common/sourceMaps/renameScopeTree';
@@ -25,10 +26,14 @@ describe('Evaluator', () => {
   beforeEach(() => {
     stubCdp = stubbedCdpApi();
     renameMapping = RenameMapping.None;
-    evaluator = new Evaluator(stubCdp.actual, {
-      provideForSource: () => renameMapping,
-      provideOnStackframe: () => renameMapping,
-    });
+    evaluator = new Evaluator(
+      stubCdp.actual,
+      {
+        provideForSource: () => renameMapping,
+        provideOnStackframe: () => renameMapping,
+      },
+      Logger.null,
+    );
   });
 
   it('prepares simple expressions', async () => {
