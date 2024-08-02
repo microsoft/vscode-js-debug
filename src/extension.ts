@@ -27,7 +27,6 @@ import { attachProcess, pickProcess } from './ui/processPicker';
 import { registerProfilingCommand } from './ui/profiling';
 import { registerRequestCDPProxy } from './ui/requestCDPProxy';
 import { registerRevealPage } from './ui/revealPage';
-import { TerminalLinkHandler } from './ui/terminalLinkHandler';
 import { toggleSkippingFile } from './ui/toggleSkippingFile';
 import { VSCodeSessionManager } from './ui/vsCodeSessionManager';
 
@@ -93,12 +92,7 @@ export function activate(context: vscode.ExtensionContext) {
 
   registerCompanionBrowserLaunch(context);
   registerCustomBreakpointsUI(context, debugSessionTracker);
-  registerDebugTerminalUI(
-    context,
-    services.get(DelegateLauncherFactory),
-    services.get(TerminalLinkHandler),
-    services,
-  );
+  registerDebugTerminalUI(context, services.get(DelegateLauncherFactory), services);
   registerProfilingCommand(context, services);
   registerAutoAttach(context, services.get(DelegateLauncherFactory), services);
   registerRevealPage(context, debugSessionTracker);

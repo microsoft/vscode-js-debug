@@ -16,6 +16,7 @@ import {
 import { DefaultBrowser, IDefaultBrowserProvider } from '../common/defaultBrowserProvider';
 import { DisposableList, IDisposable } from '../common/disposable';
 import { once } from '../common/objUtils';
+import { ITerminalLinkProvider } from '../common/terminalLinkProvider';
 import { isLoopbackIp, isMetaAddress } from '../common/urlUtils';
 
 interface ITerminalLink extends vscode.TerminalLink {
@@ -29,9 +30,7 @@ const enum Protocol {
 }
 
 @injectable()
-export class TerminalLinkHandler
-  implements vscode.TerminalLinkProvider<ITerminalLink>, IDisposable
-{
+export class TerminalLinkHandler implements ITerminalLinkProvider<ITerminalLink>, IDisposable {
   private readonly enabledTerminals = new WeakSet<vscode.Terminal>();
   private readonly disposable = new DisposableList();
   private notifiedCantOpenOnWeb = false;
@@ -44,6 +43,8 @@ export class TerminalLinkHandler
           this.baseConfiguration = this.readConfig();
         }
       }),
+
+      vscode.window.registerTerminalLinkProvider(this),
     );
   }
 
