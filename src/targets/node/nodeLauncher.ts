@@ -19,7 +19,12 @@ import { fixInspectFlags } from '../../ui/configurationUtils';
 import { retryGetNodeEndpoint } from '../browser/spawn/endpoints';
 import { ISourcePathResolverFactory } from '../sourcePathResolverFactory';
 import { CallbackFile } from './callback-file';
-import { INodeBinaryProvider, getRunScript, hideDebugInfoFromConsole } from './nodeBinaryProvider';
+import {
+  Capability,
+  INodeBinaryProvider,
+  getRunScript,
+  hideDebugInfoFromConsole,
+} from './nodeBinaryProvider';
 import { IProcessTelemetry, IRunData, NodeLauncherBase } from './nodeLauncherBase';
 import { INodeTargetLifecycleHooks } from './nodeTarget';
 import { IPackageJsonProvider } from './packageJsonProvider';
@@ -143,6 +148,16 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
       }
 
       const options: INodeLaunchConfiguration = { ...runData.params, env: env.value };
+      const experimentalNetworkFlag = '--experimental-network-inspection';
+      if (runData.params.experimentalNetworking === 'off') {
+        // no-op
+      } else if (
+        binary.has(Capability.UseExperimentalNetworking) ||
+        runData.params.experimentalNetworking === 'on'
+      ) {
+        options.runtimeArgs = [experimentalNetworkFlag, ...options.runtimeArgs];
+      }
+
       const launcher = this.launchers.find(l => l.canLaunch(options));
       if (!launcher) {
         throw new Error('Cannot find an appropriate launcher for the given set of options');

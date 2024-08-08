@@ -100,6 +100,15 @@ export class DisposableList {
   }
 
   /**
+   * Clears all items without disposing them
+   */
+  public clear() {
+    const r = Promise.all(this.items.map(i => i.dispose()));
+    this.items = [];
+    return r;
+  }
+
+  /**
    * @inheritdoc
    */
   public dispose() {
