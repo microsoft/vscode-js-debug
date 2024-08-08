@@ -688,7 +688,7 @@ export namespace Dap {
     loadedSourcesRequest(params: LoadedSourcesParams): Promise<LoadedSourcesResult>;
 
     /**
-     * Evaluates the given expression in the context of the topmost stack frame.
+     * Evaluates the given expression in the context of a stack frame.
      * The expression has access to any variables and arguments that are in scope.
      */
     on(
@@ -696,7 +696,7 @@ export namespace Dap {
       handler: (params: EvaluateParams) => Promise<EvaluateResult | Error>,
     ): () => void;
     /**
-     * Evaluates the given expression in the context of the topmost stack frame.
+     * Evaluates the given expression in the context of a stack frame.
      * The expression has access to any variables and arguments that are in scope.
      */
     evaluateRequest(params: EvaluateParams): Promise<EvaluateResult>;
@@ -1144,6 +1144,28 @@ export namespace Dap {
      * Sets options for locating symbols.
      */
     setSymbolOptionsRequest(params: SetSymbolOptionsParams): Promise<SetSymbolOptionsResult>;
+
+    /**
+     * Fired when we successfully enable CDP networking on the session.
+     */
+    networkAvailable(params: NetworkAvailableEventParams): void;
+
+    /**
+     * A wrapped CDP network event. There is little abstraction here because UI interacts literally with CDP at the moment.
+     */
+    networkEvent(params: NetworkEventEventParams): void;
+
+    /**
+     * Makes a network call. There is little abstraction here because UI interacts literally with CDP at the moment.
+     */
+    on(
+      request: 'networkCall',
+      handler: (params: NetworkCallParams) => Promise<NetworkCallResult | Error>,
+    ): () => void;
+    /**
+     * Makes a network call. There is little abstraction here because UI interacts literally with CDP at the moment.
+     */
+    networkCallRequest(params: NetworkCallParams): Promise<NetworkCallResult>;
   }
 
   export interface TestApi {
@@ -1591,7 +1613,7 @@ export namespace Dap {
     loadedSources(params: LoadedSourcesParams): Promise<LoadedSourcesResult>;
 
     /**
-     * Evaluates the given expression in the context of the topmost stack frame.
+     * Evaluates the given expression in the context of a stack frame.
      * The expression has access to any variables and arguments that are in scope.
      */
     evaluate(params: EvaluateParams): Promise<EvaluateResult>;
@@ -1899,6 +1921,31 @@ export namespace Dap {
      * Sets options for locating symbols.
      */
     setSymbolOptions(params: SetSymbolOptionsParams): Promise<SetSymbolOptionsResult>;
+
+    /**
+     * Fired when we successfully enable CDP networking on the session.
+     */
+    on(request: 'networkAvailable', handler: (params: NetworkAvailableEventParams) => void): void;
+    off(request: 'networkAvailable', handler: (params: NetworkAvailableEventParams) => void): void;
+    once(
+      request: 'networkAvailable',
+      filter?: (event: NetworkAvailableEventParams) => boolean,
+    ): Promise<NetworkAvailableEventParams>;
+
+    /**
+     * A wrapped CDP network event. There is little abstraction here because UI interacts literally with CDP at the moment.
+     */
+    on(request: 'networkEvent', handler: (params: NetworkEventEventParams) => void): void;
+    off(request: 'networkEvent', handler: (params: NetworkEventEventParams) => void): void;
+    once(
+      request: 'networkEvent',
+      filter?: (event: NetworkEventEventParams) => boolean,
+    ): Promise<NetworkEventEventParams>;
+
+    /**
+     * Makes a network call. There is little abstraction here because UI interacts literally with CDP at the moment.
+     */
+    networkCall(params: NetworkCallParams): Promise<NetworkCallResult>;
   }
 
   export interface AttachParams {
@@ -2841,6 +2888,34 @@ export namespace Dap {
     totalModules?: integer;
   }
 
+  export interface NetworkAvailableEventParams {}
+
+  export interface NetworkCallParams {
+    /**
+     * The HTTP method
+     */
+    method: string;
+
+    /**
+     * The CDP call parameters
+     */
+    params: object;
+  }
+
+  export interface NetworkCallResult {}
+
+  export interface NetworkEventEventParams {
+    /**
+     * The CDP network event name
+     */
+    event: string;
+
+    /**
+     * The CDP network data
+     */
+    data: object;
+  }
+
   export interface NextParams {
     /**
      * Specifies the thread for which to resume execution for one step (of the given granularity).
@@ -2944,7 +3019,7 @@ export namespace Dap {
     name: string;
 
     /**
-     * The system process id of the debugged process. This property is missing for non-system processes.
+     * The process ID of the debugged process, as assigned by the operating system. This property should be omitted for logical processes that do not map to operating system processes on the machine.
      */
     systemProcessId?: integer;
 
@@ -3474,6 +3549,8 @@ export namespace Dap {
 
     /**
      * If `variablesReference` is > 0, the new value is structured and its children can be retrieved by passing `variablesReference` to the `variables` request as long as execution remains suspended. See 'Lifetime of Object References' in the Overview section for details.
+     *
+     * If this property is included in the response, any `variablesReference` previously associated with the updated variable, and those of its children, are no longer valid.
      */
     variablesReference?: integer;
 
@@ -4306,7 +4383,7 @@ export namespace Dap {
     /**
      * A hint for how to present this scope in the UI. If this attribute is missing, the scope is shown with a generic UI.
      */
-    presentationHint?: 'arguments' | 'locals' | 'registers';
+    presentationHint?: 'arguments' | 'locals' | 'registers' | 'returnValue';
 
     /**
      * The variables of this scope can be retrieved by passing the value of `variablesReference` to the `variables` request as long as execution remains suspended. See 'Lifetime of Object References' in the Overview section for details.

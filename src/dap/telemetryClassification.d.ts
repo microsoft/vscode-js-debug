@@ -138,4 +138,6 @@ interface IDAPOperationClassification {
   '!evaluationoptions.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   setsymboloptions: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!setsymboloptions.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  networkcall: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!networkcall.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
 }

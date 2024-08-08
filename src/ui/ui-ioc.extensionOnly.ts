@@ -39,6 +39,7 @@ import { SettingRequestOptionsProvider } from './settingRequestOptionsProvider';
 import { SourceSteppingUI } from './sourceSteppingUI';
 import { StartDebugingAndStopOnEntry } from './startDebuggingAndStopOnEntry';
 import { TerminalLinkHandler } from './terminalLinkHandler';
+import { NetworkTree } from './networkTree';
 
 export const registerUiComponents = (container: Container) => {
   container.bind(VSCodeApi).toConstantValue(require('vscode'));
@@ -66,6 +67,7 @@ export const registerUiComponents = (container: Container) => {
   container.bind(IExtensionContribution).to(ExcludedCallersUI).inSingletonScope();
   container.bind(IExtensionContribution).to(PrettyPrintUI).inSingletonScope();
   container.bind(IExtensionContribution).to(SourceSteppingUI).inSingletonScope();
+  container.bind(IExtensionContribution).to(NetworkTree).inSingletonScope();
   container.bind(ILinkedBreakpointLocation).to(LinkedBreakpointLocationUI).inSingletonScope();
   container.bind(DebugSessionTracker).toSelf().inSingletonScope().onActivation(trackDispose);
   container.bind(UiProfileManager).toSelf().inSingletonScope().onActivation(trackDispose);

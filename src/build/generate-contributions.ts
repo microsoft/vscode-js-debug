@@ -13,6 +13,7 @@ import {
   IConfigurationTypes,
   allCommands,
   allDebugTypes,
+  networkFilesystemScheme,
   preferredDebugTypes,
 } from '../common/contributionUtils';
 import { knownToolToken } from '../common/knownTools';
@@ -79,7 +80,7 @@ type Menus = {
     command: Commands;
     title?: MappedReferenceString;
     when?: string;
-    group?: 'navigation' | 'inline';
+    group?: 'navigation' | 'inline' | string;
   }[];
 };
 
@@ -652,6 +653,12 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
       enum: [KillBehavior.Forceful, KillBehavior.Polite, KillBehavior.None],
       default: KillBehavior.Forceful,
       markdownDescription: refString('node.killBehavior.description'),
+    },
+    experimentalNetworking: {
+      type: 'string',
+      default: 'auto',
+      description: refString('node.experimentalNetworking.description'),
+      enum: ['auto', 'on', 'off'],
     },
   },
   defaults: nodeLaunchConfigDefaults,
@@ -1350,6 +1357,32 @@ const commands: ReadonlyArray<{
     title: refString('commands.disableSourceMapStepping.label'),
     icon: '$(compass)',
   },
+  {
+    command: Commands.NetworkViewRequest,
+    title: refString('commands.networkViewRequest.label'),
+    icon: '$(arrow-right)',
+  },
+  {
+    command: Commands.NetworkClear,
+    title: refString('commands.networkClear.label'),
+    icon: '$(clear-all)',
+  },
+  {
+    command: Commands.NetworkOpenBody,
+    title: refString('commands.networkOpenBody.label'),
+  },
+  {
+    command: Commands.NetworkOpenBodyHex,
+    title: refString('commands.networkOpenBodyInHexEditor.label'),
+  },
+  {
+    command: Commands.NetworkReplayXHR,
+    title: refString('commands.networkReplayXHR.label'),
+  },
+  {
+    command: Commands.NetworkCopyUri,
+    title: refString('commands.networkCopyURI.label'),
+  },
 ];
 
 const menus: Menus = {
@@ -1404,6 +1437,30 @@ const menus: Menus = {
     },
     {
       command: Commands.CallersGoToTarget,
+      when: 'false',
+    },
+    {
+      command: Commands.NetworkCopyUri,
+      when: 'false',
+    },
+    {
+      command: Commands.NetworkOpenBody,
+      when: 'false',
+    },
+    {
+      command: Commands.NetworkOpenBodyHex,
+      when: 'false',
+    },
+    {
+      command: Commands.NetworkReplayXHR,
+      when: 'false',
+    },
+    {
+      command: Commands.NetworkViewRequest,
+      when: 'false',
+    },
+    {
+      command: Commands.NetworkClear,
       when: 'false',
     },
     {
@@ -1497,6 +1554,11 @@ const menus: Menus = {
         `view == workbench.debug.callStackView && ${ContextKey.IsMapSteppingDisabled}`,
       ),
     },
+    {
+      command: Commands.NetworkClear,
+      group: 'navigation',
+      when: `view == ${CustomViews.Network}`,
+    },
   ],
   'view/item/context': [
     {
@@ -1540,6 +1602,31 @@ const menus: Menus = {
       command: Commands.CallersRemove,
       group: 'inline',
       when: `view == ${CustomViews.ExcludedCallers}`,
+    },
+    {
+      command: Commands.NetworkViewRequest,
+      group: 'inline@1',
+      when: `view == ${CustomViews.Network}`,
+    },
+    {
+      command: Commands.NetworkOpenBody,
+      group: 'body@1',
+      when: `view == ${CustomViews.Network}`,
+    },
+    {
+      command: Commands.NetworkOpenBodyHex,
+      group: 'body@2',
+      when: `view == ${CustomViews.Network}`,
+    },
+    {
+      command: Commands.NetworkCopyUri,
+      group: 'other@1',
+      when: `view == ${CustomViews.Network}`,
+    },
+    {
+      command: Commands.NetworkReplayXHR,
+      group: 'other@2',
+      when: `view == ${CustomViews.Network}`,
     },
   ],
   'editor/title': [
@@ -1594,12 +1681,18 @@ const views = {
       name: 'Excluded Callers',
       when: forAnyDebugType('debugType', 'jsDebugHasExcludedCallers'),
     },
+    {
+      id: CustomViews.Network,
+      name: 'Network',
+      when: ContextKey.NetworkAvailable,
+    },
   ],
 };
 
 const activationEvents = new Set([
   'onDebugDynamicConfigurations',
   'onDebugInitialConfigurations',
+  `onFileSystem:${networkFilesystemScheme}`,
   ...[...debuggers.map(dbg => dbg.type), ...preferredDebugTypes.values()].map(
     t => `onDebugResolve:${t}`,
   ),

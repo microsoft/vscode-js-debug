@@ -1,8 +1,8 @@
 {
   "add.eventListener.breakpoint": "Toggle Event Listener Breakpoints",
   "add.xhr.breakpoint": "Add XHR/fetch Breakpoint",
-  "breakpoint.xhr.contains":"Break when URL contains:",
-  "breakpoint.xhr.any":"Any XHR/fetch",
+  "breakpoint.xhr.contains": "Break when URL contains:",
+  "breakpoint.xhr.any": "Any XHR/fetch",
   "edit.xhr.breakpoint": "Edit XHR/fetch Breakpoint",
   "attach.node.process": "Attach to Node Process",
   "base.cascadeTerminateToConfigurations.label": "A list of debug sessions which, when this debug session is terminated, will also be stopped.",
@@ -198,6 +198,7 @@
   "node.versionHint.description": "Allows you to explicitly specify the Node version that's running, which can be used to disable or enable certain behaviors in cases where the automatic version detection does not work.",
   "node.websocket.address.description": "Exact websocket address to attach to. If unspecified, it will be discovered from the address and port.",
   "node.remote.host.header.description": "Explicit Host header to use when connecting to the websocket of inspector. If unspecified, the host header will be set to 'localhost'. This is useful when the inspector is running behind a proxy that only accept particular Host header.",
+  "node.experimentalNetworking.description": "Enable experimental inspection in Node.js. When set to `auto` this is enabled for versions of Node.js that support it. It can be set to `on` or `off` to enable or disable it explicitly.",
   "openEdgeDevTools.label": "Open Browser Devtools",
   "outFiles.description": "If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with `!` the files are excluded. If not specified, the generated code is expected in the same directory as its source.",
   "pretty.print.script": "Pretty print for debugging",
@@ -222,5 +223,11 @@
   "trace.description": "Configures what diagnostic output is produced.",
   "trace.logFile.description": "Configures where on disk logs are written.",
   "trace.stdio.description": "Whether to return trace data from the launched application or browser.",
-  "workspaceTrust.description": "Trust is required to debug code in this workspace."
+  "workspaceTrust.description": "Trust is required to debug code in this workspace.",
+  "commands.networkViewRequest.label": "View Request as cURL",
+  "commands.networkOpenBody.label": "Open Response Body",
+  "commands.networkOpenBodyInHexEditor.label": "Open Response Body in Hex Editor",
+  "commands.networkReplayXHR.label": "Replay Request",
+  "commands.networkCopyURI.label": "Copy Request URL",
+  "commands.networkClear.label": "Clear Network Log"
 }

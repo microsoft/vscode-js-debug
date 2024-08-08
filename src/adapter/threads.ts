@@ -9,6 +9,7 @@ import { DebugType } from '../common/contributionUtils';
 import { EventEmitter } from '../common/events';
 import { HrTime } from '../common/hrnow';
 import { ILogger, LogTag } from '../common/logging';
+import { mirroredNetworkEvents } from '../common/networkEvents';
 import { isInstanceOf, truthy } from '../common/objUtils';
 import { Base0Position, Base1Position, Range } from '../common/positions';
 import { IDeferred, delay, getDeferred } from '../common/promiseUtil';
@@ -738,6 +739,26 @@ export class Thread implements IVariableStoreLocationProvider {
         this.console.enqueue(this, new QueryObjectsMessage(event.object, this.cdp()));
       } else this._revealObject(event.object);
     });
+
+    if (!this.launchConfig.noDebug) {
+      // Use whether we can make a cookies request to feature-request the
+      // availability of networking.
+      this._cdp.Network.enable({}).then(r => {
+        if (!r) {
+          return;
+        }
+
+        this._dap.with(dap => {
+          dap.networkAvailable({});
+          for (const event of mirroredNetworkEvents) {
+            // the types don't work well with the overloads on Network.on, a cast is needed:
+            (this._cdp.Network.on as (ev: string, fn: (d: object) => void) => void)(event, data =>
+              dap.networkEvent({ data, event }),
+            );
+          }
+        });
+      });
+    }
 
     this._cdp.Debugger.on('paused', async event => this._onPaused(event));
     this._cdp.Debugger.on('resumed', () => this.onResumed());

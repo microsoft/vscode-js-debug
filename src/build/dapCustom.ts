@@ -729,6 +729,51 @@ const dapCustom: JSONSchema4 = {
       description:
         'Arguments for "setSymbolOptions" request. Properties are determined by debugger.',
     },
+
+    ...makeEvent(
+      'networkAvailable',
+      'Fired when we successfully enable CDP networking on the session.',
+      {},
+    ),
+
+    ...makeEvent(
+      'networkEvent',
+      'A wrapped CDP network event. There is little abstraction here because UI interacts literally with CDP at the moment.',
+      {
+        properties: {
+          event: {
+            type: 'string',
+            description: 'The CDP network event name',
+          },
+          data: {
+            type: 'object',
+            description: 'The CDP network data',
+          },
+        },
+        required: ['event', 'data'],
+      },
+    ),
+
+    ...makeRequest(
+      'networkCall',
+      'Makes a network call. There is little abstraction here because UI interacts literally with CDP at the moment.',
+      {
+        properties: {
+          method: {
+            type: 'string',
+            description: 'The HTTP method',
+          },
+          params: {
+            type: 'object',
+            description: 'The CDP call parameters',
+          },
+        },
+        required: ['method', 'params'],
+      },
+      {
+        type: 'object',
+      },
+    ),
   },
 };
 

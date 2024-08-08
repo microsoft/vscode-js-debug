@@ -13,6 +13,7 @@ import type Dap from '../dap/api';
 import type { IAutoAttachInfo } from '../targets/node/bootloader/environment';
 import type { ExcludedCaller } from '../ui/excludedCallersUI';
 import type { IStartProfileArguments } from '../ui/profiling/uiProfileManager';
+import type { NetworkRequest } from '../ui/networkTree';
 
 export const enum Contributions {
   BrowserBreakpointsView = 'jsBrowserBreakpoints',
@@ -24,6 +25,7 @@ export const enum CustomViews {
   EventListenerBreakpoints = 'jsBrowserBreakpoints',
   XHRFetchBreakpoints = 'jsXHRBreakpoints',
   ExcludedCallers = 'jsExcludedCallers',
+  Network = 'jsDebugNetworkTree',
 }
 
 export const enum Commands {
@@ -59,6 +61,14 @@ export const enum Commands {
   CallersRemove = 'extension.js-debug.callers.remove',
   CallersRemoveAll = 'extension.js-debug.callers.removeAll',
   CallersAdd = 'extension.js-debug.callers.add',
+  //#endregion
+  //#region Network view
+  NetworkViewRequest = 'extension.js-debug.network.viewRequest',
+  NetworkCopyUri = 'extension.js-debug.network.copyUri',
+  NetworkOpenBody = 'extension.js-debug.network.openBody',
+  NetworkOpenBodyHex = 'extension.js-debug.network.openBodyInHex',
+  NetworkReplayXHR = 'extension.js-debug.network.replayXHR',
+  NetworkClear = 'extension.js-debug.network.clear',
   //#endregion
 }
 
@@ -120,6 +130,12 @@ const commandsObj: { [K in Commands]: null } = {
   [Commands.CallersRemoveAll]: null,
   [Commands.EnableSourceMapStepping]: null,
   [Commands.DisableSourceMapStepping]: null,
+  [Commands.NetworkViewRequest]: null,
+  [Commands.NetworkCopyUri]: null,
+  [Commands.NetworkOpenBody]: null,
+  [Commands.NetworkOpenBodyHex]: null,
+  [Commands.NetworkReplayXHR]: null,
+  [Commands.NetworkClear]: null,
 };
 
 /**
@@ -223,7 +239,15 @@ export interface ICommandTypes {
   [Commands.CallersRemoveAll](): void;
   [Commands.EnableSourceMapStepping](): void;
   [Commands.DisableSourceMapStepping](): void;
+  [Commands.NetworkViewRequest](request: NetworkRequest): void;
+  [Commands.NetworkCopyUri](request: NetworkRequest): void;
+  [Commands.NetworkOpenBody](request: NetworkRequest): void;
+  [Commands.NetworkOpenBodyHex](request: NetworkRequest): void;
+  [Commands.NetworkReplayXHR](request: NetworkRequest): void;
+  [Commands.NetworkClear](): void;
 }
+
+export const networkFilesystemScheme = 'jsDebugNetworkFs';
 
 /**
  * Typed guard for registering a command.
@@ -278,6 +302,7 @@ export const enum ContextKey {
   CanPrettyPrint = 'jsDebugCanPrettyPrint',
   IsProfiling = 'jsDebugIsProfiling',
   IsMapSteppingDisabled = 'jsDebugIsMapSteppingDisabled',
+  NetworkAvailable = 'jsDebugNetworkAvailable',
 }
 
 export interface IContextKeyTypes {
@@ -285,6 +310,7 @@ export interface IContextKeyTypes {
   [ContextKey.CanPrettyPrint]: string[];
   [ContextKey.IsProfiling]: boolean;
   [ContextKey.IsMapSteppingDisabled]: boolean;
+  [ContextKey.NetworkAvailable]: boolean;
 }
 
 export const setContextKey = async <K extends keyof IContextKeyTypes>(

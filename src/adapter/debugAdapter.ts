@@ -119,6 +119,21 @@ export class DebugAdapter implements IDisposable {
     this.dap.on('stepInTargets', params => this._stepInTargets(params));
     this.dap.on('setDebuggerProperty', params => this._setDebuggerProperty(params));
     this.dap.on('setSymbolOptions', params => this._setSymbolOptions(params));
+    this.dap.on('networkCall', params => this._doNetworkCall(params));
+  }
+
+  private async _doNetworkCall({ method, params }: Dap.NetworkCallParams) {
+    if (!this._thread) {
+      return Promise.resolve({});
+    }
+
+    // ugly casts :(
+    const networkDomain = this._thread.cdp().Network as unknown as Record<
+      string,
+      (method: unknown) => Promise<object>
+    >;
+
+    return networkDomain[method](params);
   }
 
   private _setDebuggerProperty(

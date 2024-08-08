@@ -439,6 +439,11 @@ export interface INodeLaunchConfiguration extends INodeBaseConfiguration, IConfi
    *  - none: no termination will happen.
    */
   killBehavior: KillBehavior;
+
+  /**
+   * Whether to automatically add the `--experimental-network-inspection` flag.
+   */
+  experimentalNetworking: 'on' | 'off' | 'auto';
 }
 
 /**
@@ -906,6 +911,7 @@ export const nodeLaunchConfigDefaults: INodeLaunchConfiguration = {
   runtimeArgs: [],
   profileStartup: false,
   attachSimplePort: null,
+  experimentalNetworking: 'auto',
   killBehavior: KillBehavior.Forceful,
 };
 
