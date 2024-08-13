@@ -822,6 +822,18 @@ export namespace Dap {
     disassembleRequest(params: DisassembleParams): Promise<DisassembleResult>;
 
     /**
+     * Looks up information about a location reference previously returned by the debug adapter.
+     */
+    on(
+      request: 'locations',
+      handler: (params: LocationsParams) => Promise<LocationsResult | Error>,
+    ): () => void;
+    /**
+     * Looks up information about a location reference previously returned by the debug adapter.
+     */
+    locationsRequest(params: LocationsParams): Promise<LocationsResult>;
+
+    /**
      * Sets the enabled custom breakpoints.
      */
     on(
@@ -1671,6 +1683,11 @@ export namespace Dap {
     disassemble(params: DisassembleParams): Promise<DisassembleResult>;
 
     /**
+     * Looks up information about a location reference previously returned by the debug adapter.
+     */
+    locations(params: LocationsParams): Promise<LocationsResult>;
+
+    /**
      * Sets the enabled custom breakpoints.
      */
     setCustomBreakpoints(params: SetCustomBreakpointsParams): Promise<SetCustomBreakpointsResult>;
@@ -2328,6 +2345,13 @@ export namespace Dap {
      * This attribute may be returned by a debug adapter if corresponding capability `supportsMemoryReferences` is true.
      */
     memoryReference?: string;
+
+    /**
+     * A reference that allows the client to request the location where the returned value is declared. For example, if a function pointer is returned, the adapter may be able to look up the function's location. This should be present only if the adapter is likely to be able to resolve the location.
+     *
+     * This reference shares the same lifetime as the `variablesReference`. See 'Lifetime of Object References' in the Overview section for details.
+     */
+    valueLocationReference?: integer;
   }
 
   export interface EvaluationOptionsParams {
@@ -2833,6 +2857,40 @@ export namespace Dap {
     sources: Source[];
   }
 
+  export interface LocationsParams {
+    /**
+     * Location reference to resolve.
+     */
+    locationReference: integer;
+  }
+
+  export interface LocationsResult {
+    /**
+     * The source containing the location; either `source.path` or `source.sourceReference` must be specified.
+     */
+    source: Source;
+
+    /**
+     * The line number of the location. The client capability `linesStartAt1` determines whether it is 0- or 1-based.
+     */
+    line: integer;
+
+    /**
+     * Position of the location within the `line`. It is measured in UTF-16 code units and the client capability `columnsStartAt1` determines whether it is 0- or 1-based. If no column is given, the first position in the start line is assumed.
+     */
+    column?: integer;
+
+    /**
+     * End line of the location, present if the location refers to a range.  The client capability `linesStartAt1` determines whether it is 0- or 1-based.
+     */
+    endLine?: integer;
+
+    /**
+     * End position of the location within `endLine`, present if the location refers to a range. It is measured in UTF-16 code units and the client capability `columnsStartAt1` determines whether it is 0- or 1-based.
+     */
+    endColumn?: integer;
+  }
+
   export interface LongPredictionEventParams {}
 
   export interface MemoryEventParams {
@@ -2982,6 +3040,13 @@ export namespace Dap {
      * Additional data to report. For the `telemetry` category the data is sent to telemetry, for the other categories the data is shown in JSON format.
      */
     data?: any[] | boolean | integer | null | number | object | string;
+
+    /**
+     * A reference that allows the client to request the location where the new value is declared. For example, if the logged value is function pointer, the adapter may be able to look up the function's location. This should be present only if the adapter is likely to be able to resolve the location.
+     *
+     * This reference shares the same lifetime as the `variablesReference`. See 'Lifetime of Object References' in the Overview section for details.
+     */
+    locationReference?: integer;
   }
 
   export interface PauseParams {
@@ -3474,6 +3539,13 @@ export namespace Dap {
      * This attribute may be returned by a debug adapter if corresponding capability `supportsMemoryReferences` is true.
      */
     memoryReference?: string;
+
+    /**
+     * A reference that allows the client to request the location where the new value is declared. For example, if the new value is function pointer, the adapter may be able to look up the function's location. This should be present only if the adapter is likely to be able to resolve the location.
+     *
+     * This reference shares the same lifetime as the `variablesReference`. See 'Lifetime of Object References' in the Overview section for details.
+     */
+    valueLocationReference?: integer;
   }
 
   export interface SetFunctionBreakpointsParams {
@@ -3574,6 +3646,13 @@ export namespace Dap {
      * This attribute may be returned by a debug adapter if corresponding capability `supportsMemoryReferences` is true.
      */
     memoryReference?: string;
+
+    /**
+     * A reference that allows the client to request the location where the new value is declared. For example, if the new value is function pointer, the adapter may be able to look up the function's location. This should be present only if the adapter is likely to be able to resolve the location.
+     *
+     * This reference shares the same lifetime as the `variablesReference`. See 'Lifetime of Object References' in the Overview section for details.
+     */
+    valueLocationReference?: integer;
   }
 
   export interface SourceParams {
@@ -4019,6 +4098,20 @@ export namespace Dap {
      * This attribute may be returned by a debug adapter if corresponding capability `supportsMemoryReferences` is true.
      */
     memoryReference?: string;
+
+    /**
+     * A reference that allows the client to request the location where the variable is declared. This should be present only if the adapter is likely to be able to resolve the location.
+     *
+     * This reference shares the same lifetime as the `variablesReference`. See 'Lifetime of Object References' in the Overview section for details.
+     */
+    declarationLocationReference?: integer;
+
+    /**
+     * A reference that allows the client to request the location where the variable's value is declared. For example, if the variable contains a function pointer, the adapter may be able to look up the function's location. This should be present only if the adapter is likely to be able to resolve the location.
+     *
+     * This reference shares the same lifetime as the `variablesReference`. See 'Lifetime of Object References' in the Overview section for details.
+     */
+    valueLocationReference?: integer;
   }
 
   /**
@@ -4112,7 +4205,7 @@ export namespace Dap {
     endColumn?: integer;
 
     /**
-     * Indicates whether this frame can be restarted with the `restart` request. Clients should only use this if the debug adapter supports the `restart` request and the corresponding capability `supportsRestartRequest` is true. If a debug adapter has this capability, then `canRestart` defaults to `true` if the property is absent.
+     * Indicates whether this frame can be restarted with the `restartFrame` request. Clients should only use this if the debug adapter supports the `restart` request and the corresponding capability `supportsRestartFrame` is true. If a debug adapter has this capability, then `canRestart` defaults to `true` if the property is absent.
      */
     canRestart?: boolean;
 

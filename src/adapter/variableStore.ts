@@ -268,7 +268,9 @@ class VariableContext {
     }
 
     if (object.objectId) {
-      if (object.subtype === 'map' || object.subtype === 'set') {
+      if (object.type === 'function') {
+        return this.createVariable(FunctionVariable, ctx, object, customStringRepr);
+      } else if (object.subtype === 'map' || object.subtype === 'set') {
         return this.createVariable(SetOrMapVariable, ctx, object, customStringRepr);
       } else if (!objectPreview.subtypesWithoutPreview.has(object.subtype)) {
         return this.createVariable(ObjectVariable, ctx, object, customStringRepr);
@@ -707,7 +709,7 @@ class StacktraceOutputVariable extends Variable {
 }
 
 class FunctionLocationVariable extends Variable {
-  private readonly location: Cdp.Debugger.Location;
+  public readonly location: Cdp.Debugger.Location;
 
   constructor(context: VariableContext, remoteObject: Cdp.Runtime.RemoteObject) {
     super(context, remoteObject);
@@ -842,6 +844,20 @@ class ObjectVariable extends Variable implements IMemoryReadable {
 
   public override getChildren(_params: Dap.VariablesParamsExtended) {
     return this.context.createObjectPropertyVars(this.remoteObject, _params.evaluationOptions);
+  }
+}
+
+class FunctionVariable extends ObjectVariable {
+  private readonly baseChildren = once(() => super.getChildren({ variablesReference: this.id }));
+
+  public override async toDap(previewContext: PreviewContextType): Promise<Dap.Variable> {
+    const [dap, children] = await Promise.all([super.toDap(previewContext), this.baseChildren()]);
+
+    if (children.some(c => c instanceof FunctionLocationVariable)) {
+      dap.valueLocationReference = this.id;
+    }
+
+    return dap;
   }
 }
 
@@ -1433,6 +1449,22 @@ export class VariableStore {
           a.dap.name.localeCompare(b.dap.name),
       )
       .map(v => v.dap);
+  }
+
+  public async getLocations(variablesReference: number): Promise<Cdp.Debugger.Location> {
+    const container = this.vars.get(variablesReference);
+    if (!container) {
+      throw errors.locationNotFound();
+    }
+
+    // note: is actually free because the container will have cached its children
+    const children = await container.getChildren({ variablesReference });
+    const locationVar = children.find(isInstanceOf(FunctionLocationVariable));
+    if (!locationVar) {
+      throw errors.locationNotFound();
+    }
+
+    return locationVar.location;
   }
 
   /** Sets a variable */

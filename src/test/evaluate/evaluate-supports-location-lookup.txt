@@ -1,0 +1,23 @@
+
+> result: ƒ printArr(arr) {
+    for (const num of arr) {
+        console.log(plusTwo(num));
+    }
+}
+    > arguments: (...)
+    > caller: (...)
+    length: 1
+    name: 'printArr'
+    > prototype: {constructor: ƒ}
+    [[FunctionLocation]]: @ ${workspaceFolder}/web/basic.ts:5
+    > [[Prototype]]: ƒ ()
+    > [[Scopes]]: Scopes[1]
+{
+    column : 18
+    line : 5
+    source : {
+        name : basic.ts
+        path : ${workspaceFolder}/web/basic.ts
+        sourceReference : <number>
+    }
+}

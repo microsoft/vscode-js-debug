@@ -227,6 +227,9 @@ export const noUwpPipeFound = () =>
     ),
   );
 
+export const locationNotFound = () =>
+  createUserError(l10n.t('Could not find a location for the variable'));
+
 /**
  * Returns if the value looks like a DAP error.
  */

@@ -648,6 +648,7 @@ export class Thread implements IVariableStoreLocationProvider {
       namedVariables: variable.namedVariables,
       indexedVariables: variable.indexedVariables,
       memoryReference: variable.memoryReference,
+      valueLocationReference: variable.valueLocationReference,
     };
   }
 
