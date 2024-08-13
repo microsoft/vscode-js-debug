@@ -106,6 +106,7 @@ export class DebugAdapter implements IDisposable {
     this.dap.on('toggleSkipFileStatus', params => this._toggleSkipFileStatus(params));
     this.dap.on('toggleSkipFileStatus', params => this._toggleSkipFileStatus(params));
     this.dap.on('prettyPrintSource', params => this._prettyPrintSource(params));
+    this.dap.on('locations', params => this._onLocations(params));
     this.dap.on('revealPage', () => this._withThread(thread => thread.revealPage()));
     this.dap.on('getPerformance', () =>
       this._withThread(thread => performanceProvider.retrieve(thread.cdp())),
@@ -374,6 +375,21 @@ export class DebugAdapter implements IDisposable {
     return undefined;
   }
 
+  async _onLocations(params: Dap.LocationsParams): Promise<Dap.LocationsResult> {
+    const variableStore = this.findVariableStore(v => v.hasVariable(params.locationReference));
+    if (!variableStore || !this._thread) throw errors.locationNotFound();
+    const location = await variableStore.getLocations(params.locationReference);
+    const uiLocation = await this._thread.rawLocationToUiLocationWithWaiting(
+      this._thread.rawLocation(location),
+    );
+    if (!uiLocation) throw errors.locationNotFound();
+    return {
+      source: await uiLocation.source.toDap(),
+      line: uiLocation.lineNumber,
+      column: uiLocation.columnNumber,
+    };
+  }
+
   async _onVariables(params: Dap.VariablesParams): Promise<Dap.VariablesResult> {
     const variableStore = this.findVariableStore(v => v.hasVariable(params.variablesReference));
     return { variables: (await variableStore?.getVariables(params)) ?? [] };
@@ -425,6 +441,8 @@ export class DebugAdapter implements IDisposable {
       namedVariables: r.namedVariables,
       presentationHint: r.presentationHint,
       type: r.type,
+      memoryReference: r.memoryReference,
+      valueLocationReference: r.valueLocationReference,
     };
   }
 

@@ -82,6 +82,15 @@ describe('evaluate', () => {
     p.assertLog();
   });
 
+  itIntegrates('supports location lookup', async ({ r }) => {
+    const p = await r.launchUrlAndLoad('basic.html');
+    const fn = await p.logger.evaluateAndLog('printArr');
+    expect(fn.valueLocationReference).to.be.greaterThan(0);
+    const location = await p.dap.locations({ locationReference: fn.valueLocationReference! });
+    p.log(location);
+    p.assertLog();
+  });
+
   itIntegrates('repl', async ({ r }) => {
     const p = await r.launchUrlAndLoad('index.html');
 
