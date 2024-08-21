@@ -58,12 +58,18 @@ type OmittedKeysFromAttributes =
   | '__remoteFilePrefix'
   | '__sessionId';
 
+const enum Tag {
+  // A useful attribute for project setup.
+  Setup = 'setup',
+}
+
 export type DescribedAttribute<T> = JSONSchema6 &
   Described & {
     default: T;
     docDefault?: string;
     enum?: Array<T>;
     enumDescriptions?: MappedReferenceString[];
+    tags?: Tag[];
   };
 
 type ConfigurationAttributes<T> = {
@@ -149,6 +155,7 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
     items: {
       type: 'string',
     },
+    tags: [Tag.Setup],
   },
   pauseForSourceMap: {
     type: 'boolean',
@@ -317,6 +324,7 @@ const nodeBaseConfigurationAttributes: ConfigurationAttributes<INodeBaseConfigur
     description: refString('node.launch.cwd.description'),
     default: '${workspaceFolder}',
     docDefault: 'localRoot || ${workspaceFolder}',
+    tags: [Tag.Setup],
   },
   localRoot: {
     type: ['string', 'null'],
@@ -340,6 +348,7 @@ const nodeBaseConfigurationAttributes: ConfigurationAttributes<INodeBaseConfigur
     },
     markdownDescription: refString('node.launch.env.description'),
     default: {},
+    tags: [Tag.Setup],
   },
   envFile: {
     type: 'string',
@@ -432,6 +441,7 @@ const nodeAttachConfig: IDebugger<INodeAttachConfiguration> = {
       description: refString('node.port.description'),
       default: 9229,
       oneOf: intOrEvaluated,
+      tags: [Tag.Setup],
     },
     websocketAddress: {
       type: 'string',
@@ -586,11 +596,13 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
       type: 'string',
       description: refString('node.launch.cwd.description'),
       default: '${workspaceFolder}',
+      tags: [Tag.Setup],
     },
     program: {
       type: 'string',
       description: refString('node.launch.program.description'),
       default: '',
+      tags: [Tag.Setup],
     },
     stopOnEntry: {
       type: ['boolean', 'string'],
@@ -615,6 +627,7 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
         type: 'string',
       },
       default: [],
+      tags: [Tag.Setup],
     },
     restart: {
       description: refString('node.launch.restart.description'),
@@ -637,6 +650,7 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
         type: 'string',
       },
       default: [],
+      tags: [Tag.Setup],
     },
     profileStartup: {
       type: 'boolean',
@@ -687,6 +701,7 @@ const nodeTerminalConfiguration: IDebugger<ITerminalLaunchConfiguration> = {
       type: ['string', 'null'],
       description: refString('debug.terminal.program.description'),
       default: 'npm start',
+      tags: [Tag.Setup],
     },
   },
   defaults: terminalBaseDefaults,
@@ -711,6 +726,7 @@ const chromiumBaseConfigurationAttributes: ConfigurationAttributes<IChromiumBase
     type: 'string',
     description: refString('browser.webRoot.description'),
     default: '${workspaceFolder}',
+    tags: [Tag.Setup],
   },
   urlFilter: {
     type: 'string',
@@ -721,6 +737,7 @@ const chromiumBaseConfigurationAttributes: ConfigurationAttributes<IChromiumBase
     type: 'string',
     description: refString('browser.url.description'),
     default: 'http://localhost:8080',
+    tags: [Tag.Setup],
   },
   inspectUri: {
     type: ['string', 'null'],
@@ -773,6 +790,7 @@ const chromiumAttachConfigurationAttributes: ConfigurationAttributes<IChromeAtta
     oneOf: intOrEvaluated,
     description: refString('browser.attach.port.description'),
     default: 9229,
+    tags: [Tag.Setup],
   },
   restart: {
     type: 'boolean',
@@ -829,6 +847,7 @@ const chromeLaunchConfig: IDebugger<IChromeLaunchConfiguration> = {
       type: 'string',
       description: refString('browser.file.description'),
       default: '${workspaceFolder}/index.html',
+      tags: [Tag.Setup],
     },
     userDataDir: {
       type: ['string', 'boolean'],
@@ -947,6 +966,7 @@ const extensionHostConfig: IDebugger<IExtensionHostLaunchConfiguration> = {
         type: 'string',
       },
       default: ['--extensionDevelopmentPath=${workspaceFolder}'],
+      tags: [Tag.Setup],
     },
     runtimeExecutable: {
       type: ['string', 'null'],
