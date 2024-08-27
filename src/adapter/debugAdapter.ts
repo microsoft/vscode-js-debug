@@ -121,6 +121,7 @@ export class DebugAdapter implements IDisposable {
     this.dap.on('setDebuggerProperty', params => this._setDebuggerProperty(params));
     this.dap.on('setSymbolOptions', params => this._setSymbolOptions(params));
     this.dap.on('networkCall', params => this._doNetworkCall(params));
+    this.dap.on('enableNetworking', params => this._withThread(t => t.enableNetworking(params)));
   }
 
   private async _doNetworkCall({ method, params }: Dap.NetworkCallParams) {

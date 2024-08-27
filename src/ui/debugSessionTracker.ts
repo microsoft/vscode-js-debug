@@ -43,15 +43,8 @@ export class DebugSessionTracker implements vscode.Disposable {
 
   private _onSessionAddedEmitter = new vscode.EventEmitter<vscode.DebugSession>();
   private _onSessionEndedEmitter = new vscode.EventEmitter<vscode.DebugSession>();
-  private _onNetworkAvailabilityChangeEmitter = new vscode.EventEmitter<vscode.DebugSession>();
   private _disposables: vscode.Disposable[] = [];
-  private readonly networkAvailable = new WeakSet<vscode.DebugSession>();
   private readonly sessions = new Map<string, vscode.DebugSession>();
-
-  /**
-   * Fired when networking becomes available for a debug session.
-   */
-  public onNetworkAvailabilityChanged = this._onNetworkAvailabilityChangeEmitter.event;
 
   /**
    * Fires when any new js-debug session comes in.
@@ -75,13 +68,6 @@ export class DebugSessionTracker implements vscode.Disposable {
    */
   public getById(id: string) {
     return this.sessions.get(id);
-  }
-
-  /**
-   * Gets whether networkign is available in the session.
-   */
-  public isNetworkAvailable(session: vscode.DebugSession) {
-    return this.networkAvailable.has(session);
   }
 
   /**
@@ -154,9 +140,6 @@ export class DebugSessionTracker implements vscode.Disposable {
         } else if (event.event === 'copyRequested') {
           const params = event.body as Dap.CopyRequestedEventParams;
           vscode.env.clipboard.writeText(params.text);
-        } else if (event.event === 'networkAvailable') {
-          this.networkAvailable.add(event.session);
-          this._onNetworkAvailabilityChangeEmitter.fire(event.session);
         }
       },
       undefined,

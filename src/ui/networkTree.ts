@@ -8,15 +8,17 @@ import * as vscode from 'vscode';
 import Cdp from '../cdp/api';
 import {
   Commands,
+  Configuration,
   ContextKey,
   CustomViews,
   DebugType,
   networkFilesystemScheme,
+  readConfig,
   registerCommand,
   setContextKey,
 } from '../common/contributionUtils';
 import { DisposableList, noOpDisposable } from '../common/disposable';
-import { IMirroredNetworkEvents } from '../common/networkEvents';
+import { IMirroredNetworkEvents, mirroredNetworkEvents } from '../common/networkEvents';
 import { assertNever, once } from '../common/objUtils';
 import Dap from '../dap/api';
 import { IExtensionContribution } from '../ioc-extras';
@@ -38,12 +40,6 @@ export class NetworkTree implements IExtensionContribution, vscode.TreeDataProvi
     @inject(DebugSessionTracker) private readonly debugSessionTracker: DebugSessionTracker,
   ) {
     this.disposables.push(
-      this.debugSessionTracker.onNetworkAvailabilityChanged(session => {
-        this.models.set(session.id, new NetworkModel(session));
-        if (session === vscode.debug.activeDebugSession) {
-          this.listenToActiveSession();
-        }
-      }),
       vscode.debug.onDidChangeActiveDebugSession(() => {
         this.listenToActiveSession();
       }),
@@ -54,6 +50,23 @@ export class NetworkTree implements IExtensionContribution, vscode.TreeDataProvi
         if (event.event === 'networkEvent') {
           this.models.get(event.session.id)?.append([event.body.event, event.body.data]);
         }
+      }),
+      this.debugSessionTracker.onSessionAdded(session => {
+        if (!this.isEnabled()) {
+          return;
+        }
+
+        session.customRequest('enableNetworking', { mirrorEvents: mirroredNetworkEvents }).then(
+          () => {
+            this.models.set(session.id, new NetworkModel(session));
+            if (session === vscode.debug.activeDebugSession) {
+              this.listenToActiveSession();
+            }
+          },
+          () => {
+            /* ignored */
+          },
+        );
       }),
 
       registerCommand(
@@ -128,6 +141,10 @@ export class NetworkTree implements IExtensionContribution, vscode.TreeDataProvi
         { isCaseSensitive: true, isReadonly: true },
       ),
     );
+  }
+
+  private isEnabled() {
+    return readConfig(vscode.workspace, Configuration.EnableNetworkView);
   }
 
   private listenToActiveSession() {
