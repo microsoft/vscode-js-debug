@@ -4,6 +4,10 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
+Nothing, yet
+
+## v1.93 (August 2024)
+
 - feat: add basic network view, support experimental networking for node ([#2051](https://github.com/microsoft/vscode-js-debug/issues/2051))
 - feat: support "debug url" in terminals created through the `node-terminal` launch type ([#2049](https://github.com/microsoft/vscode-js-debug/issues/2049))
 - feat: adopt location references to link function locations
