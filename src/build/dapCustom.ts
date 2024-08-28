@@ -731,12 +731,6 @@ const dapCustom: JSONSchema4 = {
     },
 
     ...makeEvent(
-      'networkAvailable',
-      'Fired when we successfully enable CDP networking on the session.',
-      {},
-    ),
-
-    ...makeEvent(
       'networkEvent',
       'A wrapped CDP network event. There is little abstraction here because UI interacts literally with CDP at the moment.',
       {
@@ -769,6 +763,24 @@ const dapCustom: JSONSchema4 = {
           },
         },
         required: ['method', 'params'],
+      },
+      {
+        type: 'object',
+      },
+    ),
+
+    ...makeRequest(
+      'enableNetworking',
+      'Attempts to enable networking on the target.',
+      {
+        properties: {
+          mirrorEvents: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'CDP network domain events to mirror (e.g. "requestWillBeSent")',
+          },
+        },
+        required: ['mirrorEvents'],
       },
       {
         type: 'object',
