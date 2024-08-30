@@ -89,7 +89,12 @@ const DEBUG_FLAGS_PATTERN = once(() => {
       '|',
 
       // Simple port:
-      '(?<port2>\\d+)?',
+      [
+        '(?:',
+        ':?', // optional ':' before port, #2063
+        '(?<port2>\\d+)?',
+        ')',
+      ],
 
       ')',
     ],
