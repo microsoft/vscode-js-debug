@@ -38,12 +38,13 @@ export function activate(context: vscode.ExtensionContext) {
   const services = createGlobalContainer({
     // On Windows, use the os.tmpdir() since the extension storage path is too long. See:
     // https://github.com/microsoft/vscode-js-debug/issues/342
-    storagePath:
-      process.platform === 'win32' ? tmpdir() : context.storagePath || context.extensionPath,
+    storagePath: process.platform === 'win32'
+      ? tmpdir()
+      : context.storagePath || context.extensionPath,
     isVsCode: true,
-    isRemote:
-      !!process.env.JS_DEBUG_USE_COMPANION ||
-      vscode.extensions.getExtension(extensionId)?.extensionKind === vscode.ExtensionKind.Workspace,
+    isRemote: !!process.env.JS_DEBUG_USE_COMPANION
+      || vscode.extensions.getExtension(extensionId)?.extensionKind
+        === vscode.ExtensionKind.Workspace,
     context,
   });
 
@@ -63,7 +64,9 @@ export function activate(context: vscode.ExtensionContext) {
 
     const preferred = preferredDebugTypes.get(resolver.type as DebugType);
     if (preferred) {
-      context.subscriptions.push(vscode.debug.registerDebugConfigurationProvider(preferred, cast));
+      context.subscriptions.push(
+        vscode.debug.registerDebugConfigurationProvider(preferred, cast),
+      );
     }
   }
 
@@ -79,7 +82,7 @@ export function activate(context: vscode.ExtensionContext) {
   const sessionManager = new VSCodeSessionManager(services);
   context.subscriptions.push(
     ...[...allDebugTypes].map(type =>
-      vscode.debug.registerDebugAdapterDescriptorFactory(type, sessionManager),
+      vscode.debug.registerDebugAdapterDescriptorFactory(type, sessionManager)
     ),
   );
   context.subscriptions.push(

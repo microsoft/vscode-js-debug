@@ -12,7 +12,7 @@ import { ILogger, LogTag } from '../common/logging';
 import { mirroredNetworkEvents } from '../common/networkEvents';
 import { isInstanceOf, truthy } from '../common/objUtils';
 import { Base0Position, Base1Position, Range } from '../common/positions';
-import { IDeferred, delay, getDeferred } from '../common/promiseUtil';
+import { delay, getDeferred, IDeferred } from '../common/promiseUtil';
 import { IRenameProvider } from '../common/sourceMaps/renameProvider';
 import * as sourceUtils from '../common/sourceUtils';
 import { StackTraceParser } from '../common/stackTraceParser';
@@ -34,19 +34,19 @@ import { customBreakpoints } from './customBreakpoints';
 import { IEvaluator, LocationEvaluateOptions } from './evaluator';
 import { IExceptionPauseService } from './exceptionPauseService';
 import * as objectPreview from './objectPreview';
-import { PreviewContextType, getContextForType } from './objectPreview/contexts';
+import { getContextForType, PreviewContextType } from './objectPreview/contexts';
 import { ExpectedPauseReason, IPausedDetails, StepDirection } from './pause';
 import { SmartStepper } from './smartStepping';
 import {
+  base1To0,
   ISourceScript,
   ISourceWithMap,
+  isSourceWithWasm,
   IUiLocation,
   Source,
-  base1To0,
-  isSourceWithWasm,
 } from './source';
 import { IPreferredUiLocation, SourceContainer } from './sourceContainer';
-import { InlinedFrame, StackFrame, StackTrace, isStackFrameElement } from './stackTrace';
+import { InlinedFrame, isStackFrameElement, StackFrame, StackTrace } from './stackTrace';
 import {
   serializeForClipboard,
   serializeForClipboardTmpl,
@@ -115,13 +115,13 @@ class DeferredContainer<T> {
 const excludedCallerSearchDepth = 50;
 
 const sourcesEqual = (a: Dap.Source, b: Dap.Source) =>
-  a.sourceReference === b.sourceReference &&
-  urlUtils.comparePathsWithoutCasing(a.path || '', b.path || '');
+  a.sourceReference === b.sourceReference
+  && urlUtils.comparePathsWithoutCasing(a.path || '', b.path || '');
 
 const getReplSourceSuffix = () =>
-  `\n//# sourceURL=eval-${randomBytes(4).toString('hex')}${
-    sourceUtils.SourceConstants.ReplExtension
-  }\n`;
+  `\n//# sourceURL=eval-${
+    randomBytes(4).toString('hex')
+  }${sourceUtils.SourceConstants.ReplExtension}\n`;
 
 /** Auxillary data present in Cdp.Debugger.Paused events in recent Chrome versions */
 interface IInstrumentationPauseAuxData {
@@ -526,21 +526,20 @@ export class Thread implements IVariableStoreLocationProvider {
     variables: VariableStore,
   ): Promise<Dap.Variable> {
     // For clipboard evaluations, return a safe JSON-stringified string.
-    const params: Cdp.Runtime.EvaluateParams =
-      args.context === 'clipboard'
-        ? {
-            expression: serializeForClipboardTmpl.expr(args.expression, '2'),
-            includeCommandLineAPI: true,
-            returnByValue: true,
-            objectGroup: 'console',
-          }
-        : {
-            expression: args.expression,
-            includeCommandLineAPI: true,
-            objectGroup: 'console',
-            generatePreview: true,
-            timeout: args.context === 'hover' ? this.getHoverEvalTimeout() : undefined,
-          };
+    const params: Cdp.Runtime.EvaluateParams = args.context === 'clipboard'
+      ? {
+        expression: serializeForClipboardTmpl.expr(args.expression, '2'),
+        includeCommandLineAPI: true,
+        returnByValue: true,
+        objectGroup: 'console',
+      }
+      : {
+        expression: args.expression,
+        includeCommandLineAPI: true,
+        objectGroup: 'console',
+        generatePreview: true,
+        timeout: args.context === 'hover' ? this.getHoverEvalTimeout() : undefined,
+      };
 
     if (args.context === 'repl') {
       params.expression = sourceUtils.wrapObjectLiteral(params.expression);
@@ -554,11 +553,12 @@ export class Thread implements IVariableStoreLocationProvider {
       params.expression += getReplSourceSuffix();
     }
 
-    if (args.evaluationOptions)
+    if (args.evaluationOptions) {
       this.cdp().DotnetDebugger.setEvaluationOptions({
         options: args.evaluationOptions,
         type: 'evaluation',
       });
+    }
 
     let location: LocationEvaluateOptions | undefined;
     if (args.source && args.line && args.column) {
@@ -574,9 +574,9 @@ export class Thread implements IVariableStoreLocationProvider {
       callFrameId
         ? { ...params, callFrameId }
         : {
-            ...params,
-            contextId: this._selectedContext ? this._selectedContext.description.id : undefined,
-          },
+          ...params,
+          contextId: this._selectedContext ? this._selectedContext.description.id : undefined,
+        },
       { isInternalScript: false, stackFrame: stackFrame?.root, location },
     );
 
@@ -587,7 +587,9 @@ export class Thread implements IVariableStoreLocationProvider {
 
     const response = await responsePromise;
 
-    if (!response) throw new ProtocolError(errors.createSilentError(l10n.t('Unable to evaluate')));
+    if (!response) {
+      throw new ProtocolError(errors.createSilentError(l10n.t('Unable to evaluate')));
+    }
     if (response.exceptionDetails) {
       let text = response.exceptionDetails.exception
         ? objectPreview.previewException(response.exceptionDetails.exception).title
@@ -637,9 +639,8 @@ export class Thread implements IVariableStoreLocationProvider {
       throw new ProtocolError(errors.createSilentError(l10n.t('Unable to evaluate')));
     }
 
-    const variable =
-      (await this._evaluteWasm(stackFrame, args, variableStore)) ??
-      (await this._evaluteJs(stackFrame, args, variableStore));
+    const variable = (await this._evaluteWasm(stackFrame, args, variableStore))
+      ?? (await this._evaluteJs(stackFrame, args, variableStore));
 
     return {
       type: variable.type,
@@ -700,7 +701,7 @@ export class Thread implements IVariableStoreLocationProvider {
             ),
             category: 'stdout',
           }),
-        }),
+        })
       );
     }
 
@@ -741,26 +742,6 @@ export class Thread implements IVariableStoreLocationProvider {
       } else this._revealObject(event.object);
     });
 
-    if (!this.launchConfig.noDebug) {
-      // Use whether we can make a cookies request to feature-request the
-      // availability of networking.
-      this._cdp.Network.enable({}).then(r => {
-        if (!r) {
-          return;
-        }
-
-        this._dap.with(dap => {
-          dap.networkAvailable({});
-          for (const event of mirroredNetworkEvents) {
-            // the types don't work well with the overloads on Network.on, a cast is needed:
-            (this._cdp.Network.on as (ev: string, fn: (d: object) => void) => void)(event, data =>
-              dap.networkEvent({ data, event }),
-            );
-          }
-        });
-      });
-    }
-
     this._cdp.Debugger.on('paused', async event => this._onPaused(event));
     this._cdp.Debugger.on('resumed', () => this.onResumed());
     this._cdp.Debugger.on('scriptParsed', event => this._onScriptParsed(event));
@@ -783,12 +764,34 @@ export class Thread implements IVariableStoreLocationProvider {
       dap.thread({
         reason: 'started',
         threadId: this.id,
-      }),
+      })
     );
   }
 
   dapInitialized() {
     this._dap.resolve();
+  }
+
+  /**
+   * Tries to enable networking for the target
+   */
+  async enableNetworking() {
+    this._cdp.Network.enable({}).then(r => {
+      if (!r) {
+        return;
+      }
+
+      this._dap.with(dap => {
+        dap.networkAvailable({});
+        for (const event of mirroredNetworkEvents) {
+          // the types don't work well with the overloads on Network.on, a cast is needed:
+          (this._cdp.Network.on as (ev: string, fn: (d: object) => void) => void)(
+            event,
+            data => dap.networkEvent({ data, event }),
+          );
+        }
+      });
+    });
   }
 
   /**
@@ -833,9 +836,9 @@ export class Thread implements IVariableStoreLocationProvider {
           // remove the currently-paused location
           l.filter(
             l =>
-              l.breakLocation.lineNumber !== rawPausedLocation.lineNumber ||
-              l.breakLocation.columnNumber !== rawPausedLocation.columnNumber,
-          ),
+              l.breakLocation.lineNumber !== rawPausedLocation.lineNumber
+              || l.breakLocation.columnNumber !== rawPausedLocation.columnNumber,
+          )
         ),
       pausedLocation.source.content(),
     ]);
@@ -952,21 +955,20 @@ export class Thread implements IVariableStoreLocationProvider {
     // https://github.com/nodejs/node/blob/9cbf6af5b5ace0cc53c1a1da3234aeca02522ec6/src/node_contextify.cc#L913
     // And Deno uses `debugCommand:
     // https://github.com/denoland/deno/blob/2703996dea73c496d79fcedf165886a1659622d1/core/inspector.rs#L571
-    const isInspectBrk =
-      (event.reason as string) === 'Break on start' || event.reason === 'debugCommand';
+    const isInspectBrk = (event.reason as string) === 'Break on start'
+      || event.reason === 'debugCommand';
     const location = event.callFrames[0]?.location as Cdp.Debugger.Location | undefined;
     const scriptId = (event.data as IInstrumentationPauseAuxData)?.scriptId || location?.scriptId;
-    const isSourceMapPause =
-      scriptId &&
-      (event.reason === 'instrumentation' ||
-        this._breakpointManager.isEntrypointBreak(hitBreakpoints, scriptId) ||
-        hitBreakpoints.some(bp => this._pauseOnSourceMapBreakpointIds?.includes(bp)));
+    const isSourceMapPause = scriptId
+      && (event.reason === 'instrumentation'
+        || this._breakpointManager.isEntrypointBreak(hitBreakpoints, scriptId)
+        || hitBreakpoints.some(bp => this._pauseOnSourceMapBreakpointIds?.includes(bp)));
     this.evaluator.setReturnedValue(event.callFrames[0]?.returnValue);
 
     if (isSourceMapPause) {
       if (
-        (this.launchConfig as IChromiumBaseConfiguration).perScriptSourcemaps === 'auto' &&
-        this._shouldEnablePerScriptSms(event)
+        (this.launchConfig as IChromiumBaseConfiguration).perScriptSourcemaps === 'auto'
+        && this._shouldEnablePerScriptSms(event)
       ) {
         await this._enablePerScriptSourcemaps();
       }
@@ -1007,15 +1009,14 @@ export class Thread implements IVariableStoreLocationProvider {
         return this.resume();
       }
     } else {
-      const wantsPause =
-        event.reason === 'exception' || event.reason === 'promiseRejection'
-          ? await this.exceptionPause.shouldPauseAt(event)
-          : await this._breakpointManager.shouldPauseAt(
-              event,
-              hitBreakpoints,
-              this.target.entryBreakpoint,
-              false,
-            );
+      const wantsPause = event.reason === 'exception' || event.reason === 'promiseRejection'
+        ? await this.exceptionPause.shouldPauseAt(event)
+        : await this._breakpointManager.shouldPauseAt(
+          event,
+          hitBreakpoints,
+          this.target.entryBreakpoint,
+          false,
+        );
 
       if (!wantsPause) {
         return this.resume();
@@ -1039,11 +1040,11 @@ export class Thread implements IVariableStoreLocationProvider {
     if (isInspectBrk) {
       if (
         // Continue if continueOnAttach is requested...
-        ('continueOnAttach' in this.launchConfig && this.launchConfig.continueOnAttach) ||
+        ('continueOnAttach' in this.launchConfig && this.launchConfig.continueOnAttach)
         // Or if we're debugging an extension host...
-        this.launchConfig.type === DebugType.ExtensionHost ||
+        || this.launchConfig.type === DebugType.ExtensionHost
         // Or if the target is a worker_thread https://github.com/microsoft/vscode/issues/125451
-        this.target instanceof NodeWorkerTarget
+        || this.target instanceof NodeWorkerTarget
       ) {
         this.resume();
         return;
@@ -1078,7 +1079,7 @@ export class Thread implements IVariableStoreLocationProvider {
       case StepDirection.Over:
         return this.stepOver();
       default:
-      // continue
+        // continue
     }
 
     this._waitingForStepIn = undefined;
@@ -1129,7 +1130,7 @@ export class Thread implements IVariableStoreLocationProvider {
               .slice(1)
               .filter(isInstanceOf(StackFrame))
               .map(f => f.uiLocation()),
-          ),
+          )
         );
         stackLocations = x;
       }
@@ -1182,7 +1183,7 @@ export class Thread implements IVariableStoreLocationProvider {
       dap.thread({
         reason: 'exited',
         threadId: this.id,
-      }),
+      })
     );
   }
 
@@ -1240,7 +1241,7 @@ export class Thread implements IVariableStoreLocationProvider {
         this._sourceContainer.preferredUiLocation({
           ...source.offsetSourceToScript(rawLocation),
           source,
-        }),
+        })
       );
     }
   }
@@ -1346,22 +1347,23 @@ export class Thread implements IVariableStoreLocationProvider {
     // When hitting breakpoint in compiled source, we ignore source maps during the stepping
     // sequence (or exceptions) until user resumes or hits another breakpoint-alike pause.
     // TODO: this does not work for async stepping just yet.
-    const sameDebuggingSequence =
-      event.reason === 'assert' ||
-      event.reason === 'exception' ||
-      event.reason === 'promiseRejection' ||
-      event.reason === 'other' ||
-      event.reason === 'ambiguous';
+    const sameDebuggingSequence = event.reason === 'assert'
+      || event.reason === 'exception'
+      || event.reason === 'promiseRejection'
+      || event.reason === 'other'
+      || event.reason === 'ambiguous';
 
     const hitBreakpoints =
       event.hitBreakpoints?.filter(bp => !this._breakpointManager.isEntrypointCdpBreak(bp)) || [];
 
-    if (hitBreakpoints.length || !sameDebuggingSequence)
+    if (hitBreakpoints.length || !sameDebuggingSequence) {
       this._sourceContainer.clearDisabledSourceMaps();
+    }
 
     if (event.hitBreakpoints && this._sourceMapDisabler) {
-      for (const sourceToDisable of this._sourceMapDisabler(event.hitBreakpoints))
+      for (const sourceToDisable of this._sourceMapDisabler(event.hitBreakpoints)) {
         this._sourceContainer.disableSourceMapForSource(sourceToDisable);
+      }
     }
 
     const stackTrace = StackTrace.fromDebugger(
@@ -1480,8 +1482,8 @@ export class Thread implements IVariableStoreLocationProvider {
             });
 
             if (entryBreakpointSource !== undefined) {
-              const entryBreakpointLocations =
-                await this._sourceContainer.currentSiblingUiLocations({
+              const entryBreakpointLocations = await this._sourceContainer
+                .currentSiblingUiLocations({
                   lineNumber: event.callFrames[0].location.lineNumber + 1,
                   columnNumber: (event.callFrames[0].location.columnNumber || 0) + 1,
                   source: entryBreakpointSource,
@@ -1489,7 +1491,7 @@ export class Thread implements IVariableStoreLocationProvider {
 
               // But if there is a user breakpoint on the same location that the stop on entry breakpoint, then we consider it an user breakpoint
               isStopOnEntry = !entryBreakpointLocations?.some(location =>
-                this._breakpointManager.hasAtLocation(location),
+                this._breakpointManager.hasAtLocation(location)
               );
             }
           }
@@ -1628,10 +1630,9 @@ export class Thread implements IVariableStoreLocationProvider {
         return response ? response.scriptSource : undefined;
       };
 
-      const inlineSourceOffset =
-        event.startLine || event.startColumn
-          ? { lineOffset: event.startLine, columnOffset: event.startColumn }
-          : undefined;
+      const inlineSourceOffset = event.startLine || event.startColumn
+        ? { lineOffset: event.startLine, columnOffset: event.startColumn }
+        : undefined;
 
       // see https://github.com/microsoft/vscode/issues/103027
       const runtimeScriptOffset = event.url.endsWith('#vscode-extension')
@@ -1647,7 +1648,7 @@ export class Thread implements IVariableStoreLocationProvider {
           : (event.url && urlUtils.completeUrl(event.url, event.sourceMapURL)) || event.url;
         if (!resolvedSourceMapUrl) {
           this._dap.with(dap =>
-            errors.reportToConsole(dap, `Could not load source map from ${event.sourceMapURL}`),
+            errors.reportToConsole(dap, `Could not load source map from ${event.sourceMapURL}`)
           );
         }
       }
@@ -1700,8 +1701,8 @@ export class Thread implements IVariableStoreLocationProvider {
   ): Promise<boolean> {
     this._pausedForSourceMapScriptId = scriptId;
     const perScriptTimeout = this._sourceContainer.sourceMapTimeouts().sourceMapMinPause;
-    const timeout =
-      perScriptTimeout + this._sourceContainer.sourceMapTimeouts().sourceMapCumulativePause;
+    const timeout = perScriptTimeout
+      + this._sourceContainer.sourceMapTimeouts().sourceMapCumulativePause;
 
     const script = this._sourceContainer.getScriptById(scriptId);
     if (!script) {
@@ -1714,8 +1715,8 @@ export class Thread implements IVariableStoreLocationProvider {
 
     const timeSpentWallClockInMs = timer.elapsed().ms;
     const sourceMapCumulativePause =
-      this._sourceContainer.sourceMapTimeouts().sourceMapCumulativePause -
-      Math.max(timeSpentWallClockInMs - perScriptTimeout, 0);
+      this._sourceContainer.sourceMapTimeouts().sourceMapCumulativePause
+      - Math.max(timeSpentWallClockInMs - perScriptTimeout, 0);
     this._sourceContainer.setSourceMapTimeouts({
       ...this._sourceContainer.sourceMapTimeouts(),
       sourceMapCumulativePause,
@@ -1734,7 +1735,7 @@ export class Thread implements IVariableStoreLocationProvider {
             script.url || script.scriptId,
             timeout,
           ),
-        }),
+        })
       );
     }
 
@@ -1770,7 +1771,7 @@ export class Thread implements IVariableStoreLocationProvider {
       .then(sources =>
         sources.length && this._scriptWithSourceMapHandler
           ? this._scriptWithSourceMapHandler(script, sources)
-          : [],
+          : []
       );
 
     ctx.sourceMapLoads.set(script.scriptId, result);
@@ -1786,11 +1787,12 @@ export class Thread implements IVariableStoreLocationProvider {
     if (!response) return;
     for (const p of response.internalProperties || []) {
       if (
-        p.name !== '[[FunctionLocation]]' ||
-        !p.value ||
-        (p.value.subtype as string) !== 'internal#location'
-      )
+        p.name !== '[[FunctionLocation]]'
+        || !p.value
+        || (p.value.subtype as string) !== 'internal#location'
+      ) {
         continue;
+      }
       const uiLocation = await this.rawLocationToUiLocation(
         this.rawLocation(p.value.value as Cdp.Debugger.Location),
       );
@@ -1802,7 +1804,7 @@ export class Thread implements IVariableStoreLocationProvider {
   async _copyObjectToClipboard(object: Cdp.Runtime.RemoteObject) {
     if (!object.objectId) {
       this._dap.with(dap =>
-        dap.copyRequested({ text: objectPreview.previewRemoteObject(object, 'copy') }),
+        dap.copyRequested({ text: objectPreview.previewRemoteObject(object, 'copy') })
       );
       return;
     }
@@ -1861,7 +1863,7 @@ export class Thread implements IVariableStoreLocationProvider {
         text: details.text,
         hitBreakpointIds,
         allThreadsStopped: false,
-      }),
+      })
     );
   }
 
@@ -1870,7 +1872,7 @@ export class Thread implements IVariableStoreLocationProvider {
       dap.continued({
         threadId: this.id,
         allThreadsContinued: false,
-      }),
+      })
     );
   }
 
@@ -1918,8 +1920,8 @@ export class Thread implements IVariableStoreLocationProvider {
   ): Promise<boolean> {
     this._scriptWithSourceMapHandler = handler;
 
-    const needsPause =
-      pause && this._sourceContainer.sourceMapTimeouts().sourceMapMinPause && handler;
+    const needsPause = pause && this._sourceContainer.sourceMapTimeouts().sourceMapMinPause
+      && handler;
     if (needsPause && !this._pauseOnSourceMapBreakpointIds?.length) {
       // setting the URL breakpoint for wasm fails if debugger isn't fully initialized
       await this.debuggerReady.promise;
@@ -2012,8 +2014,8 @@ export class Thread implements IVariableStoreLocationProvider {
       }
 
       const compiledSource =
-        this._sourceContainer.getSourceByOriginalUrl(urlUtils.absolutePathToFileUrl(chunk.path)) ||
-        this._sourceContainer.getSourceByOriginalUrl(chunk.path);
+        this._sourceContainer.getSourceByOriginalUrl(urlUtils.absolutePathToFileUrl(chunk.path))
+        || this._sourceContainer.getSourceByOriginalUrl(chunk.path);
       if (!compiledSource) {
         todo.push(chunk.toString());
         continue;

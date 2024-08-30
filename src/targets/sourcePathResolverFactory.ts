@@ -38,9 +38,9 @@ export class NodeOnlyPathResolverFactory implements ISourcePathResolverFactory {
 
   public create(c: AnyLaunchConfiguration, logger: ILogger) {
     if (
-      c.type === DebugType.Node ||
-      c.type === DebugType.Terminal ||
-      c.type === DebugType.ExtensionHost
+      c.type === DebugType.Node
+      || c.type === DebugType.Terminal
+      || c.type === DebugType.ExtensionHost
     ) {
       return new NodeSourcePathResolver(
         this.fsUtils,
@@ -67,9 +67,9 @@ export class SourcePathResolverFactory implements ISourcePathResolverFactory {
 
   public create(c: AnyLaunchConfiguration, logger: ILogger) {
     if (
-      c.type === DebugType.Node ||
-      c.type === DebugType.Terminal ||
-      c.type === DebugType.ExtensionHost
+      c.type === DebugType.Node
+      || c.type === DebugType.Terminal
+      || c.type === DebugType.ExtensionHost
     ) {
       return new NodeSourcePathResolver(
         this.fsUtils,

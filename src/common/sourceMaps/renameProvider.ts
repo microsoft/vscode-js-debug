@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import { inject, injectable } from 'inversify';
-import { Source, SourceFromMap, isSourceWithSourceMap } from '../../adapter/source';
+import { isSourceWithSourceMap, Source, SourceFromMap } from '../../adapter/source';
 import { StackFrame } from '../../adapter/stackTrace';
 import { AnyLaunchConfiguration } from '../../configuration';
 import { iteratorFirst } from '../arrayUtils';

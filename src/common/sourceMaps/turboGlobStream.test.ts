@@ -44,7 +44,7 @@ describe('TurboGlobStream', () => {
         tgs.onFile(result => matches.push(result));
         tgs.done
           .then(() =>
-            expect(matches.sort()).to.deep.equal(expected, `bad result in call number ${i + 1}`),
+            expect(matches.sort()).to.deep.equal(expected, `bad result in call number ${i + 1}`)
           )
           .then(resolve, reject);
       });

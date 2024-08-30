@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-//@ts-ignore
+// @ts-ignore
 import allTests from '**/*.test.ts';
 import Mocha from 'mocha';
 import { join } from 'path';
@@ -104,8 +104,8 @@ export async function run(): Promise<void> {
   try {
     await new Promise((resolve, reject) =>
       runner.run(failures =>
-        failures ? reject(new Error(`${failures} tests failed`)) : resolve(undefined),
-      ),
+        failures ? reject(new Error(`${failures} tests failed`)) : resolve(undefined)
+      )
     );
   } finally {
     if (nyc) {

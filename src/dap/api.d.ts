@@ -1178,6 +1178,18 @@ export namespace Dap {
      * Makes a network call. There is little abstraction here because UI interacts literally with CDP at the moment.
      */
     networkCallRequest(params: NetworkCallParams): Promise<NetworkCallResult>;
+
+    /**
+     * Attempts to enable networking on the target.
+     */
+    on(
+      request: 'enableNetworking',
+      handler: (params: EnableNetworkingParams) => Promise<EnableNetworkingResult | Error>,
+    ): () => void;
+    /**
+     * Attempts to enable networking on the target.
+     */
+    enableNetworkingRequest(params: EnableNetworkingParams): Promise<EnableNetworkingResult>;
   }
 
   export interface TestApi {
@@ -1943,7 +1955,10 @@ export namespace Dap {
      * Fired when we successfully enable CDP networking on the session.
      */
     on(request: 'networkAvailable', handler: (params: NetworkAvailableEventParams) => void): void;
-    off(request: 'networkAvailable', handler: (params: NetworkAvailableEventParams) => void): void;
+    off(
+      request: 'networkAvailable',
+      handler: (params: NetworkAvailableEventParams) => void,
+    ): void;
     once(
       request: 'networkAvailable',
       filter?: (event: NetworkAvailableEventParams) => boolean,
@@ -1963,6 +1978,11 @@ export namespace Dap {
      * Makes a network call. There is little abstraction here because UI interacts literally with CDP at the moment.
      */
     networkCall(params: NetworkCallParams): Promise<NetworkCallResult>;
+
+    /**
+     * Attempts to enable networking on the target.
+     */
+    enableNetworking(params: EnableNetworkingParams): Promise<EnableNetworkingResult>;
   }
 
   export interface AttachParams {
@@ -2262,6 +2282,15 @@ export namespace Dap {
   }
 
   export interface DisconnectResult {}
+
+  export interface EnableNetworkingParams {
+    /**
+     * CDP network domain events to mirror (e.g. "requestWillBeSent")
+     */
+    mirrorEvents: string[];
+  }
+
+  export interface EnableNetworkingResult {}
 
   export interface EvaluateParams {
     /**

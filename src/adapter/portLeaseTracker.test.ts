@@ -17,7 +17,8 @@ describe('PortLeaseTracker', () => {
 
   it('does not delay for ports outside default range', async () => {
     const l = new PortLeaseTracker('local');
-    expect(await Promise.race([l.isRegistered(1000), delay(5).then(() => 'error')])).to.be.false;
+    expect(await Promise.race([l.isRegistered(1000), delay(5).then(() => 'error')])).to.be
+      .false;
   });
 
   it('delays for ports in range', async () => {

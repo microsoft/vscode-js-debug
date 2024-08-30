@@ -233,10 +233,9 @@ export class SessionManager<TSessionImpl extends IDebugSessionLike>
       const parentConfig = parentSession.debugSession.configuration as IMandatedConfiguration;
       const config: IPseudoAttachConfiguration = {
         // see https://github.com/microsoft/vscode/issues/98993
-        type:
-          parentConfig.type === DebugType.ExtensionHost
-            ? DebugType.Chrome
-            : (parentConfig.type as DebugType),
+        type: parentConfig.type === DebugType.ExtensionHost
+          ? DebugType.Chrome
+          : (parentConfig.type as DebugType),
         name: target.name(),
         request: parentSession.debugSession.configuration.request as 'attach' | 'launch',
         __pendingTargetId: target.id(),

@@ -4,22 +4,15 @@
 
 import { promises as fs } from 'fs';
 import * as path from 'path';
-import { format, Options as PrettierOptions } from 'prettier';
-import { prettier as defaultPrettierOpts } from '../../package.json';
 
 export function writeCodeToFile(
   code: string,
   relativeFilePath: string,
-  prettierOpts: PrettierOptions = {},
 ) {
   const fileName = path.join(__dirname, '..', '..', relativeFilePath);
   return fs.writeFile(
     fileName,
-    format(code, {
-      parser: 'typescript',
-      ...defaultPrettierOpts,
-      ...prettierOpts,
-    }),
+    code,
     { encoding: 'utf-8' },
   );
 }

@@ -54,7 +54,9 @@ describe('runtimeVersion', () => {
       expect(b).to.equal(path.join(testFixturesDir, 'nvm/versions/node/v13.11.0/bin'));
 
       const { directory: c } = await resolver.resolveNvmVersionPath('13.10');
-      expect(c).to.equal(path.join(testFixturesDir, 'fnm/node-versions/v13.10.0/installation/bin'));
+      expect(c).to.equal(
+        path.join(testFixturesDir, 'fnm/node-versions/v13.10.0/installation/bin'),
+      );
 
       await expect(resolver.resolveNvmVersionPath('14')).to.eventually.be.rejectedWith(
         ProtocolError,

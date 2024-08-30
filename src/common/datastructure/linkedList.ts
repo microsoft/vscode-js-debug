@@ -103,7 +103,7 @@ export class LinkedList<E> {
     }
   }
 
-  //#region custom methods
+  // #region custom methods
   applyFilter(fn: (value: E) => boolean) {
     let node = this._first;
     while (node !== Node.Undefined) {
@@ -115,7 +115,7 @@ export class LinkedList<E> {
       node = next;
     }
   }
-  //#endregion
+  // #endregion
 
   private _remove(node: Node<E>): void {
     if (node.prev !== Node.Undefined && node.next !== Node.Undefined) {

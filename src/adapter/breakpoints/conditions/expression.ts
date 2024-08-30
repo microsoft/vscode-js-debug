@@ -2,13 +2,13 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { IBreakpointCondition } from '.';
 import Cdp from '../../../cdp/api';
 import { getSyntaxErrorIn } from '../../../common/sourceUtils';
 import { Dap } from '../../../dap/api';
 import { invalidBreakPointCondition } from '../../../dap/errors';
 import { ProtocolError } from '../../../dap/protocolError';
 import { IEvaluator, PreparedCallFrameExpr } from '../../evaluator';
+import { IBreakpointCondition } from '.';
 
 /**
  * Conditional breakpoint using a user-defined expression.

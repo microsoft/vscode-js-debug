@@ -42,7 +42,7 @@ async function generate() {
 
   function createSeparator() {
     let first = true;
-    return function () {
+    return function() {
       if (!first) result.push(``);
       first = false;
     };
@@ -96,7 +96,9 @@ async function generate() {
     props: { [k: string]: JSONSchema4 },
     required?: Iterable<string> | true | false | null,
   ) {
-    const requiredSet = required === true ? new Set(Object.keys(props)) : new Set(required || []);
+    const requiredSet = required === true
+      ? new Set(Object.keys(props))
+      : new Set(required || []);
     const propSeparator = createSeparator();
     for (const name in props) {
       const prop = props[name];
@@ -284,7 +286,7 @@ async function generate() {
       ${propertiesClassifications.join('\n')}
     }
     `;
-    writeCodeToFile(interfaceCode, 'src/dap/telemetryClassification.d.ts', { printWidth: 150 });
+    writeCodeToFile(interfaceCode, 'src/dap/telemetryClassification.d.ts');
   }
 
   generateTelemetryClassifications(defs);

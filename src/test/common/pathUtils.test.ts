@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 import { expect } from 'chai';
-import { forceForwardSlashes, fixDriveLetterAndSlashes } from '../../common/pathUtils';
+import { fixDriveLetterAndSlashes, forceForwardSlashes } from '../../common/pathUtils';
 
 describe('pathUtils', () => {
   describe('forceForwardSlashes', () => {
@@ -31,7 +31,9 @@ describe('pathUtils', () => {
     });
 
     it('works for file:/// cases', () => {
-      expect(fixDriveLetterAndSlashes('file:///C:/path/stuff')).to.equal('file:///c:\\path\\stuff');
+      expect(fixDriveLetterAndSlashes('file:///C:/path/stuff')).to.equal(
+        'file:///c:\\path\\stuff',
+      );
       expect(fixDriveLetterAndSlashes('file:///c:/path\\stuff')).to.equal(
         'file:///c:\\path\\stuff',
       );

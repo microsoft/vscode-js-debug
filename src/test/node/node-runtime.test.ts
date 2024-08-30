@@ -15,8 +15,8 @@ import { delay } from '../../common/promiseUtil';
 import { StreamSplitter } from '../../common/streamSplitter';
 import {
   INodeLaunchConfiguration,
-  OutputSource,
   nodeLaunchConfigDefaults,
+  OutputSource,
 } from '../../configuration';
 import Dap from '../../dap/api';
 import { TerminalProgramLauncher } from '../../targets/node/terminalProgramLauncher';
@@ -72,10 +72,12 @@ describe('node runtime', () => {
       handle.assertLog({ customAssert: assertSkipFiles });
     });
 
-    for (const [name, useDelay] of [
-      ['with delay', true],
-      ['without delay', false],
-    ] as const) {
+    for (
+      const [name, useDelay] of [
+        ['with delay', true],
+        ['without delay', false],
+      ] as const
+    ) {
       describe(name, () => {
         for (const fn of ['caughtInUserCode', 'uncaught', 'caught', 'rethrown']) {
           itIntegrates(fn, async ({ r }) => {
@@ -237,7 +239,9 @@ describe('node runtime', () => {
 
   describe('inspect flag handling', () => {
     itIntegrates('does not break with inspect flag', async ({ r }) => {
-      createFileTree(testFixturesDir, { 'test.js': ['console.log("hello world");', 'debugger;'] });
+      createFileTree(testFixturesDir, {
+        'test.js': ['console.log("hello world");', 'debugger;'],
+      });
       const handle = await r.runScript('test.js', {
         runtimeArgs: ['--inspect'],
       });
@@ -263,7 +267,7 @@ describe('node runtime', () => {
       createFileTree(testFixturesDir, {
         'test.js': ['let i = 0;', 'i++;', 'i++;'],
         'bar.js': 'require("./test")',
-      }),
+      })
     );
 
     itIntegrates('stops with a breakpoint elsewhere (#515)', async ({ r }) => {
@@ -445,7 +449,10 @@ describe('node runtime', () => {
         stdio: 'pipe',
       });
       const lines: string[] = [];
-      child.stderr?.pipe(new StreamSplitter('\n')).on('data', line => lines.push(line.toString()));
+      child.stderr?.pipe(new StreamSplitter('\n')).on(
+        'data',
+        line => lines.push(line.toString()),
+      );
 
       const handle = await r.attachNode(0, { port, restart: true });
       await handle.dap.once('stopped');
@@ -469,7 +476,7 @@ describe('node runtime', () => {
         const foo = 'It works!';
         debugger;
       `,
-      }),
+      })
     );
 
     itIntegrates('debugs', async ({ r }) => {

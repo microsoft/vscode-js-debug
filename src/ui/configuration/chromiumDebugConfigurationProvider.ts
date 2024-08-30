@@ -43,10 +43,9 @@ export abstract class ChromiumDebugConfigurationResolver<T extends AnyChromiumCo
 {
   constructor(
     @inject(ExtensionContext) context: vscode.ExtensionContext,
-    @inject(NodeConfigurationResolver)
-    private readonly nodeProvider: NodeConfigurationResolver,
-    @inject(TerminalDebugConfigurationResolver)
-    private readonly terminalProvider: TerminalDebugConfigurationResolver,
+    @inject(NodeConfigurationResolver) private readonly nodeProvider: NodeConfigurationResolver,
+    @inject(TerminalDebugConfigurationResolver) private readonly terminalProvider:
+      TerminalDebugConfigurationResolver,
     @inject(ExtensionLocation) private readonly location: ExtensionLocation,
     @inject(FS) private readonly fs: FsPromises,
   ) {
@@ -149,13 +148,12 @@ export abstract class ChromiumDebugConfigurationResolver<T extends AnyChromiumCo
       return config;
     }
 
-    const userDataDir =
-      typeof cast.userDataDir === 'string'
-        ? cast.userDataDir
-        : join(
-            this.extensionContext.storagePath ?? tmpdir(),
-            cast.runtimeArgs?.includes('--headless') ? '.headless-profile' : '.profile',
-          );
+    const userDataDir = typeof cast.userDataDir === 'string'
+      ? cast.userDataDir
+      : join(
+        this.extensionContext.storagePath ?? tmpdir(),
+        cast.runtimeArgs?.includes('--headless') ? '.headless-profile' : '.profile',
+      );
 
     // Warn if there's an existing instance, so we probably can't launch it in debug mode:
     const platformLock = join(

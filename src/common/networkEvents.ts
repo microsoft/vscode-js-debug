@@ -15,10 +15,12 @@ export interface IMirroredNetworkEvents {
   loadingFinished: Cdp.Network.LoadingFinishedEvent;
 }
 
-export const mirroredNetworkEvents = Object.keys({
-  requestWillBeSent: 0,
-  responseReceived: 0,
-  responseReceivedExtraInfo: 0,
-  loadingFailed: 0,
-  loadingFinished: 0,
-} satisfies { [K in keyof IMirroredNetworkEvents]: unknown });
+export const mirroredNetworkEvents = Object.keys(
+  {
+    requestWillBeSent: 0,
+    responseReceived: 0,
+    responseReceivedExtraInfo: 0,
+    loadingFailed: 0,
+    loadingFinished: 0,
+  } satisfies { [K in keyof IMirroredNetworkEvents]: unknown },
+);

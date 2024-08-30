@@ -18,7 +18,7 @@ import {
   IBreakpointCdpReferenceApplied,
   IBreakpointCdpReferencePending,
 } from './breakpoints/breakpointBase';
-import { IUiLocation, SourceFromMap, isSourceWithSourceMap } from './source';
+import { isSourceWithSourceMap, IUiLocation, SourceFromMap } from './source';
 import { SourceContainer } from './sourceContainer';
 
 export interface IDiagnosticSource {
@@ -46,8 +46,8 @@ export interface IDiagnosticUiLocation {
 export type DiagnosticBreakpointArgs =
   | Omit<IBreakpointCdpReferencePending, 'done'>
   | (Omit<IBreakpointCdpReferenceApplied, 'uiLocations'> & {
-      uiLocations: IDiagnosticUiLocation[];
-    });
+    uiLocations: IDiagnosticUiLocation[];
+  });
 
 export interface IDiagnosticBreakpoint {
   source: Dap.Source;
@@ -120,7 +120,7 @@ export class Diagnostics {
             cdp: dump.cdp.map(bp =>
               bp.state === CdpReferenceState.Applied
                 ? { ...bp, uiLocations: bp.uiLocations.map(l => this.dumpUiLocation(l)) }
-                : { ...bp, done: undefined },
+                : { ...bp, done: undefined }
             ),
           });
         }
@@ -143,21 +143,20 @@ export class Diagnostics {
           actualAbsolutePath: await source.existingAbsolutePath(),
           scriptIds: source.scripts.map(s => s.scriptId),
           prettyName: await source.prettyName(),
-          compiledSourceRefToUrl:
-            source instanceof SourceFromMap
-              ? [...source.compiledToSourceUrl.entries()].map(
-                  ([k, v]) => [k.sourceReference, v] as [number, string],
-                )
-              : undefined,
+          compiledSourceRefToUrl: source instanceof SourceFromMap
+            ? [...source.compiledToSourceUrl.entries()].map(
+              ([k, v]) => [k.sourceReference, v] as [number, string],
+            )
+            : undefined,
           sourceMap: isSourceWithSourceMap(source)
             ? {
-                url: source.sourceMap.metadata.sourceMapUrl,
-                metadata: source.sourceMap.metadata,
-                sources: mapValues(
-                  Object.fromEntries(source.sourceMap.sourceByUrl),
-                  v => v.sourceReference,
-                ),
-              }
+              url: source.sourceMap.metadata.sourceMapUrl,
+              metadata: source.sourceMap.metadata,
+              sources: mapValues(
+                Object.fromEntries(source.sourceMap.sourceByUrl),
+                v => v.sourceReference,
+              ),
+            }
             : undefined,
         }))(),
       );

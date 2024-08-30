@@ -2,10 +2,10 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { BreakpointManager } from '../breakpoints';
-import { UserDefinedBreakpoint } from './userDefinedBreakpoint';
-import { HitCondition } from './conditions/hitCount';
 import Dap from '../../dap/api';
+import { BreakpointManager } from '../breakpoints';
+import { HitCondition } from './conditions/hitCount';
+import { UserDefinedBreakpoint } from './userDefinedBreakpoint';
 
 /**
  * A breakpoint that's never resolved or hit. This is used to place an invalid

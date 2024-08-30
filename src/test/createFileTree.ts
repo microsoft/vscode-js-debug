@@ -1,12 +1,12 @@
 /*---------------------------------------------------------
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
+import { randomBytes } from 'crypto';
 import * as fs from 'fs';
 import { EOL, tmpdir } from 'os';
 import * as path from 'path';
 import { join } from 'path';
 import { IFileTree } from './test';
-import { randomBytes } from 'crypto';
 
 export const getTestDir = () => join(tmpdir(), 'js-debug-test-' + randomBytes(6).toString('hex'));
 

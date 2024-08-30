@@ -175,7 +175,9 @@ describe('NodeDebugConfigurationProvider', () => {
         'tsconfig.json': JSON.stringify({ compilerOptions: { outDir: 'out' } }),
       });
 
-      const doc = await vscode.workspace.openTextDocument(join(testFixturesDir, 'src', 'hello.ts'));
+      const doc = await vscode.workspace.openTextDocument(
+        join(testFixturesDir, 'src', 'hello.ts'),
+      );
       await vscode.window.showTextDocument(doc);
       try {
         const result = await provider.resolveDebugConfiguration(folder, emptyRequest);

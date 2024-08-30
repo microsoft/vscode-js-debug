@@ -11,12 +11,15 @@ import { IExtensionContribution } from '../ioc-extras';
 export class StartDebugingAndStopOnEntry implements IExtensionContribution {
   public register(context: ExtensionContext) {
     context.subscriptions.push(
-      registerCommand(commands, Commands.StartWithStopOnEntry, () =>
-        commands.executeCommand('workbench.action.debug.start', {
-          config: {
-            stopOnEntry: true,
-          },
-        }),
+      registerCommand(
+        commands,
+        Commands.StartWithStopOnEntry,
+        () =>
+          commands.executeCommand('workbench.action.debug.start', {
+            config: {
+              stopOnEntry: true,
+            },
+          }),
       ),
     );
   }

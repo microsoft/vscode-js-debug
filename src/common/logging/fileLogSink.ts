@@ -6,8 +6,8 @@ import { createWriteStream, mkdirSync } from 'fs';
 import { dirname } from 'path';
 import { Writable } from 'stream';
 import { constants, createGzip } from 'zlib';
-import { ILogItem, ILogSink } from '.';
 import Dap from '../../dap/api';
+import { ILogItem, ILogSink } from '.';
 
 const replacer = (_key: string, value: unknown): unknown => {
   if (value instanceof Error) {

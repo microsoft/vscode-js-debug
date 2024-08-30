@@ -69,10 +69,9 @@ export function spawnAsync(
       code
         ? rejectWithError(code)
         : resolve({
-            stdout: Buffer.concat(stdout).toString(),
-            stderr: Buffer.concat(stderr).toString(),
-          }),
-    );
+          stdout: Buffer.concat(stdout).toString(),
+          stderr: Buffer.concat(stderr).toString(),
+        }));
   });
 }
 

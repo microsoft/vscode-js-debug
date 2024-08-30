@@ -3,8 +3,8 @@
  *--------------------------------------------------------*/
 
 import * as vscode from 'vscode';
+import { Commands, registerCommand } from '../common/contributionUtils';
 import { DebugSessionTracker } from './debugSessionTracker';
-import { registerCommand, Commands } from '../common/contributionUtils';
 
 export const registerRevealPage = (
   context: vscode.ExtensionContext,

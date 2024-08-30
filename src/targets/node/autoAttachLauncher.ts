@@ -40,8 +40,7 @@ import { WatchDog } from './watchdogSpawn';
  * to create the 'server'.
  */
 @injectable()
-export class AutoAttachLauncher
-  extends NodeLauncherBase<ITerminalLaunchConfiguration>
+export class AutoAttachLauncher extends NodeLauncherBase<ITerminalLaunchConfiguration>
   implements ITerminalLauncherLike
 {
   private telemetryItems = new Map<number, IProcessTelemetry>();
@@ -159,10 +158,9 @@ export class AutoAttachLauncher
 
   private readSmartPatterns() {
     const configured = readConfig(vscode.workspace, Configuration.AutoAttachSmartPatterns);
-    const allFolders =
-      vscode.workspace.workspaceFolders?.length === 1
-        ? vscode.workspace.workspaceFolders[0].uri.fsPath
-        : `{${vscode.workspace.workspaceFolders?.map(f => f.uri.fsPath).join(',')}}`;
+    const allFolders = vscode.workspace.workspaceFolders?.length === 1
+      ? vscode.workspace.workspaceFolders[0].uri.fsPath
+      : `{${vscode.workspace.workspaceFolders?.map(f => f.uri.fsPath).join(',')}}`;
     return configured
       ?.map(c => c.replace('${workspaceFolder}', allFolders))
       .map(forceForwardSlashes);
@@ -179,8 +177,8 @@ export class AutoAttachLauncher
     //   return super.getBootloaderFile(cwd, binary);
     // }
 
-    const storagePath =
-      this.extensionContext.storagePath || this.extensionContext.globalStoragePath;
+    const storagePath = this.extensionContext.storagePath
+      || this.extensionContext.globalStoragePath;
     if (storagePath.includes(' ')) {
       if (binary.isPreciselyKnown && !binary.has(Capability.UseSpacesInRequirePath)) {
         throw new AutoAttachPreconditionFailed(

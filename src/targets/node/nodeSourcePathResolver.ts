@@ -98,14 +98,12 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
     if (urlUtils.isValidUrl(url)) {
       const mapped = this.sourceMapOverrides.apply(url);
       url = mapped === url ? new URL(url).pathname.slice(1) : mapped;
-    }
-    // Node internals are given us us as relative path, for example
+    } // Node internals are given us us as relative path, for example
     // require('cluster') will import a file simply named "cluster". For these
     // paths, prefix them as internal.
     else if (!path.isAbsolute(url)) {
       return `<node_internals>/${url}`;
-    }
-    // Otherwise, use default overrides.
+    } // Otherwise, use default overrides.
     else {
       url = this.sourceMapOverrides.apply(url);
     }
@@ -115,7 +113,9 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
   }
 
   private absolutePathToUrl(absolutePath: string) {
-    return urlUtils.absolutePathToFileUrl(this.rebaseLocalToRemote(path.normalize(absolutePath)));
+    return urlUtils.absolutePathToFileUrl(
+      this.rebaseLocalToRemote(path.normalize(absolutePath)),
+    );
   }
 
   /**
@@ -136,9 +136,9 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
     this.linkedBp?.warn();
 
     return (
-      urlUtils.urlToRegex(this.absolutePathToUrl(absolutePath)) +
-      '|' +
-      urlUtils.urlToRegex(this.absolutePathToUrl(realPath))
+      urlUtils.urlToRegex(this.absolutePathToUrl(absolutePath))
+      + '|'
+      + urlUtils.urlToRegex(this.absolutePathToUrl(realPath))
     );
   }
 

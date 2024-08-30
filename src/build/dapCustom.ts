@@ -774,6 +774,24 @@ const dapCustom: JSONSchema4 = {
         type: 'object',
       },
     ),
+
+    ...makeRequest(
+      'enableNetworking',
+      'Attempts to enable networking on the target.',
+      {
+        properties: {
+          mirrorEvents: {
+            type: 'array',
+            items: { type: 'string' },
+            description: 'CDP network domain events to mirror (e.g. "requestWillBeSent")',
+          },
+        },
+        required: ['mirrorEvents'],
+      },
+      {
+        type: 'object',
+      },
+    ),
   },
 };
 

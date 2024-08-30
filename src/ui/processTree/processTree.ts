@@ -58,12 +58,11 @@ export interface IProcessTree {
  */
 // TODO: Figure out how to inject the fsUtils here
 const fsUtils = new LocalFsUtils(fsPromises);
-export const processTree: IProcessTree =
-  process.platform === 'win32'
-    ? new WindowsProcessTree()
-    : process.platform === 'darwin'
-    ? new DarwinProcessTree(fsUtils)
-    : new PosixProcessTree(fsUtils);
+export const processTree: IProcessTree = process.platform === 'win32'
+  ? new WindowsProcessTree()
+  : process.platform === 'darwin'
+  ? new DarwinProcessTree(fsUtils)
+  : new PosixProcessTree(fsUtils);
 
 const DEBUG_FLAGS_PATTERN = once(() => {
   const parts = [

@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 import { Node as AcornNode, parse as parseStrict } from 'acorn';
-import { Options, isDummy, parse } from 'acorn-loose';
+import { isDummy, Options, parse } from 'acorn-loose';
 import * as evk from 'eslint-visitor-keys';
 import {
   ArrowFunctionExpression,
@@ -57,7 +57,7 @@ export const parseSource: (str: string) => (Statement & AcornNode)[] = str => {
  * function (params) { code } => function (params) { catchAndReturnErrors?(code) }
  * statement => function () { return catchAndReturnErrors?(return statement) }
  * statement; statement => function () { catchAndReturnErrors?(statement; return statement;) }
- * */
+ */
 export function statementsToFunction(
   parameterNames: ReadonlyArray<string>,
   statements: ReadonlyArray<Statement>,
@@ -100,7 +100,7 @@ export function statementsToFunction(
 
 /**
  * code => (parameterNames) => return catchAndReturnErrors?(code)
- * */
+ */
 const codeToFunctionExecutingCode = (
   parameterNames: ReadonlyArray<string>,
   body: ReadonlyArray<Statement>,
@@ -157,22 +157,22 @@ const codeToFunctionExecutingCode = (
 
   return preserveThis
     ? {
-        type: 'FunctionExpression',
-        id: { type: 'Identifier', name: '_generatedCode' },
-        params: parameterNames.map(name => ({ type: 'Identifier', name })),
-        body: { type: 'BlockStatement', body: inner },
-      }
+      type: 'FunctionExpression',
+      id: { type: 'Identifier', name: '_generatedCode' },
+      params: parameterNames.map(name => ({ type: 'Identifier', name })),
+      body: { type: 'BlockStatement', body: inner },
+    }
     : {
-        type: 'ArrowFunctionExpression',
-        params: parameterNames.map(name => ({ type: 'Identifier', name })),
-        expression: false,
-        body: { type: 'BlockStatement', body: inner },
-      };
+      type: 'ArrowFunctionExpression',
+      params: parameterNames.map(name => ({ type: 'Identifier', name })),
+      expression: false,
+      body: { type: 'BlockStatement', body: inner },
+    };
 };
 
 /**
  * function (params) { code } => (function (params) { code })(argumentsText)
- * */
+ */
 export const functionToFunctionCall = (
   argumentsList: ReadonlyArray<string>,
   functionCode: FunctionExpression | ArrowFunctionExpression,
@@ -186,7 +186,7 @@ export const functionToFunctionCall = (
 /**
  * statement => catchAndReturnErrors(return statement);
  * statement; statement => catchAndReturnErrors(statement; return statement);
- * */
+ */
 export const returnErrorsFromStatements = (
   parameterNames: ReadonlyArray<string>,
   statements: ReadonlyArray<Statement>,
@@ -200,7 +200,7 @@ export const returnErrorsFromStatements = (
 /**
  * statement => function () { catchAndReturnErrors(return statement); }
  * statement; statement => function () { catchAndReturnErrors(statement; return statement); }
- * */
+ */
 function statementToFunction(
   parameterNames: ReadonlyArray<string>,
   statements: ReadonlyArray<Statement>,

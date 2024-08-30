@@ -2,8 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { ILogSink, ILogItem, LogLevel } from '.';
 import signale from 'signale';
+import { ILogItem, ILogSink, LogLevel } from '.';
 
 /**
  * A log sink that writes to the console output of the current process

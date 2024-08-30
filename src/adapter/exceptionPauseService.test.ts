@@ -5,11 +5,11 @@
 import { expect } from 'chai';
 import { SinonStub, stub } from 'sinon';
 import Cdp from '../cdp/api';
-import { StubCdpApi, stubbedCdpApi } from '../cdp/stubbedApi';
+import { stubbedCdpApi, StubCdpApi } from '../cdp/stubbedApi';
 import { upcastPartial } from '../common/objUtils';
 import { AnyLaunchConfiguration } from '../configuration';
 import Dap from '../dap/api';
-import { StubDapApi, stubbedDapApi } from '../dap/stubbedApi';
+import { stubbedDapApi, StubDapApi } from '../dap/stubbedApi';
 import { assertNotResolved, assertResolved } from '../test/asserts';
 import { IEvaluator } from './evaluator';
 import { ExceptionPauseService, PauseOnExceptionsState } from './exceptionPauseService';

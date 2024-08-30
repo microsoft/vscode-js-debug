@@ -43,10 +43,9 @@ export class StreamSplitter extends Transform {
       }
 
       const thisChunk = chunk.subarray(offset, index);
-      const toEmit =
-        this.prefix.length || this.splitSuffix.length
-          ? Buffer.concat([...this.prefix, thisChunk, this.splitSuffix])
-          : thisChunk;
+      const toEmit = this.prefix.length || this.splitSuffix.length
+        ? Buffer.concat([...this.prefix, thisChunk, this.splitSuffix])
+        : thisChunk;
 
       this.push(toEmit);
       this.prefix.length = 0;

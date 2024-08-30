@@ -51,8 +51,8 @@ export const SourceExplorer: FunctionComponent = () => {
   return (
     <Fragment>
       <input
-        placeholder="Filter sources..."
-        className="source-filter"
+        placeholder='Filter sources...'
+        className='source-filter'
         value={filter}
         onChange={onChange}
         onKeyUp={onChange}
@@ -108,7 +108,7 @@ const Breadcrumbs: FunctionComponent<{
   sources: ReadonlyArray<IDiagnosticSource>;
   update(sources: number[]): void;
 }> = ({ sources, update }) => (
-  <ol className="source-breadcrumbs">
+  <ol className='source-breadcrumbs'>
     {sources.map((source, i) => {
       const label = `${basename(source)} (#${source.sourceReference})`;
       if (i === sources.length - 1) {
@@ -131,7 +131,7 @@ const SourceData: FunctionComponent<{
   source: IDiagnosticSource;
   open(sourceRef: number): void;
 }> = ({ source, open }) => (
-  <dl className="source-data-grid">
+  <dl className='source-data-grid'>
     <dt>url</dt>
     <dd>
       <code>{source.url}</code>
@@ -154,31 +154,35 @@ const SourceData: FunctionComponent<{
     </dd>
     <dt>sourcemap children:</dt>
     <dd>
-      {source.sourceMap ? (
-        <ul>
-          {Object.entries(source.sourceMap.sources).map(([url, ref]) => (
-            <li key={url}>
-              <ReferencedSource url={url} sourceRef={ref} pick={open} />
-            </li>
-          ))}
-        </ul>
-      ) : (
-        'None (does not have a sourcemap)'
-      )}
+      {source.sourceMap
+        ? (
+          <ul>
+            {Object.entries(source.sourceMap.sources).map(([url, ref]) => (
+              <li key={url}>
+                <ReferencedSource url={url} sourceRef={ref} pick={open} />
+              </li>
+            ))}
+          </ul>
+        )
+        : (
+          'None (does not have a sourcemap)'
+        )}
     </dd>
     <dt>referenced from sourcemap:</dt>
     <dd>
-      {source.compiledSourceRefToUrl ? (
-        <ul>
-          {source.compiledSourceRefToUrl.map(([ref, url]) => (
-            <li key={url}>
-              <SourceFromReference url={url} sourceRef={ref} pick={open} />
-            </li>
-          ))}
-        </ul>
-      ) : (
-        'None (not from a sourcemap)'
-      )}
+      {source.compiledSourceRefToUrl
+        ? (
+          <ul>
+            {source.compiledSourceRefToUrl.map(([ref, url]) => (
+              <li key={url}>
+                <SourceFromReference url={url} sourceRef={ref} pick={open} />
+              </li>
+            ))}
+          </ul>
+        )
+        : (
+          'None (not from a sourcemap)'
+        )}
     </dd>
   </dl>
 );

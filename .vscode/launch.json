@@ -71,10 +71,10 @@
       ],
       "args": [
         "--enable-proposed-api=ms-vscode.js-debug",
-        "--extensionDevelopmentPath=${workspaceFolder}/dist",
+        "--extensionDevelopmentPath=${workspaceFolder}/dist"
       ],
       "outFiles": [
-        "${workspaceFolder}/dist/**/*.js",
+        "${workspaceFolder}/dist/**/*.js"
       ]
       // "preLaunchTask": "npm: watch"
     },
@@ -87,13 +87,13 @@
       ],
       "args": [
         "--enable-proposed-api=ms-vscode.js-debug",
-        "--extensionDevelopmentPath=${workspaceFolder}/dist",
+        "--extensionDevelopmentPath=${workspaceFolder}/dist"
       ],
       "env": {
         "JS_DEBUG_USE_LOCAL_DAP_PORT": "8123"
       },
       "outFiles": [
-        "${workspaceFolder}/dist/**/*.js",
+        "${workspaceFolder}/dist/**/*.js"
       ]
       // "preLaunchTask": "npm: watch"
     },

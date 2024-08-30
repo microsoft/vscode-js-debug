@@ -3,15 +3,15 @@
  *--------------------------------------------------------*/
 
 import { expect } from 'chai';
-import { stub } from 'sinon';
-import { PosixProcessTree } from '../../ui/processTree/posixProcessTree';
 import { EventEmitter } from 'events';
-import { IProcess, IProcessTree, processTree } from '../../ui/processTree/processTree';
-import { ReadableStreamBuffer } from 'stream-buffers';
-import { DarwinProcessTree } from '../../ui/processTree/darwinProcessTree';
-import { WindowsProcessTree } from '../../ui/processTree/windowsProcessTree';
-import { LocalFsUtils } from '../../common/fsUtils';
 import { promises as fsPromises } from 'fs';
+import { stub } from 'sinon';
+import { ReadableStreamBuffer } from 'stream-buffers';
+import { LocalFsUtils } from '../../common/fsUtils';
+import { DarwinProcessTree } from '../../ui/processTree/darwinProcessTree';
+import { PosixProcessTree } from '../../ui/processTree/posixProcessTree';
+import { IProcess, IProcessTree, processTree } from '../../ui/processTree/processTree';
+import { WindowsProcessTree } from '../../ui/processTree/windowsProcessTree';
 
 const fakeChildProcess = (stdoutData: string) => {
   const ee: any = new EventEmitter();
@@ -98,14 +98,16 @@ describe('process tree', () => {
           pid: 540,
           ppid: 1,
           command: 'sh',
-          args: '/home/connor/.vscode-server-insiders/bin/bbf00d8ea6aa7e825ca3393364d746fe401d3299/server.sh --host=127.0.0.1 --enable-remote-auto-shutdown --port=0',
+          args:
+            '/home/connor/.vscode-server-insiders/bin/bbf00d8ea6aa7e825ca3393364d746fe401d3299/server.sh --host=127.0.0.1 --enable-remote-auto-shutdown --port=0',
         },
         {
           pid: 548,
           ppid: 540,
           command:
             '/home/connor/.vscode-server-insiders/bin/bbf00d8ea6aa7e825ca3393364d746fe401d3299/node',
-          args: '/home/connor/.vscode-server-insiders/bin/bbf00d8ea6aa7e825ca3393364d746fe401d3299/out/vs/server/main.js --host=127.0.0.1 --enable-remote-auto-shutdown --port=0',
+          args:
+            '/home/connor/.vscode-server-insiders/bin/bbf00d8ea6aa7e825ca3393364d746fe401d3299/out/vs/server/main.js --host=127.0.0.1 --enable-remote-auto-shutdown --port=0',
         },
         { pid: 6557, ppid: 6434, command: 'sshd:', args: 'connor@notty' },
         { pid: 6558, ppid: 6557, command: 'bash', args: '' },

@@ -106,16 +106,15 @@ export abstract class BaseConfigurationResolver<T extends AnyLaunchConfiguration
     } else {
       // otherwise, try to manually figure out an appropriate __workspaceFolder
       // if we don't already have it.
-      config.__workspaceFolder ||=
-        this.getSuggestedWorkspaceFolders(config)
-          .filter(truthy)
-          .filter(f => !f.includes('${workspaceFolder}'))
-          .map(f =>
-            isAbsolute(f) ? vscode.workspace.getWorkspaceFolder(vscode.Uri.file(f))?.uri.fsPath : f,
-          )
-          .find(truthy) ||
-        vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ||
-        '';
+      config.__workspaceFolder ||= this.getSuggestedWorkspaceFolders(config)
+        .filter(truthy)
+        .filter(f => !f.includes('${workspaceFolder}'))
+        .map(f =>
+          isAbsolute(f) ? vscode.workspace.getWorkspaceFolder(vscode.Uri.file(f))?.uri.fsPath : f
+        )
+        .find(truthy)
+        || vscode.workspace.workspaceFolders?.[0]?.uri.fsPath
+        || '';
 
       // If we found it, replace appropriately. Otherwise remove the 'optional'
       // usages, there's a chance we can still make it work.

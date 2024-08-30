@@ -56,15 +56,15 @@ export class VSCodeRendererTargetManager extends BrowserTargetManager {
     const { debugWebWorkerExtHost, debugWebviews } = this.launchParams as IRendererAttachParams;
     if (debugWebWorkerExtHost) {
       if (
-        target.type === BrowserTargetType.Worker &&
-        target.title.startsWith('DebugWorkerExtensionHost')
+        target.type === BrowserTargetType.Worker
+        && target.title.startsWith('DebugWorkerExtensionHost')
       ) {
         return true;
       }
 
       if (
-        target.type === BrowserTargetType.Page &&
-        target.title.includes('[Extension Development Host]')
+        target.type === BrowserTargetType.Page
+        && target.title.includes('[Extension Development Host]')
       ) {
         return true;
       }

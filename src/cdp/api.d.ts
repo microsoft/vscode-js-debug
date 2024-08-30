@@ -1636,7 +1636,6 @@ export namespace Cdp {
     }
 
     /**
-     *
      * @deprecated
      */
     export interface NavigatorUserAgentIssueDetails {
@@ -1913,7 +1912,6 @@ export namespace Cdp {
       quirksModeIssueDetails?: QuirksModeIssueDetails;
 
       /**
-       *
        * @deprecated
        */
       navigatorUserAgentIssueDetails?: NavigatorUserAgentIssueDetails;
@@ -3789,7 +3787,9 @@ export namespace Cdp {
     /**
      * Modifies the keyframe rule key text.
      */
-    setKeyframeKey(params: CSS.SetKeyframeKeyParams): Promise<CSS.SetKeyframeKeyResult | undefined>;
+    setKeyframeKey(
+      params: CSS.SetKeyframeKeyParams,
+    ): Promise<CSS.SetKeyframeKeyResult | undefined>;
 
     /**
      * Modifies the rule selector.
@@ -3882,7 +3882,10 @@ export namespace Cdp {
     /**
      * Fired whenever an active document stylesheet is added.
      */
-    on(event: 'styleSheetAdded', listener: (event: CSS.StyleSheetAddedEvent) => void): IDisposable;
+    on(
+      event: 'styleSheetAdded',
+      listener: (event: CSS.StyleSheetAddedEvent) => void,
+    ): IDisposable;
 
     /**
      * Fired whenever a stylesheet is changed as a result of the client operation.
@@ -7738,7 +7741,10 @@ export namespace Cdp {
     /**
      * Fired when `Document` has been totally updated. Node ids are no longer valid.
      */
-    on(event: 'documentUpdated', listener: (event: DOM.DocumentUpdatedEvent) => void): IDisposable;
+    on(
+      event: 'documentUpdated',
+      listener: (event: DOM.DocumentUpdatedEvent) => void,
+    ): IDisposable;
 
     /**
      * Fired when `Element`'s inline style is modified via a CSS property modification.
@@ -10820,7 +10826,9 @@ export namespace Cdp {
      * Tells whether emulation is supported.
      * @deprecated
      */
-    canEmulate(params: Emulation.CanEmulateParams): Promise<Emulation.CanEmulateResult | undefined>;
+    canEmulate(
+      params: Emulation.CanEmulateParams,
+    ): Promise<Emulation.CanEmulateResult | undefined>;
 
     /**
      * Clears the overridden device metrics.
@@ -11745,7 +11753,6 @@ export namespace Cdp {
       fullVersionList?: UserAgentBrandVersion[];
 
       /**
-       *
        * @deprecated
        */
       fullVersion?: string;
@@ -14766,7 +14773,10 @@ export namespace Cdp {
       params: LayerTree.SnapshotCommandLogParams,
     ): Promise<LayerTree.SnapshotCommandLogResult | undefined>;
 
-    on(event: 'layerPainted', listener: (event: LayerTree.LayerPaintedEvent) => void): IDisposable;
+    on(
+      event: 'layerPainted',
+      listener: (event: LayerTree.LayerPaintedEvent) => void,
+    ): IDisposable;
 
     on(
       event: 'layerTreeDidChange',
@@ -15410,7 +15420,10 @@ export namespace Cdp {
      * a list of active players. If an agent is restored, it will receive the full
      * list of player ids and all events again.
      */
-    on(event: 'playersCreated', listener: (event: Media.PlayersCreatedEvent) => void): IDisposable;
+    on(
+      event: 'playersCreated',
+      listener: (event: Media.PlayersCreatedEvent) => void,
+    ): IDisposable;
   }
 
   /**
@@ -15609,7 +15622,9 @@ export namespace Cdp {
     /**
      * Stop collecting native memory profile.
      */
-    stopSampling(params: Memory.StopSamplingParams): Promise<Memory.StopSamplingResult | undefined>;
+    stopSampling(
+      params: Memory.StopSamplingParams,
+    ): Promise<Memory.StopSamplingResult | undefined>;
 
     /**
      * Retrieve native memory allocations profile
@@ -16100,7 +16115,10 @@ export namespace Cdp {
     /**
      * Fired when HTTP request has failed to load.
      */
-    on(event: 'loadingFailed', listener: (event: Network.LoadingFailedEvent) => void): IDisposable;
+    on(
+      event: 'loadingFailed',
+      listener: (event: Network.LoadingFailedEvent) => void,
+    ): IDisposable;
 
     /**
      * Fired when HTTP request has finished loading.
@@ -21548,7 +21566,10 @@ export namespace Cdp {
     /**
      * Compressed image data requested by the `startScreencast`.
      */
-    on(event: 'screencastFrame', listener: (event: Page.ScreencastFrameEvent) => void): IDisposable;
+    on(
+      event: 'screencastFrame',
+      listener: (event: Page.ScreencastFrameEvent) => void,
+    ): IDisposable;
 
     /**
      * Fired when the page with currently enabled screencast was shown or hidden `.
@@ -25451,7 +25472,10 @@ export namespace Cdp {
     /**
      * Notification is issued every time when binding is called.
      */
-    on(event: 'bindingCalled', listener: (event: Runtime.BindingCalledEvent) => void): IDisposable;
+    on(
+      event: 'bindingCalled',
+      listener: (event: Runtime.BindingCalledEvent) => void,
+    ): IDisposable;
 
     /**
      * Issued when console API was called.
@@ -29694,7 +29718,9 @@ export namespace Cdp {
     /**
      * Creates a new page.
      */
-    createTarget(params: Target.CreateTargetParams): Promise<Target.CreateTargetResult | undefined>;
+    createTarget(
+      params: Target.CreateTargetParams,
+    ): Promise<Target.CreateTargetResult | undefined>;
 
     /**
      * Detaches session with given id.
@@ -30484,7 +30510,10 @@ export namespace Cdp {
      * Contains a bucket of collected trace events. When tracing is stopped collected events will be
      * sent as a sequence of dataCollected events followed by tracingComplete event.
      */
-    on(event: 'dataCollected', listener: (event: Tracing.DataCollectedEvent) => void): IDisposable;
+    on(
+      event: 'dataCollected',
+      listener: (event: Tracing.DataCollectedEvent) => void,
+    ): IDisposable;
 
     /**
      * Signals that tracing is stopped and there is no trace buffers pending flush, all data were

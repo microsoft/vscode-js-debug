@@ -5,10 +5,10 @@
 import * as l10n from '@vscode/l10n';
 import { createWriteStream, WriteStream } from 'fs';
 import { inject, injectable } from 'inversify';
-import { IProfile, IProfiler, StartProfileParams } from '.';
 import Cdp from '../../cdp/api';
 import { ICdpApi } from '../../cdp/connection';
 import { EventEmitter } from '../../common/events';
+import { IProfile, IProfiler, StartProfileParams } from '.';
 
 /**
  * Basic instant that uses the HeapProfiler API to grab a snapshot.
@@ -33,8 +33,9 @@ export class HeapDumpProfiler implements IProfiler<void> {
   };
 
   constructor(@inject(ICdpApi) private readonly cdp: Cdp.Api) {
-    this.cdp.HeapProfiler.on('addHeapSnapshotChunk', ({ chunk }) =>
-      this.currentWriter?.stream.write(chunk),
+    this.cdp.HeapProfiler.on(
+      'addHeapSnapshotChunk',
+      ({ chunk }) => this.currentWriter?.stream.write(chunk),
     );
   }
 

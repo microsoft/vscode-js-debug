@@ -15,7 +15,7 @@ const util = require('util');
 const esbuild = require('esbuild');
 const esbuildPlugins = require('./src/build/esbuildPlugins');
 const got = require('got').default;
-const { HttpsProxyAgent } = require("https-proxy-agent");
+const { HttpsProxyAgent } = require('https-proxy-agent');
 const jszip = require('jszip');
 const stream = require('stream');
 
@@ -62,7 +62,7 @@ async function runBuildScript(name) {
           resolve(outstr);
         }
       },
-    ),
+    )
   );
 }
 
@@ -76,7 +76,9 @@ async function readJson(file) {
 
 const del = async patterns => {
   const files = glob.sync(patterns, { cwd: __dirname });
-  await Promise.all(files.map(f => fs.promises.rm(path.join(__dirname, f), { force: true, recursive: true })));
+  await Promise.all(
+    files.map(f => fs.promises.rm(path.join(__dirname, f), { force: true, recursive: true })),
+  );
 };
 
 gulp.task('clean-assertions', () => del(['src/test/**/*.txt.actual']));
@@ -104,7 +106,7 @@ const getVersionNumber = () => {
     date.getFullYear(),
     // MM,
     date.getMonth() + 1,
-    //DDHH
+    // DDHH
     `${date.getDate()}${String(date.getHours()).padStart(2, '0')}`,
   ].join('.');
 };
@@ -140,8 +142,7 @@ gulp.task('compile:build-scripts', async () =>
     define: await getConstantDefines(),
     bundle: true,
     platform: 'node',
-  }),
-);
+  }));
 
 gulp.task('compile:dynamic', async () => {
   const [contributions] = await Promise.all([
@@ -180,8 +181,7 @@ gulp.task('compile:static', () =>
       },
     ),
     gulp.src(['node_modules/@c4312/chromehash/pkg/*.wasm']).pipe(rename({ dirname: 'src' })),
-  ).pipe(gulp.dest(buildDir)),
-);
+  ).pipe(gulp.dest(buildDir)));
 
 const resolveDefaultExts = ['.tsx', '.ts', '.jsx', '.js', '.css', '.json'];
 
@@ -255,14 +255,16 @@ async function compileTs({
   const define = await getConstantDefines();
 
   let todo = [];
-  for (const {
-    entry,
-    platform = 'node',
-    library,
-    isInVsCode,
-    nodePackages,
-    target = 'node18',
-  } of packages) {
+  for (
+    const {
+      entry,
+      platform = 'node',
+      library,
+      isInVsCode,
+      nodePackages,
+      target = 'node18',
+    } of packages
+  ) {
     todo.push(
       incrementalEsbuild({
         entryPoints: [entry],
@@ -348,16 +350,16 @@ gulp.task('package:createVSIX', () =>
     cwd: buildDir,
     dependencies: false,
     packagePath: path.join(buildDir, `${extensionName}.vsix`),
-  }),
-);
+  }));
 
 gulp.task('l10n:bundle-download', async () => {
   const opts = {};
   const proxy = process.env.https_proxy || process.env.HTTPS_PROXY || null;
-  if (proxy)
+  if (proxy) {
     opts.agent = {
-      https: new HttpsProxyAgent(proxy)
+      https: new HttpsProxyAgent(proxy),
     };
+  }
 
   const res = await got('https://github.com/microsoft/vscode-loc/archive/main.zip', opts).buffer();
   const content = await jszip.loadAsync(res);
@@ -431,8 +433,7 @@ gulp.task('publish:vsce', () =>
     pat: process.env.MARKETPLACE_TOKEN,
     dependencies: false,
     cwd: buildDir,
-  }),
-);
+  }));
 
 gulp.task('publish', gulp.series('package', 'publish:vsce'));
 gulp.task('default', gulp.series('compile'));
@@ -445,14 +446,12 @@ gulp.task(
   }),
 );
 
-const runPrettier = (onlyStaged, fix, callback) => {
-  const child = cp.fork(
-    './node_modules/@mixer/parallel-prettier/dist/index.js',
-    [fix ? '--write' : '--list-different', 'src/**/*.{ts,tsx}', '!src/**/*.d.ts', '*.md'],
-    { stdio: 'inherit' },
-  );
+const runFormatting = (onlyStaged, fix, callback) => {
+  const child = cp.fork('./node_modules/dprint/bin.js', [fix ? 'fmt' : 'check'], {
+    stdio: 'inherit',
+  });
 
-  child.on('exit', code => (code ? callback(`Prettier exited with code ${code}`) : callback()));
+  child.on('exit', code => (code ? callback(`Formatter exited with code ${code}`) : callback()));
 };
 
 const runEslint = (fix, callback) => {
@@ -465,13 +464,13 @@ const runEslint = (fix, callback) => {
   child.on('exit', code => (code ? callback(`Eslint exited with code ${code}`) : callback()));
 };
 
-gulp.task('format:prettier', callback => runPrettier(false, true, callback));
+gulp.task('format:code', callback => runFormatting(false, true, callback));
 gulp.task('format:eslint', callback => runEslint(true, callback));
-gulp.task('format', gulp.series('format:prettier', 'format:eslint'));
+gulp.task('format', gulp.series('format:code', 'format:eslint'));
 
-gulp.task('lint:prettier', callback => runPrettier(false, false, callback));
+gulp.task('lint:code', callback => runFormatting(false, false, callback));
 gulp.task('lint:eslint', callback => runEslint(false, callback));
-gulp.task('lint', gulp.parallel('lint:prettier', 'lint:eslint'));
+gulp.task('lint', gulp.parallel('lint:code', 'lint:eslint'));
 
 /**
  * Run a command in the terminal using exec, and wrap it in a promise

@@ -124,7 +124,7 @@ export async function pickProcess(): Promise<string | null> {
   }
 }
 
-//---- private
+// ---- private
 
 const encodePidAndPort = (processId: number, port?: number) => `${processId}:${port ?? ''}`;
 const decodePidAndPort = (encoded: string) => {

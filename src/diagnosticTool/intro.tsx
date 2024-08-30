@@ -13,24 +13,24 @@ export const enum Experience {
 export const Intro: FunctionComponent<{
   onPick(exp: Experience): void;
 }> = ({ onPick }) => (
-  <div className="intro">
+  <div className='intro'>
     <div>
       <header>Debug Doctor</header>
-      <div className="intro-content">
+      <div className='intro-content'>
         <p>What are you trying to find out?</p>
         <ul>
           <li>
-            <a role="button" onClick={() => onPick(Experience.BreakpointHelper)}>
+            <a role='button' onClick={() => onPick(Experience.BreakpointHelper)}>
               Why my breakpoints don&apos;t bind
             </a>
           </li>
           <li>
-            <a role="button" onClick={() => onPick(Experience.SourceExplorer)}>
+            <a role='button' onClick={() => onPick(Experience.SourceExplorer)}>
               What scripts and sourcemaps are loaded
             </a>
           </li>
           <li>
-            <a href="https://github.com/microsoft/vscode-js-debug/issues/new/choose">
+            <a href='https://github.com/microsoft/vscode-js-debug/issues/new/choose'>
               Something else...
             </a>
           </li>

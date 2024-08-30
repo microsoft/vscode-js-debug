@@ -2,9 +2,9 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { IBreakpointCondition } from '.';
 import { invalidHitCondition } from '../../../dap/errors';
 import { ProtocolError } from '../../../dap/protocolError';
+import { IBreakpointCondition } from '.';
 
 /**
  * Regex used to match hit conditions. It matches the operator in group 1 and
@@ -47,7 +47,7 @@ export class HitCondition implements IBreakpointCondition {
   }
 }
 
-const makeTester = (expression: string, op: string, value: number): ((n: number) => boolean) => {
+const makeTester = (expression: string, op: string, value: number): (n: number) => boolean => {
   switch (op) {
     case '=':
     case '==':

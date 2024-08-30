@@ -88,7 +88,9 @@ describe('ISourceMapRepository', () => {
               sourceMapUrl: absolutePathToFileUrl(join(testFixturesDir, 'nested', 'd.js.map')),
             },
             {
-              compiledPath: fixDriveLetter(join(testFixturesDir, 'defaultSearchExcluded', 'f.js')),
+              compiledPath: fixDriveLetter(
+                join(testFixturesDir, 'defaultSearchExcluded', 'f.js'),
+              ),
               sourceMapUrl: absolutePathToFileUrl(
                 join(testFixturesDir, 'defaultSearchExcluded', 'f.js.map'),
               ),

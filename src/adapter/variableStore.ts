@@ -20,7 +20,7 @@ import * as objectPreview from './objectPreview';
 import { MapPreview, SetPreview } from './objectPreview/betterTypes';
 import { PreviewContextType } from './objectPreview/contexts';
 import { StackFrame, StackTrace } from './stackTrace';
-import { RemoteException, RemoteObjectId, getSourceSuffix } from './templates';
+import { getSourceSuffix, RemoteException, RemoteObjectId } from './templates';
 import { getArrayProperties } from './templates/getArrayProperties';
 import { getArraySlots } from './templates/getArraySlots';
 import {
@@ -162,7 +162,7 @@ export interface IStoreSettings {
 }
 
 type VariableCtor<TRestArgs extends unknown[] = unknown[], R extends IVariable = IVariable> = {
-  new (context: VariableContext, ...rest: TRestArgs): R;
+  new(context: VariableContext, ...rest: TRestArgs): R;
 };
 
 interface IContextInit {
@@ -331,11 +331,12 @@ class VariableContext {
       return [];
     }
 
-    if (evaluationOptions)
+    if (evaluationOptions) {
       this.cdp.DotnetDebugger.setEvaluationOptions({
         options: evaluationOptions,
         type: 'variable',
       });
+    }
 
     const [accessorsProperties, ownProperties, stringyProps] = await Promise.all([
       this.cdp.Runtime.getProperties({
@@ -375,8 +376,8 @@ class VariableContext {
 
       // Handle updated prototype representation in recent V8 (vscode#130365)
       if (
-        property.name === '__proto__' &&
-        ownProperties.internalProperties?.some(p => p.name === '[[Prototype]]')
+        property.name === '__proto__'
+        && ownProperties.internalProperties?.some(p => p.name === '[[Prototype]]')
       ) {
         continue;
       }
@@ -421,9 +422,9 @@ class VariableContext {
 
       let variable: Variable | undefined;
       if (
-        p.name === '[[FunctionLocation]]' &&
-        p.value &&
-        (p.value.subtype as string) === 'internal#location'
+        p.name === '[[FunctionLocation]]'
+        && p.value
+        && (p.value.subtype as string) === 'internal#location'
       ) {
         variable = this.createVariable(
           FunctionLocationVariable,
@@ -498,7 +499,9 @@ class VariableContext {
         this.createVariable(GetterVariable, ctx, p.get as Cdp.Runtime.RemoteObject, owner),
       );
     } else if (hasSetter) {
-      result.push(this.createVariable(SetterOnlyVariable, ctx, p.set as Cdp.Runtime.RemoteObject));
+      result.push(
+        this.createVariable(SetterOnlyVariable, ctx, p.set as Cdp.Runtime.RemoteObject),
+      );
     }
 
     return result;
@@ -661,8 +664,9 @@ class OutputVariable extends Variable {
     return Promise.resolve({
       name: this.context.name,
       value: this.value,
-      variablesReference:
-        this.stackTrace || this.args.some(objectPreview.previewAsObject) ? this.id : 0,
+      variablesReference: this.stackTrace || this.args.some(objectPreview.previewAsObject)
+        ? this.id
+        : 0,
     });
   }
 
@@ -790,9 +794,9 @@ class ObjectVariable extends Variable implements IMemoryReadable {
 
     // for the first level of evaluations, toString it on-demand
     if (
-      !this.context.parent &&
-      this.remoteObject.objectId &&
-      this.customStringRepr !== NoCustomStringRepr
+      !this.context.parent
+      && this.remoteObject.objectId
+      && this.customStringRepr !== NoCustomStringRepr
     ) {
       try {
         const ret = await this.context.cdp.Runtime.callFunctionOn({
@@ -813,8 +817,8 @@ class ObjectVariable extends Variable implements IMemoryReadable {
     }
 
     return (
-      (this.context.name === '__proto__' && this.remoteObject.description) ||
-      objectPreview.previewRemoteObject(this.remoteObject, previewContext)
+      (this.context.name === '__proto__' && this.remoteObject.description)
+      || objectPreview.previewRemoteObject(this.remoteObject, previewContext)
     );
   }
 
@@ -851,7 +855,10 @@ class FunctionVariable extends ObjectVariable {
   private readonly baseChildren = once(() => super.getChildren({ variablesReference: this.id }));
 
   public override async toDap(previewContext: PreviewContextType): Promise<Dap.Variable> {
-    const [dap, children] = await Promise.all([super.toDap(previewContext), this.baseChildren()]);
+    const [dap, children] = await Promise.all([
+      super.toDap(previewContext),
+      this.baseChildren(),
+    ]);
 
     if (children.some(c => c instanceof FunctionLocationVariable)) {
       dap.valueLocationReference = this.id;
@@ -1081,7 +1088,7 @@ class WasmVariable implements IVariable, IMemoryReadable {
         { name: c.name, presentationHint: WasmVariable.presentationHint },
         c.value,
         this.scopeRef,
-      ),
+      )
     );
   }
 
@@ -1121,9 +1128,9 @@ class WasmVariable implements IVariable, IMemoryReadable {
 
     const result = await this.context.cdp.Debugger.evaluateOnCallFrame({
       callFrameId: this.scopeRef.callFrameId,
-      expression: `(${writeMemory.source}).call(memories[0].buffer, ${
-        +addr + offset
-      }, ${JSON.stringify(memory.toString('hex'))}) ${getSourceSuffix()}`,
+      expression: `(${writeMemory.source}).call(memories[0].buffer, ${+addr + offset}, ${
+        JSON.stringify(memory.toString('hex'))
+      }) ${getSourceSuffix()}`,
       returnByValue: true,
     });
 
@@ -1200,7 +1207,8 @@ class Scope implements IVariableContainer {
   /** Maps any rename for the identifier in the current scope. */
   public async getRename(forIdentifier: string) {
     const renames = await this.renameProvider.provideOnStackframe(this.ref.stackFrame);
-    return renames.getOriginalName(forIdentifier, this.ref.stackFrame.rawPosition) || forIdentifier;
+    return renames.getOriginalName(forIdentifier, this.ref.stackFrame.rawPosition)
+      || forIdentifier;
   }
 
   /** Sets a property of the scope */
@@ -1267,16 +1275,14 @@ export class VariableStore {
     private readonly locationProvider: IVariableStoreLocationProvider,
   ) {
     this.contextSettings = {
-      customDescriptionGenerator:
-        launchConfig.customDescriptionGenerator &&
-        extractFunctionFromCustomGenerator(
+      customDescriptionGenerator: launchConfig.customDescriptionGenerator
+        && extractFunctionFromCustomGenerator(
           ['defaultValue'],
           launchConfig.customDescriptionGenerator,
           false,
         ),
-      customPropertiesGenerator:
-        launchConfig.customPropertiesGenerator &&
-        extractFunctionFromCustomGenerator([], launchConfig.customPropertiesGenerator, false),
+      customPropertiesGenerator: launchConfig.customPropertiesGenerator
+        && extractFunctionFromCustomGenerator([], launchConfig.customPropertiesGenerator, false),
     };
   }
 
@@ -1312,12 +1318,11 @@ export class VariableStore {
     outputType?: Cdp.Runtime.ConsoleAPICalledEvent['type'],
   ): IVariableContainer {
     const ctx = this.createFloatingContext();
-    const output =
-      args.length === 1 && outputType === 'table'
-        ? ctx.createVariable(OutputTableVariable, { name: '' }, args[0])
-        : args.length === 1 && objectPreview.previewAsObject(args[0]) && !stackTrace
-        ? ctx.createVariableByType({ name: '' }, args[0])
-        : ctx.createVariable(OutputVariable, { name: '' }, text, args, stackTrace);
+    const output = args.length === 1 && outputType === 'table'
+      ? ctx.createVariable(OutputTableVariable, { name: '' }, args[0])
+      : args.length === 1 && objectPreview.previewAsObject(args[0]) && !stackTrace
+      ? ctx.createVariableByType({ name: '' }, args[0])
+      : ctx.createVariable(OutputVariable, { name: '' }, text, args, stackTrace);
     const container = new OutputVariableContainer(output);
     this.vars.add(container);
 
@@ -1437,16 +1442,16 @@ export class VariableStore {
               : PreviewContextType.PropertyValue,
             params.format,
           )
-          .then(dap => ({ v, dap })),
+          .then(dap => ({ v, dap }))
       ),
     );
 
     return daps
       .sort(
         (a, b) =>
-          a.v.sortOrder - b.v.sortOrder ||
-          +a.dap.name - +b.dap.name ||
-          a.dap.name.localeCompare(b.dap.name),
+          a.v.sortOrder - b.v.sortOrder
+          || +a.dap.name - +b.dap.name
+          || a.dap.name.localeCompare(b.dap.name),
       )
       .map(v => v.dap);
   }
@@ -1497,7 +1502,7 @@ export class VariableStore {
 }
 
 function errorFromException(details: Cdp.Runtime.ExceptionDetails): Dap.Error {
-  const message =
-    (details.exception && objectPreview.previewException(details.exception).title) || details.text;
+  const message = (details.exception && objectPreview.previewException(details.exception).title)
+    || details.text;
   return errors.createUserError(message);
 }

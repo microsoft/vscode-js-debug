@@ -12,14 +12,14 @@ import { ILogger, LogTag } from '../../common/logging';
 import { node15InternalsPrefix } from '../../common/node15Internal';
 import { memoizeLast, trailingEdgeThrottle, truthy } from '../../common/objUtils';
 import * as pathUtils from '../../common/pathUtils';
-import { IDeferred, getDeferred } from '../../common/promiseUtil';
+import { getDeferred, IDeferred } from '../../common/promiseUtil';
 import { ISourcePathResolver } from '../../common/sourcePathResolver';
 import { escapeRegexSpecialChars } from '../../common/stringUtils';
 import * as urlUtils from '../../common/urlUtils';
 import { AnyLaunchConfiguration } from '../../configuration';
 import Dap from '../../dap/api';
 import { ITarget } from '../../targets/targets';
-import { ISourceScript, ISourceWithMap, Source, SourceFromMap, isSourceWithMap } from '../source';
+import { ISourceScript, ISourceWithMap, isSourceWithMap, Source, SourceFromMap } from '../source';
 import { SourceContainer } from '../sourceContainer';
 import { getSourceSuffix } from '../templates';
 import { IScriptSkipper } from './scriptSkipper';
@@ -54,7 +54,7 @@ function preprocessAuthoredGlobs(
     .map(pattern =>
       urlUtils.isAbsolute(pattern)
         ? urlUtils.absolutePathToFileUrlWithDetection(spr.rebaseLocalToRemote(pattern))
-        : pathUtils.forceForwardSlashes(pattern),
+        : pathUtils.forceForwardSlashes(pattern)
     )
     .map(urlUtils.lowerCaseInsensitivePath);
 
@@ -73,7 +73,7 @@ export class ScriptSkipper implements IScriptSkipper {
 
   /** Memoized computer for non-<node_internals> skipfiles */
   private _regexForAuthored = memoizeLast((re: readonly string[]) =>
-    simpleGlobsToRe(re, s => urlUtils.charRangeToUrlReGroup(s, 0, s.length, true, true)),
+    simpleGlobsToRe(re, s => urlUtils.charRangeToUrlReGroup(s, 0, s.length, true, true))
   );
 
   /**
@@ -115,15 +115,16 @@ export class ScriptSkipper implements IScriptSkipper {
     this._targetId = target.id();
     this._rootTargetId = getRootTarget(target).id();
     this._isUrlFromSourceMapSkipped = new MapUsingProjection<string, boolean>(key =>
-      this._normalizeUrl(key),
+      this._normalizeUrl(key)
     );
 
     this._authoredGlobs = preprocessAuthoredGlobs(sourcePathResolver, skipFiles);
     this._nodeInternalsGlobs = preprocessNodeInternals(skipFiles);
 
     this._initNodeInternals(target); // Purposely don't wait, no need to slow things down
-    this._updateSkippedDebounce = trailingEdgeThrottle(500, () =>
-      this._updateGeneratedSkippedSources(),
+    this._updateSkippedDebounce = trailingEdgeThrottle(
+      500,
+      () => this._updateGeneratedSkippedSources(),
     );
 
     if (skipFiles.length) {
@@ -251,7 +252,7 @@ export class ScriptSkipper implements IScriptSkipper {
     // todo(conno4312): it seems like the current version of Chrome used in
     // playwright tests doesn't send a response to this method :/
     targets.map(({ scriptId }) =>
-      this.cdp.Debugger.setBlackboxedRanges({ scriptId, positions: skipRanges }),
+      this.cdp.Debugger.setBlackboxedRanges({ scriptId, positions: skipRanges })
     );
   }
 
@@ -267,9 +268,9 @@ export class ScriptSkipper implements IScriptSkipper {
     // This can happen if the user skips absolute paths which are served from a different
     // place in the server.
     if (
-      !skipped &&
-      source.absolutePath &&
-      this._testSkipAuthored(urlUtils.absolutePathToFileUrl(source.absolutePath))
+      !skipped
+      && source.absolutePath
+      && this._testSkipAuthored(urlUtils.absolutePathToFileUrl(source.absolutePath))
     ) {
       this.setIsUrlBlackboxSkipped(url, true);
       skipped = true;
@@ -337,7 +338,7 @@ export class ScriptSkipper implements IScriptSkipper {
       const compiledSources = Array.from(source.compiledToSourceUrl.keys());
       await Promise.all(
         compiledSources.map(compiledSource =>
-          this._updateSourceWithSkippedSourceMappedSources(compiledSource, compiledSource.scripts),
+          this._updateSourceWithSkippedSourceMappedSources(compiledSource, compiledSource.scripts)
         ),
       );
     } else {

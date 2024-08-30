@@ -13,7 +13,7 @@ import { properResolve } from '../common/pathUtils';
 import { Base01Position, Base1Position, IPosition } from '../common/positions';
 import { ISourceMapMetadata, SourceMap } from '../common/sourceMaps/sourceMap';
 import { CachingSourceMapFactory, ISourceMapFactory } from '../common/sourceMaps/sourceMapFactory';
-import { ISourcePathResolver, InlineScriptOffset } from '../common/sourcePathResolver';
+import { InlineScriptOffset, ISourcePathResolver } from '../common/sourcePathResolver';
 import * as sourceUtils from '../common/sourceUtils';
 import * as utils from '../common/urlUtils';
 import { AnyLaunchConfiguration } from '../configuration';
@@ -32,26 +32,26 @@ import {
   ISourceMapLocationProvider,
   ISourceScript,
   ISourceWithMap,
-  IUiLocation,
-  LineColumn,
-  Source,
-  SourceFromMap,
-  SourceLocationProvider,
-  WasmSource,
   isSourceWithMap,
   isSourceWithSourceMap,
   isSourceWithWasm,
   isWasmSymbols,
+  IUiLocation,
+  LineColumn,
   rawToUiOffset,
+  Source,
+  SourceFromMap,
+  SourceLocationProvider,
   uiToRawOffset,
+  WasmSource,
 } from './source';
 import { Script } from './threads';
 
 function isUiLocation(loc: unknown): loc is IUiLocation {
   return (
-    typeof (loc as IUiLocation).lineNumber === 'number' &&
-    typeof (loc as IUiLocation).columnNumber === 'number' &&
-    !!(loc as IUiLocation).source
+    typeof (loc as IUiLocation).lineNumber === 'number'
+    && typeof (loc as IUiLocation).columnNumber === 'number'
+    && !!(loc as IUiLocation).source
   );
 }
 
@@ -101,7 +101,8 @@ const defaultTimeouts: SourceMapTimeouts = {
 };
 
 const isOriginalSourceOf = (compiled: Source, original: Source) =>
-  original instanceof SourceFromMap && original.compiledToSourceUrl.has(compiled as ISourceWithMap);
+  original instanceof SourceFromMap
+  && original.compiledToSourceUrl.has(compiled as ISourceWithMap);
 
 export interface IPreferredUiLocation extends IUiLocation {
   isMapped: boolean;
@@ -456,10 +457,10 @@ export class SourceContainer {
       if (mapped) {
         return mapped
           ? {
-              columnNumber: l.position.base1.lineNumber,
-              lineNumber: l.position.base1.lineNumber,
-              source: mapped,
-            }
+            columnNumber: l.position.base1.lineNumber,
+            lineNumber: l.position.base1.lineNumber,
+            source: mapped,
+          }
           : UnmappedReason.MapPositionMissing;
       }
     }
@@ -480,8 +481,8 @@ export class SourceContainer {
     }
 
     if (
-      this._temporarilyDisabledSourceMaps.has(compiled) ||
-      this._permanentlyDisabledSourceMaps.has(compiled)
+      this._temporarilyDisabledSourceMaps.has(compiled)
+      || this._permanentlyDisabledSourceMaps.has(compiled)
     ) {
       return UnmappedReason.MapDisabled;
     }
@@ -639,16 +640,16 @@ export class SourceContainer {
         event.url,
         absolutePath,
         contentGetter,
-        sourceMapUrl &&
-        this.sourcePathResolver.shouldResolveSourceMap({
-          sourceMapUrl,
-          compiledPath: absolutePath || event.url,
-        })
+        sourceMapUrl
+          && this.sourcePathResolver.shouldResolveSourceMap({
+            sourceMapUrl,
+            compiledPath: absolutePath || event.url,
+          })
           ? {
-              sourceMapUrl,
-              compiledPath: absolutePath || event.url,
-              cacheKey: event.hash,
-            }
+            sourceMapUrl,
+            compiledPath: absolutePath || event.url,
+            cacheKey: event.hash,
+          }
           : undefined,
         inlineSourceRange,
         runtimeScriptOffset,
@@ -681,9 +682,9 @@ export class SourceContainer {
     // take the shorter of them.
     const existingByPath = this._sourceByAbsolutePath.get(source.absolutePath);
     if (
-      existingByPath === undefined ||
-      existingByPath.url.length >= source.url.length ||
-      isOriginalSourceOf(existingByPath, source)
+      existingByPath === undefined
+      || existingByPath.url.length >= source.url.length
+      || isOriginalSourceOf(existingByPath, source)
     ) {
       this._sourceByAbsolutePath.set(source.absolutePath, source);
     }
@@ -715,13 +716,12 @@ export class SourceContainer {
       });
 
       const fileUrl = absolutePath && utils.absolutePathToFileUrl(absolutePath);
-      const contentGetter =
-        url === symbols.decompiledUrl
-          ? () => symbols.getDisassembly()
-          : () =>
-              fileUrl
-                ? this.resourceProvider.fetch(fileUrl).then(r => r.body)
-                : Promise.resolve(`Could not read ${url}`);
+      const contentGetter = url === symbols.decompiledUrl
+        ? () => symbols.getDisassembly()
+        : () =>
+          fileUrl
+            ? this.resourceProvider.fetch(fileUrl).then(r => r.body)
+            : Promise.resolve(`Could not read ${url}`);
 
       const source = new SourceFromMap(this, resolvedUrl, absolutePath, contentGetter);
       source.compiledToSourceUrl.set(compiled, url);
@@ -749,8 +749,9 @@ export class SourceContainer {
           });
 
           if (sourceMapAbsolutePath) {
-            source.sourceMap.metadata.sourceMapUrl =
-              utils.absolutePathToFileUrl(sourceMapAbsolutePath);
+            source.sourceMap.metadata.sourceMapUrl = utils.absolutePathToFileUrl(
+              sourceMapAbsolutePath,
+            );
           }
 
           value = await this.sourceMapFactory.load(source.sourceMap.metadata);
@@ -937,10 +938,10 @@ export class SourceContainer {
         // This obviates the need for the `source-map-loader` in webpack for most cases.
         sourceMapUrl
           ? {
-              compiledPath: absolutePath || resolvedUrl,
-              sourceMapUrl,
-              cacheKey: map.metadata.cacheKey,
-            }
+            compiledPath: absolutePath || resolvedUrl,
+            sourceMapUrl,
+            cacheKey: map.metadata.cacheKey,
+          }
           : undefined,
         undefined,
         compiled.runtimeScriptOffset,

@@ -7,17 +7,16 @@ import { remoteFunction } from '.';
 /**
  * Reads memory from a binary type. Returns a hex encoded string.
  */
-export const readMemory = remoteFunction(function (
+export const readMemory = remoteFunction(function(
   this: DataView | TypedArray | ArrayBuffer | WebAssembly.Memory,
   start: number,
   count: number,
 ) {
-  const { buffer, byteLength, byteOffset } =
-    this instanceof ArrayBuffer
-      ? new DataView(this)
-      : this instanceof WebAssembly.Memory
-      ? new DataView(this.buffer)
-      : this;
+  const { buffer, byteLength, byteOffset } = this instanceof ArrayBuffer
+    ? new DataView(this)
+    : this instanceof WebAssembly.Memory
+    ? new DataView(this.buffer)
+    : this;
 
   const readStart = byteOffset + Math.min(start, byteLength);
   const readCount = Math.max(0, Math.min(count, byteLength - start));

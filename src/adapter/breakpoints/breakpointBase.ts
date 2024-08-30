@@ -8,7 +8,7 @@ import { IPosition } from '../../common/positions';
 import { absolutePathToFileUrl } from '../../common/urlUtils';
 import Dap from '../../dap/api';
 import { BreakpointManager } from '../breakpoints';
-import { ISourceScript, IUiLocation, SourceFromMap, base1To0 } from '../source';
+import { base1To0, ISourceScript, IUiLocation, SourceFromMap } from '../source';
 import { Script, Thread } from '../threads';
 
 export type LineColumn = { lineNumber: number; columnNumber: number }; // 1-based
@@ -38,7 +38,8 @@ const isSetByLocation = (
 ): params is Cdp.Debugger.SetBreakpointParams => 'location' in params;
 
 const breakpointIsForUrl = (params: Cdp.Debugger.SetBreakpointByUrlParams, url: string) =>
-  (params.url && url === params.url) || (params.urlRegex && new RegExp(params.urlRegex).test(url));
+  (params.url && url === params.url)
+  || (params.urlRegex && new RegExp(params.urlRegex).test(url));
 
 /**
  * We're currently working on sending the breakpoint to CDP.
@@ -205,7 +206,7 @@ export abstract class Breakpoint {
 
       await Promise.all(
         uiLocations.map(uiLocation =>
-          this._setByUiLocation(thread, source.offsetSourceToScript(uiLocation)),
+          this._setByUiLocation(thread, source.offsetSourceToScript(uiLocation))
         ),
       );
     }
@@ -278,7 +279,7 @@ export abstract class Breakpoint {
 
     this.isEnabled = false;
     const promises: Promise<unknown>[] = this.cdpBreakpoints.map(bp =>
-      this.removeCdpBreakpoint(bp),
+      this.removeCdpBreakpoint(bp)
     );
     await Promise.all(promises);
   }
@@ -314,7 +315,9 @@ export abstract class Breakpoint {
 
     const promises: Promise<void>[] = [];
     for (const uiLocation of uiLocations) {
-      promises.push(this._setForSpecific(thread, script, source.offsetSourceToScript(uiLocation)));
+      promises.push(
+        this._setForSpecific(thread, script, source.offsetSourceToScript(uiLocation)),
+      );
     }
 
     // If we get a source map that references this script exact URL, then
@@ -371,12 +374,12 @@ export abstract class Breakpoint {
 
     return this.cdpBreakpoints.some(
       bp =>
-        bp.state === CdpReferenceState.Applied &&
-        bp.locations.some(
+        bp.state === CdpReferenceState.Applied
+        && bp.locations.some(
           l =>
-            l.scriptId === scriptId &&
-            l.lineNumber === lineNumber &&
-            (l.columnNumber === undefined || l.columnNumber === columnNumber),
+            l.scriptId === scriptId
+            && l.lineNumber === lineNumber
+            && (l.columnNumber === undefined || l.columnNumber === columnNumber),
         ),
     );
   }
@@ -397,8 +400,8 @@ export abstract class Breakpoint {
   ) {
     this.updateCdpRefs(list =>
       list.map(bp =>
-        bp.state !== CdpReferenceState.Applied || bp.cdpId !== cdpId ? bp : mutator(bp),
-      ),
+        bp.state !== CdpReferenceState.Applied || bp.cdpId !== cdpId ? bp : mutator(bp)
+      )
     );
   }
 
@@ -480,8 +483,8 @@ export abstract class Breakpoint {
     }
 
     if (this.source.path) {
-      const urlRegexp =
-        await this._manager._sourceContainer.sourcePathResolver.absolutePathToUrlRegexp(
+      const urlRegexp = await this._manager._sourceContainer.sourcePathResolver
+        .absolutePathToUrlRegexp(
           this.source.path,
         );
       if (!urlRegexp) {
@@ -513,17 +516,17 @@ export abstract class Breakpoint {
   protected hasSetOnLocation(script: ISourceScript, lineColumn: LineColumn) {
     return this.cdpBreakpoints.find(
       bp =>
-        (script.scriptId &&
-          isSetByLocation(bp.args) &&
-          bp.args.location.scriptId === script.scriptId &&
-          lcEqual(bp.args.location, lineColumn)) ||
-        (script.url &&
-          !script.hasSourceURL &&
-          isSetByUrl(bp.args) &&
-          (bp.args.urlRegex
+        (script.scriptId
+          && isSetByLocation(bp.args)
+          && bp.args.location.scriptId === script.scriptId
+          && lcEqual(bp.args.location, lineColumn))
+        || (script.url
+          && !script.hasSourceURL
+          && isSetByUrl(bp.args)
+          && (bp.args.urlRegex
             ? new RegExp(bp.args.urlRegex).test(script.url)
-            : script.url === bp.args.url) &&
-          lcEqual(bp.args, lineColumn)),
+            : script.url === bp.args.url)
+          && lcEqual(bp.args, lineColumn)),
     );
   }
 
@@ -564,9 +567,9 @@ export abstract class Breakpoint {
     // will survive and be hit on reload. But don't set if the script has
     // a source URL, since V8 doesn't resolve these
     if (
-      script.url &&
-      !script.hasSourceURL &&
-      (!script.embedderName || script.embedderName === script.url)
+      script.url
+      && !script.hasSourceURL
+      && (!script.embedderName || script.embedderName === script.url)
     ) {
       return this._setByUrl(thread, script.url, lineColumn);
     } else {

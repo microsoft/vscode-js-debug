@@ -5,7 +5,6 @@
 import * as l10n from '@vscode/l10n';
 import { inject, injectable } from 'inversify';
 import { isAbsolute, join } from 'path';
-import { IProfile, IProfiler, StartProfileParams } from '.';
 import Cdp from '../../cdp/api';
 import { ICdpApi } from '../../cdp/connection';
 import { EventEmitter } from '../../common/events';
@@ -14,6 +13,7 @@ import { profileCaptureError } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
 import { FS, FsPromises } from '../../ioc-extras';
 import { SourceContainer } from '../sourceContainer';
+import { IProfile, IProfiler, StartProfileParams } from '.';
 import { SourceAnnotationHelper } from './sourceAnnotationHelper';
 
 export interface IBasicProfileParams {

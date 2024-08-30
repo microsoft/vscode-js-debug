@@ -2,10 +2,10 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import * as vscode from 'vscode';
-import Dap from '../dap/api';
 import { fileURLToPath } from 'url';
+import * as vscode from 'vscode';
 import { isFileUrl } from '../common/urlUtils';
+import Dap from '../dap/api';
 
 export async function toggleSkippingFile(aPath: string | number): Promise<void> {
   if (!aPath) {

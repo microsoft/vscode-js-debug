@@ -15,15 +15,16 @@ import './diagnosticTool.css';
 declare const DUMP: IDiagnosticDump | undefined;
 
 const App: FunctionComponent<{ dump: IDiagnosticDump }> = ({ dump }) => {
-  const [experience, setExperience] = usePersistedState<Experience>('experience', Experience.Intro);
+  const [experience, setExperience] = usePersistedState<Experience>(
+    'experience',
+    Experience.Intro,
+  );
 
   return (
     <DumpContext.Provider value={dump}>
-      {experience === Experience.Intro ? (
-        <Intro onPick={setExperience} />
-      ) : (
+      {experience === Experience.Intro ? <Intro onPick={setExperience} /> : (
         <Fragment>
-          <a role="button" onClick={() => setExperience(Experience.Intro)} className="back">
+          <a role='button' onClick={() => setExperience(Experience.Intro)} className='back'>
             &larr; Back
           </a>
           {experience === Experience.BreakpointHelper ? <BreakpointHelper /> : <SourceExplorer />}

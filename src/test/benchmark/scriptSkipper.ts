@@ -38,12 +38,14 @@ const isSkipped = {
   scriptIds: () => ['42'],
 } as Partial<Source> as Source;
 
-export default function (api: IBenchmarkApi) {
-  api.bench('initializeSkippingValueForSource not skipped', () =>
-    skipper.initializeSkippingValueForSource(notSkipped),
+export default function(api: IBenchmarkApi) {
+  api.bench(
+    'initializeSkippingValueForSource not skipped',
+    () => skipper.initializeSkippingValueForSource(notSkipped),
   );
 
-  api.bench('initializeSkippingValueForSource with skipped', () =>
-    skipper.initializeSkippingValueForSource(isSkipped),
+  api.bench(
+    'initializeSkippingValueForSource with skipped',
+    () => skipper.initializeSkippingValueForSource(isSkipped),
   );
 }

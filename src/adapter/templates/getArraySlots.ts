@@ -8,7 +8,7 @@ import { remoteFunction } from '.';
  * Returns an object containing array property descriptors for the given
  * range of array indices.
  */
-export const getArraySlots = remoteFunction(function (
+export const getArraySlots = remoteFunction(function(
   this: unknown[],
   start: number,
   count: number,

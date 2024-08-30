@@ -2,11 +2,11 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { injectable, inject } from 'inversify';
-import { ISearchStrategy } from '../common/sourceMaps/sourceMapRepository';
-import { VueComponentPaths, FileGlobList } from '../common/fileGlobList';
-import { once } from '../common/objUtils';
+import { inject, injectable } from 'inversify';
 import { basename } from 'path';
+import { FileGlobList, VueComponentPaths } from '../common/fileGlobList';
+import { once } from '../common/objUtils';
+import { ISearchStrategy } from '../common/sourceMaps/sourceMapRepository';
 
 /**
  * Regex for Vue sources. The input is something like `webpack:///foo.vue?asdf.
@@ -77,8 +77,9 @@ export class VueFileMapper implements IVueFileMapper {
 
   private readonly getMapping = once(async () => {
     const basenameToPath = new Map<string, string>();
-    await this.search.streamAllChildren(this.files, file =>
-      basenameToPath.set(basename(file), file),
+    await this.search.streamAllChildren(
+      this.files,
+      file => basenameToPath.set(basename(file), file),
     );
 
     return basenameToPath;

@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { LogTag, ILogger } from '../common/logging';
+import { ILogger, LogTag } from '../common/logging';
 
 /**
  * Measures and logs the performance of decorated functions.

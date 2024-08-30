@@ -5,7 +5,7 @@
 import { Base0Position } from '../positions';
 import { PositionToOffset } from '../stringUtils';
 import { IRename } from './renameProvider';
-import { ScopeNode, extractScopeRanges } from './renameScopeTree';
+import { extractScopeRanges, ScopeNode } from './renameScopeTree';
 import { SourceMap } from './sourceMap';
 
 enum Constant {
@@ -76,14 +76,14 @@ export const extractScopeRenames = async (source: string, sourceMap: SourceMap) 
         const generatedLineBase0 = i;
         const generatedColumnBase0 = mapping[0];
         if (
-          generatedLineBase0 === node.range.begin.base0.lineNumber &&
-          node.range.begin.base0.columnNumber > generatedColumnBase0
+          generatedLineBase0 === node.range.begin.base0.lineNumber
+          && node.range.begin.base0.columnNumber > generatedColumnBase0
         ) {
           continue;
         }
         if (
-          generatedLineBase0 === node.range.end.base0.lineNumber &&
-          node.range.end.base0.columnNumber < generatedColumnBase0
+          generatedLineBase0 === node.range.end.base0.lineNumber
+          && node.range.end.base0.columnNumber < generatedColumnBase0
         ) {
           continue;
         }

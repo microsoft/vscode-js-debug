@@ -64,7 +64,7 @@ import { OutFiles, VueComponentPaths } from './common/fileGlobList';
 import { IFsUtils, LocalAndRemoteFsUtils, LocalFsUtils } from './common/fsUtils';
 import { ILogger } from './common/logging';
 import { Logger } from './common/logging/logger';
-import { MutableLaunchConfig, createMutableLaunchConfig } from './common/mutableLaunchConfig';
+import { createMutableLaunchConfig, MutableLaunchConfig } from './common/mutableLaunchConfig';
 import { IRenameProvider, RenameProvider } from './common/sourceMaps/renameProvider';
 import {
   CachingSourceMapFactory,
@@ -268,8 +268,12 @@ export const createTopLevelSessionContainer = (parent: Container) => {
   container.bind(ChromeLauncher).toSelf().inSingletonScope().onActivation(trackDispose);
   container.bind(ILauncher).toService(ChromeLauncher);
   container.bind(ILauncher).to(EdgeLauncher).inSingletonScope().onActivation(trackDispose);
-  container.bind(ILauncher).to(RemoteBrowserLauncher).inSingletonScope().onActivation(trackDispose);
-  container.bind(ILauncher).to(RemoteBrowserAttacher).inSingletonScope().onActivation(trackDispose);
+  container.bind(ILauncher).to(RemoteBrowserLauncher).inSingletonScope().onActivation(
+    trackDispose,
+  );
+  container.bind(ILauncher).to(RemoteBrowserAttacher).inSingletonScope().onActivation(
+    trackDispose,
+  );
   container
     .bind(ILauncher)
     .to(UWPWebviewBrowserAttacher)
@@ -280,7 +284,7 @@ export const createTopLevelSessionContainer = (parent: Container) => {
   container
     .bind(ILauncher)
     .toDynamicValue(() =>
-      parent.get(DelegateLauncherFactory).createLauncher(container.get(ILogger)),
+      parent.get(DelegateLauncherFactory).createLauncher(container.get(ILogger))
     )
     .inSingletonScope();
 
@@ -361,7 +365,7 @@ export const provideLaunchParams = (
     .toDynamicValue(ctx =>
       ctx.container
         .get<ISourcePathResolverFactory>(ISourcePathResolverFactory)
-        .create(params, ctx.container.get<ILogger>(ILogger)),
+        .create(params, ctx.container.get<ILogger>(ILogger))
     )
     .inSingletonScope();
 

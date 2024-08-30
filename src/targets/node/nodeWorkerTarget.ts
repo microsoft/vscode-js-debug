@@ -124,8 +124,8 @@ export class NodeWorkerTarget implements ITarget {
 
   scriptUrlToUrl(url: string): string {
     // copied from NodeTarget. Todo: should be merged into the path resolver logic
-    const isPath =
-      url[0] === '/' || (process.platform === 'win32' && url[1] === ':' && url[2] === '\\');
+    const isPath = url[0] === '/'
+      || (process.platform === 'win32' && url[1] === ':' && url[2] === '\\');
     return isPath ? absolutePathToFileUrl(url) : url;
   }
 

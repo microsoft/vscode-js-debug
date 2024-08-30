@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { ILogSink, ILogItem, ILogger } from '.';
+import { ILogger, ILogItem, ILogSink } from '.';
 
 /*
  * A log sink that writes information to another logger.

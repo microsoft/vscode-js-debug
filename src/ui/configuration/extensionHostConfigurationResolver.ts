@@ -14,11 +14,11 @@ import { canAccess } from '../../common/fsUtils';
 import { ProcessArgs } from '../../common/processArgs';
 import { nearestDirectoryWhere } from '../../common/urlUtils';
 import {
-  IExtensionHostLaunchConfiguration,
-  ResolvingExtensionHostConfiguration,
   applyNodeishDefaults,
   extensionHostConfigDefaults,
+  IExtensionHostLaunchConfiguration,
   resolveVariableInConfig,
+  ResolvingExtensionHostConfiguration,
 } from '../../configuration';
 import { BaseConfigurationResolver } from './baseConfigurationResolver';
 

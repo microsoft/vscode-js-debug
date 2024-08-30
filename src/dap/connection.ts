@@ -76,8 +76,9 @@ export default class Connection {
               return () => this._requestHandlers.delete(requestName);
             };
           }
-          if (methodName === 'off')
+          if (methodName === 'off') {
             return (requestName: string) => this._requestHandlers.delete(requestName);
+          }
           return (params: object) => {
             if (isRequest(methodName)) {
               return this.enqueueRequest(methodName.slice(0, -requestSuffix.length), params);
@@ -236,7 +237,9 @@ export default class Connection {
     }
     if (msg.type === 'response') {
       const cb = this._pendingRequests.get(msg.request_seq);
-      if (!this.logger.assert(cb, `Expected callback for request sequence ID ${msg.request_seq}`)) {
+      if (
+        !this.logger.assert(cb, `Expected callback for request sequence ID ${msg.request_seq}`)
+      ) {
         return;
       }
 

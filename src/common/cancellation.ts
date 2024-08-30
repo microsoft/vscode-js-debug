@@ -71,7 +71,7 @@ export function cancellableRace<T>(
   return Promise.race(todo);
 }
 
-const shortcutEvent = Object.freeze(function (callback, context?): IDisposable {
+const shortcutEvent = Object.freeze(function(callback, context?): IDisposable {
   const handle = setTimeout(callback.bind(context), 0);
   return {
     dispose() {

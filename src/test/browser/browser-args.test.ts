@@ -2,8 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { BrowserArgs } from '../../targets/browser/browserArgs';
 import { expect } from 'chai';
+import { BrowserArgs } from '../../targets/browser/browserArgs';
 
 describe('BrowserArgs', () => {
   it('merge', () => {
@@ -26,9 +26,10 @@ describe('BrowserArgs', () => {
     expect(
       new BrowserArgs(['--a', '--remote-debugging-port=42']).getSuggestedConnection(),
     ).to.equal(42);
-    expect(new BrowserArgs(['--a', '--remote-debugging-pipe']).getSuggestedConnection()).to.equal(
-      'pipe',
-    );
+    expect(new BrowserArgs(['--a', '--remote-debugging-pipe']).getSuggestedConnection()).to
+      .equal(
+        'pipe',
+      );
   });
 
   it('setConnection', () => {

@@ -4,7 +4,7 @@
 
 import { promises as dns } from 'dns';
 import * as path from 'path';
-import { URL, parse as urlParse } from 'url';
+import { parse as urlParse, URL } from 'url';
 import Cdp from '../cdp/api';
 import { AnyChromiumConfiguration } from '../configuration';
 import { BrowserTargetType } from '../targets/browser/browserTargets';
@@ -58,8 +58,9 @@ export function caseNormalizedMap<V>(): Map<string, V> {
   return getCaseSensitivePaths() ? new Map() : new MapUsingProjection(lowerCaseInsensitivePath);
 }
 
-const win32PathExt =
-  process.platform === 'win32' ? process.env.PATHEXT?.toLowerCase().split(';') : undefined;
+const win32PathExt = process.platform === 'win32'
+  ? process.env.PATHEXT?.toLowerCase().split(';')
+  : undefined;
 
 /**
  * Gets a case-normalized binary name suitable for comparison. On Windows,
@@ -104,8 +105,9 @@ export const nearestDirectoryWhere = async <T>(
  * Returns the closest parent directory that contains a file with the given name.
  */
 export const nearestDirectoryContaining = (fsUtils: IFsUtils, rootDir: string, file: string) =>
-  nearestDirectoryWhere<string>(rootDir, async p =>
-    (await fsUtils.exists(path.join(p, file))) ? p : undefined,
+  nearestDirectoryWhere<string>(
+    rootDir,
+    async p => (await fsUtils.exists(path.join(p, file))) ? p : undefined,
   );
 
 // todo: not super correct, and most node libraries don't handle this accurately
@@ -483,11 +485,12 @@ export function maybeAbsolutePathToFileUrl(
   sourceUrl: string,
 ): string {
   if (
-    rootPath &&
-    platformPathToPreferredCase(sourceUrl).startsWith(rootPath) &&
-    !isValidUrl(sourceUrl)
-  )
+    rootPath
+    && platformPathToPreferredCase(sourceUrl).startsWith(rootPath)
+    && !isValidUrl(sourceUrl)
+  ) {
     return absolutePathToFileUrl(sourceUrl);
+  }
   return sourceUrl;
 }
 
@@ -540,7 +543,7 @@ export type TargetFilter = (info: Cdp.Target.TargetInfo) => boolean;
 export const createTargetFilterForConfig = (
   config: AnyChromiumConfiguration,
   additonalMatches: ReadonlyArray<string> = [],
-): ((t: { url: string }) => boolean) => {
+): (t: { url: string }) => boolean => {
   const filter = config.urlFilter || ('file' in config && config.file) || config.url;
   const tester = filter ? createTargetFilter(filter, ...additonalMatches) : undefined;
   return t => !t.url.startsWith('devtools://') && tester?.(t.url) !== false;
@@ -549,13 +552,12 @@ export const createTargetFilterForConfig = (
 /**
  * Requires that the target is also a 'page'.
  */
-export const requirePageTarget =
-  (
-    filter: (t: Cdp.Target.TargetInfo) => boolean,
-  ): ((t: Cdp.Target.TargetInfo & { type: string }) => boolean) =>
-  t =>
-    // avoid #2018
-    t.type === BrowserTargetType.Page && !t.url.startsWith('edge://force-signin') && filter(t);
+export const requirePageTarget = (
+  filter: (t: Cdp.Target.TargetInfo) => boolean,
+): (t: Cdp.Target.TargetInfo & { type: string }) => boolean =>
+t =>
+  // avoid #2018
+  t.type === BrowserTargetType.Page && !t.url.startsWith('edge://force-signin') && filter(t);
 
 /**
  * The "isURL" from chrome-debug-core. In js-debug we use `new URL()` to see
@@ -571,7 +573,7 @@ function isURLCompat(urlOrPath: string): boolean {
  */
 export const createTargetFilter = (
   ...targetUrls: ReadonlyArray<string>
-): ((testUrl: string) => boolean) => {
+): (testUrl: string) => boolean => {
   const standardizeMatch = (aUrl: string) => {
     aUrl = aUrl.toLowerCase();
 
@@ -598,7 +600,7 @@ export const createTargetFilter = (
   };
 
   const escaped = targetUrls.map(url =>
-    escapeRegexSpecialChars(standardizeMatch(url), '/*').replace(/(\/\*$)|\*/g, '.*'),
+    escapeRegexSpecialChars(standardizeMatch(url), '/*').replace(/(\/\*$)|\*/g, '.*')
   );
   const targetUrlRegex = new RegExp('^(' + escaped.join('|') + ')$', 'g');
 

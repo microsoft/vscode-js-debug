@@ -8,8 +8,8 @@ import { IDisposable } from '../../common/disposable';
 import { Thread } from '../threads';
 import { IConsoleMessage } from './consoleMessage';
 
-export * from './queryObjectsMessage';
 export * from './exceptionMessage';
+export * from './queryObjectsMessage';
 
 export const IConsole = Symbol('IConsole');
 

@@ -32,9 +32,9 @@ export class RemoteBrowserAttacher extends BrowserAttacher<AnyChromiumAttachConf
     params: AnyLaunchConfiguration,
   ): params is AnyChromiumAttachConfiguration {
     return (
-      params.request === 'attach' &&
-      (params.type === DebugType.Chrome || params.type === DebugType.Edge) &&
-      params.browserAttachLocation === 'ui'
+      params.request === 'attach'
+      && (params.type === DebugType.Chrome || params.type === DebugType.Edge)
+      && params.browserAttachLocation === 'ui'
     );
   }
 

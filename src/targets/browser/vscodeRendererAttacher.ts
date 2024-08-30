@@ -40,8 +40,8 @@ export class VSCodeRendererAttacher extends BrowserAttacher<IRendererAttachParam
   constructor(
     @inject(ILogger) logger: ILogger,
     @inject(ISourcePathResolver) pathResolver: ISourcePathResolver,
-    @inject(ISourcePathResolverFactory)
-    private readonly pathResolverFactory: ISourcePathResolverFactory,
+    @inject(ISourcePathResolverFactory) private readonly pathResolverFactory:
+      ISourcePathResolverFactory,
   ) {
     super(logger, pathResolver);
   }
@@ -102,7 +102,11 @@ export class VSCodeRendererAttacher extends BrowserAttacher<IRendererAttachParam
       );
     }).finally(() => disposable.dispose());
 
-    return new Connection(new RawPipeTransport(this.logger, pipe), this.logger, telemetryReporter);
+    return new Connection(
+      new RawPipeTransport(this.logger, pipe),
+      this.logger,
+      telemetryReporter,
+    );
   }
 
   protected async getTargetFilter(manager: VSCodeRendererTargetManager): Promise<TargetFilter> {

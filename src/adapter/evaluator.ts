@@ -245,13 +245,13 @@ export class Evaluator implements IEvaluator {
         // 2. Hoist variables that may be shadowed. Identify the scope containing
         // the location and mark any variables that appear in a higher scope
         // (and therefore could be shadowed) as hoistable.
-        stackFrame &&
-          this.setupShadowedVariableHoisting(location, stackFrame).then(r => {
-            if (r) {
-              hoist = r.doHoist;
-              prepareOptions.hoist = [...r.hoistable];
-            }
-          }),
+        stackFrame
+        && this.setupShadowedVariableHoisting(location, stackFrame).then(r => {
+          if (r) {
+            hoist = r.doHoist;
+            prepareOptions.hoist = [...r.hoistable];
+          }
+        }),
       ]);
     } else if (stackFrame) {
       const mapping = await this.renameProvider.provideOnStackframe(stackFrame);
@@ -280,14 +280,14 @@ export class Evaluator implements IEvaluator {
     if (objectId) {
       r = await this.cdp.Runtime.callFunctionOn({
         objectId,
-        functionDeclaration: `function() { globalThis.${hoistedVar} = this; ${dehoist}; ${getSourceSuffix()} }`,
+        functionDeclaration:
+          `function() { globalThis.${hoistedVar} = this; ${dehoist}; ${getSourceSuffix()} }`,
       });
     } else {
       r = await this.cdp.Runtime.evaluate({
-        expression:
-          `globalThis.${hoistedVar} = ${JSON.stringify(object?.value)};` +
-          `${dehoist};` +
-          getSourceSuffix(),
+        expression: `globalThis.${hoistedVar} = ${JSON.stringify(object?.value)};`
+          + `${dehoist};`
+          + getSourceSuffix(),
       });
     }
     return !!r && !r.exceptionDetails;
@@ -311,14 +311,14 @@ export class Evaluator implements IEvaluator {
     const scopeIndex = await findIndexAsync(
       scopes,
       async s =>
-        s.source &&
-        s.line &&
-        s.endLine &&
-        new Range(
+        s.source
+        && s.line
+        && s.endLine
+        && new Range(
           new Base1Position(s.line, s.column || 1),
           new Base1Position(s.endLine, s.endColumn || Infinity),
-        ).contains(position) &&
-        (await source.equalsDap(s.source)),
+        ).contains(position)
+        && (await source.equalsDap(s.source)),
     );
     if (scopeIndex === -1) {
       return;
@@ -359,7 +359,7 @@ export class Evaluator implements IEvaluator {
    */
   private replaceVariableInExpression(
     expr: string,
-    hoistMap: Map<string /* identifier */, string /* hoised */>,
+    hoistMap: Map<string, /* identifier */ string /* hoised */>,
     renames: RenamePrepareOptions | undefined,
   ): { hoisted: Set<string>; transformed: string } {
     const hoisted = new Set<string>();

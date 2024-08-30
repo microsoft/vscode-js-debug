@@ -134,8 +134,8 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
     @inject(INodeBinaryProvider) private readonly pathProvider: INodeBinaryProvider,
     @inject(ILogger) protected readonly logger: ILogger,
     @inject(IPortLeaseTracker) protected readonly portLeaseTracker: IPortLeaseTracker,
-    @inject(ISourcePathResolverFactory)
-    protected readonly pathResolverFactory: ISourcePathResolverFactory,
+    @inject(ISourcePathResolverFactory) protected readonly pathResolverFactory:
+      ISourcePathResolverFactory,
   ) {}
 
   /**
@@ -212,10 +212,9 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
       params: newParams ? this.resolveParams(newParams) ?? this.run.params : this.run.params,
       context: {
         ...this.run.context,
-        cancellationToken:
-          this.run.params.timeout > 0
-            ? CancellationTokenSource.withTimeout(this.run.params.timeout).token
-            : NeverCancelled,
+        cancellationToken: this.run.params.timeout > 0
+          ? CancellationTokenSource.withTimeout(this.run.params.timeout).token
+          : NeverCancelled,
       },
     });
   }
@@ -304,10 +303,9 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
       // environments. Bootloader will replace this with actual node executable used if any.
       execPath: await findInPath(fs.promises, 'node', process.env),
       onlyEntrypoint: !params.autoAttachChildProcesses,
-      verbose:
-        params.trace === true || (typeof params.trace === 'object' && params.trace.stdio)
-          ? true
-          : undefined,
+      verbose: params.trace === true || (typeof params.trace === 'object' && params.trace.stdio)
+        ? true
+        : undefined,
       autoAttachMode: AutoAttachMode.Always,
       mandatePortTracking: this.portLeaseTracker.isMandated ? true : undefined,
       ...additionalOptions,
@@ -461,7 +459,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
 
     const cdp = connection.rootSession();
     const { targetInfo } = await new Promise<Cdp.Target.TargetCreatedEvent>(f =>
-      cdp.Target.on('targetCreated', f),
+      cdp.Target.on('targetCreated', f)
     );
 
     const cast = targetInfo as WatchdogTarget;
@@ -526,8 +524,8 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
         // note: for some bizarre reason, if launched with --inspect-brk, the
         // process.pid in extension host debugging is initially undefined.
         expression:
-          `typeof process === 'undefined' || process.pid === undefined ? 'process not defined' : ({ processId: process.pid, nodeVersion: process.version, architecture: process.arch })` +
-          getSourceSuffix(),
+          `typeof process === 'undefined' || process.pid === undefined ? 'process not defined' : ({ processId: process.pid, nodeVersion: process.version, architecture: process.arch })`
+          + getSourceSuffix(),
       });
 
       if (!this.program) {

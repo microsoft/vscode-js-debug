@@ -25,7 +25,7 @@ export function getSanitizeProcessEnv(base: NodeJS.ProcessEnv) {
   ];
 
   return new EnvironmentVars(base).map((key, value) =>
-    keysToRemove.some(re => re.test(key)) ? undefined : value,
+    keysToRemove.some(re => re.test(key)) ? undefined : value
   );
 }
 
@@ -81,8 +81,9 @@ export class EnvironmentVars {
     includePlaceholder = false,
   ) {
     const prop = EnvironmentVars.platform === 'win32' ? 'Path' : 'PATH';
-    const delimiter =
-      EnvironmentVars.platform === 'win32' ? path.win32.delimiter : path.posix.delimiter;
+    const delimiter = EnvironmentVars.platform === 'win32'
+      ? path.win32.delimiter
+      : path.posix.delimiter;
 
     let value = this.lookup(prop);
     if (includePlaceholder && !value) {
@@ -137,10 +138,9 @@ export class EnvironmentVars {
     ...vars: (EnvironmentVars | { [key: string]: string | null | undefined })[]
   ): EnvironmentVars {
     const objects = vars.map(v => (v instanceof EnvironmentVars ? v.value : v));
-    const result =
-      EnvironmentVars.platform === 'win32'
-        ? caseInsensitiveMerge(...objects)
-        : Object.assign({}, ...objects);
+    const result = EnvironmentVars.platform === 'win32'
+      ? caseInsensitiveMerge(...objects)
+      : Object.assign({}, ...objects);
 
     return new EnvironmentVars(result);
   }

@@ -21,7 +21,7 @@ export class DisableSourceMapUI implements IExtensionContribution {
 
         const body = evt.body as Dap.SuggestDisableSourcemapEventParams;
         this.unmap(evt.session, body.source).catch(err =>
-          vscode.window.showErrorMessage(err.message),
+          vscode.window.showErrorMessage(err.message)
         );
       }),
     );

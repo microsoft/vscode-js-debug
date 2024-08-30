@@ -42,7 +42,7 @@ export interface IProfiler<T> {
 }
 
 export interface IProfilerCtor {
-  new (...args: never[]): IProfiler<unknown>;
+  new(...args: never[]): IProfiler<unknown>;
 
   /**
    * Profiler type given in the DAP API.

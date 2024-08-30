@@ -1,9 +1,9 @@
 /*---------------------------------------------------------
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
-import Dap from '../../dap/api';
 import { CancellationToken } from 'vscode';
 import { timeoutPromise } from '../../common/cancellation';
+import Dap from '../../dap/api';
 
 export async function launchUnelevatedChrome(
   dap: Dap.Api,

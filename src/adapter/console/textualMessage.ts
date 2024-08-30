@@ -19,7 +19,7 @@ export abstract class TextualMessage<T extends { stackTrace?: Cdp.Runtime.StackT
   implements IConsoleMessage
 {
   protected readonly stackTrace = once((thread: Thread) =>
-    this.event.stackTrace ? StackTrace.fromRuntime(thread, this.event.stackTrace) : undefined,
+    this.event.stackTrace ? StackTrace.fromRuntime(thread, this.event.stackTrace) : undefined
   );
 
   constructor(protected readonly event: T) {}

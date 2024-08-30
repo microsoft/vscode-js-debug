@@ -34,8 +34,8 @@ export function previewAsObject(
   object: Cdp.Runtime.RemoteObject | Cdp.Runtime.ObjectPreview | Cdp.Runtime.PropertyPreview,
 ): object is ObjectPreview.PreviewAsObjectType {
   return (
-    object.type === 'function' ||
-    (object.type === 'object' && !subtypesWithoutPreview.has(object.subtype))
+    object.type === 'function'
+    || (object.type === 'object' && !subtypesWithoutPreview.has(object.subtype))
   );
 }
 
@@ -174,8 +174,9 @@ function renderObjectPreview(
   format: Dap.ValueFormat | undefined,
 ): string {
   const builder = new BudgetStringBuilder(characterBudget, ' ');
-  if (preview.description !== 'Object')
+  if (preview.description !== 'Object') {
     builder.append(stringUtils.trimEnd(preview.description, builder.budget()));
+  }
 
   const map = new Map<string, ObjectPreview.PropertyPreview>();
   const properties = preview.properties || [];
@@ -195,14 +196,17 @@ function renderObjectPreview(
   const promiseValue = map.get('[[PromiseValue]]');
   if (promiseStatus && promiseValue) {
     if (promiseStatus.value === 'pending') builder.append(`{<${promiseStatus.value}>}`);
-    else
+    else {
       builder.append(
-        `{${renderPropertyPreview(
-          promiseValue,
-          builder.budget() - 2,
-          `<${promiseStatus.value}>`,
-        )}}`,
+        `{${
+          renderPropertyPreview(
+            promiseValue,
+            builder.budget() - 2,
+            `<${promiseStatus.value}>`,
+          )
+        }}`,
       );
+    }
     return builder.build();
   }
 
@@ -238,7 +242,11 @@ function renderObjectPreview(
       propsBuilder.append(appendKeyValue(key, ' => ', value, propsBuilder.budget()));
     } else {
       propsBuilder.append(
-        renderPreview(entry.value, Math.min(maxEntryPreviewLength, propsBuilder.budget()), format),
+        renderPreview(
+          entry.value,
+          Math.min(maxEntryPreviewLength, propsBuilder.budget()),
+          format,
+        ),
       );
     }
   }
@@ -303,12 +311,15 @@ function appendKeyValue(
   characterBudget: number,
 ) {
   if (key === undefined) return stringUtils.trimMiddle(value, characterBudget);
-  if (key.length + separator.length > characterBudget)
+  if (key.length + separator.length > characterBudget) {
     return stringUtils.trimEnd(key, characterBudget);
-  return `${key}${separator}${stringUtils.trimMiddle(
-    value,
-    characterBudget - key.length - separator.length,
-  )}`; // Keep in sync with characterBudget calculation.
+  }
+  return `${key}${separator}${
+    stringUtils.trimMiddle(
+      value,
+      characterBudget - key.length - separator.length,
+    )
+  }`; // Keep in sync with characterBudget calculation.
 }
 
 function renderPropertyPreview(
@@ -318,12 +329,15 @@ function renderPropertyPreview(
 ): string {
   characterBudget = Math.min(characterBudget, maxPropertyPreviewLength);
   if (prop.type === 'function') return appendKeyValue(name, ': ', 'ƒ', characterBudget); // Functions don't carry preview.
-  if (prop.type === 'object' && prop.value === 'Object')
+  if (prop.type === 'object' && prop.value === 'Object') {
     return appendKeyValue(name, ': ', '{\u2026}', characterBudget);
-  if (typeof prop.value === 'undefined')
+  }
+  if (typeof prop.value === 'undefined') {
     return appendKeyValue(name, ': ', `<${prop.type}>`, characterBudget);
-  if (prop.type === 'string')
+  }
+  if (prop.type === 'string') {
     return appendKeyValue(name, ': ', quoteStringValue(prop.value), characterBudget);
+  }
   return appendKeyValue(name, ': ', prop.value ?? 'unknown', characterBudget);
 }
 
@@ -373,7 +387,10 @@ function renderValue(
     return stringUtils.trimEnd(object.description, Math.max(budget, 100000));
   }
 
-  return stringUtils.trimEnd(String('value' in object ? object.value : object.description), budget);
+  return stringUtils.trimEnd(
+    String('value' in object ? object.value : object.description),
+    budget,
+  );
 }
 
 function formatFunctionDescription(description: string, characterBudget: number): string {
@@ -414,8 +431,9 @@ function formatFunctionDescription(description: string, characterBudget: number)
     addToken('ƒ', textAfterPrefix, nameAndArguments(textAfterPrefix));
   } else if (isArrow) {
     let abbreviation = text;
-    if (text.length > maxArrowFunctionCharacterLength)
+    if (text.length > maxArrowFunctionCharacterLength) {
       abbreviation = text.substring(0, firstArrowIndex + 2) + ' {\u2026}';
+    }
     addToken('', text, abbreviation);
   } else {
     addToken('ƒ', text, nameAndArguments(text));
@@ -438,8 +456,9 @@ function formatFunctionDescription(description: string, characterBudget: number)
     if (!builder.checkBudget()) return;
     if (prefix.length) builder.append(prefix + ' ');
     body = body.trim();
-    if (body.endsWith(' { [native code] }'))
+    if (body.endsWith(' { [native code] }')) {
       body = body.substring(0, body.length - ' { [native code] }'.length);
+    }
     if (builder.budget() >= body.length) builder.append(body);
     else builder.append(abbreviation.replace(/\n/g, ' '));
   }
@@ -453,8 +472,8 @@ export function previewException(
     return { title: renderValue(exception, maxExceptionTitleLength, false, undefined) };
   }
 
-  const description =
-    exception.description ?? (exception as { className?: string }).className ?? 'Error';
+  const description = exception.description ?? (exception as { className?: string }).className
+    ?? 'Error';
   const firstCallFrame = /^\s+at\s/m.exec(description);
   if (!firstCallFrame) {
     const lastLineBreak = description.lastIndexOf('\n');
@@ -490,7 +509,9 @@ function formatAsNumber(
   }
 
   const fallback = param as Cdp.Runtime.RemoteObject;
-  const value = typeof fallback.value === 'number' ? fallback.value : +String(fallback.description);
+  const value = typeof fallback.value === 'number'
+    ? fallback.value
+    : +String(fallback.description);
   return stringUtils.trimEnd(String(round ? Math.floor(value) : value), characterBudget);
 }
 

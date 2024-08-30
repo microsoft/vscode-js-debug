@@ -59,7 +59,7 @@ describe('profiling', () => {
       handle.load();
       await handle.dap.once('terminated');
       await eventuallyOk(() =>
-        assertValidOutputFile(join(testFixturesDir, 'some-profile.cpuprofile')),
+        assertValidOutputFile(join(testFixturesDir, 'some-profile.cpuprofile'))
       );
     });
   });
@@ -274,7 +274,7 @@ describe('profiling', () => {
         }, 2000);
 
         terminationPicker.selectedItems = terminationPicker.items.filter(i =>
-          labelRe.test(i.label),
+          labelRe.test(i.label)
         );
         acceptQuickPick.fire();
       };
@@ -306,8 +306,8 @@ describe('profiling', () => {
 
         const session = await new Promise<vscode.DebugSession>(resolve =>
           vscode.debug.onDidStartDebugSession(s =>
-            '__pendingTargetId' in s.configuration ? resolve(s) : undefined,
-          ),
+            '__pendingTargetId' in s.configuration ? resolve(s) : undefined
+          )
         );
 
         await pickTermination(session, /breakpoint/i);
@@ -336,7 +336,9 @@ describe('profiling', () => {
 
       it('sets substate correctly', async () => {
         const disposable = new DisposableList();
-        disposable.push(vscode.commands.registerCommand('js-debug.test.callback', () => undefined));
+        disposable.push(
+          vscode.commands.registerCommand('js-debug.test.callback', () => undefined),
+        );
 
         vscode.debug.startDebugging(undefined, {
           type: DebugType.Node,
@@ -347,8 +349,8 @@ describe('profiling', () => {
 
         const session = await new Promise<vscode.DebugSession>(resolve =>
           vscode.debug.onDidStartDebugSession(s =>
-            '__pendingTargetId' in s.configuration ? resolve(s) : undefined,
-          ),
+            '__pendingTargetId' in s.configuration ? resolve(s) : undefined
+          )
         );
 
         await runCommand(vscode.commands, Commands.StartProfile, {
@@ -377,8 +379,8 @@ describe('profiling', () => {
 
         const session = await new Promise<vscode.DebugSession>(resolve =>
           vscode.debug.onDidStartDebugSession(s =>
-            '__pendingTargetId' in s.configuration ? resolve(s) : undefined,
-          ),
+            '__pendingTargetId' in s.configuration ? resolve(s) : undefined
+          )
         );
 
         await runCommand(vscode.commands, Commands.StartProfile, {
@@ -402,7 +404,7 @@ describe('profiling', () => {
         disposable.dispose();
       });
 
-      it('profiles from launch', async function () {
+      it('profiles from launch', async function() {
         this.timeout(20 * 1000); // 20 seconds timeout
         vscode.debug.startDebugging(undefined, {
           type: DebugType.Node,
@@ -414,8 +416,8 @@ describe('profiling', () => {
 
         const session = await new Promise<vscode.DebugSession>(resolve =>
           vscode.debug.onDidStartDebugSession(s =>
-            '__pendingTargetId' in s.configuration ? resolve(s) : undefined,
-          ),
+            '__pendingTargetId' in s.configuration ? resolve(s) : undefined
+          )
         );
 
         await eventuallyOk(() => expect(session.name).to.contain('Profiling'), 2000);
@@ -613,7 +615,7 @@ describe('profiling', () => {
         }, 2000);
 
         terminationPicker.selectedItems = terminationPicker.items.filter(i =>
-          labelRe.test(i.label),
+          labelRe.test(i.label)
         );
         acceptQuickPick.fire();
       };
@@ -645,8 +647,8 @@ describe('profiling', () => {
 
         const session = await new Promise<vscode.DebugSession>(resolve =>
           vscode.debug.onDidStartDebugSession(s =>
-            '__pendingTargetId' in s.configuration ? resolve(s) : undefined,
-          ),
+            '__pendingTargetId' in s.configuration ? resolve(s) : undefined
+          )
         );
 
         await pickTermination(session, /breakpoint/i);
@@ -675,7 +677,9 @@ describe('profiling', () => {
 
       it('sets substate correctly', async () => {
         const disposable = new DisposableList();
-        disposable.push(vscode.commands.registerCommand('js-debug.test.callback', () => undefined));
+        disposable.push(
+          vscode.commands.registerCommand('js-debug.test.callback', () => undefined),
+        );
 
         vscode.debug.startDebugging(undefined, {
           type: DebugType.Node,
@@ -686,8 +690,8 @@ describe('profiling', () => {
 
         const session = await new Promise<vscode.DebugSession>(resolve =>
           vscode.debug.onDidStartDebugSession(s =>
-            '__pendingTargetId' in s.configuration ? resolve(s) : undefined,
-          ),
+            '__pendingTargetId' in s.configuration ? resolve(s) : undefined
+          )
         );
 
         await runCommand(vscode.commands, Commands.StartProfile, {
@@ -716,8 +720,8 @@ describe('profiling', () => {
 
         const session = await new Promise<vscode.DebugSession>(resolve =>
           vscode.debug.onDidStartDebugSession(s =>
-            '__pendingTargetId' in s.configuration ? resolve(s) : undefined,
-          ),
+            '__pendingTargetId' in s.configuration ? resolve(s) : undefined
+          )
         );
 
         await runCommand(vscode.commands, Commands.StartProfile, {
@@ -741,7 +745,7 @@ describe('profiling', () => {
         disposable.dispose();
       });
 
-      it('profiles from launch', async function () {
+      it('profiles from launch', async function() {
         this.timeout(20 * 1000); // 20 seconds timeout
         vscode.debug.startDebugging(undefined, {
           type: DebugType.Node,
@@ -753,8 +757,8 @@ describe('profiling', () => {
 
         const session = await new Promise<vscode.DebugSession>(resolve =>
           vscode.debug.onDidStartDebugSession(s =>
-            '__pendingTargetId' in s.configuration ? resolve(s) : undefined,
-          ),
+            '__pendingTargetId' in s.configuration ? resolve(s) : undefined
+          )
         );
 
         await eventuallyOk(() => expect(session.name).to.contain('Profiling'), 2000);

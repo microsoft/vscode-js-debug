@@ -5,13 +5,13 @@
 import { Headers } from 'got';
 import { inject, injectable, optional } from 'inversify';
 import { CancellationToken } from 'vscode';
-import { Response } from '.';
 import Cdp from '../../cdp/api';
 import { ICdpApi } from '../../cdp/connection';
 import { DisposableList, IDisposable } from '../../common/disposable';
 import { ILogger, LogTag } from '../../common/logging';
 import { FS, FsPromises } from '../../ioc-extras';
 import { ITarget } from '../../targets/targets';
+import { Response } from '.';
 import { BasicResourceProvider } from './basicResourceProvider';
 import { IRequestOptionsProvider } from './requestOptionsProvider';
 
@@ -73,10 +73,10 @@ export class StatefulResourceProvider extends BasicResourceProvider implements I
     }
 
     if (
-      !res.resource.success ||
-      !res.resource.httpStatusCode ||
-      res.resource.httpStatusCode >= 400 ||
-      !res.resource.stream
+      !res.resource.success
+      || !res.resource.httpStatusCode
+      || res.resource.httpStatusCode >= 400
+      || !res.resource.stream
     ) {
       return original;
     }

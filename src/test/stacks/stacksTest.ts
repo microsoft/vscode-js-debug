@@ -6,7 +6,7 @@ import { expect } from 'chai';
 import { delay } from '../../common/promiseUtil';
 import { Dap } from '../../dap/api';
 import { createFileTree } from '../createFileTree';
-import { TestP, testFixturesDir, testWorkspace } from '../test';
+import { testFixturesDir, TestP, testWorkspace } from '../test';
 import { itIntegrates, waitForPause } from '../testIntegrationUtils';
 
 describe('stacks', () => {
@@ -126,8 +126,8 @@ describe('stacks', () => {
       }),
     ).toString('base64');
 
-    const emptySourceMap =
-      `//# sourceMappingURL=data:application/json;charset=utf-8;base64,` + emptySourceMapContents;
+    const emptySourceMap = `//# sourceMappingURL=data:application/json;charset=utf-8;base64,`
+      + emptySourceMapContents;
 
     itIntegrates('simple stepping', async ({ r }) => {
       const p = await r.launchUrlAndLoad('index.html');

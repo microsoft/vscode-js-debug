@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-//@ts-check
+// @ts-check
 
 const express = require('express');
 const path = require('path');

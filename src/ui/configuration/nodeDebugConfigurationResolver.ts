@@ -12,18 +12,18 @@ import { writeToConsole } from '../../common/console';
 import { DebugType } from '../../common/contributionUtils';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { findOpenPort } from '../../common/findOpenPort';
-import { IFsUtils, LocalFsUtils, existsInjected } from '../../common/fsUtils';
+import { existsInjected, IFsUtils, LocalFsUtils } from '../../common/fsUtils';
 import { forceForwardSlashes, isSubpathOrEqualTo } from '../../common/pathUtils';
 import { some } from '../../common/promiseUtil';
 import { getNormalizedBinaryName, nearestDirectoryWhere } from '../../common/urlUtils';
 import {
   AnyNodeConfiguration,
-  ResolvingNodeAttachConfiguration,
-  ResolvingNodeLaunchConfiguration,
   applyNodeDefaults,
   baseDefaults,
   breakpointLanguages,
   resolveVariableInConfig,
+  ResolvingNodeAttachConfiguration,
+  ResolvingNodeLaunchConfiguration,
 } from '../../configuration';
 import { ExtensionContext } from '../../ioc-extras';
 import { INvmResolver } from '../../targets/node/nvmResolver';
@@ -59,9 +59,9 @@ export class NodeConfigurationResolver extends BaseConfigurationResolver<AnyNode
   ): Promise<vscode.DebugConfiguration | undefined> {
     const config = rawConfig as AnyNodeConfiguration;
     if (
-      config.type === DebugType.Node &&
-      config.request === 'attach' &&
-      typeof config.processId === 'string'
+      config.type === DebugType.Node
+      && config.request === 'attach'
+      && typeof config.processId === 'string'
     ) {
       await resolveProcessId(this.fsUtils, config);
     }
@@ -107,16 +107,17 @@ export class NodeConfigurationResolver extends BaseConfigurationResolver<AnyNode
     if (!config.name && !config.type && !config.request) {
       config = await createLaunchConfigFromContext(folder, true, config);
       if (config.request === 'launch' && !config.program) {
-        vscode.window.showErrorMessage(l10n.t('Cannot find a program to debug'), { modal: true });
+        vscode.window.showErrorMessage(l10n.t('Cannot find a program to debug'), {
+          modal: true,
+        });
         return;
       }
     }
 
     // make sure that config has a 'cwd' attribute set
     if (!config.cwd) {
-      config.cwd =
-        config.localRoot || // https://github.com/microsoft/vscode-js-debug/issues/894#issuecomment-745449195
-        guessWorkingDirectory(config.request === 'launch' ? config.program : undefined, folder);
+      config.cwd = config.localRoot // https://github.com/microsoft/vscode-js-debug/issues/894#issuecomment-745449195
+        || guessWorkingDirectory(config.request === 'launch' ? config.program : undefined, folder);
     }
 
     // if a 'remoteRoot' is specified without a corresponding 'localRoot', set 'localRoot' to the workspace folder.
@@ -132,8 +133,8 @@ export class NodeConfigurationResolver extends BaseConfigurationResolver<AnyNode
       // Deno does not support NODE_OPTIONS, so if we see it, try to set the
       // necessary options automatically.
       if (
-        config.runtimeExecutable &&
-        getNormalizedBinaryName(config.runtimeExecutable) === 'deno'
+        config.runtimeExecutable
+        && getNormalizedBinaryName(config.runtimeExecutable) === 'deno'
       ) {
         // If the user manually set up attachSimplePort, do nothing.
         if (!config.attachSimplePort) {
@@ -157,10 +158,9 @@ export class NodeConfigurationResolver extends BaseConfigurationResolver<AnyNode
       if (typeof nvmVersion === 'string' && nvmVersion !== 'default') {
         const { directory, binary } = await this.nvmResolver.resolveNvmVersionPath(nvmVersion);
         config.env = new EnvironmentVars(config.env).addToPath(directory, 'prepend', true).value;
-        config.runtimeExecutable =
-          !config.runtimeExecutable || config.runtimeExecutable === 'node'
-            ? binary
-            : config.runtimeExecutable;
+        config.runtimeExecutable = !config.runtimeExecutable || config.runtimeExecutable === 'node'
+          ? binary
+          : config.runtimeExecutable;
       }
 
       // when using "integratedTerminal" ensure that debug console doesn't get activated; see https://github.com/Microsoft/vscode/issues/43164
@@ -283,10 +283,12 @@ async function guessOutFiles(
     return;
   }
 
-  const root = await nearestDirectoryWhere(programLocation, async p =>
-    !p.includes('node_modules') && (await fsUtils.exists(path.join(p, 'package.json')))
-      ? p
-      : undefined,
+  const root = await nearestDirectoryWhere(
+    programLocation,
+    async p =>
+      !p.includes('node_modules') && (await fsUtils.exists(path.join(p, 'package.json')))
+        ? p
+        : undefined,
   );
 
   if (root) {
@@ -372,8 +374,8 @@ export async function createLaunchConfigFromContext(
     program = await some(
       commonEntrypoints.map(
         async file =>
-          (await existsInjected(fs, path.join(basePath, file))) &&
-          '${workspaceFolder}' + path.sep + file,
+          (await existsInjected(fs, path.join(basePath, file)))
+          && '${workspaceFolder}' + path.sep + file,
       ),
     );
   }
@@ -393,8 +395,8 @@ export async function createLaunchConfigFromContext(
 
   // prepare for source maps by adding 'outFiles' if typescript or coffeescript is detected
   if (
-    useSourceMaps ||
-    vscode.workspace.textDocuments.some(document => isTranspiledLanguage(document.languageId))
+    useSourceMaps
+    || vscode.workspace.textDocuments.some(document => isTranspiledLanguage(document.languageId))
   ) {
     if (resolve) {
       writeToConsole(
@@ -488,10 +490,10 @@ async function guessProgramFromPackage(
         program = path.join('${workspaceFolder}', program);
       }
       if (
-        resolve &&
-        targetPath &&
-        !(await existsInjected(fs, targetPath)) &&
-        !(await existsInjected(fs, targetPath + '.js'))
+        resolve
+        && targetPath
+        && !(await existsInjected(fs, targetPath))
+        && !(await existsInjected(fs, targetPath + '.js'))
       ) {
         return undefined;
       }

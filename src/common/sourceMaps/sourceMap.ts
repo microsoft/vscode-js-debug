@@ -5,8 +5,8 @@
 import {
   allGeneratedPositionsFor,
   decodedMappings,
-  eachMapping,
   EachMapping,
+  eachMapping,
   GeneratedMapping,
   generatedPositionFor,
   GREATEST_LOWER_BOUND,
@@ -125,8 +125,8 @@ export class SourceMap {
     bias?: 1 | -1;
     source: string;
   }): NullableGeneratedPosition {
-    const source =
-      this.sourceActualToOriginal.get(originalPosition.source) ?? originalPosition.source;
+    const source = this.sourceActualToOriginal.get(originalPosition.source)
+      ?? originalPosition.source;
 
     // For non-finite lines, get the any closest location to the desired bounds
     if (!isFinite(originalPosition.line)) {

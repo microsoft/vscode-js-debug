@@ -6,7 +6,7 @@ import { IBenchmarkApi } from '@c4312/matcha';
 import { formatMessage } from '../../adapter/messageFormat';
 import { messageFormatters } from '../../adapter/objectPreview';
 
-export default function (api: IBenchmarkApi) {
+export default function(api: IBenchmarkApi) {
   api.bench('simple', () => {
     formatMessage(
       '',

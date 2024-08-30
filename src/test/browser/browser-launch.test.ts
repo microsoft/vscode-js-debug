@@ -45,36 +45,42 @@ describe('browser launch', () => {
     expect(readdirSync(testFixturesDir)).to.not.be.empty;
   });
 
-  itIntegrates('connects to rewritten websocket when using inspectUri parameter', async ({ r }) => {
-    const pagePort = 5935;
-    const wsServer = new WebSocket.WebSocketServer({
-      port: pagePort,
-      path: '/_framework/debug/ws-proxy',
-    });
-
-    try {
-      const receivedMessage = new Promise(resolve => {
-        wsServer.on('connection', ws => {
-          ws.on('message', message => {
-            const contents = JSON.parse(message.toString());
-            ws.send(JSON.stringify({ id: contents.id, error: { message: 'Fake websocket' } }));
-            resolve(message.toString()); // We resolve with the contents of the first message we receive
-            ws.close();
-          });
-        });
+  itIntegrates(
+    'connects to rewritten websocket when using inspectUri parameter',
+    async ({ r }) => {
+      const pagePort = 5935;
+      const wsServer = new WebSocket.WebSocketServer({
+        port: pagePort,
+        path: '/_framework/debug/ws-proxy',
       });
 
-      r.launchUrl(`index.html`, {
-        inspectUri: `{wsProtocol}://{url.hostname}:${pagePort}/_framework/debug/ws-proxy?browser={browserInspectUri}`,
-      }); // We don't care about the launch result, as long as we connect to the WebSocket
+      try {
+        const receivedMessage = new Promise(resolve => {
+          wsServer.on('connection', ws => {
+            ws.on('message', message => {
+              const contents = JSON.parse(message.toString());
+              ws.send(
+                JSON.stringify({ id: contents.id, error: { message: 'Fake websocket' } }),
+              );
+              resolve(message.toString()); // We resolve with the contents of the first message we receive
+              ws.close();
+            });
+          });
+        });
 
-      expect(await receivedMessage).to.be.eq(
-        '{"id":1001,"method":"Target.attachToBrowserTarget","params":{}}',
-      ); // Verify we got the first message on the WebSocket
-    } finally {
-      await new Promise(r => wsServer.close(r));
-    }
-  });
+        r.launchUrl(`index.html`, {
+          inspectUri:
+            `{wsProtocol}://{url.hostname}:${pagePort}/_framework/debug/ws-proxy?browser={browserInspectUri}`,
+        }); // We don't care about the launch result, as long as we connect to the WebSocket
+
+        expect(await receivedMessage).to.be.eq(
+          '{"id":1001,"method":"Target.attachToBrowserTarget","params":{}}',
+        ); // Verify we got the first message on the WebSocket
+      } finally {
+        await new Promise(r => wsServer.close(r));
+      }
+    },
+  );
 });
 
 describe('constructInspectorWSUri', () => {

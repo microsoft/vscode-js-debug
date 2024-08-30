@@ -15,7 +15,7 @@ import 'reflect-metadata';
 import { Readable, Writable } from 'stream';
 import { DebugConfiguration } from 'vscode';
 import { DebugType } from './common/contributionUtils';
-import { IDeferred, getDeferred } from './common/promiseUtil';
+import { getDeferred, IDeferred } from './common/promiseUtil';
 import { IPseudoAttachConfiguration } from './configuration';
 import DapConnection from './dap/connection';
 import { createGlobalContainer } from './ioc';
@@ -106,22 +106,24 @@ class VsDebugServer implements ISessionLauncher<VSDebugSession> {
       childAttachConfig,
     );
 
-    this.sessionServer.createChildDebugServer(session, 0).then(({ server, connectionPromise }) => {
-      connectionPromise.then(x => deferredConnection.resolve(x));
-      childAttachConfig.__jsDebugChildServer = (
-        server.address() as net.AddressInfo
-      ).port.toString();
+    this.sessionServer.createChildDebugServer(session, 0).then(
+      ({ server, connectionPromise }) => {
+        connectionPromise.then(x => deferredConnection.resolve(x));
+        childAttachConfig.__jsDebugChildServer = (
+          server.address() as net.AddressInfo
+        ).port.toString();
 
-      // Custom message currently not part of DAP
-      parentSession.connection._send({
-        seq: 0,
-        command: 'attachedChildSession',
-        type: 'request',
-        arguments: {
-          config: childAttachConfig,
-        },
-      });
-    });
+        // Custom message currently not part of DAP
+        parentSession.connection._send({
+          seq: 0,
+          command: 'attachedChildSession',
+          type: 'request',
+          arguments: {
+            config: childAttachConfig,
+          },
+        });
+      },
+    );
   }
 }
 

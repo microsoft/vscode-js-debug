@@ -7,7 +7,11 @@ const touched = Symbol('touched');
 /**
  * Readily serializable tree of cache entries.
  */
-export type CacheTree<T> = { data?: T; children: Record<string, CacheTree<T>>; [touched]?: number };
+export type CacheTree<T> = {
+  data?: T;
+  children: Record<string, CacheTree<T>>;
+  [touched]?: number;
+};
 
 export namespace CacheTree {
   /** Creates a root for a new cache tree. */

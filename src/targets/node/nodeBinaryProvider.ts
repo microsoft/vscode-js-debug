@@ -14,9 +14,9 @@ import { spawnAsync } from '../../common/processUtils';
 import { Semver } from '../../common/semver';
 import { getNormalizedBinaryName, nearestDirectoryWhere } from '../../common/urlUtils';
 import {
-  ErrorCodes,
   cannotFindNodeBinary,
   cwdDoesNotExist,
+  ErrorCodes,
   isErrorOfType,
   nodeBinaryOutOfDate,
 } from '../../dap/errors';
@@ -263,8 +263,9 @@ export class NodeBinaryProvider implements INodeBinaryProvider {
       return undefined;
     }
 
-    return nearestDirectoryWhere(cwd, dir =>
-      findExecutable(this.fs, join(dir, 'node_modules', '.bin', executable), env),
+    return nearestDirectoryWhere(
+      cwd,
+      dir => findExecutable(this.fs, join(dir, 'node_modules', '.bin', executable), env),
     );
   }
 

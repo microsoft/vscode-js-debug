@@ -31,10 +31,12 @@ export function formatMillisForLog(millis: number): string {
     return '0'.repeat(d - result.length) + result;
   }
   const d = new Date(millis);
-  return `${pad(d.getHours(), 2)}:${pad(d.getMinutes(), 2)}:${pad(d.getSeconds(), 2)}.${pad(
-    d.getMilliseconds(),
-    3,
-  )}`;
+  return `${pad(d.getHours(), 2)}:${pad(d.getMinutes(), 2)}:${pad(d.getSeconds(), 2)}.${
+    pad(
+      d.getMilliseconds(),
+      3,
+    )
+  }`;
 }
 
 const regexChars = '/\\.?*()^${}|[]+';

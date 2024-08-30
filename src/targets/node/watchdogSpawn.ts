@@ -133,9 +133,9 @@ export class WatchDog implements IDisposable {
     server.onMessage(async ([data]) => {
       // Fast-path to check if we might need to parse it:
       if (
-        this.target &&
-        !data.includes(Method.AttachToTarget) &&
-        !data.includes(Method.DetachFromTarget)
+        this.target
+        && !data.includes(Method.AttachToTarget)
+        && !data.includes(Method.DetachFromTarget)
       ) {
         this.target.send(data);
         return;

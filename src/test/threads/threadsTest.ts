@@ -157,7 +157,8 @@ describe('threads', () => {
 
     const runCrossThreadTest = async (r: TestRoot, p: TestP) => {
       p.cdp.Runtime.evaluate({
-        expression: `debugger;\nwindow.w = new Worker('workerSourceMap.js');\n//# sourceURL=test.js`,
+        expression:
+          `debugger;\nwindow.w = new Worker('workerSourceMap.js');\n//# sourceURL=test.js`,
       });
       const { threadId } = p.log(await p.dap.once('stopped'));
       await p.logger.logStackTrace(threadId);

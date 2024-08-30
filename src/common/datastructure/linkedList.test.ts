@@ -6,7 +6,7 @@ import * as assert from 'assert';
 import { expect } from 'chai';
 import { LinkedList } from './linkedList';
 
-describe('LinkedList', function () {
+describe('LinkedList', function() {
   function assertElements<E>(list: LinkedList<E>, ...elements: E[]) {
     // check size
     assert.strictEqual(list.size, elements.length);
@@ -113,7 +113,7 @@ describe('LinkedList', function () {
     assertElements(list, 'boo', 'far', 'bar', 'foo');
   });
 
-  it('pop/unshift', function () {
+  it('pop/unshift', function() {
     const list = new LinkedList<string>();
     list.push('a');
     list.push('b');
@@ -132,7 +132,7 @@ describe('LinkedList', function () {
     assertElements(list, 'a');
   });
 
-  //#region custom methods
+  // #region custom methods
   it('applyFilter', () => {
     const list = new LinkedList<number>();
     list.push(0);
@@ -144,5 +144,5 @@ describe('LinkedList', function () {
     list.applyFilter(x => x < 2 || x > 4);
     expect([...list]).to.deep.equal([0, 1, 5]);
   });
-  //#endregion
+  // #endregion
 });

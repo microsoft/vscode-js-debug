@@ -66,10 +66,9 @@ export class ExceptionMessage extends TextualMessage<Cdp.Runtime.ExceptionDetail
     return {
       category: 'stderr',
       output: message,
-      variablesReference:
-        stackTrace || args.length
-          ? thread.replVariables.createVariableForOutput(message, args, stackTrace).id
-          : undefined,
+      variablesReference: stackTrace || args.length
+        ? thread.replVariables.createVariableForOutput(message, args, stackTrace).id
+        : undefined,
       ...(await this.getUiLocation(thread)),
     };
   }

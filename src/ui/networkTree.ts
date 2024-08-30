@@ -55,7 +55,6 @@ export class NetworkTree implements IExtensionContribution, vscode.TreeDataProvi
           this.models.get(event.session.id)?.append([event.body.event, event.body.data]);
         }
       }),
-
       registerCommand(
         vscode.commands,
         Commands.NetworkViewRequest,
@@ -64,9 +63,13 @@ export class NetworkTree implements IExtensionContribution, vscode.TreeDataProvi
           await vscode.window.showTextDocument(doc);
         },
       ),
-      registerCommand(vscode.commands, Commands.NetworkCopyUri, async (request: NetworkRequest) => {
-        await vscode.env.clipboard.writeText(request.init.request.url);
-      }),
+      registerCommand(
+        vscode.commands,
+        Commands.NetworkCopyUri,
+        async (request: NetworkRequest) => {
+          await vscode.env.clipboard.writeText(request.init.request.url);
+        },
+      ),
       registerCommand(
         vscode.commands,
         Commands.NetworkOpenBody,
@@ -79,17 +82,24 @@ export class NetworkTree implements IExtensionContribution, vscode.TreeDataProvi
         vscode.commands,
         Commands.NetworkOpenBodyHex,
         async (request: NetworkRequest) => {
-          vscode.commands.executeCommand('vscode.openWith', request.fsBodyUri, 'hexEditor.hexedit');
+          vscode.commands.executeCommand(
+            'vscode.openWith',
+            request.fsBodyUri,
+            'hexEditor.hexedit',
+          );
         },
       ),
       registerCommand(
         vscode.commands,
         Commands.NetworkReplayXHR,
         async (request: NetworkRequest) => {
-          await request.session.customRequest('networkCall', {
-            method: 'replayXHR',
-            params: { requestId: request.id },
-          } satisfies Dap.NetworkCallParams);
+          await request.session.customRequest(
+            'networkCall',
+            {
+              method: 'replayXHR',
+              params: { requestId: request.id },
+            } satisfies Dap.NetworkCallParams,
+          );
         },
       ),
       registerCommand(vscode.commands, Commands.NetworkClear, async () => {
@@ -132,8 +142,8 @@ export class NetworkTree implements IExtensionContribution, vscode.TreeDataProvi
 
   private listenToActiveSession() {
     this.activeListeners.clear();
-    const model = (this.current =
-      vscode.debug.activeDebugSession && this.models.get(vscode.debug.activeDebugSession.id));
+    const model = (this.current = vscode.debug.activeDebugSession
+      && this.models.get(vscode.debug.activeDebugSession.id));
     let hasRequests = !!model && model.hasRequests;
     if (model) {
       this.activeListeners.push(
@@ -286,10 +296,10 @@ class NetworkModel {
       this.requests.set(event.requestId, request);
       this.didChangeEmitter.fire({ request, isNew: true });
     } else if (
-      key === 'responseReceived' ||
-      key === 'loadingFailed' ||
-      key === 'loadingFinished' ||
-      key === 'responseReceivedExtraInfo'
+      key === 'responseReceived'
+      || key === 'loadingFailed'
+      || key === 'loadingFinished'
+      || key === 'responseReceivedExtraInfo'
     ) {
       const request = this.requests.get(event.requestId);
       if (!request) {
@@ -406,9 +416,11 @@ export class NetworkRequest {
 
     const parts = [command];
     parts.push(`< HTTP ${this.responseExtra?.statusCode || this.response.status || 'UNKOWN'}`);
-    for (const header of Object.entries(
-      this.responseExtra?.headers || this.response.headers || {},
-    )) {
+    for (
+      const header of Object.entries(
+        this.responseExtra?.headers || this.response.headers || {},
+      )
+    ) {
       parts.push(`< ${header[0]}: ${header[1]}`);
     }
     parts.push('<');
@@ -492,8 +504,6 @@ export class NetworkRequest {
   });
 }
 
-type KeyValue<T> = keyof T extends infer K
-  ? K extends keyof T
-    ? [key: K, value: T[K]]
-    : never
+type KeyValue<T> = keyof T extends infer K ? K extends keyof T ? [key: K, value: T[K]]
+  : never
   : never;

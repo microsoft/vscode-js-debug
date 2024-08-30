@@ -4,7 +4,7 @@
 
 import * as genMap from '@jridgewell/gen-mapping';
 import { AnyMap, GREATEST_LOWER_BOUND } from '@jridgewell/trace-mapping';
-import { Node as AcornNode, Parser, parseExpressionAt } from 'acorn';
+import { Node as AcornNode, parseExpressionAt, Parser } from 'acorn';
 import { generate } from 'astring';
 import {
   Expression,
@@ -17,11 +17,11 @@ import {
 } from 'estree';
 import { LineColumn } from '../adapter/breakpoints/breakpointBase';
 import {
-  VisitorOption,
   acornOptions,
   parseProgram,
   replace,
   traverse,
+  VisitorOption,
 } from './sourceCodeManipulations';
 import { NullableGeneratedPosition, SourceMap } from './sourceMaps/sourceMap';
 
@@ -314,19 +314,19 @@ export function getOptimalCompiledPosition(
  * Expression node could not go.
  */
 export const isInPatternSlot = (node: Pattern, parent: Node | null | undefined): boolean =>
-  !!parent &&
-  (((parent.type === 'FunctionExpression' ||
-    parent.type === 'FunctionDeclaration' ||
-    parent.type === 'ArrowFunctionExpression') &&
-    parent.params.includes(node)) ||
-    ((parent.type === 'ForInStatement' || parent.type === 'ForOfStatement') &&
-      parent.left === node) ||
-    (parent.type === 'VariableDeclarator' && parent.id === node) ||
-    (parent.type === 'AssignmentPattern' && parent.left === node) ||
-    (parent.type === 'CatchClause' && parent.param === node) ||
-    ('kind' in parent && parent.kind === 'init' && parent.value === node) ||
-    (parent.type === 'RestElement' && parent.argument === node) ||
-    (parent.type === 'AssignmentPattern' && parent.left === node));
+  !!parent
+  && (((parent.type === 'FunctionExpression'
+    || parent.type === 'FunctionDeclaration'
+    || parent.type === 'ArrowFunctionExpression')
+    && parent.params.includes(node))
+    || ((parent.type === 'ForInStatement' || parent.type === 'ForOfStatement')
+      && parent.left === node)
+    || (parent.type === 'VariableDeclarator' && parent.id === node)
+    || (parent.type === 'AssignmentPattern' && parent.left === node)
+    || (parent.type === 'CatchClause' && parent.param === node)
+    || ('kind' in parent && parent.kind === 'init' && parent.value === node)
+    || (parent.type === 'RestElement' && parent.argument === node)
+    || (parent.type === 'AssignmentPattern' && parent.left === node));
 
 /**
  * Returns the syntax error in the given code, if any.

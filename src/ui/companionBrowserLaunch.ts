@@ -107,7 +107,7 @@ export function registerCompanionBrowserLaunch(context: vscode.ExtensionContext)
         case 'killCompanionBrowser':
           return killCompanionBrowser(event.session, tunnels, event.body);
         default:
-        // ignored
+          // ignored
       }
     }),
   );
