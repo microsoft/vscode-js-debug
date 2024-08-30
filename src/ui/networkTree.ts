@@ -68,7 +68,6 @@ export class NetworkTree implements IExtensionContribution, vscode.TreeDataProvi
           },
         );
       }),
-
       registerCommand(
         vscode.commands,
         Commands.NetworkViewRequest,

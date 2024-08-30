@@ -785,8 +785,9 @@ export class Thread implements IVariableStoreLocationProvider {
     this._dap.with(dap => {
       for (const event of mirrorEvents) {
         // the types don't work well with the overloads on Network.on, a cast is needed:
-        (this._cdp.Network.on as (ev: string, fn: (d: object) => void) => void)(event, data =>
-          dap.networkEvent({ data, event }),
+        (this._cdp.Network.on as (ev: string, fn: (d: object) => void) => void)(
+          event,
+          data => dap.networkEvent({ data, event }),
         );
       }
     });
