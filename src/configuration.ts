@@ -778,14 +778,17 @@ export type AnyTerminalConfiguration =
  */
 export type ResolvingConfiguration<T> = IMandatedConfiguration & Partial<T>;
 
-export type ResolvingExtensionHostConfiguration =
-  ResolvingConfiguration<IExtensionHostLaunchConfiguration>;
+export type ResolvingExtensionHostConfiguration = ResolvingConfiguration<
+  IExtensionHostLaunchConfiguration
+>;
 export type ResolvingNodeAttachConfiguration = ResolvingConfiguration<INodeAttachConfiguration>;
 export type ResolvingNodeLaunchConfiguration = ResolvingConfiguration<INodeLaunchConfiguration>;
-export type ResolvingTerminalDelegateConfiguration =
-  ResolvingConfiguration<ITerminalDelegateConfiguration>;
-export type ResolvingTerminalLaunchConfiguration =
-  ResolvingConfiguration<ITerminalLaunchConfiguration>;
+export type ResolvingTerminalDelegateConfiguration = ResolvingConfiguration<
+  ITerminalDelegateConfiguration
+>;
+export type ResolvingTerminalLaunchConfiguration = ResolvingConfiguration<
+  ITerminalLaunchConfiguration
+>;
 export type ResolvingTerminalConfiguration =
   | ResolvingTerminalDelegateConfiguration
   | ResolvingTerminalLaunchConfiguration;
@@ -809,14 +812,10 @@ export const AnyLaunchConfiguration = Symbol('AnyLaunchConfiguration');
  */
 export type ResolvedConfiguration<T> = T extends ResolvingNodeAttachConfiguration
   ? INodeAttachConfiguration
-  : T extends ResolvingExtensionHostConfiguration
-  ? IExtensionHostLaunchConfiguration
-  : T extends ResolvingNodeLaunchConfiguration
-  ? INodeLaunchConfiguration
-  : T extends ResolvingChromeConfiguration
-  ? AnyChromeConfiguration
-  : T extends ResolvingTerminalConfiguration
-  ? ITerminalLaunchConfiguration
+  : T extends ResolvingExtensionHostConfiguration ? IExtensionHostLaunchConfiguration
+  : T extends ResolvingNodeLaunchConfiguration ? INodeLaunchConfiguration
+  : T extends ResolvingChromeConfiguration ? AnyChromeConfiguration
+  : T extends ResolvingTerminalConfiguration ? ITerminalLaunchConfiguration
   : never;
 
 export const baseDefaults: IBaseConfiguration = {
@@ -1005,7 +1004,9 @@ export const applyNodeishDefaults = (
   }
 };
 
-export function applyNodeDefaults({ ...config }: ResolvingNodeConfiguration): AnyNodeConfiguration {
+export function applyNodeDefaults(
+  { ...config }: ResolvingNodeConfiguration,
+): AnyNodeConfiguration {
   applyNodeishDefaults(config);
   if (config.request === 'attach') {
     return { ...nodeAttachConfigDefaults, ...config };
@@ -1105,8 +1106,8 @@ export function removeOptionalWorkspaceFolderUsages<T extends AnyLaunchConfigura
   }
 
   if ('resolveSourceMapLocations' in cast) {
-    cast.resolveSourceMapLocations =
-      cast.resolveSourceMapLocations?.filter(o => !o.includes(token)) ?? null;
+    cast.resolveSourceMapLocations = cast.resolveSourceMapLocations?.filter(o => !o.includes(token))
+      ?? null;
   }
 
   if ('cwd' in cast && cast.cwd?.includes(token)) {
@@ -1190,9 +1191,11 @@ declare const EXTENSION_VERSION: string;
 declare const EXTENSION_PUBLISHER: string;
 
 export const packageName = typeof EXTENSION_NAME !== 'undefined' ? EXTENSION_NAME : 'js-debug';
-export const packageVersion =
-  typeof EXTENSION_VERSION !== 'undefined' ? EXTENSION_VERSION : '0.0.0';
-export const packagePublisher =
-  typeof EXTENSION_PUBLISHER !== 'undefined' ? EXTENSION_PUBLISHER : 'vscode-samples';
+export const packageVersion = typeof EXTENSION_VERSION !== 'undefined'
+  ? EXTENSION_VERSION
+  : '0.0.0';
+export const packagePublisher = typeof EXTENSION_PUBLISHER !== 'undefined'
+  ? EXTENSION_PUBLISHER
+  : 'vscode-samples';
 export const isNightly = packageName.includes('nightly');
 export const extensionId = `${packagePublisher}.${packageName}`;

@@ -28,12 +28,10 @@ interface IGDPRProperty {
 
 type ClassifiedEvent<T extends IGDPRProperty> = { [K in keyof T]?: unknown };
 
-type StrictPropertyCheck<TEvent, TClassifiedEvent, TError> =
-  keyof TEvent extends keyof TClassifiedEvent
-    ? keyof TClassifiedEvent extends keyof TEvent
-      ? TEvent
-      : TError
-    : TError;
+type StrictPropertyCheck<TEvent, TClassifiedEvent, TError> = keyof TEvent extends
+  keyof TClassifiedEvent ? keyof TClassifiedEvent extends keyof TEvent ? TEvent
+  : TError
+  : TError;
 
 /******************************************************************************
  * Classifications
@@ -56,8 +54,8 @@ export interface IGlobalMetrics {
 }
 
 interface IRPCOperationClassification
-  extends IDAPOperationClassification,
-    ICDPOperationClassification {
+  extends IDAPOperationClassification, ICDPOperationClassification
+{
   [key: string]: {
     classification: 'SystemMetaData' | 'CallstackOrException';
     purpose: 'PerformanceAndHealth';
@@ -229,8 +227,8 @@ export const createLoggers = (sendEvent: (event: Dap.OutputEventParams) => void)
     );
 
   const browserVersion = (metrics: IBrowserVersionMetrics) => {
-    globalMetrics.browser =
-      (metrics.targetProject || metrics.targetProject) + '/' + metrics.targetVersion;
+    globalMetrics.browser = (metrics.targetProject || metrics.targetProject) + '/'
+      + metrics.targetVersion;
 
     publicLog2<
       IGlobalMetrics & IBrowserVersionMetrics,

@@ -25,7 +25,8 @@ export interface IDebugConfigurationResolver {
   /**
    * @see DebugConfigurationProvider.resolveDebugConfigurationWithSubstitutedVariables
    */
-  resolveDebugConfigurationWithSubstitutedVariables?: vscode.DebugConfigurationProvider['resolveDebugConfigurationWithSubstitutedVariables'];
+  resolveDebugConfigurationWithSubstitutedVariables?:
+    vscode.DebugConfigurationProvider['resolveDebugConfigurationWithSubstitutedVariables'];
 }
 
 export const IDebugConfigurationResolver = Symbol('IDebugConfigurationResolver');

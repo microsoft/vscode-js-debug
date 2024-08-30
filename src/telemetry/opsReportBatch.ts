@@ -11,8 +11,9 @@ export class ReporterBatcher {
   constructor(private readonly isVSCode: boolean = true) {}
 
   // prototype-free object so that we don't need to do hasOwnProperty checks
-  private measurements: { [method: string]: { times: number[]; errors: Error[] } } =
-    Object.create(null);
+  private measurements: { [method: string]: { times: number[]; errors: Error[] } } = Object.create(
+    null,
+  );
 
   /**
    * Adds a new measurement for the given method.

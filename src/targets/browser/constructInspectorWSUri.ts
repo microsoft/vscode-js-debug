@@ -36,8 +36,9 @@ export function constructInspectorWSUri(
     wsProtocol: () => (getUrl(urlText).protocol === 'https:' ? 'wss' : 'ws'), // the protocol includes the : at the end
   };
 
-  const inspectUri = inspectUriFormat.replace(/{([^\}]+)}/g, (match, key: string) =>
-    replacements.hasOwnProperty(key) ? replacements[key]() : match,
+  const inspectUri = inspectUriFormat.replace(
+    /{([^\}]+)}/g,
+    (match, key: string) => replacements.hasOwnProperty(key) ? replacements[key]() : match,
   );
 
   return inspectUri;

@@ -10,7 +10,9 @@ benchmark({
   reporter: new PrettyReporter(process.stdout),
   middleware: process.argv[2] ? [grepMiddleware(process.argv[2])] : undefined,
   prepare(api) {
-    for (const file of readdirSync(__dirname).filter(f => f.endsWith('.js') && f !== 'index.js')) {
+    for (
+      const file of readdirSync(__dirname).filter(f => f.endsWith('.js') && f !== 'index.js')
+    ) {
       api.suite(file, () => require(`./${file}`).default(api));
     }
   },

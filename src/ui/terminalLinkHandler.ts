@@ -43,7 +43,6 @@ export class TerminalLinkHandler implements ITerminalLinkProvider<ITerminalLink>
           this.baseConfiguration = this.readConfig();
         }
       }),
-
       vscode.window.registerTerminalLinkProvider(this),
     );
   }
@@ -108,9 +107,9 @@ export class TerminalLinkHandler implements ITerminalLinkProvider<ITerminalLink>
 
         // hack for https://github.com/Soapbox/linkifyjs/issues/317
         if (
-          uri.protocol === Protocol.Http &&
-          !link.value.startsWith(Protocol.Http) &&
-          !isLoopbackIp(uri.hostname)
+          uri.protocol === Protocol.Http
+          && !link.value.startsWith(Protocol.Http)
+          && !isLoopbackIp(uri.hostname)
         ) {
           uri.protocol = Protocol.Https;
         }
@@ -179,10 +178,9 @@ export class TerminalLinkHandler implements ITerminalLinkProvider<ITerminalLink>
       // ignored
     }
 
-    const cwd =
-      terminal.workspaceFolder !== undefined
-        ? vscode.workspace.workspaceFolders?.[terminal.workspaceFolder]
-        : undefined;
+    const cwd = terminal.workspaceFolder !== undefined
+      ? vscode.workspace.workspaceFolders?.[terminal.workspaceFolder]
+      : undefined;
 
     vscode.debug.startDebugging(cwd, {
       ...this.baseConfiguration,

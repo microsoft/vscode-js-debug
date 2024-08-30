@@ -52,8 +52,9 @@ function tokenizeFormatString(format: string, formatterNames: string[]): FormatT
       addStringToken('%');
     } else {
       const [, substitionString, precisionString, specifierString] = match;
-      if (substitionString && Number(substitionString) > 0)
+      if (substitionString && Number(substitionString) > 0) {
         substitutionIndex = Number(substitionString) - 1;
+      }
       const precision = precisionString ? Number(precisionString) : undefined;
       addSpecifierToken(specifierString, precision, substitutionIndex);
       ++substitutionIndex;
@@ -103,10 +104,13 @@ export function formatMessage<T>(
   for (let i = 0; builder.checkBudget() && i < substitutions.length; ++i) {
     if (usedSubstitutionIndexes.has(i)) continue;
     usedSubstitutionIndexes.add(i);
-    if (format || i)
+    if (format || i) {
       // either we are second argument or we had format.
       builder.append(' ');
-    builder.append(defaultFormatter(substitutions[i], { budget: builder.budget(), quoted: false }));
+    }
+    builder.append(
+      defaultFormatter(substitutions[i], { budget: builder.budget(), quoted: false }),
+    );
   }
 
   return {
@@ -153,7 +157,7 @@ export function formatCssAsAnsi(style: string): string {
           if (match[2] === 'underline') escapedSequence += '\x1b[4m';
           break;
         default:
-        // css not mapped, skip
+          // css not mapped, skip
       }
     }
 

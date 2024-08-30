@@ -7,7 +7,7 @@ import { inject, injectable, multiInject } from 'inversify';
 import { homedir } from 'os';
 import { basename, join } from 'path';
 import * as vscode from 'vscode';
-import { ProfilerFactory, getDefaultProfileName } from '../../adapter/profiling';
+import { getDefaultProfileName, ProfilerFactory } from '../../adapter/profiling';
 import { iteratorFirst } from '../../common/arrayUtils';
 import { Commands, ContextKey, setContextKey } from '../../common/contributionUtils';
 import { DisposableList, IDisposable } from '../../common/disposable';
@@ -75,15 +75,15 @@ export class UiProfileManager implements IDisposable {
   private statusBarItem?: vscode.StatusBarItem;
   private lastChosenType: string | undefined;
   private lastChosenTermination: string | undefined;
-  private readonly activeSessions = new Map<string /* debug session id */, UiProfileSession>();
+  private readonly activeSessions = new Map<string, /* debug session id */ UiProfileSession>();
   private readonly disposables = new DisposableList();
 
   constructor(
     @inject(DebugSessionTracker) private readonly tracker: DebugSessionTracker,
     @inject(FS) private readonly fs: FsPromises,
     @inject(SessionSubStates) private readonly sessionStates: SessionSubStates,
-    @multiInject(ITerminationConditionFactory)
-    private readonly terminationConditions: ReadonlyArray<ITerminationConditionFactory>,
+    @multiInject(ITerminationConditionFactory) private readonly terminationConditions:
+      ReadonlyArray<ITerminationConditionFactory>,
   ) {
     this.disposables.push(
       vscode.debug.onDidReceiveDebugSessionCustomEvent(event => {
@@ -165,7 +165,9 @@ export class UiProfileManager implements IDisposable {
     if (sessionId) {
       uiSession = this.activeSessions.get(sessionId);
     } else {
-      const session = await this.pickSession([...this.activeSessions.values()].map(s => s.session));
+      const session = await this.pickSession(
+        [...this.activeSessions.values()].map(s => s.session),
+      );
       uiSession = session && this.activeSessions.get(session.id);
     }
 
@@ -228,10 +230,9 @@ export class UiProfileManager implements IDisposable {
       ]);
     }
 
-    const directory =
-      session.workspaceFolder?.uri.fsPath ??
-      vscode.workspace.workspaceFolders?.[0].uri.fsPath ??
-      homedir();
+    const directory = session.workspaceFolder?.uri.fsPath
+      ?? vscode.workspace.workspaceFolders?.[0].uri.fsPath
+      ?? homedir();
 
     const filename = getDefaultProfileName() + uiSession.impl.extension;
     // todo: open as untitled, see: https://github.com/microsoft/vscode/issues/93441

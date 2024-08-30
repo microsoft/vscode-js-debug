@@ -56,7 +56,9 @@ export class ShutdownParticipants implements IShutdownParticipants {
 
   async shutdownContext(): Promise<void> {
     if (this.shutdownStage === undefined || this.shutdownStage < ShutdownOrder.ExecutionContexts) {
-      await Promise.all([...this.participants[ShutdownOrder.ExecutionContexts]].map(p => p(false)));
+      await Promise.all(
+        [...this.participants[ShutdownOrder.ExecutionContexts]].map(p => p(false)),
+      );
     }
   }
 

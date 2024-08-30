@@ -2,12 +2,12 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { ITarget } from '../targets';
-import { ObservableMap } from '../../common/datastructure/observableMap';
-import { IDelegateRef, DelegateLauncher } from './delegateLauncher';
-import { IPendingDapApi } from '../../dap/pending-api';
 import { injectable } from 'inversify';
+import { ObservableMap } from '../../common/datastructure/observableMap';
 import { ILogger } from '../../common/logging';
+import { IPendingDapApi } from '../../dap/pending-api';
+import { ITarget } from '../targets';
+import { DelegateLauncher, IDelegateRef } from './delegateLauncher';
 
 let idCounter = 0;
 

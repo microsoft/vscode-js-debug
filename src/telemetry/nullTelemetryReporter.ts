@@ -2,9 +2,9 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { ITelemetryReporter } from './telemetryReporter';
-import { EventEmitter } from '../common/events';
 import { injectable } from 'inversify';
+import { EventEmitter } from '../common/events';
+import { ITelemetryReporter } from './telemetryReporter';
 
 @injectable()
 export class NullTelemetryReporter implements ITelemetryReporter {

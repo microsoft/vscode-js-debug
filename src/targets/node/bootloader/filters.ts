@@ -71,10 +71,10 @@ export const checkProcessFilter = (env: IBootloaderInfo) => {
 export const checkNotNpmPrefixCheckOnWindows = () => {
   const argv = process.argv;
   return !(
-    argv.length === 4 &&
-    basename(argv[1]) === 'npm-cli.js' &&
-    argv[2] === 'prefix' &&
-    argv[3] === '-g'
+    argv.length === 4
+    && basename(argv[1]) === 'npm-cli.js'
+    && argv[2] === 'prefix'
+    && argv[3] === '-g'
   );
 };
 
@@ -86,9 +86,9 @@ export const checkNotNpmPrefixCheckOnWindows = () => {
  */
 export const checkIsNotNodeGyp = (env: IBootloaderInfo) => {
   if (
-    !!env.deferredMode &&
-    process.argv.length >= 2 &&
-    basename(process.argv[1]) === 'node-gyp.js'
+    !!env.deferredMode
+    && process.argv.length >= 2
+    && basename(process.argv[1]) === 'node-gyp.js'
   ) {
     return false;
   }

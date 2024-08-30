@@ -9,13 +9,22 @@ interface IDAPOperationClassification {
   cancel: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!cancel.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   runinterminal: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!runinterminal.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!runinterminal.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   startdebugging: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!startdebugging.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!startdebugging.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   initialize: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!initialize.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   configurationdone: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!configurationdone.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!configurationdone.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   launch: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!launch.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   attach: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
@@ -27,19 +36,40 @@ interface IDAPOperationClassification {
   terminate: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!terminate.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   breakpointlocations: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!breakpointlocations.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!breakpointlocations.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   setbreakpoints: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!setbreakpoints.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!setbreakpoints.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   setfunctionbreakpoints: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!setfunctionbreakpoints.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!setfunctionbreakpoints.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   setexceptionbreakpoints: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!setexceptionbreakpoints.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!setexceptionbreakpoints.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   databreakpointinfo: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!databreakpointinfo.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!databreakpointinfo.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   setdatabreakpoints: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!setdatabreakpoints.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!setdatabreakpoints.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   setinstructionbreakpoints: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!setinstructionbreakpoints.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!setinstructionbreakpoints.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   continue: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!continue.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   next: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
@@ -51,9 +81,15 @@ interface IDAPOperationClassification {
   stepback: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!stepback.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   reversecontinue: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!reversecontinue.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!reversecontinue.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   restartframe: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!restartframe.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!restartframe.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   goto: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!goto.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   pause: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
@@ -65,81 +101,174 @@ interface IDAPOperationClassification {
   variables: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!variables.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   setvariable: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!setvariable.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!setvariable.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   source: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!source.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   threads: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!threads.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   terminatethreads: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!terminatethreads.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!terminatethreads.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   modules: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!modules.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   loadedsources: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!loadedsources.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!loadedsources.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   evaluate: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!evaluate.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   setexpression: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!setexpression.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!setexpression.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   stepintargets: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!stepintargets.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!stepintargets.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   gototargets: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!gototargets.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!gototargets.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   completions: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!completions.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!completions.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   exceptioninfo: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!exceptioninfo.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!exceptioninfo.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   readmemory: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!readmemory.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   writememory: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!writememory.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!writememory.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   disassemble: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!disassemble.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!disassemble.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   locations: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!locations.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   setcustombreakpoints: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!setcustombreakpoints.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!setcustombreakpoints.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   prettyprintsource: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!prettyprintsource.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!prettyprintsource.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   toggleskipfilestatus: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!toggleskipfilestatus.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!toggleskipfilestatus.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   startprofile: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!startprofile.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!startprofile.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   stopprofile: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!stopprofile.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!stopprofile.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   launchvscode: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!launchvscode.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!launchvscode.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   launchunelevated: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!launchunelevated.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!launchunelevated.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   remotefileexists: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!remotefileexists.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!remotefileexists.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   revealpage: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!revealpage.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   startselfprofile: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!startselfprofile.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!startselfprofile.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   stopselfprofile: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!stopselfprofile.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!stopselfprofile.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   getperformance: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!getperformance.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!getperformance.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   disablesourcemap: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!disablesourcemap.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!disablesourcemap.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   creatediagnostics: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!creatediagnostics.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!creatediagnostics.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   savediagnosticlogs: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!savediagnosticlogs.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!savediagnosticlogs.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   requestcdpproxy: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!requestcdpproxy.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!requestcdpproxy.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   setexcludedcallers: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!setexcludedcallers.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!setexcludedcallers.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   setsourcemapstepping: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!setsourcemapstepping.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!setsourcemapstepping.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   setdebuggerproperty: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!setdebuggerproperty.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!setdebuggerproperty.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   capabilitiesextended: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!capabilitiesextended.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!capabilitiesextended.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   evaluationoptions: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!evaluationoptions.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!evaluationoptions.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   setsymboloptions: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!setsymboloptions.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  '!setsymboloptions.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   networkcall: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!networkcall.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
   enablenetworking: { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };

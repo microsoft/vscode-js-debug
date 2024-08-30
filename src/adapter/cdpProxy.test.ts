@@ -32,7 +32,10 @@ describe('CdpProxyProvider', () => {
 
     const addr = await provider.proxy();
     clientConn = new Connection(
-      await WebSocketTransport.create(`ws://${addr.host}:${addr.port}${addr.path}`, NeverCancelled),
+      await WebSocketTransport.create(
+        `ws://${addr.host}:${addr.port}${addr.path}`,
+        NeverCancelled,
+      ),
       Logger.null,
       new NullTelemetryReporter(),
     );
@@ -56,7 +59,9 @@ describe('CdpProxyProvider', () => {
       });
     });
 
-    expect(await client.Runtime.evaluate({ expression: 'hello!' })).to.deep.equal({ ok: true });
+    expect(await client.Runtime.evaluate({ expression: 'hello!' })).to.deep.equal({
+      ok: true,
+    });
   });
 
   it('bubbles errors', async () => {
@@ -103,7 +108,7 @@ describe('CdpProxyProvider', () => {
         'Debugger.scriptParsed',
         'Animation.animationStarted',
       ].forEach(method =>
-        transport.injectMessage({ method, sessionId: message.sessionId, params: {} }),
+        transport.injectMessage({ method, sessionId: message.sessionId, params: {} })
       );
 
       transport.injectMessage({

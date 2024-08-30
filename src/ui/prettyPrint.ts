@@ -53,9 +53,9 @@ export class PrettyPrintUI implements IExtensionContribution {
 
   private canPrettyPrint(editor: vscode.TextEditor) {
     return (
-      this.tracker.isDebugging &&
-      editor.document.languageId === 'javascript' &&
-      !editor.document.fileName.endsWith('-pretty.js')
+      this.tracker.isDebugging
+      && editor.document.languageId === 'javascript'
+      && !editor.document.fileName.endsWith('-pretty.js')
     );
   }
 

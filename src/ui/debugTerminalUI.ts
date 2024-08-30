@@ -156,10 +156,9 @@ export const launchVirtualTerminalParent = (
 const Abort = Symbol('Abort');
 
 const home = homedir();
-const tildify: (s: string) => string =
-  process.platform === 'win32'
-    ? s => s
-    : s => (s.startsWith(home) ? `~${s.slice(home.length)}` : s);
+const tildify: (s: string) => string = process.platform === 'win32'
+  ? s => s
+  : s => (s.startsWith(home) ? `~${s.slice(home.length)}` : s);
 
 async function getWorkspaceFolder() {
   const folders = vscode.workspace.workspaceFolders;
@@ -244,9 +243,9 @@ export function registerDebugTerminalUI(
     if (command) {
       for (const [terminal, config] of terminals) {
         if (
-          config.folder === workspaceFolder &&
-          config.cwd === defaultConfig?.cwd &&
-          !config.launcher.targetList().length
+          config.folder === workspaceFolder
+          && config.cwd === defaultConfig?.cwd
+          && !config.launcher.targetList().length
         ) {
           terminal.show(true);
           terminal.sendText(command);
@@ -292,8 +291,10 @@ export function registerDebugTerminalUI(
     vscode.window.onDidCloseTerminal(terminal => {
       terminals.delete(terminal);
     }),
-    registerCommand(vscode.commands, Commands.CreateDebuggerTerminal, (command, folder, config) =>
-      launchTerminal(delegateFactory, command, folder, config),
+    registerCommand(
+      vscode.commands,
+      Commands.CreateDebuggerTerminal,
+      (command, folder, config) => launchTerminal(delegateFactory, command, folder, config),
     ),
     vscode.window.registerTerminalProfileProvider('extension.js-debug.debugTerminal', {
       provideTerminalProfile: () =>
@@ -311,7 +312,7 @@ export function registerDebugTerminalUI(
             launcher.onOptionsReady(options => resolve(new vscode.TerminalProfile(options)));
 
             return launcher;
-          }),
+          })
         ),
     }),
   );

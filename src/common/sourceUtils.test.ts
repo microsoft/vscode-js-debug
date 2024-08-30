@@ -47,9 +47,11 @@ describe('sourceUtils', () => {
       unreturned: ['{throw "foo"}!', `console.log("%O!", ${wrapped('throw "foo";')})`],
       escaping: [
         'greet%:o%"\' {greet} name:%"\'  {name} %',
-        `console.log("greet%%:o%%\\"' %O name:%%\\"'  %O %%", ${wrapped(
-          'return greet;',
-        )}, ${wrapped('return name;')})`,
+        `console.log("greet%%:o%%\\"' %O name:%%\\"'  %O %%", ${
+          wrapped(
+            'return greet;',
+          )
+        }, ${wrapped('return name;')})`,
       ],
       'complex expression': [
         'hello {n++;v=() => { return true }}',

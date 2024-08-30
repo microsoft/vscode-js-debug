@@ -19,7 +19,7 @@ const enum DescriptionSymbols {
  * Symbol.for as having a "side effect" and would throw if we tried to first
  * use them inside the description functions.
  */
-export const getDescriptionSymbols = remoteFunction(function () {
+export const getDescriptionSymbols = remoteFunction(function() {
   return [Symbol.for(DescriptionSymbols.Generic), Symbol.for(DescriptionSymbols.Node)];
 });
 
@@ -29,7 +29,7 @@ declare const runtimeArgs: [symbol[]];
  * Gets a mapping of property names with a custom `.toString()` method
  * to their string representations.
  */
-export const getStringyProps = templateFunction(function (
+export const getStringyProps = templateFunction(function(
   this: unknown,
   maxLength: number,
   customToString: (defaultRepr: string) => unknown,
@@ -81,7 +81,7 @@ export const getStringyProps = templateFunction(function (
   return out;
 });
 
-export const getToStringIfCustom = templateFunction(function (
+export const getToStringIfCustom = templateFunction(function(
   this: unknown,
   maxLength: number,
   customToString: (defaultRepr: string) => unknown,
@@ -100,10 +100,12 @@ export const getToStringIfCustom = templateFunction(function (
 
   if (typeof this === 'object' && this) {
     let str: string | undefined;
-    for (const sym of [
-      Symbol.for(DescriptionSymbols.Generic),
-      Symbol.for(DescriptionSymbols.Node),
-    ]) {
+    for (
+      const sym of [
+        Symbol.for(DescriptionSymbols.Generic),
+        Symbol.for(DescriptionSymbols.Node),
+      ]
+    ) {
       if (typeof (this as Record<symbol, (depth?: number) => string>)[sym] !== 'function') {
         continue;
       }

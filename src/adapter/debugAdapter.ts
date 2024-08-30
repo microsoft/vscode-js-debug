@@ -9,7 +9,7 @@ import { DisposableList, IDisposable } from '../common/disposable';
 import { ILogger, LogTag } from '../common/logging';
 import { posInt32Counter, truthy } from '../common/objUtils';
 import { Base1Position } from '../common/positions';
-import { IDeferred, getDeferred } from '../common/promiseUtil';
+import { getDeferred, IDeferred } from '../common/promiseUtil';
 import { IRenameProvider } from '../common/sourceMaps/renameProvider';
 import * as sourceUtils from '../common/sourceUtils';
 import * as urlUtils from '../common/urlUtils';
@@ -17,7 +17,7 @@ import { AnyLaunchConfiguration } from '../configuration';
 import Dap from '../dap/api';
 import * as errors from '../dap/errors';
 import { ProtocolError } from '../dap/protocolError';
-import { FS, FsPromises, disposeContainer } from '../ioc-extras';
+import { disposeContainer, FS, FsPromises } from '../ioc-extras';
 import { ITarget } from '../targets/targets';
 import { ITelemetryReporter } from '../telemetry/telemetryReporter';
 import { IShutdownParticipants } from '../ui/shutdownParticipants';
@@ -97,7 +97,10 @@ export class DebugAdapter implements IDisposable {
     this.dap.on('next', () => this._withThread(thread => thread.stepOver()));
     this.dap.on('stepIn', params => this._withThread(thread => thread.stepInto(params.targetId)));
     this.dap.on('stepOut', () => this._withThread(thread => thread.stepOut()));
-    this.dap.on('restartFrame', params => this._withThread(thread => thread.restartFrame(params)));
+    this.dap.on(
+      'restartFrame',
+      params => this._withThread(thread => thread.restartFrame(params)),
+    );
     this.dap.on('scopes', params => this._withThread(thread => thread.scopes(params)));
     this.dap.on('evaluate', params => this.onEvaluate(params));
     this.dap.on('completions', params => this._withThread(thread => thread.completions(params)));
@@ -108,8 +111,9 @@ export class DebugAdapter implements IDisposable {
     this.dap.on('prettyPrintSource', params => this._prettyPrintSource(params));
     this.dap.on('locations', params => this._onLocations(params));
     this.dap.on('revealPage', () => this._withThread(thread => thread.revealPage()));
-    this.dap.on('getPerformance', () =>
-      this._withThread(thread => performanceProvider.retrieve(thread.cdp())),
+    this.dap.on(
+      'getPerformance',
+      () => this._withThread(thread => performanceProvider.retrieve(thread.cdp())),
     );
     this.dap.on('breakpointLocations', params => this._breakpointLocations(params));
     this.dap.on('createDiagnostics', params => this._dumpDiagnostics(params));
@@ -281,8 +285,8 @@ export class DebugAdapter implements IDisposable {
       supportsEvaluationOptions: extended ? true : false,
       supportsDebuggerProperties: extended ? true : false,
       supportsSetSymbolOptions: extended ? true : false,
-      //supportsDataBreakpoints: false,
-      //supportsDisassembleRequest: false,
+      // supportsDataBreakpoints: false,
+      // supportsDisassembleRequest: false,
     };
   }
 
@@ -298,7 +302,9 @@ export class DebugAdapter implements IDisposable {
   async setExceptionBreakpoints(
     params: Dap.SetExceptionBreakpointsParams,
   ): Promise<Dap.SetExceptionBreakpointsResult> {
-    await this._services.get<IExceptionPauseService>(IExceptionPauseService).setBreakpoints(params);
+    await this._services.get<IExceptionPauseService>(IExceptionPauseService).setBreakpoints(
+      params,
+    );
     return {};
   }
 
@@ -500,7 +506,7 @@ export class DebugAdapter implements IDisposable {
       .catch(err =>
         this._services
           .get<ILogger>(ILogger)
-          .error(LogTag.Internal, 'Error enabling async stacks', err),
+          .error(LogTag.Internal, 'Error enabling async stacks', err)
       );
 
     this.breakpointManager.setThread(this._thread);

@@ -28,6 +28,7 @@ import { ExcludedCallersUI } from './excludedCallersUI';
 import { ILinkedBreakpointLocation } from './linkedBreakpointLocation';
 import { LinkedBreakpointLocationUI } from './linkedBreakpointLocationUI';
 import { LongPredictionUI } from './longPredictionUI';
+import { NetworkTree } from './networkTree';
 import { JsDebugPortAttributesProvider } from './portAttributesProvider';
 import { PrettyPrintUI } from './prettyPrint';
 import { BreakpointTerminationConditionFactory } from './profiling/breakpointTerminationCondition';
@@ -39,21 +40,20 @@ import { SettingRequestOptionsProvider } from './settingRequestOptionsProvider';
 import { SourceSteppingUI } from './sourceSteppingUI';
 import { StartDebugingAndStopOnEntry } from './startDebuggingAndStopOnEntry';
 import { TerminalLinkHandler } from './terminalLinkHandler';
-import { NetworkTree } from './networkTree';
 
 export const registerUiComponents = (container: Container) => {
   container.bind(VSCodeApi).toConstantValue(require('vscode'));
 
   allConfigurationResolvers.forEach(cls => {
     container
-      .bind(cls as { new (...args: unknown[]): unknown })
+      .bind(cls as { new(...args: unknown[]): unknown })
       .toSelf()
       .inSingletonScope();
     container.bind(IDebugConfigurationResolver).to(cls);
   });
 
   allConfigurationProviders.forEach(cls =>
-    container.bind(IDebugConfigurationProvider).to(cls).inSingletonScope(),
+    container.bind(IDebugConfigurationProvider).to(cls).inSingletonScope()
   );
 
   container.bind(IExtensionContribution).to(LongPredictionUI).inSingletonScope();

@@ -5,7 +5,7 @@
 import { expect } from 'chai';
 import { Base0Position } from '../positions';
 import { PositionToOffset } from '../stringUtils';
-import { ScopeNode, extractScopeRanges } from './renameScopeTree';
+import { extractScopeRanges, ScopeNode } from './renameScopeTree';
 
 describe('extractScopeRanges', () => {
   const tcases: [string, string[]][] = [
@@ -29,9 +29,8 @@ describe('extractScopeRanges', () => {
     const toOffset = new PositionToOffset(source);
     const actual: string[] = [];
     const gather = (node: ScopeNode<void>, context: string) => {
-      const own =
-        context +
-        source.slice(toOffset.convert(node.range.begin), toOffset.convert(node.range.end));
+      const own = context
+        + source.slice(toOffset.convert(node.range.begin), toOffset.convert(node.range.end));
       actual.push(own);
       node.children?.forEach(c => gather(c, own + ' -> '));
     };

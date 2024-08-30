@@ -7,7 +7,7 @@ import { remoteFunction } from '.';
 /**
  * Gets the object property.
  */
-export const invokeGetter = remoteFunction(function (
+export const invokeGetter = remoteFunction(function(
   this: unknown,
   getterFn: (this: unknown) => unknown,
 ) {

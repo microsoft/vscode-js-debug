@@ -130,8 +130,8 @@ export class BrowserTargetManager implements IDisposable {
     const promise = new Promise<BrowserTarget | undefined>(f => (callback = f));
     const attachInner = async (targetInfo: Cdp.Target.TargetInfo) => {
       if (
-        [...this._targets.values()].some(t => t.targetId === targetInfo.targetId) ||
-        this._detachedTargets.has(targetInfo.targetId)
+        [...this._targets.values()].some(t => t.targetId === targetInfo.targetId)
+        || this._detachedTargets.has(targetInfo.targetId)
       ) {
         return; // targetInfoChanged on something we're already connected to
       }
@@ -173,8 +173,9 @@ export class BrowserTargetManager implements IDisposable {
       this.enqueueLifecycleFn(evt => attachInner(evt.targetInfo)),
     );
 
-    this._browser.Target.on('targetInfoChanged', evt =>
-      this._targetInfoChanged(evt.targetInfo, this.enqueueLifecycleFn(attachInner)),
+    this._browser.Target.on(
+      'targetInfoChanged',
+      evt => this._targetInfoChanged(evt.targetInfo, this.enqueueLifecycleFn(attachInner)),
     );
 
     this._browser.Target.on(
@@ -241,7 +242,7 @@ export class BrowserTargetManager implements IDisposable {
     cdp.Network.setCacheDisabled({
       cacheDisabled: this.launchParams.disableNetworkCache,
     }).catch(err =>
-      this.logger.info(LogTag.RuntimeTarget, 'Error setting network cache state', err),
+      this.logger.info(LogTag.RuntimeTarget, 'Error setting network cache state', err)
     );
 
     // For the 'top-level' page, gather telemetry.

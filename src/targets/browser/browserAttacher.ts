@@ -31,8 +31,7 @@ import * as launcher from './launcher';
 @injectable()
 export class BrowserAttacher<
   T extends AnyChromiumAttachConfiguration = AnyChromiumAttachConfiguration,
-> implements ILauncher
-{
+> implements ILauncher {
   private _attemptTimer: NodeJS.Timeout | undefined;
   private _connection: CdpConnection | undefined;
   private _targetManager: BrowserTargetManager | undefined;
@@ -64,10 +63,10 @@ export class BrowserAttacher<
    */
   protected resolveParams(params: AnyLaunchConfiguration): params is T {
     return (
-      params.request === 'attach' &&
-      (params.type === DebugType.Chrome ||
-        (params.type === DebugType.Edge && typeof params.useWebView !== 'object')) &&
-      params.browserAttachLocation === 'workspace'
+      params.request === 'attach'
+      && (params.type === DebugType.Chrome
+        || (params.type === DebugType.Edge && typeof params.useWebView !== 'object'))
+      && params.browserAttachLocation === 'workspace'
     );
   }
 

@@ -2,10 +2,10 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { IDisposable, EventEmitter } from '../../common/events';
-import Cdp from '../../cdp/api';
-import { FrameModel } from './frames';
 import { URL } from 'url';
+import Cdp from '../../cdp/api';
+import { EventEmitter, IDisposable } from '../../common/events';
+import { FrameModel } from './frames';
 
 export class ServiceWorkerRegistration {
   readonly versions = new Map<string, ServiceWorkerVersion>();
@@ -39,8 +39,9 @@ export class ServiceWorkerVersion {
   }
 
   addRevision(payload: Cdp.ServiceWorker.ServiceWorkerVersion) {
-    if (this._targetId && payload.targetId && this._targetId !== payload.targetId)
+    if (this._targetId && payload.targetId && this._targetId !== payload.targetId) {
       console.error(`${this._targetId} !== ${payload.targetId}`);
+    }
     if (payload.targetId) this._targetId = payload.targetId;
     this._status = payload.status;
     this._runningStatus = payload.runningStatus;
@@ -98,11 +99,13 @@ export class ServiceWorkerModel implements IDisposable {
     // Use first available target connection.
     this._cdp = cdp;
     cdp.ServiceWorker.enable({});
-    cdp.ServiceWorker.on('workerRegistrationUpdated', event =>
-      this._workerRegistrationsUpdated(event.registrations),
+    cdp.ServiceWorker.on(
+      'workerRegistrationUpdated',
+      event => this._workerRegistrationsUpdated(event.registrations),
     );
-    cdp.ServiceWorker.on('workerVersionUpdated', event =>
-      this._workerVersionsUpdated(event.versions),
+    cdp.ServiceWorker.on(
+      'workerVersionUpdated',
+      event => this._workerVersionsUpdated(event.versions),
     );
     if (ServiceWorkerModel._mode !== 'normal') this.setMode(ServiceWorkerModel._mode);
   }

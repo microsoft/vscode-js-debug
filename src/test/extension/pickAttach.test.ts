@@ -7,7 +7,7 @@ import { ChildProcess, spawn } from 'child_process';
 import { promises as fsPromises } from 'fs';
 import { tmpdir } from 'os';
 import * as path from 'path';
-import { SinonSandbox, createSandbox } from 'sinon';
+import { createSandbox, SinonSandbox } from 'sinon';
 import * as vscode from 'vscode';
 import { Commands, DebugType } from '../../common/contributionUtils';
 import { findOpenPort } from '../../common/findOpenPort';
@@ -92,11 +92,13 @@ describe('pick and attach', () => {
         .stderr!.pipe(new StreamSplitter('\n'))
         .on(
           'data',
-          (line: string) => (attached = attached || line.toString().includes('Debugger attached')),
+          (
+            line: string,
+          ) => (attached = attached || line.toString().includes('Debugger attached')),
         );
     });
 
-    it('end to end', async function () {
+    it('end to end', async function() {
       this.timeout(30 * 1000);
 
       const createQuickPick = sandbox.spy(vscode.window, 'createQuickPick');

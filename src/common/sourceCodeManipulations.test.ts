@@ -62,6 +62,8 @@ describe('sourceCodeManipulations', () => {
       body: parsed[0].body,
     });
 
-    expect(generate(transformed)).to.equal(['(function (x) {', '  return x;', '})(x)'].join('\n'));
+    expect(generate(transformed)).to.equal(
+      ['(function (x) {', '  return x;', '})(x)'].join('\n'),
+    );
   });
 });

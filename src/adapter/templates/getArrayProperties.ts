@@ -7,7 +7,7 @@ import { remoteFunction } from '.';
 /**
  * Returns non-indexed properties of the array.
  */
-export const getArrayProperties = remoteFunction(function (this: unknown[]) {
+export const getArrayProperties = remoteFunction(function(this: unknown[]) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result = { __proto__: (this as any).__proto__ };
   const names = Object.getOwnPropertyNames(this);

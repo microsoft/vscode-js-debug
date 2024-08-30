@@ -65,7 +65,9 @@ export class EdgeDebugConfigurationResolver
 }
 
 @injectable()
-export class EdgeDebugConfigurationProvider extends ChromiumDebugConfigurationProvider<IEdgeLaunchConfiguration> {
+export class EdgeDebugConfigurationProvider
+  extends ChromiumDebugConfigurationProvider<IEdgeLaunchConfiguration>
+{
   protected getType() {
     return DebugType.Edge as const;
   }

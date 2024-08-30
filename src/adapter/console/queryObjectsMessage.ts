@@ -14,7 +14,10 @@ import { IConsoleMessage } from './consoleMessage';
  * Message sent as the result of querying objects on the runtime.
  */
 export class QueryObjectsMessage implements IConsoleMessage {
-  constructor(private readonly protoObj: Cdp.Runtime.RemoteObject, private readonly cdp: Cdp.Api) {}
+  constructor(
+    private readonly protoObj: Cdp.Runtime.RemoteObject,
+    private readonly cdp: Cdp.Api,
+  ) {}
 
   public async toDap(thread: Thread): Promise<Dap.OutputEventParams> {
     if (!this.protoObj.objectId) {

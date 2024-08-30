@@ -2,12 +2,12 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { LogTag, ILogger } from '../../common/logging';
-import { WatchDog } from './watchdogSpawn';
-import { NeverCancelled } from '../../common/cancellation';
 import { CancellationToken } from 'vscode';
-import { processTree, analyseArguments } from '../../ui/processTree/processTree';
+import { NeverCancelled } from '../../common/cancellation';
+import { ILogger, LogTag } from '../../common/logging';
+import { analyseArguments, processTree } from '../../ui/processTree/processTree';
 import { getWSEndpoint } from '../browser/spawn/endpoints';
+import { WatchDog } from './watchdogSpawn';
 
 interface IProcessTreeNode {
   children: IProcessTreeNode[];
@@ -55,14 +55,14 @@ export async function watchAllChildren(
             dynamicAttach: true,
             pid: String(child.pid),
             openerId,
-          }),
+          })
         )
         .catch(err =>
           logger.info(LogTag.Internal, 'Could not spawn WD for child process', {
             err,
             port,
             child,
-          }),
+          })
         ),
     );
   }

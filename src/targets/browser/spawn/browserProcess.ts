@@ -65,14 +65,13 @@ const inspectWsConnection = async (
   options: ITransportOptions,
   cancellationToken: CancellationToken,
 ) => {
-  const endpoint =
-    options.connection === 0
-      ? await waitForWSEndpoint(process, cancellationToken)
-      : await retryGetBrowserEndpoint(
-          `http://localhost:${options.connection}`,
-          cancellationToken,
-          logger,
-        );
+  const endpoint = options.connection === 0
+    ? await waitForWSEndpoint(process, cancellationToken)
+    : await retryGetBrowserEndpoint(
+      `http://localhost:${options.connection}`,
+      cancellationToken,
+      logger,
+    );
 
   const inspectWs = options.inspectUri
     ? constructInspectorWSUri(options.inspectUri, options.url, endpoint)

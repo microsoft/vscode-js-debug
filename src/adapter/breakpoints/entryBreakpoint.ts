@@ -14,7 +14,9 @@ import { Breakpoint, LineColumn } from './breakpointBase';
  */
 export class EntryBreakpoint extends Breakpoint {
   public static getModeKeyForSource(mode: EntryBreakpointMode, path: string) {
-    return mode === EntryBreakpointMode.Greedy ? basename(path, extname(path) || undefined) : path;
+    return mode === EntryBreakpointMode.Greedy
+      ? basename(path, extname(path) || undefined)
+      : path;
   }
 
   constructor(

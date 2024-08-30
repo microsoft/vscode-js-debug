@@ -172,8 +172,9 @@ export class CdpProxyProvider implements ICdpProxyProvider {
       for (const event of events) {
         if (event.endsWith(eventWildcard)) {
           handle.pushDisposable(
-            this.cdp.session.onPrefix(event.slice(0, -eventWildcard.length), c =>
-              handle.send({ method: c.method, params: c.params }),
+            this.cdp.session.onPrefix(
+              event.slice(0, -eventWildcard.length),
+              c => handle.send({ method: c.method, params: c.params }),
             ),
           );
         } else {
@@ -212,8 +213,9 @@ export class CdpProxyProvider implements ICdpProxyProvider {
       }
     });
 
-    cdp.CSS.on('styleSheetRemoved', evt =>
-      this.replay.filter('CSS', s => s.params.styleSheetId !== evt.styleSheetId),
+    cdp.CSS.on(
+      'styleSheetRemoved',
+      evt => this.replay.filter('CSS', s => s.params.styleSheetId !== evt.styleSheetId),
     );
   }
 
@@ -241,7 +243,9 @@ export class CdpProxyProvider implements ICdpProxyProvider {
 
     server.on('connection', client => {
       const clientHandle = new ClientHandle(client, this.logger);
-      this.logger.info(LogTag.ProxyActivity, 'accepted proxy connection', { id: clientHandle.id });
+      this.logger.info(LogTag.ProxyActivity, 'accepted proxy connection', {
+        id: clientHandle.id,
+      });
 
       client.on('close', () => {
         this.logger.verbose(LogTag.ProxyActivity, 'closed proxy connection', {
@@ -266,14 +270,14 @@ export class CdpProxyProvider implements ICdpProxyProvider {
         const { method, params, id = 0 } = message;
         const [domain, fn] = method.split('.');
         try {
-          const result =
-            domain === jsDebugDomain
-              ? await this.invokeJsDebugDomainMethod(clientHandle, fn, params)
-              : await this.invokeCdpMethod(clientHandle, domain, fn, params);
+          const result = domain === jsDebugDomain
+            ? await this.invokeJsDebugDomainMethod(clientHandle, fn, params)
+            : await this.invokeCdpMethod(clientHandle, domain, fn, params);
           clientHandle.send({ id, result });
         } catch (e) {
-          const error =
-            e instanceof ProtocolError && e.cause ? e.cause : { code: 0, message: e.message };
+          const error = e instanceof ProtocolError && e.cause
+            ? e.cause
+            : { code: 0, message: e.message };
           clientHandle.send({ id, error });
         }
       });
@@ -303,7 +307,7 @@ export class CdpProxyProvider implements ICdpProxyProvider {
         this.replay.clearDomain(domain as keyof Cdp.Api);
         break;
       default:
-      // no-op
+        // no-op
     }
 
     // it's intentional that replay is sent before the

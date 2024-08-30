@@ -29,7 +29,9 @@ export async function debugNpmScript(inFolder?: vscode.WorkspaceFolder | string)
   }
 
   const runScript = async (script: IScript) => {
-    const workspaceFolder = vscode.workspace.getWorkspaceFolder(vscode.Uri.file(script.directory));
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(
+      vscode.Uri.file(script.directory),
+    );
     runCommand(
       vscode.commands,
       Commands.CreateDebuggerTerminal,
@@ -111,7 +113,7 @@ export async function findScripts(
           new vscode.RelativePattern(f, '**/package.json'),
           // matches https://github.com/microsoft/vscode/blob/18f743d534ef3f528c5e81e82e695b87c60d2ebf/extensions/npm/src/tasks.ts#L189
           '**/{node_modules,.vscode-test}/**',
-        ),
+        )
       ),
     )
   ).flat();

@@ -72,7 +72,9 @@ export const nvmNotFound = () =>
 
 export const nvsNotFound = () =>
   createUserError(
-    l10n.t("Attribute 'runtimeVersion' with a flavor/architecture requires 'nvs' to be installed."),
+    l10n.t(
+      "Attribute 'runtimeVersion' with a flavor/architecture requires 'nvs' to be installed.",
+    ),
     ErrorCodes.NvsNotFound,
   );
 
@@ -161,14 +163,14 @@ export const browserNotFound = (
   createUserError(
     requested === '*' && !available.length
       ? l10n.t(
-          'Unable to find an installation of the browser on your system. Try installing it, or providing an absolute path to the browser in the "runtimeExecutable" in your launch.json.',
-        )
+        'Unable to find an installation of the browser on your system. Try installing it, or providing an absolute path to the browser in the "runtimeExecutable" in your launch.json.',
+      )
       : l10n.t(
-          'Unable to find {0} version {1}. Available auto-discovered versions are: {2}. You can set the "runtimeExecutable" in your launch.json to one of these, or provide an absolute path to the browser executable.',
-          browserType,
-          requested,
-          JSON.stringify([...new Set(available)]),
-        ),
+        'Unable to find {0} version {1}. Available auto-discovered versions are: {2}. You can set the "runtimeExecutable" in your launch.json to one of these, or provide an absolute path to the browser executable.',
+        browserType,
+        requested,
+        JSON.stringify([...new Set(available)]),
+      ),
     ErrorCodes.BrowserNotFound,
   );
 
@@ -179,7 +181,10 @@ export const browserLaunchFailed = (innerError: Error) =>
   );
 
 export const browserAttachFailed = (message?: string) =>
-  createUserError(message ?? l10n.t('Unable to attach to browser'), ErrorCodes.BrowserAttachFailed);
+  createUserError(
+    message ?? l10n.t('Unable to attach to browser'),
+    ErrorCodes.BrowserAttachFailed,
+  );
 
 export const targetPageNotFound = () =>
   createUserError(

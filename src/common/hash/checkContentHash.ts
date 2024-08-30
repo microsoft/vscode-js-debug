@@ -2,10 +2,10 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { Hasher } from '.';
+import { promises as fsPromises } from 'fs';
 import { LocalFsUtils } from '../fsUtils';
 import { isWithinAsar } from '../pathUtils';
-import { promises as fsPromises } from 'fs';
+import { Hasher } from '.';
 
 const hasher = new Hasher();
 
@@ -27,10 +27,9 @@ export async function checkContentHash(
     return exists ? absolutePath : undefined;
   }
 
-  const result =
-    typeof contentOverride === 'string'
-      ? await hasher.verifyBytes(contentOverride, contentHash, true)
-      : await hasher.verifyFile(absolutePath, contentHash, true);
+  const result = typeof contentOverride === 'string'
+    ? await hasher.verifyBytes(contentOverride, contentHash, true)
+    : await hasher.verifyFile(absolutePath, contentHash, true);
 
   return result ? absolutePath : undefined;
 }

@@ -63,7 +63,9 @@ export class BreakpointTerminationConditionFactory implements ITerminationCondit
         const codeBps = vscode.debug.breakpoints.filter(
           bp => bp.enabled && bp instanceof vscode.SourceBreakpoint,
         );
-        const dapBps = await Promise.all(codeBps.map(bp => session.getDebugProtocolBreakpoint(bp)));
+        const dapBps = await Promise.all(
+          codeBps.map(bp => session.getDebugProtocolBreakpoint(bp)),
+        );
         const candidates = await this.getCandidates(
           dapBps as (Dap.Breakpoint | undefined)[],
           codeBps as vscode.SourceBreakpoint[],

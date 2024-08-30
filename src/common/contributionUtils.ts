@@ -12,8 +12,8 @@ import type {
 import type Dap from '../dap/api';
 import type { IAutoAttachInfo } from '../targets/node/bootloader/environment';
 import type { ExcludedCaller } from '../ui/excludedCallersUI';
-import type { IStartProfileArguments } from '../ui/profiling/uiProfileManager';
 import type { NetworkRequest } from '../ui/networkTree';
+import type { IStartProfileArguments } from '../ui/profiling/uiProfileManager';
 
 export const enum Contributions {
   BrowserBreakpointsView = 'jsBrowserBreakpoints',
@@ -55,21 +55,21 @@ export const enum Commands {
   OpenEdgeDevTools = 'extension.js-debug.openEdgeDevTools',
   DisableSourceMapStepping = 'extension.js-debug.disableSourceMapStepping',
   EnableSourceMapStepping = 'extension.js-debug.enableSourceMapStepping',
-  //#region Excluded callers view
+  // #region Excluded callers view
   CallersGoToCaller = 'extension.js-debug.callers.goToCaller',
   CallersGoToTarget = 'extension.js-debug.callers.gotToTarget',
   CallersRemove = 'extension.js-debug.callers.remove',
   CallersRemoveAll = 'extension.js-debug.callers.removeAll',
   CallersAdd = 'extension.js-debug.callers.add',
-  //#endregion
-  //#region Network view
+  // #endregion
+  // #region Network view
   NetworkViewRequest = 'extension.js-debug.network.viewRequest',
   NetworkCopyUri = 'extension.js-debug.network.copyUri',
   NetworkOpenBody = 'extension.js-debug.network.openBody',
   NetworkOpenBodyHex = 'extension.js-debug.network.openBodyInHex',
   NetworkReplayXHR = 'extension.js-debug.network.replayXHR',
   NetworkClear = 'extension.js-debug.network.clear',
-  //#endregion
+  // #endregion
 }
 
 export const enum DebugType {

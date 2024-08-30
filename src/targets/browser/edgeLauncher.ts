@@ -48,9 +48,9 @@ export class EdgeLauncher extends BrowserLauncher<IEdgeLaunchConfiguration> {
    * @inheritdoc
    */
   protected resolveParams(params: AnyLaunchConfiguration) {
-    return params.type === DebugType.Edge &&
-      params.request === 'launch' &&
-      params.browserLaunchLocation === 'workspace'
+    return params.type === DebugType.Edge
+        && params.request === 'launch'
+        && params.browserLaunchLocation === 'workspace'
       ? params
       : undefined;
   }
@@ -136,8 +136,8 @@ export class EdgeLauncher extends BrowserLauncher<IEdgeLaunchConfiguration> {
 
     // We must set a user data directory so the DevToolsActivePort file will be written.
     // See: https://crrev.com//21e1940/content/public/browser/devtools_agent_host.h#99
-    params.userDataDir =
-      params.userDataDir || join(tmpdir(), `vscode-js-debug-userdatadir_${params.port}`);
+    params.userDataDir = params.userDataDir
+      || join(tmpdir(), `vscode-js-debug-userdatadir_${params.port}`);
 
     // Web views are indirectly configured for debugging with environment variables.
     // See the WebView2 documentation for more details.

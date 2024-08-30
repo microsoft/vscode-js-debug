@@ -13,7 +13,7 @@ import { DebugAdapter } from './adapter/debugAdapter';
 import { Binder, IBinderDelegate } from './binder';
 import { ILogger } from './common/logging';
 import { ProxyLogger } from './common/logging/proxyLogger';
-import { IDeferred, getDeferred } from './common/promiseUtil';
+import { getDeferred, IDeferred } from './common/promiseUtil';
 import { AnyResolvingConfiguration } from './configuration';
 import Dap from './dap/api';
 import DapConnection from './dap/connection';
@@ -184,10 +184,12 @@ class DapSessionManager implements IBinderDelegate {
       throw new Error(`Expected to find pending init for target ${target.id()}`);
     }
 
-    if (init.setExceptionBreakpointsParams)
+    if (init.setExceptionBreakpointsParams) {
       await adapter.setExceptionBreakpoints(init.setExceptionBreakpointsParams);
-    for (const { params, ids } of init.setBreakpointsParams)
+    }
+    for (const { params, ids } of init.setBreakpointsParams) {
       await adapter.breakpointManager.setBreakpoints(params, ids);
+    }
     await adapter.setCustomBreakpoints({
       xhr: init.xhrBreakpoints,
       ids: init.customBreakpoints,

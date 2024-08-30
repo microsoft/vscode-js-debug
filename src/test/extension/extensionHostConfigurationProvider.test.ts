@@ -45,7 +45,7 @@ describe('ExtensionHostConfigurationProvider', () => {
         'withoutWeb/package.json': JSON.stringify({}),
         'withEntrypoint1/package.json': JSON.stringify({ main: './foo/j/x.js' }),
         'withEntrypoint2/nested/package.json': JSON.stringify({ main: './bar/j/x.js' }),
-      }),
+      })
     );
 
     it('does not enable if no args', async () => {
@@ -62,7 +62,10 @@ describe('ExtensionHostConfigurationProvider', () => {
     });
 
     it('does not enable if enoent folder', async () => {
-      const result = await provider.resolveDebugConfiguration(folder('doesNotExist'), emptyRequest);
+      const result = await provider.resolveDebugConfiguration(
+        folder('doesNotExist'),
+        emptyRequest,
+      );
       expect(result?.debugWebWorkerHost).to.be.false;
     });
 

@@ -28,7 +28,7 @@ import { browserAttachFailed, browserLaunchFailed, targetPageNotFound } from '..
 import { ProtocolError } from '../../dap/protocolError';
 import { FS, FsPromises, IInitializeParams, StoragePath } from '../../ioc-extras';
 import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
-import { ILaunchContext, ILaunchResult, ILauncher, IStopMetadata, ITarget } from '../targets';
+import { ILaunchContext, ILauncher, ILaunchResult, IStopMetadata, ITarget } from '../targets';
 import { BrowserTargetManager } from './browserTargetManager';
 import { BrowserTarget, BrowserTargetType } from './browserTargets';
 import * as launcher from './launcher';
@@ -235,7 +235,7 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
     };
 
     const launchTokenListener = ctx.cancellationToken.onCancellationRequested(() =>
-      launchCts.cancel(),
+      launchCts.cancel()
     );
 
     try {
@@ -267,7 +267,7 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
     }
 
     this._targetManager.serviceWorkerModel.onDidChange(() =>
-      this._onTargetListChangedEmitter.fire(),
+      this._onTargetListChangedEmitter.fire()
     );
     this._targetManager.frameModel.onFrameNavigated(() => this._onTargetListChangedEmitter.fire());
     this._disposables.push(this._targetManager);
@@ -379,8 +379,8 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
     if (executablePath === '*') {
       // try to find the stable browser, but if that fails just get any browser
       // that's available on the system
-      const found =
-        (await finder.findWhere(r => r.quality === 'stable')) || (await finder.findAll())[0];
+      const found = (await finder.findWhere(r => r.quality === 'stable'))
+        || (await finder.findAll())[0];
       return found?.path;
     } else if (isQuality(executablePath)) {
       return (await finder.findWhere(r => r.quality === executablePath))?.path;

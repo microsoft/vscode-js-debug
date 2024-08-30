@@ -1,10 +1,10 @@
 /*---------------------------------------------------------
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
+import { randomBytes } from 'crypto';
+import { existsSync, readFileSync, unlinkSync } from 'fs';
 import { tmpdir } from 'os';
 import * as path from 'path';
-import { randomBytes } from 'crypto';
-import { unlinkSync, existsSync, readFileSync } from 'fs';
 import { IDisposable } from '../../common/disposable';
 
 /**

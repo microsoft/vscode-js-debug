@@ -32,7 +32,7 @@ describe('react', () => {
   });
 
   describe('TS', () => {
-    beforeEach(async function () {
+    beforeEach(async function() {
       this.timeout(60000 * 4);
       projectFolder = join(testFixturesDir, projectName);
       await setupCRA(projectName, testFixturesDir, ['--template', 'cra-template-typescript']);
@@ -57,7 +57,7 @@ describe('react', () => {
   });
 
   describe('JS', () => {
-    beforeEach(async function () {
+    beforeEach(async function() {
       this.timeout(60000 * 4);
       projectFolder = join(testFixturesDir, projectName);
       await setupCRA(projectName, testFixturesDir);

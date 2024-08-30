@@ -411,9 +411,9 @@ describe('variables', () => {
       await walkVariables(p.dap, v, (variable, depth) => {
         p.log('  '.repeat(depth) + variable.evaluateName);
         return (
-          !variable.name.startsWith('__') &&
-          !variable.name.startsWith('[[') &&
-          variable.name !== 'this'
+          !variable.name.startsWith('__')
+          && !variable.name.startsWith('[[')
+          && variable.name !== 'this'
         );
       });
 

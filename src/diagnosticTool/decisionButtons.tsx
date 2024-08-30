@@ -12,9 +12,13 @@ export const DecisionButtons = <T extends string>(
 }> =>
   function DecisionButtons({ value, onChange }) {
     return (
-      <div className="decision-buttons">
+      <div className='decision-buttons'>
         {options.map(b => (
-          <button key={b} onClick={() => onChange(b)} className={value === b ? 'active' : ''}>
+          <button
+            key={b}
+            onClick={() => onChange(b)}
+            className={value === b ? 'active' : ''}
+          >
             {b}
           </button>
         ))}

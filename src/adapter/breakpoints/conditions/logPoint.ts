@@ -6,13 +6,13 @@ import { generate } from 'astring';
 import { createHash } from 'crypto';
 import { Statement } from 'estree';
 import { inject, injectable } from 'inversify';
-import { IBreakpointCondition } from '.';
 import { parseSource, returnErrorsFromStatements } from '../../../common/sourceCodeManipulations';
 import { getSyntaxErrorIn } from '../../../common/sourceUtils';
 import Dap from '../../../dap/api';
 import { invalidBreakPointCondition } from '../../../dap/errors';
 import { ProtocolError } from '../../../dap/protocolError';
 import { IEvaluator } from '../../evaluator';
+import { IBreakpointCondition } from '.';
 import { RuntimeLogPoint } from './runtimeLogPoint';
 import { SimpleCondition } from './simple';
 

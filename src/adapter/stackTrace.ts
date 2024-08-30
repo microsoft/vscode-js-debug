@@ -14,8 +14,8 @@ import { ProtocolError } from '../dap/protocolError';
 import { WasmScope } from './dwarf/wasmSymbolProvider';
 import { PreviewContextType } from './objectPreview/contexts';
 import { StepDirection } from './pause';
-import { StackFrameStepOverReason, shouldStepOverStackFrame } from './smartStepping';
-import { ISourceWithMap, IWasmLocationProvider, SourceFromMap, isSourceWithWasm } from './source';
+import { shouldStepOverStackFrame, StackFrameStepOverReason } from './smartStepping';
+import { ISourceWithMap, isSourceWithWasm, IWasmLocationProvider, SourceFromMap } from './source';
 import { IPreferredUiLocation } from './sourceContainer';
 import { getToStringIfCustom } from './templates/getStringyProps';
 import { RawLocation, Thread } from './threads';
@@ -92,7 +92,9 @@ export class StackTrace {
     parentId?: Cdp.Runtime.StackTraceId,
   ): StackTrace {
     const result = new StackTrace(thread);
-    for (const callFrame of frames) result._appendFrame(StackFrame.fromDebugger(thread, callFrame));
+    for (const callFrame of frames) {
+      result._appendFrame(StackFrame.fromDebugger(thread, callFrame));
+    }
     if (parentId) {
       result._asyncStackTraceId = parentId;
       console.assert(!parent);
@@ -191,8 +193,9 @@ export class StackTrace {
     console.assert(!stackTrace || !this._asyncStackTraceId);
 
     while (stackTrace) {
-      if (stackTrace.description === 'async function' && stackTrace.callFrames.length)
+      if (stackTrace.description === 'async function' && stackTrace.callFrames.length) {
         stackTrace.callFrames.shift();
+      }
 
       if (stackTrace.callFrames.length) {
         this._appendFrame(new AsyncSeparator(stackTrace.description || 'async'));
@@ -446,10 +449,10 @@ export class StackFrame implements IStackFrameElement {
    */
   public equivalentTo(other: unknown) {
     return (
-      other instanceof StackFrame &&
-      other._rawLocation.columnNumber === this._rawLocation.columnNumber &&
-      other._rawLocation.lineNumber === this._rawLocation.lineNumber &&
-      other._rawLocation.scriptId === this._rawLocation.scriptId
+      other instanceof StackFrame
+      && other._rawLocation.columnNumber === this._rawLocation.columnNumber
+      && other._rawLocation.lineNumber === this._rawLocation.lineNumber
+      && other._rawLocation.scriptId === this._rawLocation.scriptId
     );
   }
 
@@ -554,14 +557,13 @@ export class StackFrame implements IStackFrameElement {
     const isSmartStepped = await shouldStepOverStackFrame(this);
     // only use the relatively expensive custom tostring lookup for frames
     // that aren't skipped, to avoid unnecessary work e.g. on node_internals
-    const name =
-      this.overrideName ||
-      ('this' in this.callFrame
+    const name = this.overrideName
+      || ('this' in this.callFrame
         ? await getEnhancedName(
-            this._thread,
-            this.callFrame,
-            isSmartStepped === StackFrameStepOverReason.NotStepped,
-          )
+          this._thread,
+          this.callFrame,
+          isSmartStepped === StackFrameStepOverReason.NotStepped,
+        )
         : getDefaultName(this.callFrame));
 
     return { isSmartStepped, name, uiLocation: await uiLocation };
@@ -573,10 +575,9 @@ export class StackFrame implements IStackFrameElement {
     const source = uiLocation ? await uiLocation.source.toDap() : undefined;
     const presentationHint = isSmartStepped ? 'deemphasize' : 'normal';
     if (isSmartStepped && source) {
-      source.origin =
-        isSmartStepped === StackFrameStepOverReason.SmartStep
-          ? l10n.t('Skipped by smartStep')
-          : l10n.t('Skipped by skipFiles');
+      source.origin = isSmartStepped === StackFrameStepOverReason.SmartStep
+        ? l10n.t('Skipped by smartStep')
+        : l10n.t('Skipped by skipFiles');
     }
 
     const line = (uiLocation || this._rawLocation).lineNumber;
@@ -610,10 +611,9 @@ export class StackFrame implements IStackFrameElement {
   /** @inheritdoc */
   async formatAsNative(): Promise<string> {
     const { name, uiLocation } = await this.getLocationInfo();
-    const url =
-      (await uiLocation?.source.existingAbsolutePath()) ||
-      (await uiLocation?.source.prettyName()) ||
-      this.callFrame.url;
+    const url = (await uiLocation?.source.existingAbsolutePath())
+      || (await uiLocation?.source.prettyName())
+      || this.callFrame.url;
     const { lineNumber, columnNumber } = uiLocation || this._rawLocation;
     return `    at ${name} (${url}:${lineNumber}:${columnNumber})`;
   }
@@ -644,11 +644,12 @@ export class StackFrame implements IStackFrameElement {
     const extraProperties: IExtraProperty[] = [];
     if (scopeNumber === 0) {
       if (scope.thisObject) extraProperties.push({ name: 'this', value: scope.thisObject });
-      if (scope.returnValue)
+      if (scope.returnValue) {
         extraProperties.push({
           name: l10n.t('Return value'),
           value: scope.returnValue,
         });
+      }
     }
 
     const paused = this._thread.pausedVariables();
@@ -656,7 +657,11 @@ export class StackFrame implements IStackFrameElement {
       return undefined;
     }
 
-    const variable = paused.createScope(scope.chain[scopeNumber].object, scopeRef, extraProperties);
+    const variable = paused.createScope(
+      scope.chain[scopeNumber].object,
+      scopeRef,
+      extraProperties,
+    );
     return (scope.variables[scopeNumber] = variable);
   }
 
@@ -731,7 +736,7 @@ export class InlinedFrame implements IStackFrameElement {
         columnNumber: opts.root.rawPosition.base1.columnNumber,
         lineNumber: opts.inlineFrameIndex + 1,
         source: opts.source,
-      }),
+      })
     );
   }
 
@@ -814,7 +819,7 @@ export class InlinedFrame implements IStackFrameElement {
               name: v.name,
               variablesReference: v.variablesReference,
               expensive: key !== WasmScope.Local,
-            })),
+            }))
         ),
       ),
     };

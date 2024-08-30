@@ -9,7 +9,7 @@ import * as path from 'path';
 import { delay } from '../common/promiseUtil';
 import { GoldenText } from './goldenText';
 import { IGoldenReporterTextTest } from './reporters/goldenTextReporterUtils';
-import { ITestHandle, TestRoot, testFixturesDir, testWorkspace } from './test';
+import { ITestHandle, testFixturesDir, TestRoot, testWorkspace } from './test';
 
 process.env['DA_TEST_DISABLE_TELEMETRY'] = 'true';
 
@@ -51,7 +51,7 @@ const itIntegratesBasic = (
   fn: (s: IIntegrationState) => Promise<void> | void,
   testFunction: TestFunction | ExclusiveTestFunction = it,
 ) =>
-  testFunction(test, async function () {
+  testFunction(test, async function() {
     if (!this.test?.file) {
       throw new Error(`Could not find file for test`);
     }
@@ -110,7 +110,7 @@ export const eventuallyOk = async <T>(
 
 afterEach(async () => {
   // Retry to avoid flaking with EINVAL/EBUSY if files are written out during deletion
-  for (let retries = 10; retries >= 0; retries--)
+  for (let retries = 10; retries >= 0; retries--) {
     try {
       await fs.rm(testFixturesDir, { recursive: true, force: true });
       return;
@@ -120,6 +120,7 @@ afterEach(async () => {
       }
       await delay(100);
     }
+  }
 });
 
 export async function waitForPause(p: ITestHandle, cb?: (threadId: number) => Promise<void>) {

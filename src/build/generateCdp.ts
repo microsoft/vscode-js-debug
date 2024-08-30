@@ -132,7 +132,7 @@ async function generate() {
 
   function createSeparator() {
     let first = true;
-    return function () {
+    return function() {
       if (!first) result.push('');
       first = false;
     };
@@ -177,18 +177,22 @@ async function generate() {
       apiSeparator();
       appendText(command.description, { deprecated: !!command.deprecated });
       result.push(
-        `${command.name}(params: ${name}.${toTitleCase(
-          command.name,
-        )}Params): Promise<${name}.${toTitleCase(command.name)}Result | undefined>;`,
+        `${command.name}(params: ${name}.${
+          toTitleCase(
+            command.name,
+          )
+        }Params): Promise<${name}.${toTitleCase(command.name)}Result | undefined>;`,
       );
     }
     for (const event of events) {
       apiSeparator();
       appendText(event.description, { deprecated: !!event.deprecated });
       result.push(
-        `on(event: '${event.name}', listener: (event: ${name}.${toTitleCase(
-          event.name,
-        )}Event) => void): IDisposable;`,
+        `on(event: '${event.name}', listener: (event: ${name}.${
+          toTitleCase(
+            event.name,
+          )
+        }Event) => void): IDisposable;`,
       );
     }
     result.push(`}`);
@@ -279,7 +283,7 @@ async function generate() {
       ${propertiesClassifications.join('\n')}
     }
     `;
-    writeCodeToFile(interfaceCode, 'src/cdp/telemetryClassification.d.ts', { printWidth: 150 });
+    writeCodeToFile(interfaceCode, 'src/cdp/telemetryClassification.d.ts');
   }
 
   generateTelemetryClassifications(domains);

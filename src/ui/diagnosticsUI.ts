@@ -37,20 +37,21 @@ export class DiagnosticsUI implements IExtensionContribution {
           });
         }
       }),
-      registerCommand(vscode.commands, Commands.CreateDiagnostics, async () =>
-        this.getDiagnosticInfo(await this.getTargetSession()),
+      registerCommand(
+        vscode.commands,
+        Commands.CreateDiagnostics,
+        async () => this.getDiagnosticInfo(await this.getTargetSession()),
       ),
-
       vscode.debug.onDidReceiveDebugSessionCustomEvent(async evt => {
         if (evt.event === 'openDiagnosticTool') {
           return this.openDiagnosticTool(evt.body.file);
         }
 
         if (
-          evt.event !== 'suggestDiagnosticTool' ||
-          this.dismissedForSession ||
-          this.context.workspaceState.get(neverRemindKey) ||
-          this.isPrompting
+          evt.event !== 'suggestDiagnosticTool'
+          || this.dismissedForSession
+          || this.context.workspaceState.get(neverRemindKey)
+          || this.isPrompting
         ) {
           return;
         }

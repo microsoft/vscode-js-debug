@@ -2,8 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import os from 'os';
 import mocha from 'mocha';
+import os from 'os';
 import path from 'path';
 
 export interface TestWithLogfile extends mocha.Test {

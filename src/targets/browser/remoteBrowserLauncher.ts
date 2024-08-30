@@ -15,7 +15,7 @@ import { FS, FsPromises, IInitializeParams, StoragePath } from '../../ioc-extras
 import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
 import { BrowserArgs } from './browserArgs';
 import { BrowserLauncher } from './browserLauncher';
-import { ILaunchResult, defaultArgs } from './launcher';
+import { defaultArgs, ILaunchResult } from './launcher';
 import { RemoteBrowserHelper } from './remoteBrowserHelper';
 
 @injectable()
@@ -35,9 +35,9 @@ export class RemoteBrowserLauncher extends BrowserLauncher<AnyChromiumLaunchConf
    * @inheritdoc
    */
   protected resolveParams(params: AnyLaunchConfiguration) {
-    return (params.type === DebugType.Chrome || params.type === DebugType.Edge) &&
-      params.request === 'launch' &&
-      params.browserLaunchLocation === 'ui'
+    return (params.type === DebugType.Chrome || params.type === DebugType.Edge)
+        && params.request === 'launch'
+        && params.browserLaunchLocation === 'ui'
       ? params
       : undefined;
   }

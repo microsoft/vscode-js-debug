@@ -3,9 +3,9 @@
  *--------------------------------------------------------*/
 
 import * as path from 'path';
-import { ITelemetryReporter } from './telemetryReporter';
-import { LogTag, ILogger } from '../common/logging';
 import { IDisposable } from '../common/disposable';
+import { ILogger, LogTag } from '../common/logging';
+import { ITelemetryReporter } from './telemetryReporter';
 
 export const enum ErrorType {
   Exception = 'uncaughtException',
@@ -65,8 +65,8 @@ function shouldReportThisError(error: unknown): boolean {
   // In VS Code, this debug adapter runs inside the extension host process, so we could capture
   // errors from other pieces of software here. We check to make sure this is our error before reporting it
   return (
-    !shouldFilterErrorsReportedToTelemetry ||
-    (isErrorObjectLike(error) && !!error.stack?.includes(debugAdapterFolder))
+    !shouldFilterErrorsReportedToTelemetry
+    || (isErrorObjectLike(error) && !!error.stack?.includes(debugAdapterFolder))
   );
 }
 

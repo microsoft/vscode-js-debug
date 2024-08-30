@@ -185,7 +185,9 @@ describe('evaluate', () => {
     await p.logger.evaluateAndLog(`42`, { format });
     p.log('');
 
-    await p.logger.evaluateAndLog(`123567891235678912356789123567891235678912356789n`, { format });
+    await p.logger.evaluateAndLog(`123567891235678912356789123567891235678912356789n`, {
+      format,
+    });
     p.log('');
 
     await p.logger.evaluateAndLog(`'hello world'`, { format });
@@ -218,14 +220,16 @@ describe('evaluate', () => {
     "complex key": true,
   },
 }`,
-    [`{
+    [
+      `{
   double(x) {
     return x * 2;
   },
   triple: x => {
     return x * 3
   }
-}`]: `{
+}`
+    ]: `{
   double: function(x) {
     return x * 2;
   },
@@ -243,7 +247,8 @@ describe('evaluate', () => {
     'new Float32Array([1.5, 2.5, 3.5])': 'new Float32Array([1.5, 2.5, 3.5])',
     '1n << 100n': '1267650600228229401496703205376n',
     'new Date(1665007127286)': '"2022-10-05T21:58:47.286Z"',
-    '(() => { const node = document.createElement("div"); node.innerText = "hi"; return node })()': `<div>hi</div>`,
+    '(() => { const node = document.createElement("div"); node.innerText = "hi"; return node })()':
+      `<div>hi</div>`,
   };
 
   itIntegrates('copy via function', async ({ r }) => {
@@ -463,10 +468,9 @@ describe('evaluate', () => {
 
     async function logCompletions(params: Dap.CompletionsParams) {
       const completions = await p.dap.completions(params);
-      const text =
-        params.text.substring(0, params.column - 1) +
-        '|' +
-        params.text.substring(params.column - 1);
+      const text = params.text.substring(0, params.column - 1)
+        + '|'
+        + params.text.substring(params.column - 1);
       p.log(
         completions.targets.filter(c => c.label.startsWith('cd')),
         `"${text}": `,

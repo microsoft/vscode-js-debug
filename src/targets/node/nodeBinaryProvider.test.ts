@@ -16,7 +16,7 @@ import { createFileTree, getTestDir } from '../../test/createFileTree';
 import { testWorkspace } from '../../test/test';
 import { IPackageJsonProvider } from './packageJsonProvider';
 
-describe('NodeBinaryProvider', function () {
+describe('NodeBinaryProvider', function() {
   this.timeout(30 * 1000); // windows lookups in CI seem to be very slow sometimes
 
   let p: NodeBinaryProvider;
@@ -61,7 +61,10 @@ describe('NodeBinaryProvider', function () {
   });
 
   it('resolves absolute paths', async () => {
-    const binary = await p.resolveAndValidate(EnvironmentVars.empty, binaryLocation('up-to-date'));
+    const binary = await p.resolveAndValidate(
+      EnvironmentVars.empty,
+      binaryLocation('up-to-date'),
+    );
     expect(binary.path).to.equal(binaryLocation('up-to-date'));
     expect(binary.version).to.deep.equal(new Semver(12, 0, 0));
     expect(binary.isPreciselyKnown).to.be.true;
@@ -76,7 +79,9 @@ describe('NodeBinaryProvider', function () {
         ),
         'babel',
       );
-      expect(binary.path).to.equal(join(testWorkspace, 'nodePathProvider', 'no-node', 'babel.cmd'));
+      expect(binary.path).to.equal(
+        join(testWorkspace, 'nodePathProvider', 'no-node', 'babel.cmd'),
+      );
     });
   }
 

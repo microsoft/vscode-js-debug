@@ -7,11 +7,11 @@ import { LookupAddress, promises as dns } from 'dns';
 import got, { Headers, OptionsOfTextResponseBody, RequestError } from 'got';
 import { inject, injectable, optional } from 'inversify';
 import { CancellationToken } from 'vscode';
-import { HttpStatusError, IResourceProvider, Response } from '.';
 import { NeverCancelled } from '../../common/cancellation';
 import { DisposableList } from '../../common/disposable';
 import { fileUrlToAbsolutePath, isAbsolute, isLoopback } from '../../common/urlUtils';
 import { FS, FsPromises } from '../../ioc-extras';
+import { HttpStatusError, IResourceProvider, Response } from '.';
 import { IRequestOptionsProvider } from './requestOptionsProvider';
 
 @injectable()

@@ -10,9 +10,9 @@ import { truthy } from '../objUtils';
 import { fixDriveLetterAndSlashes } from '../pathUtils';
 import { CacheTree } from './cacheTree';
 import {
+  createMetadataForFile,
   ISearchStrategy,
   ISourcemapStreamOptions,
-  createMetadataForFile,
 } from './sourceMapRepository';
 import { IGlobCached, TurboGlobStream } from './turboGlobStream';
 
@@ -34,8 +34,9 @@ export class TurboSearchStrategy implements ISearchStrategy {
   ): Promise<T[]> {
     const todo: (T | Promise<T>)[] = [];
 
-    await this.globForFiles(files, value =>
-      todo.push(onChild(fixDriveLetterAndSlashes(value.path))),
+    await this.globForFiles(
+      files,
+      value => todo.push(onChild(fixDriveLetterAndSlashes(value.path))),
     );
 
     // Type annotation is necessary for https://github.com/microsoft/TypeScript/issues/47144
@@ -118,7 +119,7 @@ export class TurboSearchStrategy implements ISearchStrategy {
             )
               .on('data', onFile)
               .on('end', resolve)
-              .on('error', reject),
+              .on('error', reject)
           ),
       ),
     );

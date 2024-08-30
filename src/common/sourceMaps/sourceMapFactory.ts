@@ -164,12 +164,12 @@ export class RootSourceMapFactory implements IRootSourceMapFactory {
         sm.sections.map((s, i) =>
           'url' in s
             ? this.parseSourceMap(resourceProvider, s.url)
-                .then(map => ({ offset: s.offset, map }))
-                .catch(e => {
-                  this.logger.warn(LogTag.SourceMapParsing, `Error parsing nested map ${i}: ${e}`);
-                  return undefined;
-                })
-            : s,
+              .then(map => ({ offset: s.offset, map }))
+              .catch(e => {
+                this.logger.warn(LogTag.SourceMapParsing, `Error parsing nested map ${i}: ${e}`);
+                return undefined;
+              })
+            : s
         ),
       );
 
@@ -297,7 +297,11 @@ export class CachingSourceMapFactory extends RootSourceMapFactory {
 
   private loadNewSourceMap(resourceProvider: IResourceProvider, metadata: ISourceMapMetadata) {
     const created = super.load(resourceProvider, metadata);
-    this.knownMaps.set(metadata.sourceMapUrl, { metadata, reloadIfNoMtime: false, prom: created });
+    this.knownMaps.set(metadata.sourceMapUrl, {
+      metadata,
+      reloadIfNoMtime: false,
+      prom: created,
+    });
     return created;
   }
 

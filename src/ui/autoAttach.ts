@@ -90,8 +90,8 @@ export function registerAutoAttach(
     }),
     registerCommand(vscode.commands, Commands.AutoAttachToProcess, async info => {
       try {
-        const wf =
-          info.scriptName && vscode.workspace.getWorkspaceFolder(vscode.Uri.file(info.scriptName));
+        const wf = info.scriptName
+          && vscode.workspace.getWorkspaceFolder(vscode.Uri.file(info.scriptName));
         const launcher = await acquireLauncher(wf || vscode.workspace.workspaceFolders?.[0]);
         launcher.spawnForChild(info);
       } catch (err) {

@@ -179,8 +179,8 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<TreeItem> {
         if (!enabled && parent.checked) {
           parent.checkboxState = state;
         } else if (
-          enabled &&
-          (this.getChildren(parent) as XHRBreakpoint[]).every(
+          enabled
+          && (this.getChildren(parent) as XHRBreakpoint[]).every(
             c => c.checked || c.checkboxState == undefined,
           )
         ) {
@@ -231,8 +231,8 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<TreeItem> {
     }
 
     category.checkboxState = this.xhrBreakpoints.every(
-      b => b.checkboxState === vscode.TreeItemCheckboxState.Checked,
-    )
+        b => b.checkboxState === vscode.TreeItemCheckboxState.Checked,
+      )
       ? vscode.TreeItemCheckboxState.Checked
       : vscode.TreeItemCheckboxState.Unchecked;
   }

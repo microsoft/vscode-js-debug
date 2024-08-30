@@ -38,11 +38,11 @@ export class UserDefinedBreakpoint extends Breakpoint {
    */
   public equivalentTo(other: UserDefinedBreakpoint) {
     return (
-      other.dapParams.column === this.dapParams.column &&
-      other.dapParams.line === this.dapParams.line &&
-      other.dapParams.hitCondition === this.dapParams.hitCondition &&
-      other.dapParams.condition === this.dapParams.condition &&
-      other.dapParams.logMessage === this.dapParams.logMessage
+      other.dapParams.column === this.dapParams.column
+      && other.dapParams.line === this.dapParams.line
+      && other.dapParams.hitCondition === this.dapParams.hitCondition
+      && other.dapParams.condition === this.dapParams.condition
+      && other.dapParams.logMessage === this.dapParams.logMessage
     );
   }
 

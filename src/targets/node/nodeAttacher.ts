@@ -235,7 +235,10 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
       return;
     }
 
-    const vars = await this.resolveEnvironment(run, binary, { requireLease: leasePath, openerId });
+    const vars = await this.resolveEnvironment(run, binary, {
+      requireLease: leasePath,
+      openerId,
+    });
     return this.appendEnvironmentVariables(cdp, vars);
   }
 }

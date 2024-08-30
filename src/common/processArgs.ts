@@ -101,6 +101,6 @@ export class ProcessArgs {
 
   private newThis(args: ReadonlyArray<string>) {
     type X = this;
-    return new (this.constructor as { new (args: readonly string[]): X })(args);
+    return new (this.constructor as { new(args: readonly string[]): X })(args);
   }
 }

@@ -50,9 +50,8 @@ export class SourceMapOverrides {
 
       const leftPattern = forceForwardSlashes(leftPatternRaw);
       const entryStr = `"${leftPattern}": "${rightPattern}"`;
-      const capturedGroups =
-        occurencesInString(capturingGroupRe, leftPattern) -
-        occurencesInString(nonCapturingGroupRe, leftPattern);
+      const capturedGroups = occurencesInString(capturingGroupRe, leftPattern)
+        - occurencesInString(nonCapturingGroupRe, leftPattern);
 
       if (capturedGroups > 1) {
         logger.warn(

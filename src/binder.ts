@@ -131,12 +131,11 @@ export class Binder implements IDisposable {
       }
 
       return {
-        breakpoints:
-          params.breakpoints?.map(() => ({
-            id: ++lastBreakpointId,
-            verified: false,
-            message: l10n.t('Unbound breakpoint'),
-          })) ?? [],
+        breakpoints: params.breakpoints?.map(() => ({
+          id: ++lastBreakpointId,
+          verified: false,
+          message: l10n.t('Unbound breakpoint'),
+        })) ?? [],
       };
     });
     dap.on('configurationDone', async () => ({}));
@@ -232,10 +231,9 @@ export class Binder implements IDisposable {
     provideLaunchParams(this._rootServices, params, dap);
     this._rootServices.get<ILogger>(ILogger).setup(resolveLoggerOptions(dap, params.trace));
 
-    const cts =
-      params.timeout > 0
-        ? CancellationTokenSource.withTimeout(params.timeout)
-        : new CancellationTokenSource();
+    const cts = params.timeout > 0
+      ? CancellationTokenSource.withTimeout(params.timeout)
+      : new CancellationTokenSource();
 
     if (params.rootPath) params.rootPath = urlUtils.platformPathToPreferredCase(params.rootPath);
     this._launchParams = params;
@@ -348,11 +346,15 @@ export class Binder implements IDisposable {
         dap: this._dap,
       });
     } catch (e) {
-      this._rootServices.get<ILogger>(ILogger).warn(LogTag.RuntimeLaunch, 'Launch returned error', {
-        error: e,
-        wasCancelled: cancellationToken.isCancellationRequested,
-        name,
-      });
+      this._rootServices.get<ILogger>(ILogger).warn(
+        LogTag.RuntimeLaunch,
+        'Launch returned error',
+        {
+          error: e,
+          wasCancelled: cancellationToken.isCancellationRequested,
+          name,
+        },
+      );
 
       throw e;
     }
@@ -402,8 +404,8 @@ export class Binder implements IDisposable {
     }
 
     const parentTarget = target.parent();
-    const parentContainer =
-      (parentTarget && this._serviceTree.get(parentTarget)) || this._rootServices;
+    const parentContainer = (parentTarget && this._serviceTree.get(parentTarget))
+      || this._rootServices;
     const container = createTargetContainer(parentContainer, target, dap, cdp);
     connection.attachTelemetry(container.get(ITelemetryReporter));
     this._serviceTree.set(target, parentContainer);

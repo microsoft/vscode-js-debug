@@ -293,7 +293,8 @@ export class NodeTestHandle implements ITestHandle {
 
   waitForSource(filter?: string): Promise<Dap.LoadedSourceEventParams> {
     return this.dap.once('loadedSource', event => {
-      return filter === undefined || forceForwardSlashes(event.source.path || '').includes(filter);
+      return filter === undefined
+        || forceForwardSlashes(event.source.path || '').includes(filter);
     });
   }
 
@@ -390,7 +391,9 @@ export class TestRoot {
   }
 
   public async acquireDap(target: ITarget): Promise<DapConnection> {
-    const p = target.type() === 'page' ? new TestP(this, target) : new NodeTestHandle(this, target);
+    const p = target.type() === 'page'
+      ? new TestP(this, target)
+      : new NodeTestHandle(this, target);
     this._targetToP.set(target, p);
     return p._session.adapterConnection;
   }
@@ -516,7 +519,7 @@ export class TestRoot {
         .src('**/*.*', { cwd: path.dirname(filename) })
         .pipe(gulp.dest(tmpPath))
         .on('end', resolve)
-        .on('error', reject),
+        .on('error', reject)
     );
 
     this._root.dap.launch({

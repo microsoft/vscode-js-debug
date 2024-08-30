@@ -2,10 +2,10 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { IPerformanceProvider } from '.';
 import Cdp from '../../cdp/api';
 import Dap from '../../dap/api';
 import { getSourceSuffix } from '../templates';
+import { IPerformanceProvider } from '.';
 
 export class NodePerformanceProvider implements IPerformanceProvider {
   /**

@@ -86,9 +86,9 @@ export default class Connection {
     if (object.result && object.result.scriptSource) {
       objectToLog = { ...object, result: { ...object.result, scriptSource: '<script source>' } };
     } else if (
-      object.method === 'Debugger.scriptParsed' &&
-      object.params &&
-      isDataUri(object.params.sourceMapURL)
+      object.method === 'Debugger.scriptParsed'
+      && object.params
+      && isDataUri(object.params.sourceMapURL)
     ) {
       objectToLog = {
         ...object,
@@ -142,7 +142,9 @@ export default class Connection {
     if (this._closed) return;
     this._closed = true;
     this._transport.dispose();
-    this.logger.info(LogTag.CdpReceive, 'Connection closed', { connectionId: this._connectionId });
+    this.logger.info(LogTag.CdpReceive, 'Connection closed', {
+      connectionId: this._connectionId,
+    });
     for (const session of this._sessions.values()) session._onClose();
     this._sessions.clear();
     this._onDisconnectedEmitter.fire();
@@ -232,9 +234,10 @@ export class CDPSession {
             {
               get: (_target, methodName: string) => {
                 if (methodName === 'then') return;
-                if (methodName === 'on')
+                if (methodName === 'on') {
                   return (eventName: string, listener: (params: object) => void) =>
                     this.on(`${agentName}.${eventName}`, listener);
+                }
                 return (params: object | undefined) =>
                   this.send(`${agentName}.${methodName}`, params);
               },

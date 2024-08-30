@@ -2,10 +2,10 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { ITestHandle } from '../test';
-import Dap from '../../dap/api';
-import { itIntegrates } from '../testIntegrationUtils';
 import { DebugType } from '../../common/contributionUtils';
+import Dap from '../../dap/api';
+import { ITestHandle } from '../test';
+import { itIntegrates } from '../testIntegrationUtils';
 
 describe('webview breakpoints', () => {
   async function waitForPause(p: ITestHandle, cb?: (threadId: string) => Promise<void>) {

@@ -11,7 +11,7 @@ declare class Node {
 /**
  * Safe-stringifies the value as JSON, replacing
  */
-export const serializeForClipboardTmpl = templateFunction(function (
+export const serializeForClipboardTmpl = templateFunction(function(
   valueToStringify: unknown,
   spaces: number,
 ) {
@@ -100,9 +100,9 @@ export const serializeForClipboardTmpl = templateFunction(function (
             `[`,
             ...value.map(
               item =>
-                indent.repeat(level + 1) +
-                serializeToJavaScriptyString(item, level + 1, [...seen, value]) +
-                ',',
+                indent.repeat(level + 1)
+                + serializeToJavaScriptyString(item, level + 1, [...seen, value])
+                + ',',
             ),
             indent.repeat(level) + ']',
           ].join(eol);
@@ -113,11 +113,11 @@ export const serializeForClipboardTmpl = templateFunction(function (
           `{`,
           ...Object.keys(asPropMap).map(
             key =>
-              indent.repeat(level + 1) +
-              (/^[$a-z_][0-9a-z_$]*$/i.test(key) ? key : JSON.stringify(key)) +
-              ': ' +
-              serializeToJavaScriptyString(asPropMap[key], level + 1, [...seen, value]) +
-              ',',
+              indent.repeat(level + 1)
+              + (/^[$a-z_][0-9a-z_$]*$/i.test(key) ? key : JSON.stringify(key))
+              + ': '
+              + serializeToJavaScriptyString(asPropMap[key], level + 1, [...seen, value])
+              + ',',
           ),
           indent.repeat(level) + '}',
         ].join(eol);

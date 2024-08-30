@@ -23,17 +23,11 @@
     "**/.vscode-test": true,
     "**/demos": true
   },
-  "[typescript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "editor.codeActionsOnSave": {
-    "source.organizeImports": "explicit"
-  },
+  "editor.defaultFormatter": "dprint.dprint",
+  "dprint.verbose": true,
   "editor.formatOnSave": true,
   "typescript.tsserver.experimental.enableProjectDiagnostics": true,
-  "[go]": {
-    "editor.codeActionsOnSave": {
-      "source.organizeImports": "explicit"
-    }
+  "[typescript]": {
+    "editor.defaultFormatter": "dprint.dprint"
   }
 }

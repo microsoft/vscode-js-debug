@@ -10,7 +10,7 @@ import { remoteFunction, templateFunction } from './index';
 /**
  * Enumerates completion items of the property.
  */
-export const enumerateProperties = remoteFunction(function (
+export const enumerateProperties = remoteFunction(function(
   this: unknown,
   target: unknown,
   prefix: string,
@@ -32,8 +32,8 @@ export const enumerateProperties = remoteFunction(function (
     // https://stackoverflow.com/questions/30758961/how-to-check-if-a-variable-is-an-es6-class-declaration
     const stringified = String(value);
     if (
-      stringified.startsWith('class ') ||
-      (stringified.includes('[native code]') && /^[A-Z]/.test(name))
+      stringified.startsWith('class ')
+      || (stringified.includes('[native code]') && /^[A-Z]/.test(name))
     ) {
       return CompletionKind.Class;
     }

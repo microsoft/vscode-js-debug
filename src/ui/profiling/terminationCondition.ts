@@ -2,10 +2,10 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { DebugSession } from 'vscode';
+import { IDisposable } from '../../common/disposable';
 import Dap from '../../dap/api';
 import { UiProfileSession } from './uiProfileSession';
-import { IDisposable } from '../../common/disposable';
-import { DebugSession } from 'vscode';
 
 /**
  * Item displayed to the user when picking when their profile should end.

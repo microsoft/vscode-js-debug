@@ -68,10 +68,12 @@ class Configurator {
   }
 
   async configure(adapter: DebugAdapter) {
-    if (this._setExceptionBreakpointsParams)
+    if (this._setExceptionBreakpointsParams) {
       await adapter.setExceptionBreakpoints(this._setExceptionBreakpointsParams);
-    for (const { params, ids } of this._setBreakpointsParams)
+    }
+    for (const { params, ids } of this._setBreakpointsParams) {
       await adapter.breakpointManager.setBreakpoints(params, ids);
+    }
     await adapter.setCustomBreakpoints({
       xhr: this._xhrBreakpoints,
       ids: this._customBreakpoints,

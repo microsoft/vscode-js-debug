@@ -25,7 +25,7 @@ import { NeverResolvedBreakpoint } from './breakpoints/neverResolvedBreakpoint';
 import { PatternEntryBreakpoint } from './breakpoints/patternEntrypointBreakpoint';
 import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
 import { DiagnosticToolSuggester } from './diagnosticToolSuggester';
-import { ISourceWithMap, IUiLocation, Source, base0To1, base1To0, isSourceWithMap } from './source';
+import { base0To1, base1To0, ISourceWithMap, isSourceWithMap, IUiLocation, Source } from './source';
 import { SourceContainer } from './sourceContainer';
 import { ScriptWithSourceMapHandler, Thread } from './threads';
 
@@ -134,8 +134,8 @@ export class BreakpointManager {
     @inject(SourceContainer) sourceContainer: SourceContainer,
     @inject(ILogger) public readonly logger: ILogger,
     @inject(AnyLaunchConfiguration) private readonly launchConfig: AnyLaunchConfiguration,
-    @inject(IBreakpointConditionFactory)
-    private readonly conditionFactory: IBreakpointConditionFactory,
+    @inject(IBreakpointConditionFactory) private readonly conditionFactory:
+      IBreakpointConditionFactory,
     @inject(DiagnosticToolSuggester) private readonly suggester: DiagnosticToolSuggester,
     @inject(IBreakpointsPredictor) public readonly _breakpointsPredictor?: IBreakpointsPredictor,
   ) {
@@ -183,11 +183,13 @@ export class BreakpointManager {
         for (const source of queue[i]) {
           const path = source.absolutePath;
           const byPath = path ? this._byPath.get(path) : undefined;
-          for (const breakpoint of byPath || [])
+          for (const breakpoint of byPath || []) {
             todo.push(breakpoint.updateForNewLocations(this._thread, script));
+          }
           const byRef = this._byRef.get(source.sourceReference);
-          for (const breakpoint of byRef || [])
+          for (const breakpoint of byRef || []) {
             todo.push(breakpoint.updateForNewLocations(this._thread, script));
+          }
 
           if (source.sourceMap) {
             queue.push(source.sourceMap.sourceByUrl.values());
@@ -209,8 +211,8 @@ export class BreakpointManager {
       .concat(breakpointsAtSource)
       .some(
         bp =>
-          bp.originalPosition.columnNumber === location.columnNumber &&
-          bp.originalPosition.lineNumber === location.lineNumber,
+          bp.originalPosition.columnNumber === location.columnNumber
+          && bp.originalPosition.lineNumber === location.lineNumber,
       );
   }
 
@@ -302,7 +304,7 @@ export class BreakpointManager {
 
     await Promise.all(
       [...this._byDapId.values()].map(bp =>
-        this._enabledFilter(bp) ? bp.enable(thread) : bp.disable(),
+        this._enabledFilter(bp) ? bp.enable(thread) : bp.disable()
       ),
     );
   }
@@ -438,8 +440,8 @@ export class BreakpointManager {
     }
 
     if (
-      'runtimeSourcemapPausePatterns' in this.launchConfig &&
-      this.launchConfig.runtimeSourcemapPausePatterns.length
+      'runtimeSourcemapPausePatterns' in this.launchConfig
+      && this.launchConfig.runtimeSourcemapPausePatterns.length
     ) {
       this.setRuntimeSourcemapPausePatterns(
         thread,
@@ -468,7 +470,7 @@ export class BreakpointManager {
   private setRuntimeSourcemapPausePatterns(thread: Thread, patterns: ReadonlyArray<string>) {
     return Promise.all(
       patterns.map(pattern =>
-        this._setBreakpoint(new PatternEntryBreakpoint(this, pattern), thread),
+        this._setBreakpoint(new PatternEntryBreakpoint(this, pattern), thread)
       ),
     );
   }
@@ -751,8 +753,8 @@ export class BreakpointManager {
           // an indicator that it did exist and was hit, so that if further
           // breakpoints are set in the file it doesn't get re-applied.
           if (
-            this.entryBreakpointMode === EntryBreakpointMode.Exact &&
-            !(breakpoint instanceof PatternEntryBreakpoint)
+            this.entryBreakpointMode === EntryBreakpointMode.Exact
+            && !(breakpoint instanceof PatternEntryBreakpoint)
           ) {
             breakpoint.disable();
           }

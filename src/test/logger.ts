@@ -33,8 +33,8 @@ export const walkVariables = async (
     return;
   }
 
-  const hasHints =
-    typeof variable.namedVariables === 'number' || typeof variable.indexedVariables === 'number';
+  const hasHints = typeof variable.namedVariables === 'number'
+    || typeof variable.indexedVariables === 'number';
   if (hasHints) {
     if (variable.namedVariables) {
       const named = await dap.variables({
@@ -169,14 +169,13 @@ export class Logger {
         emptyLine = false;
         continue;
       }
-      const origin =
-        frame.source && frame.source.presentationHint === 'deemphasize'
-          ? ` <hidden: ${frame.source.origin || ''}>`
-          : '';
+      const origin = frame.source && frame.source.presentationHint === 'deemphasize'
+        ? ` <hidden: ${frame.source.origin || ''}>`
+        : '';
       this._log(
-        `${frame.name} @ ${frame.source ? frame.source.path! : 'unknown'}:${frame.line}:${
-          frame.column
-        }${origin}`,
+        `${frame.name} @ ${
+          frame.source ? frame.source.path! : 'unknown'
+        }:${frame.line}:${frame.column}${origin}`,
       );
       if (withScopes-- <= 0) continue;
       const scopes = await this._dap.scopes({ frameId: frame.id });

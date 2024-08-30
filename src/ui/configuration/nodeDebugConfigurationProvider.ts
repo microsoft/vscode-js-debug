@@ -22,7 +22,9 @@ import { BaseConfigurationProvider } from './baseConfigurationProvider';
 import { createLaunchConfigFromContext } from './nodeDebugConfigurationResolver';
 
 @injectable()
-export class NodeInitialDebugConfigurationProvider extends BaseConfigurationProvider<AnyNodeConfiguration> {
+export class NodeInitialDebugConfigurationProvider
+  extends BaseConfigurationProvider<AnyNodeConfiguration>
+{
   protected provide(folder?: vscode.WorkspaceFolder) {
     return createLaunchConfigFromContext(folder, true);
   }
@@ -56,7 +58,10 @@ export class NodeDynamicDebugConfigurationProvider extends BaseConfigurationProv
         for (const key of keysToRelativize) {
           const value = config[key];
           if (value && path.isAbsolute(value)) {
-            config[key] = path.join('${workspaceFolder}', path.relative(folder.uri.fsPath, value));
+            config[key] = path.join(
+              '${workspaceFolder}',
+              path.relative(folder.uri.fsPath, value),
+            );
           }
         }
       }
@@ -111,9 +116,9 @@ export class NodeDynamicDebugConfigurationProvider extends BaseConfigurationProv
   protected getFromActiveFile(): DynamicConfig[] {
     const editor = vscode.window.activeTextEditor;
     if (
-      !editor ||
-      !breakpointLanguages.includes(editor.document.languageId) ||
-      editor.document.uri.scheme !== 'file'
+      !editor
+      || !breakpointLanguages.includes(editor.document.languageId)
+      || editor.document.uri.scheme !== 'file'
     ) {
       return [];
     }

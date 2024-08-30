@@ -120,7 +120,10 @@ export class GoldenText {
 
       // Replace it with the ${replacementString} and a forward-slashed version
       // of the rest of the line.
-      value = value.replace(re, (_match, trailing) => replacement + forceForwardSlashes(trailing));
+      value = value.replace(
+        re,
+        (_match, trailing) => replacement + forceForwardSlashes(trailing),
+      );
     };
 
     value = String(value);
@@ -187,8 +190,9 @@ export class GoldenText {
       prefix = prefix || '';
       firstLinePrefix = firstLinePrefix || prefix;
       lines.push(firstLinePrefix + '[');
-      for (let i = 0; i < object.length; ++i)
+      for (let i = 0; i < object.length; ++i) {
         dumpValue(object[i], '    ' + prefix, '    ' + prefix + '[' + i + '] : ');
+      }
       lines.push(prefix + ']');
     }
 

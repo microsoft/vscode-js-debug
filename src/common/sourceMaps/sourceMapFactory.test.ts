@@ -7,7 +7,7 @@ import { expect } from 'chai';
 import { dataUriToBuffer } from 'data-uri-to-buffer';
 import { stub } from 'sinon';
 import { IResourceProvider } from '../../adapter/resourceProvider';
-import { StubDapApi, stubbedDapApi } from '../../dap/stubbedApi';
+import { stubbedDapApi, StubDapApi } from '../../dap/stubbedApi';
 import { Logger } from '../logging/logger';
 import { RootSourceMapFactory, UnresolvedSourceMap } from './sourceMapFactory';
 

@@ -45,7 +45,7 @@ export async function findOpenPort<T>(
   cancellationToken: CancellationToken = NeverCancelled,
 ) {
   let port = randomInRange(min, max);
-  for (let i = Math.min(attempts, max - min); ; i--) {
+  for (let i = Math.min(attempts, max - min);; i--) {
     try {
       return await tester(port, cancellationToken);
     } catch (e) {
@@ -98,7 +98,10 @@ export function acquirePortNumber(port: number, ct: CancellationToken = NeverCan
  */
 export const makeAcquireTcpServer =
   (onSocket: (socket: net.Socket) => void, host?: string): PortTesterFn<net.Server> =>
-  (port, ct) => {
+  (
+    port,
+    ct,
+  ) => {
     const server = net.createServer(onSocket);
     server.listen(port, host);
     return waitForServerToListen(server, ct);
@@ -109,8 +112,7 @@ export const makeAcquireTcpServer =
  * @returns the listening server
  */
 export const makeAcquireWebSocketServer =
-  (options?: WebSocket.ServerOptions): PortTesterFn<WebSocket.Server> =>
-  (port, ct) =>
+  (options?: WebSocket.ServerOptions): PortTesterFn<WebSocket.Server> => (port, ct) =>
     waitForServerToListen(
       new WebSocket.WebSocketServer({ host: '127.0.0.1', ...options, port }),
       ct,

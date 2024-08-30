@@ -2,9 +2,9 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import Cdp from '../../cdp/api';
-import { URL } from 'url';
 import * as path from 'path';
+import { URL } from 'url';
+import Cdp from '../../cdp/api';
 import { EventEmitter } from '../../common/events';
 
 export class FrameModel {
@@ -35,8 +35,9 @@ export class FrameModel {
     mainFramePayload: Cdp.Page.FrameResourceTree | undefined,
     targetId: Cdp.Target.TargetID,
   ) {
-    if (mainFramePayload)
+    if (mainFramePayload) {
       this._addFramesRecursively(cdp, mainFramePayload, mainFramePayload.frame.parentId, targetId);
+    }
     cdp.Page.on('frameAttached', event => {
       this._frameAttached(cdp, targetId, event.frameId, event.parentFrameId);
     });
@@ -107,8 +108,9 @@ export class FrameModel {
       frame = this._addFrame(cdp, framePayload.id, parentFrameId);
       frame._navigate(framePayload, targetId);
     }
-    for (let i = 0; frameTreePayload.childFrames && i < frameTreePayload.childFrames.length; ++i)
+    for (let i = 0; frameTreePayload.childFrames && i < frameTreePayload.childFrames.length; ++i) {
       this._addFramesRecursively(cdp, frameTreePayload.childFrames[i], frame.id, targetId);
+    }
   }
 }
 

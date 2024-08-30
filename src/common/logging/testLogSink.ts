@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { ILogSink, ILogItem, LogLevel } from '.';
+import { ILogItem, ILogSink, LogLevel } from '.';
 
 /**
  * A log sink for use in testing that throws any errorful data, and writes

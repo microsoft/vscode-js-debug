@@ -56,19 +56,21 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
     absolutePath = path.normalize(absolutePath);
     const { baseUrl, pathMapping } = this.options;
     const defaultMapping = ['/', pathMapping['/']] as const;
-    const bestMatch =
-      Object.entries(pathMapping)
-        .sort(
-          ([p1, directoryA], [p2, directoryB]) =>
-            directoryB.length - directoryA.length || p2.length - p1.length,
-        )
-        .find(([, directory]) => isSubpathOrEqualTo(directory, absolutePath)) || defaultMapping;
+    const bestMatch = Object.entries(pathMapping)
+      .sort(
+        ([p1, directoryA], [p2, directoryB]) =>
+          directoryB.length - directoryA.length || p2.length - p1.length,
+      )
+      .find(([, directory]) => isSubpathOrEqualTo(directory, absolutePath)) || defaultMapping;
     if (!bestMatch) {
       return { url: utils.absolutePathToFileUrl(absolutePath), needsWildcard: false };
     }
 
     if (baseUrl && utils.isFileUrl(baseUrl)) {
-      return { url: utils.absolutePathToFileUrlWithDetection(absolutePath), needsWildcard: false };
+      return {
+        url: utils.absolutePathToFileUrlWithDetection(absolutePath),
+        needsWildcard: false,
+      };
     }
 
     let urlPath = utils.platformPathToUrlPath(path.relative(bestMatch[1], absolutePath));
@@ -176,7 +178,7 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
         }
         break;
       default:
-      // fall through
+        // fall through
     }
 
     url = this.normalizeSourceMapUrl(url);
@@ -194,10 +196,10 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
         properRelative(pathMapping['/'], mappedFullSourceEntry),
       );
       if (
-        this.options.clientID === 'visualstudio' &&
-        fullSourceEntry.startsWith('webpack:///') &&
-        !(await this.fsUtils.exists(mappedFullSourceEntry)) &&
-        (await this.fsUtils.exists(clientAppPath))
+        this.options.clientID === 'visualstudio'
+        && fullSourceEntry.startsWith('webpack:///')
+        && !(await this.fsUtils.exists(mappedFullSourceEntry))
+        && (await this.fsUtils.exists(clientAppPath))
       ) {
         return clientAppPath;
       } else {

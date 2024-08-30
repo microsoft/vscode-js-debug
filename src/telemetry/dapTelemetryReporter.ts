@@ -164,8 +164,9 @@ export function extractErrorDetails(e: Error): { error: IErrorTelemetryPropertie
 
   extractFileNamePattern.lastIndex = 0;
 
-  const stack =
-    typeof e.stack === 'string' ? e.stack.replace(extractFileNamePattern, '$1') : undefined;
+  const stack = typeof e.stack === 'string'
+    ? e.stack.replace(extractFileNamePattern, '$1')
+    : undefined;
 
   return { error: { message, name, stack } };
 }

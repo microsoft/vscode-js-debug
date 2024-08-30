@@ -111,7 +111,11 @@ describe('completion', () => {
       'arr[myStr|',
       [{ label: 'myString', sortText: '~~myString', type: 'variable', detail: 'string' }],
     ],
-    ['const replVar = 42; replV|', [{ label: 'replVar', sortText: 'replVar', type: 'variable' }]],
+    ['const replVar = 42; replV|', [{
+      label: 'replVar',
+      sortText: 'replVar',
+      type: 'variable',
+    }]],
     [
       'MyCoolCl|',
       [{ label: 'MyCoolClass', sortText: '~~MyCoolClass', type: 'class', detail: 'fn()' }],
@@ -184,7 +188,12 @@ describe('completion', () => {
           detail: 'true',
         },
         { label: 'constructor', sortText: '~~~constructor', type: 'class', detail: 'fn(?)' },
-        { label: 'hasOwnProperty', sortText: '~~~hasOwnProperty', type: 'method', detail: 'fn(?)' },
+        {
+          label: 'hasOwnProperty',
+          sortText: '~~~hasOwnProperty',
+          type: 'method',
+          detail: 'fn(?)',
+        },
       ],
     ],
     ['$returnV|', []],

@@ -2,10 +2,10 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { IDisposable, noOpDisposable, DisposableList } from '../common/disposable';
 import Cdp from '../cdp/api';
-import { AsyncStackMode } from '../configuration';
+import { DisposableList, IDisposable, noOpDisposable } from '../common/disposable';
 import { EventEmitter } from '../common/events';
+import { AsyncStackMode } from '../configuration';
 
 /**
  * Controls when async stack traces are enabled in the debugee, either

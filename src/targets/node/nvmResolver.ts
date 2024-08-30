@@ -57,10 +57,9 @@ export class NvmResolver implements INvmResolver {
     let nvsHome = this.env[Vars.NvsHome];
     if (!nvsHome) {
       // NVS_HOME is not always set. Probe for 'nvs' directory instead
-      const nvsDir =
-        this.platform === 'win32'
-          ? path.join(this.env['LOCALAPPDATA'] || '', 'nvs')
-          : path.join(this.env['HOME'] || '', '.nvs');
+      const nvsDir = this.platform === 'win32'
+        ? path.join(this.env['LOCALAPPDATA'] || '', 'nvs')
+        : path.join(this.env['HOME'] || '', '.nvs');
       if (fs.existsSync(nvsDir)) {
         nvsHome = nvsDir;
       }
@@ -90,10 +89,9 @@ export class NvmResolver implements INvmResolver {
     }
 
     if (!directory) {
-      const fnmDir =
-        this.platform === 'win32'
-          ? this.env[Vars.FnmHome] || path.join(this.env['APPDATA'] || '', 'fnm')
-          : this.env[Vars.FnmHome] || path.join(this.homedir, '.fnm');
+      const fnmDir = this.platform === 'win32'
+        ? this.env[Vars.FnmHome] || path.join(this.env['APPDATA'] || '', 'fnm')
+        : this.env[Vars.FnmHome] || path.join(this.homedir, '.fnm');
       if (await this.fsUtils.exists(fnmDir)) {
         directory = await this.resolveFnm(version, fnmDir);
         versionManagers.push('fnm');
@@ -117,7 +115,9 @@ export class NvmResolver implements INvmResolver {
    * This detects that.
    */
   private async getBinaryInFolder(dir: string) {
-    if (await some(['node64.exe', 'node64'].map(exe => this.fsUtils.exists(path.join(dir, exe))))) {
+    if (
+      await some(['node64.exe', 'node64'].map(exe => this.fsUtils.exists(path.join(dir, exe))))
+    ) {
       return 'node64';
     }
 
@@ -132,8 +132,10 @@ export class NvmResolver implements INvmResolver {
       throw new ProtocolError(nvsNotFound());
     }
 
-    const dir = this.findBinFolderForVersion(path.join(nvsHome, remoteName), semanticVersion, d =>
-      fs.existsSync(path.join(d, arch)),
+    const dir = this.findBinFolderForVersion(
+      path.join(nvsHome, remoteName),
+      semanticVersion,
+      d => fs.existsSync(path.join(d, arch)),
     );
 
     if (!dir) {
@@ -242,9 +244,9 @@ const semverSortAscending = (a: string, b: string) => {
   const [, aMajor, aMinor, aPatch] = matchA;
   const [, bMajor, bMinor, bPatch] = matchB;
   return (
-    Number(aMajor) - Number(bMajor) ||
-    Number(aMinor) - Number(bMinor) ||
-    Number(aPatch) - Number(bPatch)
+    Number(aMajor) - Number(bMajor)
+    || Number(aMinor) - Number(bMinor)
+    || Number(aPatch) - Number(bPatch)
   );
 };
 

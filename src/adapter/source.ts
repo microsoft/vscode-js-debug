@@ -9,7 +9,7 @@ import Cdp from '../cdp/api';
 import { checkContentHash } from '../common/hash/checkContentHash';
 import { once } from '../common/objUtils';
 import { forceForwardSlashes, isSubdirectoryOf } from '../common/pathUtils';
-import { IDeferred, delay, getDeferred } from '../common/promiseUtil';
+import { delay, getDeferred, IDeferred } from '../common/promiseUtil';
 import { ISourceMapMetadata, SourceMap } from '../common/sourceMaps/sourceMap';
 import { InlineScriptOffset } from '../common/sourcePathResolver';
 import * as sourceUtils from '../common/sourceUtils';
@@ -224,8 +224,8 @@ export class Source {
     }
 
     if (
-      isSourceWithSourceMap(this) &&
-      this.sourceMap.metadata.sourceMapUrl.endsWith('-pretty.map')
+      isSourceWithSourceMap(this)
+      && this.sourceMap.metadata.sourceMapUrl.endsWith('-pretty.map')
     ) {
       const map = this.sourceMap.value.settledValue;
       // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
@@ -451,7 +451,8 @@ export namespace SourceLocationProvider {
  */
 
 export interface ISourceWithMap<T extends SourceLocationProvider = SourceLocationProvider>
-  extends Source {
+  extends Source
+{
   sourceMap: T;
 }
 /**

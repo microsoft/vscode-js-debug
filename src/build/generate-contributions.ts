@@ -4,6 +4,8 @@
 import { JSONSchema6, JSONSchema6Definition } from 'json-schema';
 import type strings from '../../package.nls.json';
 import {
+  allCommands,
+  allDebugTypes,
   AutoAttachMode,
   Commands,
   Configuration,
@@ -11,8 +13,6 @@ import {
   CustomViews,
   DebugType,
   IConfigurationTypes,
-  allCommands,
-  allDebugTypes,
   networkFilesystemScheme,
   preferredDebugTypes,
 } from '../common/contributionUtils';
@@ -20,6 +20,13 @@ import { knownToolToken } from '../common/knownTools';
 import { mapValues, sortKeys, walkObject } from '../common/objUtils';
 import {
   AnyLaunchConfiguration,
+  baseDefaults,
+  breakpointLanguages,
+  chromeAttachConfigDefaults,
+  chromeLaunchConfigDefaults,
+  edgeAttachConfigDefaults,
+  edgeLaunchConfigDefaults,
+  extensionHostConfigDefaults,
   IBaseConfiguration,
   IChromeAttachConfiguration,
   IChromeLaunchConfiguration,
@@ -33,17 +40,10 @@ import {
   INodeLaunchConfiguration,
   ITerminalLaunchConfiguration,
   KillBehavior,
-  OutputSource,
-  ResolvingConfiguration,
-  baseDefaults,
-  breakpointLanguages,
-  chromeAttachConfigDefaults,
-  chromeLaunchConfigDefaults,
-  edgeAttachConfigDefaults,
-  edgeLaunchConfigDefaults,
-  extensionHostConfigDefaults,
   nodeAttachConfigDefaults,
   nodeLaunchConfigDefaults,
+  OutputSource,
+  ResolvingConfiguration,
   terminalBaseDefaults,
 } from '../configuration';
 
@@ -63,8 +63,10 @@ const enum Tag {
   Setup = 'setup',
 }
 
-export type DescribedAttribute<T> = JSONSchema6 &
-  Described & {
+export type DescribedAttribute<T> =
+  & JSONSchema6
+  & Described
+  & {
     default: T;
     docDefault?: string;
     enum?: Array<T>;
@@ -546,7 +548,14 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
         request: 'launch',
         name: 'Mocha Tests',
         program: '^"\\${workspaceFolder}/node_modules/mocha/bin/_mocha"',
-        args: ['-u', 'tdd', '--timeout', '999999', '--colors', '^"\\${workspaceFolder}/${1:test}"'],
+        args: [
+          '-u',
+          'tdd',
+          '--timeout',
+          '999999',
+          '--colors',
+          '^"\\${workspaceFolder}/${1:test}"',
+        ],
         internalConsoleOptions: 'openOnSessionStart',
         skipFiles: ['<node_internals>/**'],
       },

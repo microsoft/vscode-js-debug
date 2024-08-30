@@ -15,7 +15,7 @@ import { ProtocolError } from '../dap/protocolError';
 import { IShutdownParticipants, ShutdownOrder } from '../ui/shutdownParticipants';
 import { BreakpointEnableFilter, BreakpointManager } from './breakpoints';
 import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
-import { IProfile, IProfilerFactory, getDefaultProfileName } from './profiling';
+import { getDefaultProfileName, IProfile, IProfilerFactory } from './profiling';
 import { BasicCpuProfiler } from './profiling/basicCpuProfiler';
 import { Thread } from './threads';
 

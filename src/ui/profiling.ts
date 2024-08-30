@@ -2,9 +2,9 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import * as vscode from 'vscode';
 import { Container } from 'inversify';
-import { registerCommand, Commands } from '../common/contributionUtils';
+import * as vscode from 'vscode';
+import { Commands, registerCommand } from '../common/contributionUtils';
 import { UiProfileManager } from './profiling/uiProfileManager';
 
 export const registerProfilingCommand = (
@@ -19,8 +19,7 @@ export const registerProfilingCommand = (
         typeof sessionIdOrArgs === 'string'
           ? { sessionId: sessionIdOrArgs }
           : sessionIdOrArgs ?? {},
-      ),
-    ),
+      )),
     registerCommand(vscode.commands, Commands.StopProfile, sessionId => manager.stop(sessionId)),
   );
 };

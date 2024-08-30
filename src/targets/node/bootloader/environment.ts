@@ -162,7 +162,10 @@ export class BootloaderEnvironment {
   /**
    * Updates a single inspector option key/value.
    */
-  public updateInspectorOption<K extends keyof IBootloaderInfo>(key: K, value: IBootloaderInfo[K]) {
+  public updateInspectorOption<K extends keyof IBootloaderInfo>(
+    key: K,
+    value: IBootloaderInfo[K],
+  ) {
     const options = this.inspectorOptions;
     if (options) {
       this.inspectorOptions = { ...options, [key]: value };

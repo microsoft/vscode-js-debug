@@ -2,9 +2,9 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { IBreakpointCondition } from '.';
-import { PreparedCallFrameExpr } from '../../evaluator';
 import Cdp from '../../../cdp/api';
+import { PreparedCallFrameExpr } from '../../evaluator';
+import { IBreakpointCondition } from '.';
 
 /**
  * A logpoint that requires being paused and running a custom expression to

@@ -116,17 +116,16 @@ export class ServerSessionManager<T extends IDebugSessionLike> {
       deferredConnection.resolve(session.connection);
     };
 
-    const server =
-      port === undefined
-        ? await new Promise<net.Server>((resolve, reject) => {
-            const pipe = getRandomPipe();
-            const s = net
-              .createServer(onSocket)
-              .on('error', reject)
-              .on('close', () => fs.unlink(pipe).catch(() => undefined))
-              .listen(pipe, () => resolve(s));
-          })
-        : await acquireTrackedServer(this.portLeaseTracker, onSocket, port, this.host);
+    const server = port === undefined
+      ? await new Promise<net.Server>((resolve, reject) => {
+        const pipe = getRandomPipe();
+        const s = net
+          .createServer(onSocket)
+          .on('error', reject)
+          .on('close', () => fs.unlink(pipe).catch(() => undefined))
+          .listen(pipe, () => resolve(s));
+      })
+      : await acquireTrackedServer(this.portLeaseTracker, onSocket, port, this.host);
 
     this.servers.set(debugSession.id, server);
     return { server, connectionPromise: deferredConnection.promise };

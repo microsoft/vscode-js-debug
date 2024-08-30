@@ -67,17 +67,16 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
     let sharedPrefixLen = 0;
     for (
       let i = 0;
-      i < wfParts.length &&
-      i < suffixParts.length &&
-      suffixParts[i].toLowerCase() === wfParts[i].toLowerCase();
+      i < wfParts.length
+      && i < suffixParts.length
+      && suffixParts[i].toLowerCase() === wfParts[i].toLowerCase();
       i++
     ) {
       sharedPrefixLen += wfParts[i].length + 1;
     }
 
-    suffix =
-      suffix.slice(0, sharedPrefixLen).replace(/[\[\]\(\)\{\}\!\*]/g, '\\$&') + // CodeQL [SM02383] backslashes are not present in this string
-      suffix.slice(sharedPrefixLen);
+    suffix = suffix.slice(0, sharedPrefixLen).replace(/[\[\]\(\)\{\}\!\*]/g, '\\$&') // CodeQL [SM02383] backslashes are not present in this string
+      + suffix.slice(sharedPrefixLen);
 
     return prefix + suffix;
   });
@@ -113,13 +112,13 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
 
     const sourcePath =
       // If the source map refers to an absolute path, that's what we're after
-      fileUrlToAbsolutePath(sourceMapUrl) ||
+      fileUrlToAbsolutePath(sourceMapUrl)
       // If it's a data URI, use the compiled path as a stand-in. It should
       // be quite rare that ignored files (i.e. node_modules) reference
       // source modules and vise versa.
-      (isDataUri(sourceMapUrl) && compiledPath) ||
+      || (isDataUri(sourceMapUrl) && compiledPath)
       // Fall back to the raw URL if those fail.
-      sourceMapUrl;
+      || sourceMapUrl;
 
     // Where the compiled path is webpack-internal, just resolve it. We have
     // no way to know where it's coming from, but this is necessary sometimes.
@@ -210,7 +209,8 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
 
   private canMapPath(candidate: string) {
     return (
-      path.posix.isAbsolute(candidate) || path.win32.isAbsolute(candidate) || isFileUrl(candidate)
+      path.posix.isAbsolute(candidate) || path.win32.isAbsolute(candidate)
+      || isFileUrl(candidate)
     );
   }
 }

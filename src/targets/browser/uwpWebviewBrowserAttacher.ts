@@ -38,9 +38,9 @@ export class UWPWebviewBrowserAttacher extends BrowserAttacher<IEdgeParamsWithWe
    */
   protected resolveParams(params: AnyLaunchConfiguration): params is IEdgeParamsWithWebviewPipe {
     return (
-      params.request === 'attach' &&
-      params.type === DebugType.Edge &&
-      typeof params.useWebView === 'object'
+      params.request === 'attach'
+      && params.type === DebugType.Edge
+      && typeof params.useWebView === 'object'
     );
   }
 
@@ -65,7 +65,7 @@ export class UWPWebviewBrowserAttacher extends BrowserAttacher<IEdgeParamsWithWe
           pipes.map(
             pipe =>
               new Promise<Socket | undefined>(resolve =>
-                pipe.on('error', () => resolve(undefined)).on('connect', () => resolve(pipe)),
+                pipe.on('error', () => resolve(undefined)).on('connect', () => resolve(pipe))
               ),
           ),
         ),

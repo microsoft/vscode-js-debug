@@ -4,9 +4,9 @@
 
 import { injectable } from 'inversify';
 import * as os from 'os';
-import { ILogger, ILoggerSetupOptions, ILogItem, ILogSink, LogLevel, LogTag } from '.';
 import { packageName, packageVersion } from '../../configuration';
 import { IDisposable } from '../events';
+import { ILogger, ILoggerSetupOptions, ILogItem, ILogSink, LogLevel, LogTag } from '.';
 import { TestLogSink } from './testLogSink';
 
 /**

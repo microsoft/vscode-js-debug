@@ -13,9 +13,10 @@ const _TWO_CRLF = '\r\n\r\n';
 
 let connectionId = 0;
 
-export type Message = (
-  | { type: 'request'; command: string; arguments: object }
-  | {
+export type Message =
+  & (
+    | { type: 'request'; command: string; arguments: object }
+    | {
       type: 'response';
       message?: string;
       command: string;
@@ -23,12 +24,13 @@ export type Message = (
       success: boolean;
       body: object;
     }
-  | { type: 'event'; event: string; body: object }
-) & {
-  sessionId?: string;
-  seq: number;
-  __receivedTime?: bigint;
-};
+    | { type: 'event'; event: string; body: object }
+  )
+  & {
+    sessionId?: string;
+    seq: number;
+    __receivedTime?: bigint;
+  };
 
 /**
  * An interface which represents the transport layer for sending/receiving DAP messages

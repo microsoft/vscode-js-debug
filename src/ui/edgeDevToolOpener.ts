@@ -42,9 +42,9 @@ export class EdgeDevToolOpener implements IExtensionContribution {
           vscode.debug.activeDebugSession && qualifies(vscode.debug.activeDebugSession)
             ? vscode.debug.activeDebugSession
             : await DebugSessionTracker.pickSession(
-                this.tracker.getConcreteSessions().filter(qualifies),
-                l10n.t('Select the page where you want to open the devtools'),
-              );
+              this.tracker.getConcreteSessions().filter(qualifies),
+              l10n.t('Select the page where you want to open the devtools'),
+            );
 
         if (!session) {
           return;

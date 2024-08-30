@@ -25,7 +25,12 @@ describe('node source path resolver', () => {
     };
 
     it('resolves absolute', async () => {
-      const r = new NodeSourcePathResolver(fsUtils, undefined, defaultOptions, await Logger.test());
+      const r = new NodeSourcePathResolver(
+        fsUtils,
+        undefined,
+        defaultOptions,
+        await Logger.test(),
+      );
       expect(await r.urlToAbsolutePath({ url: 'file:///src/index.js' })).to.equal(
         resolve('/src/index.js'),
       );
@@ -90,9 +95,16 @@ describe('node source path resolver', () => {
         return;
       }
 
-      const r = new NodeSourcePathResolver(fsUtils, undefined, defaultOptions, await Logger.test());
+      const r = new NodeSourcePathResolver(
+        fsUtils,
+        undefined,
+        defaultOptions,
+        await Logger.test(),
+      );
       expect(
-        await r.urlToAbsolutePath({ url: 'file:////mac/Home/Github/js-debug-demos/node/main.js' }),
+        await r.urlToAbsolutePath({
+          url: 'file:////mac/Home/Github/js-debug-demos/node/main.js',
+        }),
       ).to.equal(resolve('\\\\mac\\Home\\Github\\js-debug-demos\\node\\main.js'));
     });
 
@@ -131,7 +143,12 @@ describe('node source path resolver', () => {
     });
 
     it('places relative paths in node_internals', async () => {
-      const r = new NodeSourcePathResolver(fsUtils, undefined, defaultOptions, await Logger.test());
+      const r = new NodeSourcePathResolver(
+        fsUtils,
+        undefined,
+        defaultOptions,
+        await Logger.test(),
+      );
 
       expect(
         await r.urlToAbsolutePath({
@@ -141,7 +158,12 @@ describe('node source path resolver', () => {
     });
 
     it('applies source map overrides', async () => {
-      const r = new NodeSourcePathResolver(fsUtils, undefined, defaultOptions, await Logger.test());
+      const r = new NodeSourcePathResolver(
+        fsUtils,
+        undefined,
+        defaultOptions,
+        await Logger.test(),
+      );
 
       expect(
         await r.urlToAbsolutePath({

@@ -21,9 +21,9 @@ import { ISourcePathResolverFactory } from '../sourcePathResolverFactory';
 import { CallbackFile } from './callback-file';
 import {
   Capability,
-  INodeBinaryProvider,
   getRunScript,
   hideDebugInfoFromConsole,
+  INodeBinaryProvider,
 } from './nodeBinaryProvider';
 import { IProcessTelemetry, IRunData, NodeLauncherBase } from './nodeLauncherBase';
 import { INodeTargetLifecycleHooks } from './nodeTarget';
@@ -152,8 +152,8 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
       if (runData.params.experimentalNetworking === 'off') {
         // no-op
       } else if (
-        binary.has(Capability.UseExperimentalNetworking) ||
-        runData.params.experimentalNetworking === 'on'
+        binary.has(Capability.UseExperimentalNetworking)
+        || runData.params.experimentalNetworking === 'on'
       ) {
         options.runtimeArgs = [experimentalNetworkFlag, ...options.runtimeArgs];
       }

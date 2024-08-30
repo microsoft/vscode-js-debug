@@ -492,7 +492,9 @@ describe('console format', () => {
     });
     const output = await handle.dap.once('output');
     await evaluation;
-    handle.log(`logged ${output.output} at ${output.source?.name}:${output.line}:${output.column}`);
+    handle.log(
+      `logged ${output.output} at ${output.source?.name}:${output.line}:${output.column}`,
+    );
     handle.assertLog();
   });
 

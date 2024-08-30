@@ -177,10 +177,9 @@ export class WasmSymbolProvider implements IWasmSymbolProvider, IDisposable {
     // fetching is handled internally by the wasm module, so we manually
     // attempt both loopbacks, which is a little less nice.
     const scriptUrl = new URL(script.url);
-    const attemptHostname =
-      scriptUrl.hostname === 'localhost'
-        ? ['127.0.0.1', '[::1]', 'localhost']
-        : [scriptUrl.hostname];
+    const attemptHostname = scriptUrl.hostname === 'localhost'
+      ? ['127.0.0.1', '[::1]', 'localhost']
+      : [scriptUrl.hostname];
     const symbolsAreLocalhostToo = symbolsUrl?.hostname === 'localhost';
 
     let result: MethodReturn<'addRawModule'> | undefined;
@@ -193,10 +192,9 @@ export class WasmSymbolProvider implements IWasmSymbolProvider, IDisposable {
       try {
         result = await rpc.sendMessage('addRawModule', moduleId, symbolsUrl?.toString(), {
           url: scriptUrl.toString(),
-          code:
-            !symbolsUrl && scriptUrl.protocol.startsWith('wasm:')
-              ? await this.getBytecode(script.scriptId)
-              : undefined,
+          code: !symbolsUrl && scriptUrl.protocol.startsWith('wasm:')
+            ? await this.getBytecode(script.scriptId)
+            : undefined,
         });
         break;
       } catch (e) {
@@ -364,7 +362,7 @@ class DecompiledWasmSymbols implements IWasmSymbols {
     protected readonly cdp: Cdp.Api,
     files: string[],
   ) {
-    files.push((this.decompiledUrl = event.url.replace('.wasm', '.wat')));
+    files.push(this.decompiledUrl = event.url.replace('.wasm', '.wat'));
     this.files = files;
   }
 
@@ -698,7 +696,11 @@ class WasmSymbols extends DecompiledWasmSymbols {
 
     const value = (async () => {
       try {
-        const lines = await this.worker.rpc.sendMessage('getMappedLines', this.moduleId, sourceURL);
+        const lines = await this.worker.rpc.sendMessage(
+          'getMappedLines',
+          this.moduleId,
+          sourceURL,
+        );
         return new Uint32Array(lines?.sort((a, b) => a - b) || []);
       } catch {
         return new Uint32Array();

@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import * as mocha from 'mocha';
-import { TestWithLogfile, getLogFileForTest as getLogPathForTest } from './logReporterUtils';
+import { getLogFileForTest as getLogPathForTest, TestWithLogfile } from './logReporterUtils';
 
 class LoggingReporter extends mocha.reporters.Spec {
   static alwaysDumpLogs = process.env['DUMP_LOGS'];

@@ -2,8 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { Session } from 'inspector';
 import { promises as fs } from 'fs';
+import { Session } from 'inspector';
 
 /**
  * Small class used to profile the extension itself. Used for collecting
@@ -49,7 +49,7 @@ export class SelfProfile {
         } else {
           resolve(result as unknown as R);
         }
-      }),
+      })
     );
   }
 }

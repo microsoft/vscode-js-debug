@@ -77,7 +77,7 @@ export class TurboGlobStream<E> {
 
     // ignore will get matched against the full file path, so ensure it's absolute
     this.ignore = opts.ignore.map(i =>
-      micromatch.matcher(toAbsGlob(forceForwardSlashes(i), { cwd: opts.cwd })),
+      micromatch.matcher(toAbsGlob(forceForwardSlashes(i), { cwd: opts.cwd }))
     );
 
     // pattern is parsed and then built on the cwd, so ensure it's relative
@@ -95,7 +95,7 @@ export class TurboGlobStream<E> {
       match.map(m => {
         const tokens: PatternElem[] = [];
         // start at 1, since 0 is 'bos'
-        for (let i = 1; i < m.tokens.length; ) {
+        for (let i = 1; i < m.tokens.length;) {
           let nextSlash = i + 1;
           while (nextSlash < m.tokens.length && m.tokens[nextSlash].type !== 'slash') {
             nextSlash++;
@@ -109,12 +109,12 @@ export class TurboGlobStream<E> {
           } else {
             tokens.push(
               new RegExp(
-                '^' +
-                  m.tokens
+                '^'
+                  + m.tokens
                     .slice(i, nextSlash)
                     .map(t => t.output || t.value)
-                    .join('') +
-                  '$',
+                    .join('')
+                  + '$',
               ),
             );
           }
@@ -185,25 +185,25 @@ export class TurboGlobStream<E> {
           todo.push(
             child.data !== undefined
               ? this.handleDirectoryEntry(
-                  ctx,
-                  ti,
-                  path,
-                  { name, type: child.data.type },
-                  siblings,
-                  cache,
-                )
+                ctx,
+                ti,
+                path,
+                { name, type: child.data.type },
+                siblings,
+                cache,
+              )
               : this.stat(path).then(
-                  stat =>
-                    this.handleDirectoryEntry(
-                      ctx,
-                      ti,
-                      path,
-                      { name, type: stat.isFile() ? CachedType.File : CachedType.Directory },
-                      siblings,
-                      cache,
-                    ),
-                  () => undefined,
-                ),
+                stat =>
+                  this.handleDirectoryEntry(
+                    ctx,
+                    ti,
+                    path,
+                    { name, type: stat.isFile() ? CachedType.File : CachedType.Directory },
+                    siblings,
+                    cache,
+                  ),
+                () => undefined,
+              ),
           );
         }
         await Promise.all(todo);
@@ -379,14 +379,14 @@ export class TurboGlobStream<E> {
 
 export type IGlobCached<TFileData> =
   | {
-      type: CachedType.Directory;
-      mtime: number;
-    }
+    type: CachedType.Directory;
+    mtime: number;
+  }
   | {
-      type: CachedType.File;
-      mtime: number;
-      extracted: TFileData;
-    };
+    type: CachedType.File;
+    mtime: number;
+    extracted: TFileData;
+  };
 
 const enum CachedType {
   Directory,

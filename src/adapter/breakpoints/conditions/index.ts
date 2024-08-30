@@ -65,7 +65,12 @@ export class BreakpointConditionFactory implements IBreakpointConditionFactory {
 
   public getConditionFor(params: Dap.SourceBreakpoint): IBreakpointCondition {
     if (params.condition) {
-      return ExpressionCondition.parse(params, params.condition, this.breakOnError, this.evaluator);
+      return ExpressionCondition.parse(
+        params,
+        params.condition,
+        this.breakOnError,
+        this.evaluator,
+      );
     }
 
     if (params.logMessage) {

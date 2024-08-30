@@ -33,10 +33,10 @@ export async function getWSEndpoint(
     // Node, since it'll cause a failure on browsers (vscode#123420)
     isNode
       ? fetchJsonWithLocalhostFallback<{ webSocketDebuggerUrl: string }[]>(
-          provider,
-          new URL('/json/list', browserURL),
-          cancellationToken,
-        )
+        provider,
+        new URL('/json/list', browserURL),
+        cancellationToken,
+      )
       : Promise.resolve(undefined),
   ]);
 
@@ -104,25 +104,24 @@ async function fetchJsonWithLocalhostFallback<T>(
   }
 }
 
-const makeRetryGetWSEndpoint =
-  (isNode: boolean) =>
-  async (
-    browserURL: string,
-    cancellationToken: CancellationToken,
-    logger: ILogger,
-  ): Promise<string> => {
-    while (true) {
-      try {
-        return await getWSEndpoint(browserURL, cancellationToken, logger, isNode);
-      } catch (e) {
-        if (cancellationToken.isCancellationRequested) {
-          throw new Error(`Could not connect to debug target at ${browserURL}: ${e.message}`);
-        }
-
-        await delay(200);
+const makeRetryGetWSEndpoint = (isNode: boolean) =>
+async (
+  browserURL: string,
+  cancellationToken: CancellationToken,
+  logger: ILogger,
+): Promise<string> => {
+  while (true) {
+    try {
+      return await getWSEndpoint(browserURL, cancellationToken, logger, isNode);
+    } catch (e) {
+      if (cancellationToken.isCancellationRequested) {
+        throw new Error(`Could not connect to debug target at ${browserURL}: ${e.message}`);
       }
+
+      await delay(200);
     }
-  };
+  }
+};
 
 /**
  * Attempts to retrieve the debugger websocket URL for a Node process listening

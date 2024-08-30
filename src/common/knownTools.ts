@@ -6,19 +6,19 @@
  * Globs for tools we can auto attach to.
  */
 const knownTools: ReadonlySet<string> = new Set([
-  //#region test runners
+  // #region test runners
   'mocha',
   'jest',
   'jest-cli',
   'ava',
   'tape',
   'tap',
-  //#endregion,
+  // #endregion,
 
-  //#region transpilers
+  // #region transpilers
   'ts-node',
   'babel-node',
-  //#endregion,
+  // #endregion,
 ]);
 export const knownToolToken = '$KNOWN_TOOLS$';
 

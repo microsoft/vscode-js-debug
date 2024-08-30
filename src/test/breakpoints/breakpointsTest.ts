@@ -636,7 +636,10 @@ describe('breakpoints', () => {
       await p.evaluate(`document.querySelector('div').innerHTML = 'foo';`);
 
       p.log('Pausing on innerHTML');
-      await p.dap.setCustomBreakpoints({ ids: ['instrumentation:Element.setInnerHTML'], xhr: [] });
+      await p.dap.setCustomBreakpoints({
+        ids: ['instrumentation:Element.setInnerHTML'],
+        xhr: [],
+      });
       p.evaluate(`document.querySelector('div').innerHTML = 'bar';`);
       const event = p.log(await p.dap.once('stopped'));
       p.log(await p.dap.continue({ threadId: event.threadId }));
@@ -774,16 +777,16 @@ describe('breakpoints', () => {
         },
         'double.js': [
           "/*'Object.<anonymous>':function(module,exports,require,__dzrname,__fzlename,jest*/console.log('hello world');",
-          '//# sourceMappingURL=data:application/json;charset=utf-8;base64,' +
-            Buffer.from(
-              JSON.stringify({
-                version: 3,
-                names: ['console', 'log'],
-                sources: ['double.js'],
-                sourcesContent: ["console.log('hello world');\n"],
-                mappings: 'AAAAA,OAAO,CAACC,GAAG,CAAC,aAAa,CAAC',
-              }),
-            ).toString('base64'),
+          '//# sourceMappingURL=data:application/json;charset=utf-8;base64,'
+          + Buffer.from(
+            JSON.stringify({
+              version: 3,
+              names: ['console', 'log'],
+              sources: ['double.js'],
+              sourcesContent: ["console.log('hello world');\n"],
+              mappings: 'AAAAA,OAAO,CAACC,GAAG,CAAC,aAAa,CAAC',
+            }),
+          ).toString('base64'),
         ],
       });
 
@@ -918,7 +921,7 @@ describe('breakpoints', () => {
           handle.load();
           await waitForPause(handle);
           handle.assertLog({ substring: true });
-        }),
+        })
       );
     });
 
@@ -936,7 +939,7 @@ describe('breakpoints', () => {
           handle.load();
           await waitForPause(handle);
           handle.assertLog({ substring: true });
-        }),
+        })
       );
     });
   });
@@ -975,7 +978,10 @@ describe('breakpoints', () => {
     itIntegrates('works for valid', async ({ r }) => {
       await doTest(r, async (p, source) => {
         r.log(
-          await p.dap.setBreakpoints({ source, breakpoints: [{ line: 4, hitCondition: '=5' }] }),
+          await p.dap.setBreakpoints({
+            source,
+            breakpoints: [{ line: 4, hitCondition: '=5' }],
+          }),
         );
         const evaluate = p.evaluate('foo();');
         await waitForHit(p);
@@ -997,10 +1003,16 @@ describe('breakpoints', () => {
     itIntegrates('can change after set', async ({ r }) => {
       await doTest(r, async (p, source) => {
         r.log(
-          await p.dap.setBreakpoints({ source, breakpoints: [{ line: 4, hitCondition: '=5' }] }),
+          await p.dap.setBreakpoints({
+            source,
+            breakpoints: [{ line: 4, hitCondition: '=5' }],
+          }),
         );
         r.log(
-          await p.dap.setBreakpoints({ source, breakpoints: [{ line: 4, hitCondition: '=8' }] }),
+          await p.dap.setBreakpoints({
+            source,
+            breakpoints: [{ line: 4, hitCondition: '=8' }],
+          }),
         );
         const evaluate = p.evaluate('foo();');
         await waitForHit(p);

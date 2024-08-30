@@ -48,7 +48,7 @@ export class DefaultBrowserProvider implements IDefaultBrowserProvider {
     }
 
     const match = [DefaultBrowser.Chrome, DefaultBrowser.Edge].find(browser =>
-      name.toLowerCase().includes(browser),
+      name.toLowerCase().includes(browser)
     );
     return match ?? DefaultBrowser.Other;
   });

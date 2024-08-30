@@ -81,10 +81,12 @@ export abstract class BreakpointSearch {
     @inject(ISearchStrategy) private readonly repo: ISearchStrategy,
     @inject(ILogger) protected readonly logger: ILogger,
     @inject(ISourceMapFactory) private readonly sourceMapFactory: ISourceMapFactory,
-    @inject(ISourcePathResolver)
-    private readonly sourcePathResolver: ISourcePathResolver | undefined,
-    @inject(BreakpointPredictorCachedState)
-    private readonly state: BreakpointPredictorCachedState<unknown>,
+    @inject(ISourcePathResolver) private readonly sourcePathResolver:
+      | ISourcePathResolver
+      | undefined,
+    @inject(BreakpointPredictorCachedState) private readonly state: BreakpointPredictorCachedState<
+      unknown
+    >,
   ) {}
 
   public abstract getMetadataForPaths(
@@ -157,7 +159,9 @@ export abstract class BreakpointSearch {
         this.state
           .store(state)
           .catch(e =>
-            this.logger.warn(LogTag.RuntimeException, 'Error saving sourcemap cache', { error: e }),
+            this.logger.warn(LogTag.RuntimeException, 'Error saving sourcemap cache', {
+              error: e,
+            })
           );
       }
     } catch (error) {
@@ -185,8 +189,10 @@ export class GlobalBreakpointSearch extends BreakpointSearch {
   }
 
   private async createInitialMapping(): Promise<MetadataMap> {
-    return logPerf(this.logger, `BreakpointsPredictor.createInitialMapping`, () =>
-      this.createMapping(),
+    return logPerf(
+      this.logger,
+      `BreakpointsPredictor.createInitialMapping`,
+      () => this.createMapping(),
     );
   }
 }
@@ -300,12 +306,11 @@ export class BreakpointsPredictor implements IBreakpointsPredictor {
       col: number,
       metadata: DiscoveredMetadata,
     ): Promise<IWorkspaceLocation[]> => {
-      const sourceMapUrl =
-        typeof metadata.sourceMapUrl === 'string'
-          ? metadata.sourceMapUrl
-          : metadata.sourceMapUrl.hasOwnProperty(InlineSourceMapUrl)
-          ? metadata.sourceMapUrl[InlineSourceMapUrl]
-          : await fs.readFile(metadata.compiledPath, 'utf8').then(parseSourceMappingUrl);
+      const sourceMapUrl = typeof metadata.sourceMapUrl === 'string'
+        ? metadata.sourceMapUrl
+        : metadata.sourceMapUrl.hasOwnProperty(InlineSourceMapUrl)
+        ? metadata.sourceMapUrl[InlineSourceMapUrl]
+        : await fs.readFile(metadata.compiledPath, 'utf8').then(parseSourceMappingUrl);
 
       if (!sourceMapUrl) {
         return [];

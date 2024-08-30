@@ -2,8 +2,8 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import Dap from './api';
 import { getDeferred } from '../common/promiseUtil';
+import Dap from './api';
 
 /**
  * A PendingDapApi buffers requests until connected to a real, physical DAP API.

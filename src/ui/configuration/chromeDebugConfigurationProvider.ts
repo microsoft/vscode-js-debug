@@ -2,20 +2,20 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { injectable } from 'inversify';
 import * as vscode from 'vscode';
+import { DebugType } from '../../common/contributionUtils';
 import {
-  ResolvingChromeConfiguration,
   AnyChromeConfiguration,
   chromeAttachConfigDefaults,
   chromeLaunchConfigDefaults,
   IChromeLaunchConfiguration,
+  ResolvingChromeConfiguration,
 } from '../../configuration';
-import { DebugType } from '../../common/contributionUtils';
 import {
-  ChromiumDebugConfigurationResolver,
   ChromiumDebugConfigurationProvider,
+  ChromiumDebugConfigurationResolver,
 } from './chromiumDebugConfigurationProvider';
-import { injectable } from 'inversify';
 
 /**
  * Configuration provider for Chrome debugging.
@@ -57,7 +57,9 @@ export class ChromeDebugConfigurationResolver
 }
 
 @injectable()
-export class ChromeDebugConfigurationProvider extends ChromiumDebugConfigurationProvider<IChromeLaunchConfiguration> {
+export class ChromeDebugConfigurationProvider
+  extends ChromiumDebugConfigurationProvider<IChromeLaunchConfiguration>
+{
   protected getType() {
     return DebugType.Chrome as const;
   }

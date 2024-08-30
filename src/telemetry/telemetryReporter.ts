@@ -9,8 +9,7 @@ import { IRPCMetricsAndErrorsMap, LogFunctions } from './classification';
 
 // For each logger that takes an IRPCOperation, an OpsBatchReporter
 export type Batchable = {
-  [K in keyof LogFunctions]: LogFunctions[K] extends (metrics: IRPCMetricsAndErrorsMap) => void
-    ? K
+  [K in keyof LogFunctions]: LogFunctions[K] extends (metrics: IRPCMetricsAndErrorsMap) => void ? K
     : never;
 }[keyof LogFunctions];
 

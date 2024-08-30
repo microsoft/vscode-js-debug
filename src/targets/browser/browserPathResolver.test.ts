@@ -205,8 +205,8 @@ describe('BrowserPathResolver', () => {
     it('matches any path if no baseUrl is present', () => {
       const filePath = path.join(testFixturesDir, 'web', 'foo.js');
       expect(resolver({ baseUrl: undefined }).absolutePathToUrlRegexp(filePath)).to.equal(
-        urlToRegex(absolutePathToFileUrl(filePath)) +
-          '|[hH][tT][tT][pP][sS]?:\\/\\/[^\\/]+\\/[fF][oO][oO]\\.[jJ][sS]($|\\?)',
+        urlToRegex(absolutePathToFileUrl(filePath))
+          + '|[hH][tT][tT][pP][sS]?:\\/\\/[^\\/]+\\/[fF][oO][oO]\\.[jJ][sS]($|\\?)',
       );
     });
 

@@ -23,9 +23,7 @@ export const BreakpointHelper: FunctionComponent = () => {
 
   return (
     <Fragment>
-      {dump.breakpoints.map((bp, i) => (
-        <Breakpoint bp={bp} key={i} />
-      ))}
+      {dump.breakpoints.map((bp, i) => <Breakpoint bp={bp} key={i} />)}
     </Fragment>
   );
 };
@@ -69,16 +67,16 @@ const buildTracing = (bp: IDiagnosticBreakpoint, dump: IDiagnosticDump) => {
       <p>✅ In the runtime, the breakpoint was set in:</p>
       <p>
         <ul>
-          {bp.cdp.map((cdp, i) => (
-            <CdpBreakpoint cdp={cdp} index={i} key={i} />
-          ))}
+          {bp.cdp.map((cdp, i) => <CdpBreakpoint cdp={cdp} index={i} key={i} />)}
         </ul>
       </p>
     </li>,
   );
 
   const applied = bp.cdp.filter(cdp => cdp.state === 1 /* Applied */);
-  const uiLocations = flatten(applied.map(a => (a.state === 1 /* Applied */ ? a.uiLocations : [])));
+  const uiLocations = flatten(
+    applied.map(a => (a.state === 1 /* Applied */ ? a.uiLocations : [])),
+  );
   if (!uiLocations.length) {
     steps.push(
       <li key={key++}>
@@ -95,16 +93,14 @@ const buildTracing = (bp: IDiagnosticBreakpoint, dump: IDiagnosticDump) => {
         locations:
       </p>
       <ul>
-        {uiLocations.map((l, i) => (
-          <UiLocation loc={l} key={i} />
-        ))}
+        {uiLocations.map((l, i) => <UiLocation loc={l} key={i} />)}
       </ul>
     </li>,
     <li key={key++}>
       <p>
         If this is not right, your compiled code might be out of date with your sources. If you
         don't think this is the case and something else is wrong, please{' '}
-        <a href="https://github.com/microsoft/vscode-js-debug/issues/new/choose">open an issue</a>!
+        <a href='https://github.com/microsoft/vscode-js-debug/issues/new/choose'>open an issue</a>!
       </p>
     </li>,
   );
@@ -130,7 +126,7 @@ const NoUiLocation: FunctionComponent = () => {
         {isNodeType(dump) && (
           <li>
             Unless you{' '}
-            <a href="https://code.visualstudio.com/docs/nodejs/nodejs-debugging#_breakpoint-validation">
+            <a href='https://code.visualstudio.com/docs/nodejs/nodejs-debugging#_breakpoint-validation'>
               run with --nolazy
             </a>
             , Node.js might not resolve breakpoints for code it hasn't parsed yet.
@@ -149,7 +145,7 @@ const Breakpoint: FunctionComponent<{ bp: IDiagnosticBreakpoint }> = ({ bp }) =>
 
   const dump = useDump();
   return (
-    <div className="content source-container">
+    <div className='content source-container'>
       <h2>
         {prettyName(
           { absolutePath: bp.source.path as string, url: bp.source.path as string },
@@ -157,7 +153,7 @@ const Breakpoint: FunctionComponent<{ bp: IDiagnosticBreakpoint }> = ({ bp }) =>
         )}
         :{bp.params.line}:{bp.params.column || 1}
       </h2>
-      <ul className="bp-tracing">{buildTracing(bp, dump)}</ul>
+      <ul className='bp-tracing'>{buildTracing(bp, dump)}</ul>
     </div>
   );
 };
@@ -192,22 +188,23 @@ const FailedToSetLocation: FunctionComponent<{ bp: IDiagnosticBreakpoint }> = ({
           </li>
         ))}
       </ul>
-      {isBrowserType(dump) ? (
-        <p>
-          You may need to adjust the <code>webRoot</code> in your <code>launch.json</code> if you're
-          building from a subfolder, or tweak your <code>sourceMapPathOverrides</code>.
-        </p>
-      ) : (
-        <p>
-          If this is the same file, you may need to adjust your build tool{' '}
-          {isBrowserType(dump) && (
-            <Fragment>
-              or <code>webRoot</code> in the launch.json
-            </Fragment>
-          )}{' '}
-          to correct the paths.
-        </p>
-      )}
+      {isBrowserType(dump)
+        ? (
+          <p>
+            You may need to adjust the <code>webRoot</code> in your <code>launch.json</code>{' '}
+            if you're building from a subfolder, or tweak your <code>sourceMapPathOverrides</code>.
+          </p>
+        )
+        : (
+          <p>
+            If this is the same file, you may need to adjust your build tool{' '}
+            {isBrowserType(dump) && (
+              <Fragment>
+                or <code>webRoot</code> in the launch.json
+              </Fragment>
+            )} to correct the paths.
+          </p>
+        )}
     </li>
   );
 };
@@ -216,7 +213,7 @@ const TextDiff: FunctionComponent<{ original: string; updated: string }> = ({
   original,
   updated,
 }) => (
-  <span className="text-diff">
+  <span className='text-diff'>
     {diffArrays(original.split(/[/\\]/g), updated.split(/[/\\]/g), { ignoreCase: true }).map(
       (diff, i) => (
         <span className={diff.added ? 'add' : diff.removed ? 'rm' : ''} key={i}>
@@ -234,7 +231,8 @@ const UiLocation: FunctionComponent<{ loc: IDiagnosticUiLocation }> = ({ loc }) 
 
   return (
     <Fragment>
-      <code>{source?.absolutePath ?? source?.url ?? 'unknown'}</code> line {loc.lineNumber} column{' '}
+      <code>{source?.absolutePath ?? source?.url ?? 'unknown'}</code> line {loc.lineNumber} column
+      {' '}
       {loc.columnNumber}
     </Fragment>
   );
@@ -246,26 +244,25 @@ const CdpBreakpoint: FunctionComponent<{ cdp: DiagnosticBreakpointArgs; index: n
 }) => {
   const dump = useDump();
   const [showRegex, setShowRegex] = usePersistedState(`showCdpBp${index}`, false);
-  const { url, line, col, regex } =
-    'location' in cdp.args
-      ? {
-          url: dump.sources.find(
-            s =>
-              !s.compiledSourceRefToUrl &&
-              s.scriptIds.includes(
-                (cdp.args as Cdp.Debugger.SetBreakpointParams).location.scriptId,
-              ),
-          )?.url,
-          regex: undefined,
-          line: cdp.args.location.lineNumber + 1,
-          col: (cdp.args.location.columnNumber || 0) + 1,
-        }
-      : {
-          url: cdp.args.urlRegex ? demangleUrlRegex(cdp.args.urlRegex) : cdp.args.url,
-          regex: cdp.args.urlRegex,
-          line: cdp.args.lineNumber + 1,
-          col: (cdp.args.columnNumber || 0) + 1,
-        };
+  const { url, line, col, regex } = 'location' in cdp.args
+    ? {
+      url: dump.sources.find(
+        s =>
+          !s.compiledSourceRefToUrl
+          && s.scriptIds.includes(
+            (cdp.args as Cdp.Debugger.SetBreakpointParams).location.scriptId,
+          ),
+      )?.url,
+      regex: undefined,
+      line: cdp.args.location.lineNumber + 1,
+      col: (cdp.args.location.columnNumber || 0) + 1,
+    }
+    : {
+      url: cdp.args.urlRegex ? demangleUrlRegex(cdp.args.urlRegex) : cdp.args.url,
+      regex: cdp.args.urlRegex,
+      line: cdp.args.lineNumber + 1,
+      col: (cdp.args.columnNumber || 0) + 1,
+    };
 
   return (
     <li>
@@ -316,38 +313,41 @@ const NoMatchingSourceHelper: FunctionComponent<{ basename: string }> = ({ basen
         How did you expect this file to be loaded? (If you have a compilation step, you should pick
         'sourcemap')
         <NoMatchingDecisionButtons onChange={setHint} value={hint} />
-        {hint === NoMatchingSourceHint.Direct &&
-          (isBrowserType(dump) ? (
-            <p>
-              It looks like your webpage didn't load this script; breakpoints won't be bound until
-              the file they're set in is loaded. Make sure your script is imported from the right
-              location using a <code>{'<script>'}</code> tag.
-            </p>
-          ) : (
-            <p>
-              It looks like your program didn't load this script; breakpoints won't be bound until
-              the file they're set in is loaded. Make sure your script is imported with a{' '}
-              <code>require()</code> or <code>import</code> statement, such as{' '}
-              <code>require('./{basename}')</code>.
-            </p>
-          ))}
+        {hint === NoMatchingSourceHint.Direct
+          && (isBrowserType(dump)
+            ? (
+              <p>
+                It looks like your webpage didn't load this script; breakpoints won't be bound until
+                the file they're set in is loaded. Make sure your script is imported from the right
+                location using a <code>{'<script>'}</code> tag.
+              </p>
+            )
+            : (
+              <p>
+                It looks like your program didn't load this script; breakpoints won't be bound until
+                the file they're set in is loaded. Make sure your script is imported with a{' '}
+                <code>require()</code> or <code>import</code> statement, such as{' '}
+                <code>require('./{basename}')</code>.
+              </p>
+            ))}
         {hint === NoMatchingSourceHint.SourceMap && (
           <p>
             Here's some hints that might help you:
             <ul>
-              {/\.tsx?$/.test(basename) ? (
-                <li>
-                  Make sure you have <code>"sourceMap": true</code> in your tsconfig to generate
-                  sourcemaps.
-                </li>
-              ) : (
-                <li>Make sure your build tool is set up to create sourcemaps.</li>
-              )}
+              {/\.tsx?$/.test(basename)
+                ? (
+                  <li>
+                    Make sure you have <code>"sourceMap": true</code>{' '}
+                    in your tsconfig to generate sourcemaps.
+                  </li>
+                )
+                : <li>Make sure your build tool is set up to create sourcemaps.</li>}
               {!dump.config.outFiles.includes('!**/node_modules/**') && (
                 <li>
-                  It looks like you narrowed the <code>outFiles</code> in your launch.json. Try
-                  removing this: it now defaults to the whole workspace, and overspecifying it can
-                  unnecessarily narrow places where we'll resolve sourcemaps.
+                  It looks like you narrowed the <code>outFiles</code>{' '}
+                  in your launch.json. Try removing this: it now defaults to the whole workspace,
+                  and overspecifying it can unnecessarily narrow places where we'll resolve
+                  sourcemaps.
                 </li>
               )}
             </ul>

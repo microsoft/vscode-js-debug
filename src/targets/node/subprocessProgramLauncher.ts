@@ -11,7 +11,7 @@ import { StreamSplitter } from '../../common/streamSplitter';
 import { INodeLaunchConfiguration, OutputSource } from '../../configuration';
 import Dap from '../../dap/api';
 import { ILaunchContext } from '../targets';
-import { IProgramLauncher, getNodeLaunchArgs } from './processLauncher';
+import { getNodeLaunchArgs, IProgramLauncher } from './processLauncher';
 import { SubprocessProgram } from './program';
 
 /**
