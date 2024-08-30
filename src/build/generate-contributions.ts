@@ -1249,6 +1249,11 @@ const configurationSchema: ConfigurationAttributes<IConfigurationTypes> = {
     default: {},
     markdownDescription: refString('configuration.resourceRequestOptions'),
   },
+  [Configuration.EnableNetworkView]: {
+    type: 'boolean',
+    default: false,
+    description: refString('configuration.enableNetworkView'),
+  },
 };
 
 const commands: ReadonlyArray<{

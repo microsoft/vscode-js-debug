@@ -225,6 +225,8 @@ export const sourceMapParseFailed = (compiledUrl: string, message: string) =>
 export const uwpPipeNotAvailable = () =>
   createUserError(l10n.t('UWP webview debugging is not available on your platform.'));
 
+export const networkingNotAvailable = () => createUserError(l10n.t('Networking not available.'));
+
 export const noUwpPipeFound = () =>
   createUserError(
     l10n.t(

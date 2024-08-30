@@ -731,12 +731,6 @@ const dapCustom: JSONSchema4 = {
     },
 
     ...makeEvent(
-      'networkAvailable',
-      'Fired when we successfully enable CDP networking on the session.',
-      {},
-    ),
-
-    ...makeEvent(
       'networkEvent',
       'A wrapped CDP network event. There is little abstraction here because UI interacts literally with CDP at the moment.',
       {

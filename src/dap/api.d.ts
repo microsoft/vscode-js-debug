@@ -1158,11 +1158,6 @@ export namespace Dap {
     setSymbolOptionsRequest(params: SetSymbolOptionsParams): Promise<SetSymbolOptionsResult>;
 
     /**
-     * Fired when we successfully enable CDP networking on the session.
-     */
-    networkAvailable(params: NetworkAvailableEventParams): void;
-
-    /**
      * A wrapped CDP network event. There is little abstraction here because UI interacts literally with CDP at the moment.
      */
     networkEvent(params: NetworkEventEventParams): void;
@@ -1950,19 +1945,6 @@ export namespace Dap {
      * Sets options for locating symbols.
      */
     setSymbolOptions(params: SetSymbolOptionsParams): Promise<SetSymbolOptionsResult>;
-
-    /**
-     * Fired when we successfully enable CDP networking on the session.
-     */
-    on(request: 'networkAvailable', handler: (params: NetworkAvailableEventParams) => void): void;
-    off(
-      request: 'networkAvailable',
-      handler: (params: NetworkAvailableEventParams) => void,
-    ): void;
-    once(
-      request: 'networkAvailable',
-      filter?: (event: NetworkAvailableEventParams) => boolean,
-    ): Promise<NetworkAvailableEventParams>;
 
     /**
      * A wrapped CDP network event. There is little abstraction here because UI interacts literally with CDP at the moment.
@@ -2974,8 +2956,6 @@ export namespace Dap {
      */
     totalModules?: integer;
   }
-
-  export interface NetworkAvailableEventParams {}
 
   export interface NetworkCallParams {
     /**

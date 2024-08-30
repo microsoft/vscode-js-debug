@@ -172,6 +172,7 @@ export const enum Configuration {
   UnmapMissingSources = 'debug.javascript.unmapMissingSources',
   DefaultRuntimeExecutables = 'debug.javascript.defaultRuntimeExecutable',
   ResourceRequestOptions = 'debug.javascript.resourceRequestOptions',
+  EnableNetworkView = 'debug.javascript.enableNetworkView',
 }
 
 export type DebugByLinkState = 'on' | 'off' | 'always';
@@ -193,6 +194,7 @@ export interface IConfigurationTypes {
   [Configuration.UnmapMissingSources]: boolean;
   [Configuration.DefaultRuntimeExecutables]: { [K in DebugType]?: string };
   [Configuration.ResourceRequestOptions]: Partial<OptionsOfBufferResponseBody>;
+  [Configuration.EnableNetworkView]: boolean;
 }
 
 export interface IStackFrameContext {
