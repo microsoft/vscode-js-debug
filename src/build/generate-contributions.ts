@@ -547,7 +547,7 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
         type: DebugType.Node,
         request: 'launch',
         name: 'Mocha Tests',
-        program: '^"\\${workspaceFolder}/node_modules/mocha/bin/_mocha"',
+        program: '^"mocha"',
         args: [
           '-u',
           'tdd',
@@ -593,7 +593,7 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
         type: DebugType.Node,
         request: 'launch',
         name: 'Electron Main',
-        runtimeExecutable: '^"\\${workspaceFolder}/node_modules/.bin/electron"',
+        runtimeExecutable: '^"electron"',
         program: '^"\\${workspaceFolder}/main.js"',
         skipFiles: ['<node_internals>/**'],
       },

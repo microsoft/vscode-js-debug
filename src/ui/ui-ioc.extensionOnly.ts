@@ -25,6 +25,7 @@ import { DisableSourceMapUI } from './disableSourceMapUI';
 import { DwarfModuleProvider } from './dwarfModuleProviderImpl';
 import { EdgeDevToolOpener } from './edgeDevToolOpener';
 import { ExcludedCallersUI } from './excludedCallersUI';
+import { LaunchJsonCompletions } from './launchJsonCompletions';
 import { ILinkedBreakpointLocation } from './linkedBreakpointLocation';
 import { LinkedBreakpointLocationUI } from './linkedBreakpointLocationUI';
 import { LongPredictionUI } from './longPredictionUI';
@@ -68,6 +69,9 @@ export const registerUiComponents = (container: Container) => {
   container.bind(IExtensionContribution).to(PrettyPrintUI).inSingletonScope();
   container.bind(IExtensionContribution).to(SourceSteppingUI).inSingletonScope();
   container.bind(IExtensionContribution).to(NetworkTree).inSingletonScope();
+  container.bind(IExtensionContribution).to(LaunchJsonCompletions).inSingletonScope().onActivation(
+    trackDispose,
+  );
   container.bind(ILinkedBreakpointLocation).to(LinkedBreakpointLocationUI).inSingletonScope();
   container.bind(DebugSessionTracker).toSelf().inSingletonScope().onActivation(trackDispose);
   container.bind(UiProfileManager).toSelf().inSingletonScope().onActivation(trackDispose);

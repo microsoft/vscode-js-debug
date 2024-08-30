@@ -125,7 +125,7 @@ export class ExcludedCallersUI
         this.allCallers.delete(c.id);
         this.triggerUpdate();
       }),
-      registerCommand(vscode.commands, Commands.CallersRemoveAll, async () => {
+      registerCommand(vscode.commands, Commands.CallersRemoveAll, () => {
         this.allCallers.clear();
         this.triggerUpdate();
       }),

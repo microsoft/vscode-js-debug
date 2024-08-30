@@ -36,10 +36,10 @@ export class SourceSteppingUI implements IExtensionContribution {
     };
 
     context.subscriptions.push(
-      registerCommand(vscode.commands, Commands.EnableSourceMapStepping, async () => {
+      registerCommand(vscode.commands, Commands.EnableSourceMapStepping, () => {
         setEnabled(true);
       }),
-      registerCommand(vscode.commands, Commands.DisableSourceMapStepping, async () => {
+      registerCommand(vscode.commands, Commands.DisableSourceMapStepping, () => {
         setEnabled(false);
       }),
     );

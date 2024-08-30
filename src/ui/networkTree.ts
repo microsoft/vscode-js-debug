@@ -95,7 +95,7 @@ export class NetworkTree implements IExtensionContribution, vscode.TreeDataProvi
         vscode.commands,
         Commands.NetworkOpenBodyHex,
         async (request: NetworkRequest) => {
-          vscode.commands.executeCommand(
+          await vscode.commands.executeCommand(
             'vscode.openWith',
             request.fsBodyUri,
             'hexEditor.hexedit',
@@ -115,7 +115,7 @@ export class NetworkTree implements IExtensionContribution, vscode.TreeDataProvi
           );
         },
       ),
-      registerCommand(vscode.commands, Commands.NetworkClear, async () => {
+      registerCommand(vscode.commands, Commands.NetworkClear, () => {
         for (const model of this.models.values()) {
           model.clear();
         }
