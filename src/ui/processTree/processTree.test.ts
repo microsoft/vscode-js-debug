@@ -9,6 +9,7 @@ describe('process tree', () => {
   describe('analyze arguments', () => {
     const tt = [
       { input: 'node --inspect', address: '127.0.0.1', port: 9229 },
+      { input: 'node --inspect=:1234', address: '127.0.0.1', port: 1234 },
       { input: 'node --inspect=0.0.0.0', address: '0.0.0.0', port: 9229 },
       { input: 'node --inspect=0.0.0.0:1234', address: '0.0.0.0', port: 1234 },
       { input: 'node --inspect=[::1]:1234', address: '[::1]', port: 1234 },
