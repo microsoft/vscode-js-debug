@@ -4,6 +4,7 @@
 
 import type { OptionsOfBufferResponseBody } from 'got';
 import type { Command, commands, ConfigurationTarget, workspace, WorkspaceFolder } from 'vscode';
+import type * as vscode from 'vscode';
 import type {
   IChromeLaunchConfiguration,
   INodeAttachConfiguration,
@@ -69,6 +70,9 @@ export const enum Commands {
   NetworkOpenBodyHex = 'extension.js-debug.network.openBodyInHex',
   NetworkReplayXHR = 'extension.js-debug.network.replayXHR',
   NetworkClear = 'extension.js-debug.network.clear',
+  // #endregion
+  // #region completions
+  CompletionNodeTool = 'extension.js-debug.completion.nodeTool',
   // #endregion
 }
 
@@ -136,6 +140,7 @@ const commandsObj: { [K in Commands]: null } = {
   [Commands.NetworkOpenBodyHex]: null,
   [Commands.NetworkReplayXHR]: null,
   [Commands.NetworkClear]: null,
+  [Commands.CompletionNodeTool]: null,
 };
 
 /**
@@ -247,6 +252,7 @@ export interface ICommandTypes {
   [Commands.NetworkOpenBodyHex](request: NetworkRequest): void;
   [Commands.NetworkReplayXHR](request: NetworkRequest): void;
   [Commands.NetworkClear](): void;
+  [Commands.CompletionNodeTool](doc: vscode.TextDocument, position: vscode.Position): void;
 }
 
 export const networkFilesystemScheme = 'jsDebugNetworkFs';
@@ -257,7 +263,9 @@ export const networkFilesystemScheme = 'jsDebugNetworkFs';
 export const registerCommand = <K extends keyof ICommandTypes>(
   ns: typeof commands,
   key: K,
-  fn: (...args: Parameters<ICommandTypes[K]>) => Thenable<ReturnType<ICommandTypes[K]>>,
+  fn: (
+    ...args: Parameters<ICommandTypes[K]>
+  ) => void extends ReturnType<ICommandTypes[K]> ? void : Thenable<ReturnType<ICommandTypes[K]>>,
 ) => ns.registerCommand(key, fn);
 
 /**

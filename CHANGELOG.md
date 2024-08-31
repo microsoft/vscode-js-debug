@@ -4,6 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
+- feat: add node tool picker completion for launch.json ([#1997](https://github.com/microsoft/vscode-js-debug/issues/1997))
 - fix: process attachment with `--inspect=:1234` style ([#2063](https://github.com/microsoft/vscode-js-debug/issues/2063))
 
 ## v1.93 (August 2024)

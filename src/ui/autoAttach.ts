@@ -99,7 +99,7 @@ export function registerAutoAttach(
         vscode.window.showErrorMessage(`Error activating auto attach: ${err.stack || err}`);
       }
     }),
-    registerCommand(vscode.commands, Commands.AutoAttachClearVariables, async () => {
+    registerCommand(vscode.commands, Commands.AutoAttachClearVariables, () => {
       AutoAttachLauncher.clearVariables(context);
 
       for (const [key, value] of launchers.entries()) {

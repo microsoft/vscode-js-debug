@@ -228,7 +228,7 @@ async function compileTs({
           bundle: true,
           platform: 'node',
           format: 'cjs',
-          target: 'node18',
+          target: 'node20',
           minify,
         });
 
@@ -262,7 +262,7 @@ async function compileTs({
       library,
       isInVsCode,
       nodePackages,
-      target = 'node18',
+      target = 'node20',
     } of packages
   ) {
     todo.push(
