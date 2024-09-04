@@ -9,7 +9,7 @@ import { ICdpApi } from '../../cdp/connection';
 import { MapUsingProjection } from '../../common/datastructure/mapUsingProjection';
 import { EventEmitter } from '../../common/events';
 import { ILogger, LogTag } from '../../common/logging';
-import { node15InternalsPrefix } from '../../common/node15Internal';
+import { node15InternalsPrefix, nodeInternalsToken } from '../../common/node15Internal';
 import { memoizeLast, trailingEdgeThrottle, truthy } from '../../common/objUtils';
 import * as pathUtils from '../../common/pathUtils';
 import { getDeferred, IDeferred } from '../../common/promiseUtil';
@@ -50,7 +50,7 @@ function preprocessAuthoredGlobs(
   userSkipPatterns: ReadonlyArray<string>,
 ): string[] {
   const authoredGlobs = userSkipPatterns
-    .filter(pattern => !pattern.includes('<node_internals>'))
+    .filter(pattern => !pattern.includes(nodeInternalsToken))
     .map(pattern =>
       urlUtils.isAbsolute(pattern)
         ? urlUtils.absolutePathToFileUrlWithDetection(spr.rebaseLocalToRemote(pattern))

@@ -23,7 +23,7 @@ import { sourceMapParseFailed } from '../dap/errors';
 import { IInitializeParams } from '../ioc-extras';
 import { IStatistics } from '../telemetry/classification';
 import { extractErrorDetails } from '../telemetry/dapTelemetryReporter';
-import { IWasmSymbolProvider, IWasmSymbols } from './dwarf/wasmSymbolProvider';
+import { ensureWATExtension, IWasmSymbolProvider, IWasmSymbols } from './dwarf/wasmSymbolProvider';
 import { IResourceProvider } from './resourceProvider';
 import { ScriptSkipper } from './scriptSkipper/implementation';
 import { IScriptSkipper } from './scriptSkipper/scriptSkipper';
@@ -706,22 +706,24 @@ export class SourceContainer {
 
     const todo: Promise<unknown>[] = [];
     for (const url of symbols.files) {
-      const absolutePath = await this.sourcePathResolver.urlToAbsolutePath({ url });
-      const resolvedUrl = absolutePath ? utils.absolutePathToFileUrl(absolutePath) : url;
+      let absolutePath: string | undefined;
+      let resolvedUrl: string;
+      let contentGetter: ContentGetter;
+      if (url === symbols.decompiledUrl) {
+        absolutePath = ensureWATExtension(compiled.absolutePath);
+        resolvedUrl = ensureWATExtension(compiled.url);
+        contentGetter = () => symbols.getDisassembly();
+      } else {
+        absolutePath = await this.sourcePathResolver.urlToAbsolutePath({ url });
+        resolvedUrl = absolutePath ? utils.absolutePathToFileUrl(absolutePath) : url;
+        contentGetter = () => this.resourceProvider.fetch(resolvedUrl).then(r => r.body);
+      }
 
       this.logger.verbose(LogTag.RuntimeSourceCreate, 'Creating wasm source from source map', {
         inputUrl: url,
         absolutePath,
         resolvedUrl,
       });
-
-      const fileUrl = absolutePath && utils.absolutePathToFileUrl(absolutePath);
-      const contentGetter = url === symbols.decompiledUrl
-        ? () => symbols.getDisassembly()
-        : () =>
-          fileUrl
-            ? this.resourceProvider.fetch(fileUrl).then(r => r.body)
-            : Promise.resolve(`Could not read ${url}`);
 
       const source = new SourceFromMap(this, resolvedUrl, absolutePath, contentGetter);
       source.compiledToSourceUrl.set(compiled, url);
