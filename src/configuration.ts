@@ -5,6 +5,7 @@
 import { homedir } from 'os';
 import { SourceMapTimeouts } from './adapter/sourceContainer';
 import { DebugType } from './common/contributionUtils';
+import { nodeInternalsToken } from './common/node15Internal';
 import { assertNever, filterValues } from './common/objUtils';
 import Dap from './dap/api';
 import { AnyRestartOptions } from './targets/node/restartPolicy';
@@ -859,7 +860,7 @@ const nodeBaseDefaults: INodeBaseConfiguration = {
   resolveSourceMapLocations: ['**', '!**/node_modules/**'],
   autoAttachChildProcesses: true,
   runtimeSourcemapPausePatterns: [],
-  skipFiles: ['<node_internals>/**'],
+  skipFiles: [`${nodeInternalsToken}/**`],
 };
 
 export const terminalBaseDefaults: ITerminalLaunchConfiguration = {

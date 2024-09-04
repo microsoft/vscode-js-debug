@@ -7,6 +7,7 @@ import { relative } from 'path';
 import { URL } from 'url';
 import Cdp from '../cdp/api';
 import { checkContentHash } from '../common/hash/checkContentHash';
+import { node15InternalsPrefix, nodeInternalsToken } from '../common/node15Internal';
 import { once } from '../common/objUtils';
 import { forceForwardSlashes, isSubdirectoryOf } from '../common/pathUtils';
 import { delay, getDeferred, IDeferred } from '../common/promiseUtil';
@@ -327,7 +328,11 @@ export class Source {
       return 'repl';
     }
 
-    if (this.absolutePath.startsWith('<node_internals>')) {
+    if (this.url.startsWith(node15InternalsPrefix)) {
+      return nodeInternalsToken + '/' + this.url.slice(node15InternalsPrefix.length);
+    }
+
+    if (this.absolutePath.startsWith(nodeInternalsToken)) {
       return this.absolutePath;
     }
 

@@ -6,6 +6,7 @@ import * as path from 'path';
 import { URL } from 'url';
 import { IFsUtils } from '../../common/fsUtils';
 import { ILogger } from '../../common/logging';
+import { nodeInternalsToken } from '../../common/node15Internal';
 import { fixDriveLetterAndSlashes, properResolve } from '../../common/pathUtils';
 import { SourceMap } from '../../common/sourceMaps/sourceMap';
 import {
@@ -102,7 +103,7 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
     // require('cluster') will import a file simply named "cluster". For these
     // paths, prefix them as internal.
     else if (!path.isAbsolute(url)) {
-      return `<node_internals>/${url}`;
+      return `${nodeInternalsToken}/${url}`;
     } // Otherwise, use default overrides.
     else {
       url = this.sourceMapOverrides.apply(url);

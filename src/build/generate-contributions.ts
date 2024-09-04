@@ -17,6 +17,7 @@ import {
   preferredDebugTypes,
 } from '../common/contributionUtils';
 import { knownToolToken } from '../common/knownTools';
+import { nodeInternalsToken } from '../common/node15Internal';
 import { mapValues, sortKeys, walkObject } from '../common/objUtils';
 import {
   AnyLaunchConfiguration,
@@ -196,7 +197,7 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
   skipFiles: {
     type: 'array',
     description: refString('browser.skipFiles.description'),
-    default: ['<node_internals>/**'],
+    default: ['${/**'],
   },
   smartStep: {
     type: 'boolean',
@@ -403,7 +404,7 @@ const nodeAttachConfig: IDebugger<INodeAttachConfiguration> = {
         request: 'attach',
         name: '${1:Attach}',
         port: 9229,
-        skipFiles: ['<node_internals>/**'],
+        skipFiles: [`${nodeInternalsToken}/**`],
       },
     },
     {
@@ -417,7 +418,7 @@ const nodeAttachConfig: IDebugger<INodeAttachConfiguration> = {
         port: 9229,
         localRoot: '^"\\${workspaceFolder}"',
         remoteRoot: '${3:Absolute path to the remote directory containing the program}',
-        skipFiles: ['<node_internals>/**'],
+        skipFiles: [`${nodeInternalsToken}/**`],
       },
     },
     {
@@ -428,7 +429,7 @@ const nodeAttachConfig: IDebugger<INodeAttachConfiguration> = {
         request: 'attach',
         name: '${1:Attach by Process ID}',
         processId: '^"\\${command:PickProcess}"',
-        skipFiles: ['<node_internals>/**'],
+        skipFiles: [`${nodeInternalsToken}/**`],
       },
     },
   ],
@@ -510,7 +511,7 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
         request: 'launch',
         name: '${2:Launch Program}',
         program: '^"\\${workspaceFolder}/${1:app.js}"',
-        skipFiles: ['<node_internals>/**'],
+        skipFiles: [`${nodeInternalsToken}/**`],
       },
     },
     {
@@ -522,7 +523,7 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
         name: '${1:Launch via NPM}',
         runtimeExecutable: 'npm',
         runtimeArgs: ['run-script', 'debug'],
-        skipFiles: ['<node_internals>/**'],
+        skipFiles: [`${nodeInternalsToken}/**`],
       },
     },
     {
@@ -537,7 +538,7 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
         restart: true,
         console: 'integratedTerminal',
         internalConsoleOptions: 'neverOpen',
-        skipFiles: ['<node_internals>/**'],
+        skipFiles: [`${nodeInternalsToken}/**`],
       },
     },
     {
@@ -557,7 +558,7 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
           '^"\\${workspaceFolder}/${1:test}"',
         ],
         internalConsoleOptions: 'openOnSessionStart',
-        skipFiles: ['<node_internals>/**'],
+        skipFiles: [`${nodeInternalsToken}/**`],
       },
     },
     {
@@ -571,7 +572,7 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
         args: ['${1:generator}'],
         console: 'integratedTerminal',
         internalConsoleOptions: 'neverOpen',
-        skipFiles: ['<node_internals>/**'],
+        skipFiles: [`${nodeInternalsToken}/**`],
       },
     },
     {
@@ -583,7 +584,7 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
         name: 'Gulp ${1:task}',
         program: '^"\\${workspaceFolder}/node_modules/gulp/bin/gulp.js"',
         args: ['${1:task}'],
-        skipFiles: ['<node_internals>/**'],
+        skipFiles: [`${nodeInternalsToken}/**`],
       },
     },
     {
@@ -595,7 +596,7 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
         name: 'Electron Main',
         runtimeExecutable: '^"electron"',
         program: '^"\\${workspaceFolder}/main.js"',
-        skipFiles: ['<node_internals>/**'],
+        skipFiles: [`${nodeInternalsToken}/**`],
       },
     },
   ],

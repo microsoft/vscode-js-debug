@@ -13,6 +13,7 @@ import { DebugType } from '../../common/contributionUtils';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { findOpenPort } from '../../common/findOpenPort';
 import { existsInjected, IFsUtils, LocalFsUtils } from '../../common/fsUtils';
+import { nodeInternalsToken } from '../../common/node15Internal';
 import { forceForwardSlashes, isSubpathOrEqualTo } from '../../common/pathUtils';
 import { some } from '../../common/promiseUtil';
 import { getNormalizedBinaryName, nearestDirectoryWhere } from '../../common/urlUtils';
@@ -326,7 +327,7 @@ export async function createLaunchConfigFromContext(
     type: DebugType.Node,
     request: 'launch',
     name: l10n.t('Launch Program'),
-    skipFiles: ['<node_internals>/**'],
+    skipFiles: [`${nodeInternalsToken}/**`],
   };
 
   if (existingConfig && existingConfig.noDebug) {

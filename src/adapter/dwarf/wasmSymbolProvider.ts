@@ -46,6 +46,8 @@ export interface IWasmWorkerFactory extends IDisposable {
   prompt(): void;
 }
 
+export const ensureWATExtension = (path: string) => path.replace(/\.wasm$/i, '') + '.wat';
+
 @injectable()
 export class WasmWorkerFactory implements IWasmWorkerFactory {
   private cdpCounter = 0;
@@ -362,7 +364,8 @@ class DecompiledWasmSymbols implements IWasmSymbols {
     protected readonly cdp: Cdp.Api,
     files: string[],
   ) {
-    files.push(this.decompiledUrl = event.url.replace('.wasm', '.wat'));
+    this.decompiledUrl = ensureWATExtension(event.url);
+    files.push(this.decompiledUrl);
     this.files = files;
   }
 
