@@ -786,6 +786,45 @@ const dapCustom: JSONSchema4 = {
         type: 'object',
       },
     ),
+
+    ...makeRequest(
+      'getPreferredUILocation',
+      'Resolves a compiled location into a preferred source location. May be used by other VS Code extensions.',
+      {
+        properties: {
+          source: {
+            $ref: '#/definitions/Source',
+            description: 'The source to look up.',
+          },
+          line: {
+            type: 'integer',
+            description: 'The base-0 line number to look up.',
+          },
+          column: {
+            type: 'integer',
+            description: 'The base-0 column number to look up.',
+          },
+        },
+        required: ['source', 'line', 'column'],
+      },
+      {
+        properties: {
+          source: {
+            $ref: '#/definitions/Source',
+            description: 'The resolved source.',
+          },
+          line: {
+            type: 'integer',
+            description: 'The base-0 line number in the source.',
+          },
+          column: {
+            type: 'integer',
+            description: 'The base-0 column number in the source.',
+          },
+        },
+        required: ['source', 'line', 'column'],
+      },
+    ),
   },
 };
 

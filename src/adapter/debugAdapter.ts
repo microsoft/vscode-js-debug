@@ -126,6 +126,31 @@ export class DebugAdapter implements IDisposable {
     this.dap.on('setSymbolOptions', params => this._setSymbolOptions(params));
     this.dap.on('networkCall', params => this._doNetworkCall(params));
     this.dap.on('enableNetworking', params => this._withThread(t => t.enableNetworking(params)));
+    this.dap.on(
+      'getPreferredUILocation',
+      params => this._getPreferredUILocation(params),
+    );
+  }
+
+  private async _getPreferredUILocation(
+    params: Dap.GetPreferredUILocationParams,
+  ): Promise<Dap.GetPreferredUILocationResult> {
+    const source = this.sourceContainer.source(params.source);
+    if (!source) {
+      return params;
+    }
+
+    const location = await this.sourceContainer.preferredUiLocation({
+      columnNumber: params.column + 1,
+      lineNumber: params.line + 1,
+      source,
+    });
+
+    return {
+      column: location.columnNumber - 1,
+      line: location.lineNumber - 1,
+      source: await location.source.toDap(),
+    };
   }
 
   private async _doNetworkCall({ method, params }: Dap.NetworkCallParams) {

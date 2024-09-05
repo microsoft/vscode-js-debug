@@ -1185,6 +1185,22 @@ export namespace Dap {
      * Attempts to enable networking on the target.
      */
     enableNetworkingRequest(params: EnableNetworkingParams): Promise<EnableNetworkingResult>;
+
+    /**
+     * Resolves a compiled location into a preferred source location. May be used by other VS Code extensions.
+     */
+    on(
+      request: 'getPreferredUILocation',
+      handler: (
+        params: GetPreferredUILocationParams,
+      ) => Promise<GetPreferredUILocationResult | Error>,
+    ): () => void;
+    /**
+     * Resolves a compiled location into a preferred source location. May be used by other VS Code extensions.
+     */
+    getPreferredUILocationRequest(
+      params: GetPreferredUILocationParams,
+    ): Promise<GetPreferredUILocationResult>;
   }
 
   export interface TestApi {
@@ -1965,6 +1981,13 @@ export namespace Dap {
      * Attempts to enable networking on the target.
      */
     enableNetworking(params: EnableNetworkingParams): Promise<EnableNetworkingResult>;
+
+    /**
+     * Resolves a compiled location into a preferred source location. May be used by other VS Code extensions.
+     */
+    getPreferredUILocation(
+      params: GetPreferredUILocationParams,
+    ): Promise<GetPreferredUILocationResult>;
   }
 
   export interface AttachParams {
@@ -1973,10 +1996,11 @@ export namespace Dap {
      * The data is sent as the `restart` attribute of the `terminated` event.
      * The client should leave the data intact.
      */
-    __restart?: any[] | boolean | integer | null | number | object | string;
+    __restart?: (any)[] | boolean | integer | null | number | object | string;
   }
 
-  export interface AttachResult {}
+  export interface AttachResult {
+  }
 
   export interface BreakpointEventParams {
     /**
@@ -2021,7 +2045,7 @@ export namespace Dap {
     /**
      * Sorted set of possible breakpoint locations.
      */
-    breakpoints: BreakpointLocation[];
+    breakpoints: (BreakpointLocation)[];
   }
 
   export interface CancelParams {
@@ -2038,7 +2062,8 @@ export namespace Dap {
     progressId?: string;
   }
 
-  export interface CancelResult {}
+  export interface CancelResult {
+  }
 
   export interface CapabilitiesEventParams {
     /**
@@ -2051,7 +2076,8 @@ export namespace Dap {
     params: CapabilitiesExtended;
   }
 
-  export interface CapabilitiesExtendedResult {}
+  export interface CapabilitiesExtendedResult {
+  }
 
   export interface CompletionsParams {
     /**
@@ -2079,12 +2105,14 @@ export namespace Dap {
     /**
      * The possible completions for .
      */
-    targets: CompletionItem[];
+    targets: (CompletionItem)[];
   }
 
-  export interface ConfigurationDoneParams {}
+  export interface ConfigurationDoneParams {
+  }
 
-  export interface ConfigurationDoneResult {}
+  export interface ConfigurationDoneResult {
+  }
 
   export interface ContinueParams {
     /**
@@ -2190,7 +2218,7 @@ export namespace Dap {
     /**
      * Attribute lists the available access types for a potential data breakpoint. A UI client could surface this information.
      */
-    accessTypes?: DataBreakpointAccessType[];
+    accessTypes?: (DataBreakpointAccessType)[];
 
     /**
      * Attribute indicates that a potential data breakpoint could be persisted across sessions.
@@ -2205,7 +2233,8 @@ export namespace Dap {
     source: Source;
   }
 
-  export interface DisableSourcemapResult {}
+  export interface DisableSourcemapResult {
+  }
 
   export interface DisassembleParams {
     /**
@@ -2239,7 +2268,7 @@ export namespace Dap {
     /**
      * The list of disassembled instructions.
      */
-    instructions: DisassembledInstruction[];
+    instructions: (DisassembledInstruction)[];
   }
 
   export interface DisconnectParams {
@@ -2263,16 +2292,18 @@ export namespace Dap {
     suspendDebuggee?: boolean;
   }
 
-  export interface DisconnectResult {}
+  export interface DisconnectResult {
+  }
 
   export interface EnableNetworkingParams {
     /**
      * CDP network domain events to mirror (e.g. "requestWillBeSent")
      */
-    mirrorEvents: string[];
+    mirrorEvents: (string)[];
   }
 
-  export interface EnableNetworkingResult {}
+  export interface EnableNetworkingResult {
+  }
 
   export interface EvaluateParams {
     /**
@@ -2373,7 +2404,8 @@ export namespace Dap {
     stackTraceParams?: StackTraceParamsExtended;
   }
 
-  export interface EvaluationOptionsResult {}
+  export interface EvaluationOptionsResult {
+  }
 
   export interface ExceptionInfoParams {
     /**
@@ -2411,7 +2443,8 @@ export namespace Dap {
     exitCode: integer;
   }
 
-  export interface GetPerformanceParams {}
+  export interface GetPerformanceParams {
+  }
 
   export interface GetPerformanceResult {
     /**
@@ -2423,6 +2456,40 @@ export namespace Dap {
      * Optional error from the adapter
      */
     error?: string;
+  }
+
+  export interface GetPreferredUILocationParams {
+    /**
+     * The source to look up.
+     */
+    source: Source;
+
+    /**
+     * The base-0 line number to look up.
+     */
+    line: integer;
+
+    /**
+     * The base-0 column number to look up.
+     */
+    column: integer;
+  }
+
+  export interface GetPreferredUILocationResult {
+    /**
+     * The resolved source.
+     */
+    source: Source;
+
+    /**
+     * The base-0 line number in the source.
+     */
+    line: integer;
+
+    /**
+     * The base-0 column number in the source.
+     */
+    column: integer;
   }
 
   export interface GotoParams {
@@ -2437,7 +2504,8 @@ export namespace Dap {
     targetId: integer;
   }
 
-  export interface GotoResult {}
+  export interface GotoResult {
+  }
 
   export interface GotoTargetsParams {
     /**
@@ -2460,7 +2528,7 @@ export namespace Dap {
     /**
      * The possible goto targets of the specified location.
      */
-    targets: GotoTarget[];
+    targets: (GotoTarget)[];
   }
 
   export interface InitializeParams {
@@ -2574,7 +2642,7 @@ export namespace Dap {
     /**
      * Available exception filter options for the `setExceptionBreakpoints` request.
      */
-    exceptionBreakpointFilters?: ExceptionBreakpointsFilter[];
+    exceptionBreakpointFilters?: (ExceptionBreakpointsFilter)[];
 
     /**
      * The debug adapter supports stepping back via the `stepBack` and `reverseContinue` requests.
@@ -2609,7 +2677,7 @@ export namespace Dap {
     /**
      * The set of characters that should trigger completion in a REPL. If not specified, the UI should assume the `.` character.
      */
-    completionTriggerCharacters?: string[];
+    completionTriggerCharacters?: (string)[];
 
     /**
      * The debug adapter supports the `modules` request.
@@ -2619,12 +2687,12 @@ export namespace Dap {
     /**
      * The set of additional module information exposed by the debug adapter.
      */
-    additionalModuleColumns?: ColumnDescriptor[];
+    additionalModuleColumns?: (ColumnDescriptor)[];
 
     /**
      * Checksum algorithms supported by the debug adapter.
      */
-    supportedChecksumAlgorithms?: ChecksumAlgorithm[];
+    supportedChecksumAlgorithms?: (ChecksumAlgorithm)[];
 
     /**
      * The debug adapter supports the `restart` request. In this case a client should not implement `restart` by terminating and relaunching the adapter but by calling the `restart` request.
@@ -2751,16 +2819,17 @@ export namespace Dap {
      *
      * Clients may present the first applicable mode in this array as the 'default' mode in gestures that set breakpoints.
      */
-    breakpointModes?: BreakpointMode[];
+    breakpointModes?: (BreakpointMode)[];
   }
 
-  export interface InitializedEventParams {}
+  export interface InitializedEventParams {
+  }
 
   export interface InvalidatedEventParams {
     /**
      * Set of logical areas that got invalidated. This property has a hint characteristic: a client can only be expected to make a 'best effort' in honoring the areas but there are no guarantees. If this property is missing, empty, or if values are not understood, the client should assume a single value `all`.
      */
-    areas?: InvalidatedAreas[];
+    areas?: (InvalidatedAreas)[];
 
     /**
      * If specified, the client only needs to refetch data related to this thread.
@@ -2801,7 +2870,7 @@ export namespace Dap {
      */
     path?: string;
 
-    browserArgs?: string[];
+    browserArgs?: (string)[];
 
     attach?: object;
 
@@ -2822,21 +2891,23 @@ export namespace Dap {
      * The data is sent as the `restart` attribute of the `terminated` event.
      * The client should leave the data intact.
      */
-    __restart?: any[] | boolean | integer | null | number | object | string;
+    __restart?: (any)[] | boolean | integer | null | number | object | string;
   }
 
-  export interface LaunchResult {}
+  export interface LaunchResult {
+  }
 
   export interface LaunchUnelevatedParams {
     process?: string;
 
-    args?: string[];
+    args?: (string)[];
   }
 
-  export interface LaunchUnelevatedResult {}
+  export interface LaunchUnelevatedResult {
+  }
 
   export interface LaunchVSCodeParams {
-    args: LaunchVSCodeArgument[];
+    args: (LaunchVSCodeArgument)[];
 
     env: object;
 
@@ -2859,13 +2930,14 @@ export namespace Dap {
     source: Source;
   }
 
-  export interface LoadedSourcesParams {}
+  export interface LoadedSourcesParams {
+  }
 
   export interface LoadedSourcesResult {
     /**
      * Set of loaded sources.
      */
-    sources: Source[];
+    sources: (Source)[];
   }
 
   export interface LocationsParams {
@@ -2902,7 +2974,8 @@ export namespace Dap {
     endColumn?: integer;
   }
 
-  export interface LongPredictionEventParams {}
+  export interface LongPredictionEventParams {
+  }
 
   export interface MemoryEventParams {
     /**
@@ -2949,7 +3022,7 @@ export namespace Dap {
     /**
      * All modules or range of modules.
      */
-    modules: Module[];
+    modules: (Module)[];
 
     /**
      * The total number of modules available.
@@ -2969,7 +3042,8 @@ export namespace Dap {
     params: object;
   }
 
-  export interface NetworkCallResult {}
+  export interface NetworkCallResult {
+  }
 
   export interface NetworkEventEventParams {
     /**
@@ -3000,7 +3074,8 @@ export namespace Dap {
     granularity?: SteppingGranularity;
   }
 
-  export interface NextResult {}
+  export interface NextResult {
+  }
 
   export interface OpenDiagnosticToolEventParams {
     /**
@@ -3048,7 +3123,7 @@ export namespace Dap {
     /**
      * Additional data to report. For the `telemetry` category the data is sent to telemetry, for the other categories the data is shown in JSON format.
      */
-    data?: any[] | boolean | integer | null | number | object | string;
+    data?: (any)[] | boolean | integer | null | number | object | string;
 
     /**
      * A reference that allows the client to request the location where the new value is declared. For example, if the logged value is function pointer, the adapter may be able to look up the function's location. This should be present only if the adapter is likely to be able to resolve the location.
@@ -3065,7 +3140,8 @@ export namespace Dap {
     threadId: integer;
   }
 
-  export interface PauseResult {}
+  export interface PauseResult {
+  }
 
   export interface PrettyPrintSourceParams {
     /**
@@ -3084,7 +3160,8 @@ export namespace Dap {
     column?: integer;
   }
 
-  export interface PrettyPrintSourceResult {}
+  export interface PrettyPrintSourceResult {
+  }
 
   export interface ProcessEventParams {
     /**
@@ -3249,7 +3326,8 @@ export namespace Dap {
     doesExists: boolean;
   }
 
-  export interface RequestCDPProxyParams {}
+  export interface RequestCDPProxyParams {
+  }
 
   export interface RequestCDPProxyResult {
     /**
@@ -3275,7 +3353,8 @@ export namespace Dap {
     frameId: integer;
   }
 
-  export interface RestartFrameResult {}
+  export interface RestartFrameResult {
+  }
 
   export interface RestartParams {
     /**
@@ -3284,7 +3363,8 @@ export namespace Dap {
     arguments?: LaunchRequestArguments | AttachRequestArguments;
   }
 
-  export interface RestartResult {}
+  export interface RestartResult {
+  }
 
   export interface RevealLocationRequestedEventParams {
     /**
@@ -3303,9 +3383,11 @@ export namespace Dap {
     column?: integer;
   }
 
-  export interface RevealPageParams {}
+  export interface RevealPageParams {
+  }
 
-  export interface RevealPageResult {}
+  export interface RevealPageResult {
+  }
 
   export interface ReverseContinueParams {
     /**
@@ -3319,7 +3401,8 @@ export namespace Dap {
     singleThread?: boolean;
   }
 
-  export interface ReverseContinueResult {}
+  export interface ReverseContinueResult {
+  }
 
   export interface RunInTerminalParams {
     /**
@@ -3340,7 +3423,7 @@ export namespace Dap {
     /**
      * List of arguments. The first argument is the command to run.
      */
-    args: string[];
+    args: (string)[];
 
     /**
      * Environment key-value pairs that are added to or removed from the default environment.
@@ -3372,7 +3455,8 @@ export namespace Dap {
     toFile: string;
   }
 
-  export interface SaveDiagnosticLogsResult {}
+  export interface SaveDiagnosticLogsResult {
+  }
 
   export interface ScopesParams {
     /**
@@ -3385,7 +3469,7 @@ export namespace Dap {
     /**
      * The scopes of the stack frame. If the array has length zero, there are no scopes available.
      */
-    scopes: Scope[];
+    scopes: (Scope)[];
   }
 
   export interface SetBreakpointsParams {
@@ -3397,12 +3481,12 @@ export namespace Dap {
     /**
      * The code locations of the breakpoints.
      */
-    breakpoints?: SourceBreakpoint[];
+    breakpoints?: (SourceBreakpoint)[];
 
     /**
      * Deprecated: The code locations of the breakpoints.
      */
-    lines?: integer[];
+    lines?: (integer)[];
 
     /**
      * A value of true indicates that the underlying source has been modified which results in new breakpoint locations.
@@ -3415,59 +3499,61 @@ export namespace Dap {
      * Information about the breakpoints.
      * The array elements are in the same order as the elements of the `breakpoints` (or the deprecated `lines`) array in the arguments.
      */
-    breakpoints: Breakpoint[];
+    breakpoints: (Breakpoint)[];
   }
 
   export interface SetCustomBreakpointsParams {
     /**
      * Id of breakpoints that should be enabled.
      */
-    ids: string[];
+    ids: (string)[];
 
     /**
      * strings of XHR breakpoints that should be enabled.
      */
-    xhr: string[];
+    xhr: (string)[];
   }
 
-  export interface SetCustomBreakpointsResult {}
+  export interface SetCustomBreakpointsResult {
+  }
 
   export interface SetDataBreakpointsParams {
     /**
      * The contents of this array replaces all existing data breakpoints. An empty array clears all data breakpoints.
      */
-    breakpoints: DataBreakpoint[];
+    breakpoints: (DataBreakpoint)[];
   }
 
   export interface SetDataBreakpointsResult {
     /**
      * Information about the data breakpoints. The array elements correspond to the elements of the input argument `breakpoints` array.
      */
-    breakpoints: Breakpoint[];
+    breakpoints: (Breakpoint)[];
   }
 
   export interface SetDebuggerPropertyParams {
     params: SetDebuggerPropertyParams;
   }
 
-  export interface SetDebuggerPropertyResult {}
+  export interface SetDebuggerPropertyResult {
+  }
 
   export interface SetExceptionBreakpointsParams {
     /**
      * Set of exception filters specified by their ID. The set of all possible exception filters is defined by the `exceptionBreakpointFilters` capability. The `filter` and `filterOptions` sets are additive.
      */
-    filters: string[];
+    filters: (string)[];
 
     /**
      * Set of exception filters and their options. The set of all possible exception filters is defined by the `exceptionBreakpointFilters` capability. This attribute is only honored by a debug adapter if the corresponding capability `supportsExceptionFilterOptions` is true. The `filter` and `filterOptions` sets are additive.
      */
-    filterOptions?: ExceptionFilterOptions[];
+    filterOptions?: (ExceptionFilterOptions)[];
 
     /**
      * Configuration options for selected exceptions.
      * The attribute is only honored by a debug adapter if the corresponding capability `supportsExceptionOptions` is true.
      */
-    exceptionOptions?: ExceptionOptions[];
+    exceptionOptions?: (ExceptionOptions)[];
   }
 
   export interface SetExceptionBreakpointsResult {
@@ -3475,14 +3561,15 @@ export namespace Dap {
      * Information about the exception breakpoints or filters.
      * The breakpoints returned are in the same order as the elements of the `filters`, `filterOptions`, `exceptionOptions` arrays in the arguments. If both `filters` and `filterOptions` are given, the returned array must start with `filters` information first, followed by `filterOptions` information.
      */
-    breakpoints?: Breakpoint[];
+    breakpoints?: (Breakpoint)[];
   }
 
   export interface SetExcludedCallersParams {
-    callers: ExcludedCaller[];
+    callers: (ExcludedCaller)[];
   }
 
-  export interface SetExcludedCallersResult {}
+  export interface SetExcludedCallersResult {
+  }
 
   export interface SetExpressionParams {
     /**
@@ -3561,39 +3648,42 @@ export namespace Dap {
     /**
      * The function names of the breakpoints.
      */
-    breakpoints: FunctionBreakpoint[];
+    breakpoints: (FunctionBreakpoint)[];
   }
 
   export interface SetFunctionBreakpointsResult {
     /**
      * Information about the breakpoints. The array elements correspond to the elements of the `breakpoints` array.
      */
-    breakpoints: Breakpoint[];
+    breakpoints: (Breakpoint)[];
   }
 
   export interface SetInstructionBreakpointsParams {
     /**
      * The instruction references of the breakpoints
      */
-    breakpoints: InstructionBreakpoint[];
+    breakpoints: (InstructionBreakpoint)[];
   }
 
   export interface SetInstructionBreakpointsResult {
     /**
      * Information about the breakpoints. The array elements correspond to the elements of the `breakpoints` array.
      */
-    breakpoints: Breakpoint[];
+    breakpoints: (Breakpoint)[];
   }
 
   export interface SetSourceMapSteppingParams {
     enabled: boolean;
   }
 
-  export interface SetSourceMapSteppingResult {}
+  export interface SetSourceMapSteppingResult {
+  }
 
-  export interface SetSymbolOptionsParams {}
+  export interface SetSymbolOptionsParams {
+  }
 
-  export interface SetSymbolOptionsResult {}
+  export interface SetSymbolOptionsResult {
+  }
 
   export interface SetVariableParams {
     /**
@@ -3717,7 +3807,7 @@ export namespace Dap {
      * The frames of the stack frame. If the array has length zero, there are no stack frames available.
      * This means that there is no location information available.
      */
-    stackFrames: StackFrame[];
+    stackFrames: (StackFrame)[];
 
     /**
      * The total number of frames available in the stack. If omitted or if `totalFrames` is larger than the available frames, a client is expected to request frames until a request returns less frames than requested (which indicates the end of the stack). Returning monotonically increasing `totalFrames` values for subsequent requests can be used to enforce paging in the client.
@@ -3737,13 +3827,14 @@ export namespace Dap {
     request: string;
   }
 
-  export interface StartDebuggingResult {}
+  export interface StartDebuggingResult {
+  }
 
   export interface StartProfileParams {
     /**
      * Breakpoints where we should stop once hit.
      */
-    stopAtBreakpoint?: number[];
+    stopAtBreakpoint?: (number)[];
 
     /**
      * Type of profile that should be taken
@@ -3756,7 +3847,8 @@ export namespace Dap {
     params?: object;
   }
 
-  export interface StartProfileResult {}
+  export interface StartProfileResult {
+  }
 
   export interface StartSelfProfileParams {
     /**
@@ -3765,7 +3857,8 @@ export namespace Dap {
     file: string;
   }
 
-  export interface StartSelfProfileResult {}
+  export interface StartSelfProfileResult {
+  }
 
   export interface StepBackParams {
     /**
@@ -3784,7 +3877,8 @@ export namespace Dap {
     granularity?: SteppingGranularity;
   }
 
-  export interface StepBackResult {}
+  export interface StepBackResult {
+  }
 
   export interface StepInParams {
     /**
@@ -3808,7 +3902,8 @@ export namespace Dap {
     granularity?: SteppingGranularity;
   }
 
-  export interface StepInResult {}
+  export interface StepInResult {
+  }
 
   export interface StepInTargetsParams {
     /**
@@ -3821,7 +3916,7 @@ export namespace Dap {
     /**
      * The possible step-in targets of the specified source location.
      */
-    targets: StepInTarget[];
+    targets: (StepInTarget)[];
   }
 
   export interface StepOutParams {
@@ -3841,15 +3936,20 @@ export namespace Dap {
     granularity?: SteppingGranularity;
   }
 
-  export interface StepOutResult {}
+  export interface StepOutResult {
+  }
 
-  export interface StopProfileParams {}
+  export interface StopProfileParams {
+  }
 
-  export interface StopProfileResult {}
+  export interface StopProfileResult {
+  }
 
-  export interface StopSelfProfileParams {}
+  export interface StopSelfProfileParams {
+  }
 
-  export interface StopSelfProfileResult {}
+  export interface StopSelfProfileResult {
+  }
 
   export interface StoppedEventParams {
     /**
@@ -3900,10 +4000,11 @@ export namespace Dap {
      * - Multiple source breakpoints get collapsed to the same instruction by the compiler/runtime.
      * - Multiple function breakpoints with different function names map to the same location.
      */
-    hitBreakpointIds?: integer[];
+    hitBreakpointIds?: (integer)[];
   }
 
-  export interface SuggestDiagnosticToolEventParams {}
+  export interface SuggestDiagnosticToolEventParams {
+  }
 
   export interface SuggestDisableSourcemapEventParams {
     /**
@@ -3919,23 +4020,25 @@ export namespace Dap {
     restart?: boolean;
   }
 
-  export interface TerminateResult {}
+  export interface TerminateResult {
+  }
 
   export interface TerminateThreadsParams {
     /**
      * Ids of threads to be terminated.
      */
-    threadIds?: integer[];
+    threadIds?: (integer)[];
   }
 
-  export interface TerminateThreadsResult {}
+  export interface TerminateThreadsResult {
+  }
 
   export interface TerminatedEventParams {
     /**
      * A debug adapter may set `restart` to true (or to an arbitrary object) to request that the client restarts the session.
      * The value is not interpreted by the client and passed unmodified as an attribute `__restart` to the `launch` and `attach` requests.
      */
-    restart?: any[] | boolean | integer | null | number | object | string;
+    restart?: (any)[] | boolean | integer | null | number | object | string;
   }
 
   export interface ThreadEventParams {
@@ -3950,13 +4053,14 @@ export namespace Dap {
     threadId: integer;
   }
 
-  export interface ThreadsParams {}
+  export interface ThreadsParams {
+  }
 
   export interface ThreadsResult {
     /**
      * All threads.
      */
-    threads: Thread[];
+    threads: (Thread)[];
   }
 
   export interface ToggleSkipFileStatusParams {
@@ -3971,7 +4075,8 @@ export namespace Dap {
     sourceReference?: number;
   }
 
-  export interface ToggleSkipFileStatusResult {}
+  export interface ToggleSkipFileStatusResult {
+  }
 
   export interface VariablesParams {
     /**
@@ -4007,7 +4112,7 @@ export namespace Dap {
     /**
      * All (or a range) of variables for the given variable reference.
      */
-    variables: Variable[];
+    variables: (Variable)[];
   }
 
   export interface WriteMemoryParams {
@@ -4355,7 +4460,7 @@ export namespace Dap {
      * A path that selects a single or multiple exceptions in a tree. If `path` is missing, the whole tree is selected.
      * By convention the first segment of the path is a category that is used to group exceptions in the UI.
      */
-    path?: ExceptionPathSegment[];
+    path?: (ExceptionPathSegment)[];
 
     /**
      * Condition when a thrown exception should result in a break.
@@ -4376,7 +4481,7 @@ export namespace Dap {
     /**
      * Depending on the value of `negate` the names that should match or not match.
      */
-    names: string[];
+    names: (string)[];
   }
 
   /**
@@ -4403,7 +4508,8 @@ export namespace Dap {
   /**
    * Arguments for "setDebuggerProperty" request. Properties are determined by debugger.
    */
-  export interface SetDebuggerPropertyParams {}
+  export interface SetDebuggerPropertyParams {
+  }
 
   /**
    * Properties of a data breakpoint passed to the `setDataBreakpoints` request.
@@ -4544,7 +4650,7 @@ export namespace Dap {
      * The data is sent as the `restart` attribute of the `terminated` event.
      * The client should leave the data intact.
      */
-    __restart?: any[] | boolean | integer | null | number | object | string;
+    __restart?: (any)[] | boolean | integer | null | number | object | string;
   }
 
   /**
@@ -4561,7 +4667,7 @@ export namespace Dap {
      * The data is sent as the `restart` attribute of the `terminated` event.
      * The client should leave the data intact.
      */
-    __restart?: any[] | boolean | integer | null | number | object | string;
+    __restart?: (any)[] | boolean | integer | null | number | object | string;
   }
 
   /**
@@ -4666,7 +4772,7 @@ export namespace Dap {
     /**
      * Describes one or more type of breakpoint this mode applies to.
      */
-    appliesTo: BreakpointModeApplicability[];
+    appliesTo: (BreakpointModeApplicability)[];
   }
 
   /**
@@ -4819,7 +4925,7 @@ export namespace Dap {
     /**
      * Details of the exception contained by this exception, if any.
      */
-    innerException?: ExceptionDetails[];
+    innerException?: (ExceptionDetails)[];
   }
 
   /**
@@ -5122,7 +5228,7 @@ export namespace Dap {
     /**
      * Available exception filter options for the `setExceptionBreakpoints` request.
      */
-    exceptionBreakpointFilters?: ExceptionBreakpointsFilter[];
+    exceptionBreakpointFilters?: (ExceptionBreakpointsFilter)[];
 
     /**
      * The debug adapter supports stepping back via the `stepBack` and `reverseContinue` requests.
@@ -5157,7 +5263,7 @@ export namespace Dap {
     /**
      * The set of characters that should trigger completion in a REPL. If not specified, the UI should assume the `.` character.
      */
-    completionTriggerCharacters?: string[];
+    completionTriggerCharacters?: (string)[];
 
     /**
      * The debug adapter supports the `modules` request.
@@ -5167,12 +5273,12 @@ export namespace Dap {
     /**
      * The set of additional module information exposed by the debug adapter.
      */
-    additionalModuleColumns?: ColumnDescriptor[];
+    additionalModuleColumns?: (ColumnDescriptor)[];
 
     /**
      * Checksum algorithms supported by the debug adapter.
      */
-    supportedChecksumAlgorithms?: ChecksumAlgorithm[];
+    supportedChecksumAlgorithms?: (ChecksumAlgorithm)[];
 
     /**
      * The debug adapter supports the `restart` request. In this case a client should not implement `restart` by terminating and relaunching the adapter but by calling the `restart` request.
@@ -5299,7 +5405,7 @@ export namespace Dap {
      *
      * Clients may present the first applicable mode in this array as the 'default' mode in gestures that set breakpoints.
      */
-    breakpointModes?: BreakpointMode[];
+    breakpointModes?: (BreakpointMode)[];
   }
 
   /**
@@ -5365,18 +5471,18 @@ export namespace Dap {
     /**
      * A list of sources that are related to this source. These may be the source that generated this source.
      */
-    sources?: Source[];
+    sources?: (Source)[];
 
     /**
      * Additional data that a debug adapter might want to loop through the client.
      * The client should leave the data intact and persist it across sessions. The client should not interpret the data.
      */
-    adapterData?: any[] | boolean | integer | null | number | object | string;
+    adapterData?: (any)[] | boolean | integer | null | number | object | string;
 
     /**
      * The checksums associated with this file.
      */
-    checksums?: Checksum[];
+    checksums?: (Checksum)[];
   }
 
   /**

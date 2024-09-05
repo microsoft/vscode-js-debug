@@ -13,7 +13,8 @@
     "**/node_modules",
     "**/testWorkspace",
     "**/*-lock.json",
-    "**/*.d.ts"
+    "**/*.d.ts",
+    "!src/{dap,cdp}/*.d.ts"
   ],
   "plugins": [
     "https://plugins.dprint.dev/typescript-0.91.6.wasm",
