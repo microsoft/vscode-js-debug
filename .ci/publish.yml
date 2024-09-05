@@ -43,7 +43,7 @@ extends:
         displayName: Package DAP Debug Server Bundle
 
       - script: mkdir $(Build.ArtifactStagingDirectory)/sbom-dap-server
-        # condition: ${{ eq(parameters.publishExtension, true) }}
+        condition: ${{ eq(parameters.publishExtension, true) }}
         displayName: Create SBOM drop path
 
       - task: 1ES.PublishPipelineArtifact@1
@@ -51,7 +51,7 @@ extends:
           artifactName: 'Publish DAP Debug Server Bundle'
           sbomBuildComponentPath: $(Build.SourcesDirectory)/dist
           sbomBuildDropPath: $(Build.ArtifactStagingDirectory)/sbom-dap-server
-          # sbomEnabled: ${{ eq(parameters.publishExtension, true) }}
+          sbomEnabled: ${{ eq(parameters.publishExtension, true) }}
           targetPath: $(Build.ArtifactStagingDirectory)/dap-server
         displayName: Publish DAP Debug Server Bundle
 
