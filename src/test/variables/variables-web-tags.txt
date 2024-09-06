@@ -1,7 +1,7 @@
 > result: HTMLCollection(2) [meta, title, foo: meta]
-    > 0: meta
-    > 1: title
+    > 0: [34m<meta [34;1mname[2m=[33m"foo" [34;1mcontent[2m=[33m"bar"[34m></meta>[0m
+    > 1: [34m<title[34m>[2m...[34m</title>[0m
     > length: (...)
-    > foo: meta
+    > foo: [34m<meta [34;1mname[2m=[33m"foo" [34;1mcontent[2m=[33m"bar"[34m></meta>[0m
     > [[Prototype]]: HTMLCollection
     > [[Prototype]]: Object

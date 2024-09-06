@@ -18,7 +18,13 @@ export const getNodeChildren = remoteFunction(function(
   const to = count === -1 ? this.childNodes.length : start + count;
   for (let i = from; i < to && i < this.childNodes.length; ++i) {
     const cn = this.childNodes[i];
-    result[i] = cn.nodeName === '#text' ? (cn.textContent || '') : this.childNodes[i];
+    if (cn.nodeName === '#comment') {
+      result[i] = `<!-- ${cn.textContent} -->`;
+    } else if (cn.nodeName === '#text') {
+      result[i] = cn.textContent || '';
+    } else {
+      result[i] = cn;
+    }
   }
 
   return result;
