@@ -314,12 +314,12 @@ function appendKeyValue(
   if (key.length + separator.length > characterBudget) {
     return stringUtils.trimEnd(key, characterBudget);
   }
-  return `${key}${separator}${
+  return escapeAnsiInString(`${key}${separator}${
     stringUtils.trimMiddle(
       value,
       characterBudget - key.length - separator.length,
     )
-  }`; // Keep in sync with characterBudget calculation.
+  }`); // Keep in sync with characterBudget calculation.
 }
 
 function renderPropertyPreview(
@@ -339,6 +339,10 @@ function renderPropertyPreview(
     return appendKeyValue(name, ': ', quoteStringValue(prop.value), characterBudget);
   }
   return appendKeyValue(name, ': ', prop.value ?? 'unknown', characterBudget);
+}
+
+function escapeAnsiInString(value: string) {
+  return value.replaceAll('\x1b', '\\x1b');
 }
 
 function quoteStringValue(value: string) {
@@ -368,7 +372,7 @@ function renderValue(
       quote = false;
     }
     const value = stringUtils.trimMiddle(stringValue, quote ? budget - 2 : budget);
-    return quote ? quoteStringValue(value) : value;
+    return escapeAnsiInString(quote ? quoteStringValue(value) : value);
   }
 
   if (object.type === 'undefined') {

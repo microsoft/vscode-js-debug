@@ -1,0 +1,7 @@
+> result: [34m<div [34;1mid[2m=[33m"main"[34m>[2m...[34m</div>[0m
+    0: '\n        Content\n        '
+    > 1: [34m<p[34m>[2m...[34m</p>[0m
+        0: 'Paragaph'
+    2: '\n        More content\n        '
+    > 3: [34m<div[34m></div>[0m
+    4: '\n      '

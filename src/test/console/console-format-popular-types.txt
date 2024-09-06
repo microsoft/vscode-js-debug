@@ -318,6 +318,14 @@ Evaluating: 'console.log([true])'
 stdout> (1) [true]
 stdout> > (1) [true]
 
+Evaluating: 'console.log(node)'
+stdout> p#p
+stdout> > [34m<p [34;1mid[2m=[33m"p"[34m></p>[0m
+
+Evaluating: 'console.log([node])'
+stdout> (1) [p#p]
+stdout> > (1) [p#p]
+
 Evaluating: 'console.log(new Boolean(true))'
 stdout> Boolean (true)
 stdout> > Boolean (true)

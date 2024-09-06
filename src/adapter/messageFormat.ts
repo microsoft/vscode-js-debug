@@ -148,13 +148,13 @@ export function formatCssAsAnsi(style: string): string {
           if (background) escapedSequence += `\x1b[48;5;${background}m`;
           break;
         case 'font-weight':
-          if (match[2] === 'bold') escapedSequence += '\x1b[1m';
+          if (match[2] === 'bold') escapedSequence += AnsiStyles.Bold;
           break;
         case 'font-style':
-          if (match[2] === 'italic') escapedSequence += '\x1b[3m';
+          if (match[2] === 'italic') escapedSequence += AnsiStyles.Italic;
           break;
         case 'text-decoration':
-          if (match[2] === 'underline') escapedSequence += '\x1b[4m';
+          if (match[2] === 'underline') escapedSequence += AnsiStyles.Underline;
           break;
         default:
           // css not mapped, skip
@@ -165,4 +165,32 @@ export function formatCssAsAnsi(style: string): string {
   }
 
   return escapedSequence;
+}
+
+export const enum AnsiStyles {
+  Reset = '\x1b[0m',
+  Bold = '\x1b[1m',
+  Dim = '\x1b[2m',
+  Italic = '\x1b[3m',
+  Underline = '\x1b[4m',
+  Blink = '\x1b[5m',
+  Reverse = '\x1b[7m',
+  Hidden = '\x1b[8m',
+  Strikethrough = '\x1b[9m',
+  Black = '\x1b[30m',
+  Red = '\x1b[31m',
+  Green = '\x1b[32m',
+  Yellow = '\x1b[33m',
+  Blue = '\x1b[34m',
+  Magenta = '\x1b[35m',
+  Cyan = '\x1b[36m',
+  White = '\x1b[37m',
+  BrightBlack = '\x1b[30;1m',
+  BrightRed = '\x1b[31;1m',
+  BrightGreen = '\x1b[32;1m',
+  BrightYellow = '\x1b[33;1m',
+  BrightBlue = '\x1b[34;1m',
+  BrightMagenta = '\x1b[35;1m',
+  BrightCyan = '\x1b[36;1m',
+  BrightWhite = '\x1b[37;1m',
 }

@@ -15,7 +15,9 @@ import Dap from '../dap/api';
 import { IDapApi } from '../dap/connection';
 import * as errors from '../dap/errors';
 import { ProtocolError } from '../dap/protocolError';
+import { ClientCapabilities, IClientCapabilies } from './clientCapabilities';
 import { IWasmVariable, IWasmVariableEvaluation, WasmScope } from './dwarf/wasmSymbolProvider';
+import { AnsiStyles } from './messageFormat';
 import * as objectPreview from './objectPreview';
 import { MapPreview, SetPreview } from './objectPreview/betterTypes';
 import { PreviewContextType } from './objectPreview/contexts';
@@ -23,6 +25,7 @@ import { StackFrame, StackTrace } from './stackTrace';
 import { getSourceSuffix, RemoteException, RemoteObjectId } from './templates';
 import { getArrayProperties } from './templates/getArrayProperties';
 import { getArraySlots } from './templates/getArraySlots';
+import { getNodeChildren } from './templates/getNodeChildren';
 import {
   getDescriptionSymbols,
   getStringyProps,
@@ -204,6 +207,7 @@ class VariableContext {
     public readonly locationProvider: IVariableStoreLocationProvider,
     private readonly currentRef: undefined | (() => IVariable | Scope),
     private readonly settings: IContextSettings,
+    public readonly clientCapabilities: IClientCapabilies,
   ) {
     this.name = ctx.name;
     this.presentationHint = ctx.presentationHint;
@@ -247,6 +251,7 @@ class VariableContext {
         this.locationProvider,
         () => v,
         this.settings,
+        this.clientCapabilities,
       ),
       ...rest,
     ) as InstanceType<T>;
@@ -272,6 +277,8 @@ class VariableContext {
         return this.createVariable(FunctionVariable, ctx, object, customStringRepr);
       } else if (object.subtype === 'map' || object.subtype === 'set') {
         return this.createVariable(SetOrMapVariable, ctx, object, customStringRepr);
+      } else if (object.subtype === 'node') {
+        return this.createVariable(NodeVariable, ctx, object, customStringRepr);
       } else if (!objectPreview.subtypesWithoutPreview.has(object.subtype)) {
         return this.createVariable(ObjectVariable, ctx, object, customStringRepr);
       }
@@ -851,6 +858,118 @@ class ObjectVariable extends Variable implements IMemoryReadable {
   }
 }
 
+class NodeAttributes extends ObjectVariable {
+  public readonly id = getVariableId();
+
+  override get accessor(): string {
+    return (this.context.parent as NodeVariable).accessor;
+  }
+
+  public override async toDap(
+    context: PreviewContextType,
+    valueFormat?: Dap.ValueFormat,
+  ): Promise<Dap.Variable> {
+    return Promise.resolve({
+      ...await super.toDap(context, valueFormat),
+      value: '...',
+    });
+  }
+}
+
+class NodeVariable extends Variable {
+  public override async toDap(
+    previewContext: PreviewContextType,
+    valueFormat?: Dap.ValueFormat,
+  ): Promise<Dap.Variable> {
+    const description = await this.description();
+    const length = description?.node?.childNodeCount || 0;
+    return {
+      ...await super.toDap(previewContext, valueFormat),
+      value: await this.getValuePreview(previewContext),
+      variablesReference: this.id,
+      indexedVariables: length > 100 ? length : undefined,
+      namedVariables: length > 100 ? 1 : undefined,
+    };
+  }
+
+  public override async getChildren(params?: Dap.VariablesParamsExtended): Promise<Variable[]> {
+    switch (params?.filter) {
+      case 'indexed':
+        return this.getNodeChildren(params.start, params.count);
+      case 'named':
+        return [this.getAttributesVar()];
+      default:
+        return [this.getAttributesVar(), ...(await this.getNodeChildren())];
+    }
+  }
+
+  private getAttributesVar() {
+    return this.context.createVariable(
+      NodeAttributes,
+      {
+        name: l10n.t('Node Attributes'),
+        presentationHint: { visibility: 'internal' },
+        sortOrder: Number.MAX_SAFE_INTEGER,
+      },
+      this.remoteObject,
+      undefined,
+    );
+  }
+
+  private async getNodeChildren(start = -1, count = -1) {
+    let slotsObject: Cdp.Runtime.RemoteObject;
+    try {
+      slotsObject = await getNodeChildren({
+        cdp: this.context.cdp,
+        generatePreview: false,
+        args: [start, count],
+        objectId: this.remoteObject.objectId,
+      });
+    } catch (e) {
+      return [];
+    }
+
+    const result = await this.context.createObjectPropertyVars(slotsObject);
+    if (slotsObject.objectId) {
+      await this.context.cdp.Runtime.releaseObject({ objectId: slotsObject.objectId });
+    }
+
+    return result;
+  }
+
+  private readonly description = once(() =>
+    this.context.cdp.DOM.describeNode({
+      objectId: this.remoteObject.objectId,
+    })
+  );
+
+  private async getValuePreview(_previewContext: PreviewContextType) {
+    const description = await this.description();
+    if (!description?.node) {
+      return '';
+    }
+
+    const { localName, attributes, childNodeCount } = description.node;
+    const styleCheck = this.context.clientCapabilities.value?.supportsANSIStyling ? true : '';
+    let str = (styleCheck && AnsiStyles.Blue) + `<${localName}`;
+    if (attributes) {
+      for (let i = 0; i < attributes.length; i += 2) {
+        const key = attributes[i];
+        const value = attributes[i + 1];
+        str += ` ${(styleCheck && AnsiStyles.BrightBlue)}${key}${(styleCheck
+          && AnsiStyles.Dim)}=${(styleCheck && AnsiStyles.Yellow)}${JSON.stringify(value)}`;
+      }
+    }
+    str += (styleCheck && AnsiStyles.Blue) + '>';
+    if (childNodeCount) {
+      str += `${(styleCheck && AnsiStyles.Dim)}...${(styleCheck && AnsiStyles.Blue)}`;
+    }
+    str += `</${localName}>${(styleCheck && AnsiStyles.Reset)}`;
+
+    return str;
+  }
+}
+
 class FunctionVariable extends ObjectVariable {
   private readonly baseChildren = once(() => super.getChildren({ variablesReference: this.id }));
 
@@ -1272,6 +1391,7 @@ export class VariableStore {
     @inject(ICdpApi) private readonly cdp: Cdp.Api,
     @inject(IDapApi) private readonly dap: Dap.Api,
     @inject(AnyLaunchConfiguration) private readonly launchConfig: AnyLaunchConfiguration,
+    @inject(ClientCapabilities) private readonly clientCapabilities: ClientCapabilities,
     private readonly locationProvider: IVariableStoreLocationProvider,
   ) {
     this.contextSettings = {
@@ -1293,6 +1413,7 @@ export class VariableStore {
       this.cdp,
       this.dap,
       this.launchConfig,
+      this.clientCapabilities,
       this.locationProvider,
     );
   }
@@ -1345,6 +1466,7 @@ export class VariableStore {
         this.locationProvider,
         () => scope,
         this.contextSettings,
+        this.clientCapabilities,
       ),
       scopeRef,
       extraProperties,
@@ -1371,6 +1493,7 @@ export class VariableStore {
         this.locationProvider,
         () => scope,
         this.contextSettings,
+        this.clientCapabilities,
       ),
       kind,
       variables,
@@ -1497,6 +1620,7 @@ export class VariableStore {
       this.locationProvider,
       undefined,
       this.contextSettings,
+      this.clientCapabilities,
     );
   }
 }

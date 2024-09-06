@@ -111,6 +111,7 @@ class Session {
         columnsStartAt1: true,
         pathFormat: 'path',
         supportsVariablePaging: true,
+        supportsANSIStyling: true,
       }),
       this.dap.once('initialized'),
     ]);

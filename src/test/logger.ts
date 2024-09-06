@@ -10,6 +10,7 @@ interface ILogOptions {
   format?: Dap.ValueFormat;
   params?: Partial<Dap.EvaluateParams>;
   logInternalInfo?: boolean;
+  omitProperties?: string[];
 }
 
 const kOmitProperties = ['[[ArrayBufferData]]'];
@@ -93,8 +94,10 @@ export class Logger {
       this._dap,
       rootVariable,
       (variable, depth) => {
-        if (kOmitProperties.includes(variable.name)) {
-          return depth < (options.depth ?? 1);
+        if (
+          kOmitProperties.includes(variable.name) || options.omitProperties?.includes(variable.name)
+        ) {
+          return false;
         }
 
         const name = variable.name ? `${variable.name}: ` : '';

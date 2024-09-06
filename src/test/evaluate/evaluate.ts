@@ -35,6 +35,9 @@ describe('evaluate', () => {
     await p.logger.evaluateAndLog(`baz();`);
     p.log('');
 
+    await p.logger.evaluateAndLog(`'\\x1b[2m'`);
+    p.log('');
+
     await p.logger.evaluateAndLog(`new Uint8Array([1, 2, 3]);`);
     p.log('');
 

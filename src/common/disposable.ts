@@ -38,7 +38,7 @@ export class RefCounter<T extends IDisposable> {
   public dispose() {
     if (!this.disposed) {
       this.disposed = true;
-      this.value.dispose;
+      this.value.dispose();
     }
   }
 }
