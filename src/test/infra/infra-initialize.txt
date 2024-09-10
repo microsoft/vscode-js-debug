@@ -28,6 +28,7 @@
     supportTerminateDebuggee : true
     supportedChecksumAlgorithms : [
     ]
+    supportsANSIStyling : true
     supportsBreakpointLocationsRequest : true
     supportsClipboardContext : true
     supportsCompletionsRequest : true

@@ -14,6 +14,8 @@ result: 3
 
 <error>: Uncaught ReferenceError: baz is not defined
 
+result: '\x1b[2m'
+
 > result: Uint8Array(3) [1, 2, 3, buffer: ArrayBuffer(3), byteLength: 3, byteOffset: 0, length: 3, Symbol(Symbol.toStringTag): 'Uint8Array']
     0: 1
     1: 2

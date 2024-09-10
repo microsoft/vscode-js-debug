@@ -27,6 +27,7 @@ import { ITarget } from '../targets/targets';
 import { IShutdownParticipants } from '../ui/shutdownParticipants';
 import { BreakpointManager, EntryBreakpointMode } from './breakpoints';
 import { UserDefinedBreakpoint } from './breakpoints/userDefinedBreakpoint';
+import { IClientCapabilies } from './clientCapabilities';
 import { ICompletions } from './completions';
 import { ExceptionMessage, IConsole, QueryObjectsMessage } from './console';
 import { customBreakpoints } from './customBreakpoints';
@@ -221,12 +222,20 @@ export class Thread implements IVariableStoreLocationProvider {
     private readonly exceptionPause: IExceptionPauseService,
     private readonly _smartStepper: SmartStepper,
     private readonly shutdown: IShutdownParticipants,
+    clientCapabilities: IClientCapabilies,
   ) {
     this._dap = new DeferredContainer(dap);
     this._sourceContainer = sourceContainer;
     this._cdp = cdp;
     this.id = Thread._lastThreadId++;
-    this.replVariables = new VariableStore(renameProvider, this._cdp, dap, launchConfig, this);
+    this.replVariables = new VariableStore(
+      renameProvider,
+      this._cdp,
+      dap,
+      launchConfig,
+      clientCapabilities,
+      this,
+    );
     sourceContainer.onSourceMappedSteppingChange(() => this.refreshStackTrace());
     this._initialize();
   }

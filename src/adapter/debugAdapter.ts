@@ -24,6 +24,7 @@ import { IShutdownParticipants } from '../ui/shutdownParticipants';
 import { IAsyncStackPolicy } from './asyncStackPolicy';
 import { BreakpointManager } from './breakpoints';
 import { ICdpProxyProvider } from './cdpProxy';
+import { IClientCapabilies } from './clientCapabilities';
 import { ICompletions } from './completions';
 import { IConsole } from './console';
 import { Diagnostics } from './diagnosics';
@@ -250,6 +251,7 @@ export class DebugAdapter implements IDisposable {
   ): Promise<Dap.InitializeResult | Dap.Error> {
     console.assert(params.linesStartAt1);
     console.assert(params.columnsStartAt1);
+    this._services.get<IClientCapabilies>(IClientCapabilies).value = params;
     const capabilities = DebugAdapter.capabilities(true);
     setTimeout(() => this.dap.initialized({}), 0);
     setTimeout(() => this._thread?.dapInitialized(), 0);
@@ -310,6 +312,7 @@ export class DebugAdapter implements IDisposable {
       supportsEvaluationOptions: extended ? true : false,
       supportsDebuggerProperties: extended ? true : false,
       supportsSetSymbolOptions: extended ? true : false,
+      supportsANSIStyling: true,
       // supportsDataBreakpoints: false,
       // supportsDisassembleRequest: false,
     };
@@ -515,6 +518,7 @@ export class DebugAdapter implements IDisposable {
       this._services.get(IExceptionPauseService),
       this._services.get(SmartStepper),
       this._services.get(IShutdownParticipants),
+      this._services.get(IClientCapabilies),
     );
 
     const profile = this._services.get<IProfileController>(IProfileController);

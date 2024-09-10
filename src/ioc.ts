@@ -27,6 +27,7 @@ import {
 } from './adapter/breakpoints/conditions';
 import { LogPointCompiler } from './adapter/breakpoints/conditions/logPoint';
 import { CdpProxyProvider, ICdpProxyProvider } from './adapter/cdpProxy';
+import { ClientCapabilities, IClientCapabilies } from './adapter/clientCapabilities';
 import { Completions, ICompletions } from './adapter/completions';
 import { IConsole } from './adapter/console';
 import { Console } from './adapter/console/console';
@@ -163,6 +164,7 @@ export const createTargetContainer = (
   container.bind(ITarget).toConstantValue(target);
   container.bind(ITargetOrigin).toConstantValue(target.targetOrigin());
   container.bind(IResourceProvider).to(StatefulResourceProvider).inSingletonScope();
+  container.bind(IClientCapabilies).to(ClientCapabilities).inSingletonScope();
   container.bind(ISourceMapFactory).to(SourceMapFactory).inSingletonScope();
   container.bind(IBreakpointConditionFactory).to(BreakpointConditionFactory).inSingletonScope();
   container.bind(LogPointCompiler).toSelf().inSingletonScope();

@@ -151,6 +151,7 @@ describe('console format', () => {
       'boxedStringWithProps',
       'false',
       'true',
+      'node',
       'new Boolean(true)',
       'new Set([1, 2, 3, 4])',
       'new Set([1, 2, 3, 4, 5, 6, 7, 8])',
@@ -458,6 +459,23 @@ describe('console format', () => {
       ],
       { depth: 0 },
     );
+    p.assertLog();
+  });
+
+  itIntegrates('nodes', async ({ r }) => {
+    const p = await r.launchAndLoad(`
+      <div id="main">
+        Content
+        <p>Paragaph</p>
+        More content
+        <div></div>
+      </div>
+    `);
+
+    await p.logger.evaluateAndLog('document.getElementById("main")', {
+      depth: 3,
+      omitProperties: ['Node Attributes', '[[Prototype]]'],
+    });
     p.assertLog();
   });
 
