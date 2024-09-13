@@ -21,7 +21,7 @@ const appendVars: readonly string[] = ['NODE_OPTIONS', 'VSCODE_INSPECTOR_OPTIONS
 export abstract class NodeAttacherBase<T extends AnyNodeConfiguration> extends NodeLauncherBase<T> {
   protected async appendEnvironmentVariables(cdp: Cdp.Api, vars: EnvironmentVars) {
     const expression =
-      `typeof process==='undefined'||process.pid===undefined?'process not defined':(()=>{`
+      `typeof Deno==='object'?'deno':typeof process==='undefined'||process.pid===undefined?'process not defined':(()=>{`
       + Object.entries(vars.defined())
         .map(([key, value]) => {
           const k = JSON.stringify(key);
