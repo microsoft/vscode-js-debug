@@ -68,7 +68,7 @@ export const checkProcessFilter = (env: IBootloaderInfo) => {
  * session and cause us to think it's over before it actually is.
  * @see https://github.com/microsoft/vscode-js-debug/issues/645
  */
-export const checkNotNpmPrefixCheckOnWindows = () => {
+const checkNotNpmPrefixCheckOnWindows = () => {
   const argv = process.argv;
   return !(
     argv.length === 4
@@ -76,6 +76,15 @@ export const checkNotNpmPrefixCheckOnWindows = () => {
     && argv[2] === 'prefix'
     && argv[3] === '-g'
   );
+};
+
+/**
+ * Similar as above for more recent versions of npm
+ * @see https://github.com/microsoft/vscode-js-debug/issues/645
+ */
+const checkNotNpmPrefixCheckOnWindows2 = () => {
+  const argv = process.argv;
+  return !(argv.length === 2 && basename(argv[1]) === 'npm-prefix.js');
 };
 
 /**
@@ -103,6 +112,7 @@ const allChecks = [
   checkNotElectron,
   checkProcessFilter,
   checkNotNpmPrefixCheckOnWindows,
+  checkNotNpmPrefixCheckOnWindows2,
 ];
 
 /**
