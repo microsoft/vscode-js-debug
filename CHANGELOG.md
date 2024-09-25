@@ -4,6 +4,10 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
+Nothing, yet
+
+## v1.94 (September 2024)
+
 - feat: improve display of HTML elements in the debugger
 - feat: add node tool picker completion for launch.json ([#1997](https://github.com/microsoft/vscode-js-debug/issues/1997))
 - fix: process attachment with `--inspect=:1234` style ([#2063](https://github.com/microsoft/vscode-js-debug/issues/2063))
