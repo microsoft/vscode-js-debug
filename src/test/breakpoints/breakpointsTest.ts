@@ -1414,4 +1414,29 @@ describe('breakpoints', () => {
     await waitForPause(p);
     p.assertLog();
   });
+
+  itIntegrates('disables entrypoint breakpoint when in file (vscode#230201)', async ({ r }) => {
+    createFileTree(testFixturesDir, {
+      'test.js': `function firstfunc(arg){
+  return arg * arg
+}
+const a = firstfunc(2);
+console.log('Finished awesome program');`,
+    });
+
+    const handle = await r.runScript('test.js', {
+      cwd: testFixturesDir,
+    });
+
+    await handle.dap.setBreakpoints({
+      source: { path: join(testFixturesDir, 'test.js') },
+      breakpoints: [{ line: 4, column: 1 }],
+    });
+
+    handle.load();
+    const { threadId } = await handle.dap.once('stopped');
+    await handle.dap.next({ threadId: threadId! });
+    await waitForPause(handle);
+    r.assertLog({ substring: true });
+  });
 });

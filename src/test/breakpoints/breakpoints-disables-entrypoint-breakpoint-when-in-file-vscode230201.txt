@@ -1,0 +1,7 @@
+{
+    allThreadsStopped : false
+    description : Paused
+    reason : step
+    threadId : <number>
+}
+<anonymous> @ ${fixturesDir}/test.js:5:1
