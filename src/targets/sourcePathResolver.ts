@@ -147,7 +147,8 @@ export abstract class SourcePathResolverBase<T extends ISourcePathResolverOption
    */
   public rebaseRemoteToLocal(remotePath: string) {
     if (!this.options.remoteRoot || !this.options.localRoot || !this.canMapPath(remotePath)) {
-      return path.resolve(remotePath);
+      // path.resolve in a relative path will put the path in VS Code's source folder which is never right
+      return path.isAbsolute(remotePath) ? path.resolve(remotePath) : remotePath;
     }
 
     const relativePath = properRelative(this.options.remoteRoot, remotePath);
