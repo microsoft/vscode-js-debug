@@ -338,6 +338,12 @@ gulp.task('vsDebugServerBundle:webpack-bundle', async () => {
   return compileTs({ packages, sourcemap: isDebug, minify: !isDebug });
 });
 
+/** Run webpack to bundle into the VS debug server with named pipes */
+gulp.task('vsDebugPipeServerBundle:webpack-bundle', async () => {
+  const packages = [{ entry: `${srcDir}/vsDebugPipeServer.ts`, library: true }];
+  return compileTs({ packages, sourcemap: isDebug, minify: !isDebug });
+});
+
 const vsceUrls = {
   baseContentUrl: 'https://github.com/microsoft/vscode-js-debug/blob/main',
   baseImagesUrl: 'https://github.com/microsoft/vscode-js-debug/raw/main',
@@ -423,6 +429,11 @@ gulp.task(
 gulp.task(
   'vsDebugServerBundle',
   gulp.series('clean', 'compile', 'vsDebugServerBundle:webpack-bundle', 'l10n:bundle-download'),
+);
+
+gulp.task(
+  'vsDebugPipeServerBundle',
+  gulp.series('clean', 'compile', 'vsDebugPipeServerBundle:webpack-bundle', 'l10n:bundle-download'),
 );
 
 /** Publishes the build extension to the marketplace */
