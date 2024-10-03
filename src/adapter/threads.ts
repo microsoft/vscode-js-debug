@@ -1721,6 +1721,7 @@ export class Thread implements IVariableStoreLocationProvider {
     }
 
     const timer = new HrTime();
+    const disableProm = this._breakpointManager.disableEntrypointBreaks(scriptId);
     const result = await Promise.race([this._getOrStartLoadingSourceMaps(script), delay(timeout)]);
 
     const timeSpentWallClockInMs = timer.elapsed().ms;
@@ -1751,6 +1752,7 @@ export class Thread implements IVariableStoreLocationProvider {
 
     console.assert(this._pausedForSourceMapScriptId === scriptId);
     this._pausedForSourceMapScriptId = undefined;
+    await disableProm;
 
     const bLine = brokenOn?.lineNumber || 0;
     const bColumn = brokenOn?.columnNumber;

@@ -714,6 +714,19 @@ export class BreakpointManager {
     });
   }
 
+  /**
+   * Disables entrypoint breakpoints set in the given script ID. This is
+   * needed so they don't vote to continue later
+   * @see https://github.com/microsoft/vscode/issues/230201
+   */
+  public async disableEntrypointBreaks(scriptId: string) {
+    await Promise.all([...this.moduleEntryBreakpoints.values()].map(bp => {
+      if (bp.enabled && bp.cdpScriptIds.has(scriptId)) {
+        return bp.disable();
+      }
+    }));
+  }
+
   /** Gets whether the CDP breakpoint ID refers to an entrypoint breakpoint. */
   public isEntrypointCdpBreak(cdpId: string) {
     const bp = this._resolvedBreakpoints.get(cdpId);
