@@ -29,7 +29,7 @@ describe('node source path resolver', () => {
         fsUtils,
         undefined,
         defaultOptions,
-        await Logger.test(),
+        Logger.null,
       );
       expect(await r.urlToAbsolutePath({ url: 'file:///src/index.js' })).to.equal(
         resolve('/src/index.js'),
@@ -51,7 +51,7 @@ describe('node source path resolver', () => {
               'C:\\some\\workspa*ce\\folder/../foo/**',
             ],
           },
-          await Logger.test(),
+          Logger.null,
         );
         expect((r as unknown as Record<string, string[]>).resolvePatterns).to.deep.equal([
           'C:/some/workspa\\*ce/folder/**',
@@ -79,7 +79,7 @@ describe('node source path resolver', () => {
               '!**/node_modules/**',
             ],
           },
-          await Logger.test(),
+          Logger.null,
         );
         expect(
           r.shouldResolveSourceMap({
@@ -88,6 +88,28 @@ describe('node source path resolver', () => {
           }),
         ).to.be.true;
       }
+    });
+
+    it('avoids bad matches in relative rebasd #2091', async () => {
+      const r = new NodeSourcePathResolver(
+        fsUtils,
+        undefined,
+        {
+          ...defaultOptions,
+          workspaceFolder: 'C:\\some\\workspa*ce\\folder',
+          basePath: 'C:\\some\\workspa*ce\\folder',
+          resolveSourceMapLocations: [
+            '**/*o*/**',
+          ],
+        },
+        Logger.null,
+      );
+      expect(
+        r.shouldResolveSourceMap({
+          compiledPath: 'external:///app.js',
+          sourceMapUrl: 'external:///app.js.map',
+        }),
+      ).to.be.false;
     });
 
     it('resolves unc paths', async () => {
@@ -99,7 +121,7 @@ describe('node source path resolver', () => {
         fsUtils,
         undefined,
         defaultOptions,
-        await Logger.test(),
+        Logger.null,
       );
       expect(
         await r.urlToAbsolutePath({
@@ -117,7 +139,7 @@ describe('node source path resolver', () => {
           remoteRoot: 'C:\\Source',
           localRoot: '/dev/src',
         },
-        await Logger.test(),
+        Logger.null,
       );
 
       expect(await r.urlToAbsolutePath({ url: 'file:///c:/source/foo/bar.js' })).to.equal(
@@ -134,7 +156,7 @@ describe('node source path resolver', () => {
           remoteRoot: '/dev/src',
           localRoot: 'C:\\Source',
         },
-        await Logger.test(),
+        Logger.null,
       );
 
       expect(await r.urlToAbsolutePath({ url: 'file:///dev/src/foo/bar.js' })).to.equal(
@@ -147,7 +169,7 @@ describe('node source path resolver', () => {
         fsUtils,
         undefined,
         defaultOptions,
-        await Logger.test(),
+        Logger.null,
       );
 
       expect(
@@ -162,7 +184,7 @@ describe('node source path resolver', () => {
         fsUtils,
         undefined,
         defaultOptions,
-        await Logger.test(),
+        Logger.null,
       );
 
       expect(
@@ -242,7 +264,7 @@ describe('node source path resolver', () => {
               ...defaultOptions,
               resolveSourceMapLocations: locs,
             },
-            await Logger.test(),
+            Logger.null,
           );
 
           const result = await resolver.urlToAbsolutePath({
