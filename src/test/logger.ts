@@ -212,17 +212,17 @@ export class Logger {
   evaluateAndLog(
     expression: string,
     options?: ILogOptions,
-    context?: 'watch' | 'repl' | 'hover',
+    context?: 'watch' | 'repl' | 'hover' | 'clipboard',
   ): Promise<Dap.Variable>;
   evaluateAndLog(
     expressions: string[],
     options?: ILogOptions,
-    context?: 'watch' | 'repl' | 'hover',
+    context?: 'watch' | 'repl' | 'hover' | 'clipboard',
   ): Promise<void>;
   async evaluateAndLog(
     expressions: string[] | string,
     options: ILogOptions = {},
-    context?: 'watch' | 'repl' | 'hover',
+    context?: 'watch' | 'repl' | 'hover' | 'clipboard',
   ): Promise<Dap.Variable | void> {
     if (typeof expressions === 'string') {
       const result = await this._dap.evaluate({

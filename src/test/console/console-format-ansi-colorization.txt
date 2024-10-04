@@ -1,0 +1,11 @@
+stdout> [31mThis is a red message[0m
+In context watch:
+result: '\x1b[31mThis is a red message\x1b[0m'
+> result: {x: '\x1b[31mThis is a red message\x1b[0m'}
+    x: '\x1b[31mThis is a red message\x1b[0m'
+    > [[Prototype]]: Object
+In context variables:
+result: '\x1b[31mThis is a red message\x1b[0m'
+> result: {x: '\x1b[31mThis is a red message\x1b[0m'}
+    x: '\x1b[31mThis is a red message\x1b[0m'
+    > [[Prototype]]: Object

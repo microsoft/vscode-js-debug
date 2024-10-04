@@ -96,7 +96,9 @@ export function formatMessage<T>(
     usedSubstitutionIndexes.add(index);
     if (token.specifier === 'c') cssFormatApplied = true;
     const formatter = formatters.get(token.specifier) || defaultFormatter;
-    builder.append(formatter(substitutions[index], { budget: builder.budget(), quoted: false }));
+    builder.append(
+      formatter(substitutions[index], { budget: builder.budget(), quoted: false, ansi: true }),
+    );
   }
 
   if (cssFormatApplied) builder.append('\x1b[0m'); // clear format
@@ -109,7 +111,7 @@ export function formatMessage<T>(
       builder.append(' ');
     }
     builder.append(
-      defaultFormatter(substitutions[i], { budget: builder.budget(), quoted: false }),
+      defaultFormatter(substitutions[i], { budget: builder.budget(), quoted: false, ansi: true }),
     );
   }
 
