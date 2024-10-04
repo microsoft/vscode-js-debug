@@ -3,6 +3,7 @@
  *--------------------------------------------------------*/
 
 import * as l10n from '@vscode/l10n';
+import * as dns from 'dns/promises';
 import { inject, injectable } from 'inversify';
 import { URL } from 'url';
 import * as vscode from 'vscode';
@@ -14,16 +15,26 @@ import {
   readConfig,
 } from '../common/contributionUtils';
 import { DefaultBrowser, IDefaultBrowserProvider } from '../common/defaultBrowserProvider';
+import { delay } from '../common/promiseUtil';
 import { ExtensionContext, IExtensionContribution } from '../ioc-extras';
 
-function getPossibleUrl(link: string, requirePort: boolean): string | undefined {
+async function assertResolves(hostname: string, timeout = 1000) {
+  return Promise.race([
+    dns.lookup(hostname),
+    delay(timeout),
+  ]);
+}
+
+async function getPossibleUrl(link: string, requirePort: boolean): Promise<string | undefined> {
   if (!link) {
     return;
   }
 
   // if the link is already valid, all good
   try {
-    if (new URL(link).hostname) {
+    const url = new URL(link);
+    if (url.hostname) {
+      await assertResolves(url.hostname); // ensure it can be resolved
       return link;
     }
   } catch {
@@ -34,6 +45,7 @@ function getPossibleUrl(link: string, requirePort: boolean): string | undefined 
   try {
     const prefixed = `http://${link}`;
     const url = new URL(prefixed);
+    await assertResolves(url.hostname);
     if (!requirePort || url.port) {
       return prefixed;
     }
@@ -103,10 +115,10 @@ export class DebugLinkUi implements IExtensionContribution {
   private async getLinkFromQuickInput() {
     const clipboard = await vscode.env.clipboard.readText();
     const link = await vscode.window.showInputBox({
-      value: getPossibleUrl(clipboard, false) || this.mostRecentLink,
+      value: await getPossibleUrl(clipboard, false) || this.mostRecentLink,
       placeHolder: 'https://localhost:8080',
       validateInput: input => {
-        if (input && !getPossibleUrl(input, false)) {
+        if (input && !URL.canParse(input)) {
           return l10n.t('The URL provided is invalid');
         }
       },
