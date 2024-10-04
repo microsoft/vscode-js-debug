@@ -81,7 +81,7 @@ export class Session<TSessionImpl extends IDebugSessionLike> implements IDisposa
     const substate = this.sessionStates.get(this.debugSession.id);
     let name = target.name();
     if (this.parent instanceof RootSession) {
-      name = `${this.parent.debugSession.name}: ${name}`;
+      name = `${name} « ${this.parent.debugSession.name}`;
     }
 
     this.debugSession.name = substate ? `${name} (${substate})` : name;
