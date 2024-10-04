@@ -20,8 +20,8 @@ step in new Foo(){
 }
 {
     allThreadsStopped : false
-    description : Paused on breakpoint
-    reason : breakpoint
+    description : Paused
+    reason : step
     threadId : <number>
 }
 Foo.constructor @ ${workspaceFolder}/web/stepInTargets.js:2:3

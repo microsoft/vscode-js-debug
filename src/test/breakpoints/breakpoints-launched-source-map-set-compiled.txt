@@ -19,8 +19,8 @@ Window.bar @ ${workspaceFolder}/web/browserify/bundle.js:36:5
 <anonymous> @ localhost꞉8001/browserify/test.js:1:8
 {
     allThreadsStopped : false
-    description : Paused on breakpoint
-    reason : breakpoint
+    description : Paused
+    reason : step
     threadId : <number>
 }
 foo @ ${workspaceFolder}/web/browserify/bundle.js:19:5
