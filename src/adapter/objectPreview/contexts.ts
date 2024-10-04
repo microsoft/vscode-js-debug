@@ -14,6 +14,11 @@ export interface IPreviewContext {
   quoted: boolean;
 
   /**
+   * Whether ANSI styling should be displayed literally in the string.
+   */
+  ansi?: boolean;
+
+  /**
    * Post-processes the object preview.
    */
   postProcess?(result: string): string;

@@ -548,4 +548,34 @@ describe('console format', () => {
     r.log(JSON.stringify(output));
     handle.assertLog();
   });
+
+  itIntegrates('ANSI colorization', async ({ r }) => {
+    const p = await r.launchAndLoad(`
+        <script>
+          var array = ["test", "test2"];array.length = 10;
+          array.foo = {};
+          array[4] = "test4";
+        </script>`);
+
+    p.dap.evaluate({ expression: 'console.log("\\x1b[31mThis is a red message\\x1b[0m")' });
+    p.logger.logOutput(await p.dap.once('output'));
+
+    for (const context of ['watch', 'variables'] as const) {
+      p.log(`In context ${context}:`);
+      await p.logger.logEvaluateResult(
+        await p.dap.evaluate({
+          expression: `"\\x1b[31mThis is a red message\\x1b[0m"`,
+          context,
+        }),
+      );
+      await p.logger.logEvaluateResult(
+        await p.dap.evaluate({
+          expression: `({x:"\\x1b[31mThis is a red message\\x1b[0m"})`,
+          context,
+        }),
+      );
+    }
+
+    p.assertLog();
+  });
 });

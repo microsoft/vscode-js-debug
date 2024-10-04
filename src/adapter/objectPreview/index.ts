@@ -85,7 +85,7 @@ function previewRemoteObjectInternal(
 
   return 'preview' in object && object.preview
     ? renderPreview(object.preview, context.budget, valueFormat)
-    : renderValue(object, context.budget, context.quoted, valueFormat);
+    : renderValue(object, context, valueFormat);
 }
 
 export function propertyWeight(
@@ -361,18 +361,20 @@ function quoteStringValue(value: string) {
 
 function renderValue(
   object: ObjectPreview.AnyObject,
-  budget: number,
-  quote: boolean,
+  { budget, quoted, ansi }: IPreviewContext,
   format: Dap.ValueFormat | undefined,
 ): string {
   if (object.type === 'string') {
     let stringValue = object.value || (object.description ? object.description : '');
     if (format?.hex) {
       stringValue = Buffer.from(stringValue, 'utf8').toString('hex');
-      quote = false;
+      quoted = false;
     }
-    const value = stringUtils.trimMiddle(stringValue, quote ? budget - 2 : budget);
-    return escapeAnsiInString(quote ? quoteStringValue(value) : value);
+    let value = stringUtils.trimMiddle(stringValue, quoted ? budget - 2 : budget);
+    if (quoted) {
+      value = quoteStringValue(value);
+    }
+    return ansi ? value : escapeAnsiInString(value);
   }
 
   if (object.type === 'undefined') {
@@ -473,7 +475,9 @@ export function previewException(
 ): { title: string; stackTrace?: string } {
   const exception = rawException as ObjectPreview.AnyObject;
   if (exception.type !== 'object' || exception.subtype === 'null') {
-    return { title: renderValue(exception, maxExceptionTitleLength, false, undefined) };
+    return {
+      title: renderValue(exception, { budget: maxExceptionTitleLength, quoted: false }, undefined),
+    };
   }
 
   const description = exception.description ?? (exception as { className?: string }).className
