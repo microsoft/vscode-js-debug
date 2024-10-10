@@ -47,6 +47,7 @@ import {
 } from './source';
 import { IPreferredUiLocation, SourceContainer } from './sourceContainer';
 import { InlinedFrame, isStackFrameElement, StackFrame, StackTrace } from './stackTrace';
+import { breakOnWasmInit, breakOnWasmSourceUrl } from './templates/breakOnWasm';
 import {
   serializeForClipboard,
   serializeForClipboardTmpl,
@@ -56,6 +57,8 @@ import { IVariableStoreLocationProvider, VariableStore } from './variableStore';
 export class ExecutionContext {
   public readonly sourceMapLoads = new Map<string, Promise<IUiLocation[]>>();
   public readonly scripts: Script[] = [];
+  /** Script ID paused in after WASM is initialized, from {@link breakOnWasmInit} */
+  public breakOnWasmScriptId?: string;
 
   constructor(public readonly description: Cdp.Runtime.ExecutionContextDescription) {}
 
@@ -186,6 +189,8 @@ export class Thread implements IVariableStoreLocationProvider {
   private _expectedPauseReason?: ExpectedPauseReason;
   private _excludedCallers: readonly Dap.ExcludedCaller[] = [];
   private _enabledCustomBreakpoints?: ReadonlySet<string>;
+  /** Last parsed WASM script ID. Set immediately before breaking in {@link _breakOnWasmScriptId} */
+  private _lastParsedWasmScriptIds?: string[];
   private readonly stateQueue = new StateQueue();
   private readonly _onPausedEmitter = new EventEmitter<IPausedDetails>();
   private readonly _dap: DeferredContainer<Dap.Api>;
@@ -917,6 +922,26 @@ export class Thread implements IVariableStoreLocationProvider {
   private _executionContextCreated(description: Cdp.Runtime.ExecutionContextDescription) {
     const context = new ExecutionContext(description);
     this._executionContexts.set(description.id, context);
+
+    // WASM files don't have sourcemaps and so aren't paused in the usual
+    // instrumentation BP. But we do need to pause, either to figure out the WAT
+    // lines or by mapping symbolicated files.
+    //
+    // todo: this does not actually work yet! I have a thread out with the
+    // Chromium folks to see if we can make it work, or if there's another workaround.
+    // this._cdp.Debugger.setBreakpointByUrl({
+    //   lineNumber: 0,
+    //   columnNumber: 0,
+    //   // this is very approximate, but hitting it spurriously is not problematic
+    //   urlRegex: '\\.[wW][aA][sS][mM]',
+    // }),
+    //
+    // For now, overwrite WebAssembly methods in the runtime to get the same effect. This needs to be run in event new execution context:
+    this._cdp.Runtime.evaluate({
+      expression: breakOnWasmInit.expr(),
+      silent: true,
+      contextId: description.id,
+    });
   }
 
   async _executionContextDestroyed(contextId: number) {
@@ -969,10 +994,13 @@ export class Thread implements IVariableStoreLocationProvider {
       || event.reason === 'debugCommand';
     const location = event.callFrames[0]?.location as Cdp.Debugger.Location | undefined;
     const scriptId = (event.data as IInstrumentationPauseAuxData)?.scriptId || location?.scriptId;
+    const isWasmBreak = scriptId
+      && this._sourceContainer.getSourceScriptById(scriptId)?.url === breakOnWasmSourceUrl;
     const isSourceMapPause = scriptId
       && (event.reason === 'instrumentation'
         || this._breakpointManager.isEntrypointBreak(hitBreakpoints, scriptId)
-        || hitBreakpoints.some(bp => this._pauseOnSourceMapBreakpointIds?.includes(bp)));
+        || hitBreakpoints.some(bp => this._pauseOnSourceMapBreakpointIds?.includes(bp))
+        || isWasmBreak);
     this.evaluator.setReturnedValue(event.callFrames[0]?.returnValue);
 
     if (isSourceMapPause) {
@@ -988,7 +1016,15 @@ export class Thread implements IVariableStoreLocationProvider {
       }
 
       const expectedPauseReason = this._expectedPauseReason;
-      if (scriptId && (await this._handleSourceMapPause(scriptId, location))) {
+      if (isWasmBreak && this._lastParsedWasmScriptIds) {
+        // Resolve all pending WASM symbols when we've just initialized something
+        const ids = this._lastParsedWasmScriptIds;
+        this._lastParsedWasmScriptIds = undefined;
+        await Promise.all(
+          ids.map(id => this._handleSourceMapPause(id, location)),
+        );
+        return this.resume();
+      } else if (scriptId && (await this._handleSourceMapPause(scriptId, location))) {
         // Pause if we just resolved a breakpoint that's on this
         // location; this won't have existed before now.
       } else if (isInspectBrk) {
@@ -1663,6 +1699,11 @@ export class Thread implements IVariableStoreLocationProvider {
         }
       }
 
+      if (event.scriptLanguage === 'WebAssembly') {
+        this._lastParsedWasmScriptIds ??= [];
+        this._lastParsedWasmScriptIds.push(event.scriptId);
+      }
+
       const source = await this._sourceContainer.addSource(
         event,
         contentGetter,
@@ -1941,18 +1982,6 @@ export class Thread implements IVariableStoreLocationProvider {
       const result = await Promise.all([
         this._cdp.Debugger.setInstrumentationBreakpoint({
           instrumentation: 'beforeScriptWithSourceMapExecution',
-        }),
-        // WASM files don't have sourcemaps and so aren't paused in the usual
-        // instrumentation BP. But we do need to pause, either to figure out the WAT
-        // lines or by mapping symbolicated files.
-        //
-        // todo: this does not actually work yet! I have a thread out with the
-        // Chromium folks to see if we can make it work, or if there's another workaround.
-        this._cdp.Debugger.setBreakpointByUrl({
-          lineNumber: 0,
-          columnNumber: 0,
-          // this is very approximate, but hitting it spurriously is not problematic
-          urlRegex: '\\.[wW][aA][sS][mM]',
         }),
       ]);
       this._pauseOnSourceMapBreakpointIds = result.map(r => r?.breakpointId).filter(truthy);
