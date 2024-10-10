@@ -66,9 +66,25 @@ describe('webassembly', () => {
       await p.dap.setBreakpoints(bp);
 
       await p.dap.once('breakpoint', bp => bp.breakpoint.verified);
-      await p.cdp.Page.reload({});
+      p.cdp.Page.reload({});
+      // wait for the reload to start:
+      await p.dap.once('loadedSource', e => e.reason === 'removed');
       return p;
     };
+
+    itIntegrates('can break immediately', async ({ r }) => {
+      const p = await r.launchUrl(`dwarf/fibonacci.html`);
+      await p.dap.setBreakpoints({
+        source: { path: p.workspacePath('web/dwarf/fibonacci.c') },
+        breakpoints: [{ line: 6 }],
+      });
+      p.load();
+
+      const { threadId } = p.log(await p.dap.once('stopped'));
+      await p.logger.logStackTrace(threadId, 2);
+
+      r.assertLog();
+    });
 
     itIntegrates('scopes and variables', async ({ r, context }) => {
       const p = await prepare(r, context, 'fibonacci', {

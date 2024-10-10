@@ -11,8 +11,10 @@ import { SourceConstants } from '../../common/sourceUtils';
 /**
  * Gets the suffix containing the `sourceURL` to mark a script as internal.
  */
-export const getSourceSuffix = () =>
-  `\n//# sourceURL=eval-${randomBytes(4).toString('hex')}${SourceConstants.InternalExtension}\n`;
+export const getSourceSuffix = (url = makeInternalSourceUrl()) => `\n//# sourceURL=${url}\n`;
+
+export const makeInternalSourceUrl = () =>
+  `eval-${randomBytes(4).toString('hex')}${SourceConstants.InternalExtension}`;
 
 export type TemplateFunction<A extends unknown[]> = {
   expr: (...args: A) => string;
@@ -48,6 +50,7 @@ export type TemplateFunction<A extends unknown[]> = {
  * })();
  * ```
  */
+export function templateFunction(fn: () => void, sourceURL?: string): TemplateFunction<[]>;
 export function templateFunction<A>(fn: (a: A) => void): TemplateFunction<[string]>;
 export function templateFunction<A, B>(
   fn: (a: A, b: B) => void,
@@ -58,11 +61,15 @@ export function templateFunction<A, B, C>(
 export function templateFunction<Args extends unknown[]>(fn: string): TemplateFunction<Args>;
 export function templateFunction<Args extends unknown[]>(
   fn: string | ((...args: Args) => void),
+  sourceURL?: string,
 ): TemplateFunction<string[]> {
-  return templateFunctionStr('' + fn);
+  return templateFunctionStr('' + fn, sourceURL);
 }
 
-function templateFunctionStr<Args extends string[]>(stringified: string): TemplateFunction<Args> {
+function templateFunctionStr<Args extends string[]>(
+  stringified: string,
+  sourceURL?: string,
+): TemplateFunction<Args> {
   const decl = parseExpressionAt(stringified, 0, {
     ecmaVersion: 'latest',
     locations: true,
@@ -86,8 +93,9 @@ function templateFunctionStr<Args extends string[]>(stringified: string): Templa
     ${stringified.slice(start + 1, end - 1)}
   `;
   return {
-    expr: (...args: Args) => `(()=>{${inner(args)}})();\n${getSourceSuffix()}`,
-    decl: (...args: Args) => `function(...runtimeArgs){${inner(args)};\n${getSourceSuffix()}}`,
+    expr: (...args: Args) => `(()=>{${inner(args)}})();\n${getSourceSuffix(sourceURL)}`,
+    decl: (...args: Args) =>
+      `function(...runtimeArgs){${inner(args)};\n${getSourceSuffix(sourceURL)}}`,
   };
 }
 
@@ -116,10 +124,14 @@ export class RemoteObjectId {
  * that takes the CDP and arguments with which to invoke the function. The
  * arguments should be simple objects.
  */
-export function remoteFunction<Args extends unknown[], R>(fn: string | ((...args: Args) => R)) {
+export function remoteFunction<Args extends unknown[], R>(
+  fn: string | ((...args: Args) => R),
+  sourceURL?: string,
+) {
   let stringified = '' + fn;
   const endIndex = stringified.lastIndexOf('}');
-  stringified = stringified.slice(0, endIndex) + getSourceSuffix() + stringified.slice(endIndex);
+  stringified = stringified.slice(0, endIndex) + getSourceSuffix(sourceURL)
+    + stringified.slice(endIndex);
 
   // Some ugly typing here, but it gets us type safety. Mainly we want to:
   //  1. Have args that extend the function arg and omit the args we provide (easy)
@@ -130,7 +142,7 @@ export function remoteFunction<Args extends unknown[], R>(fn: string | ((...args
     args,
     ...options
   }:
-    & { cdp: Cdp.Api; args: Args | RemoteObjectId[] }
+    & { cdp: Cdp.Api; sourceURL?: string; args: Args | RemoteObjectId[] }
     & Omit<
       Cdp.Runtime.CallFunctionOnParams,
       'functionDeclaration' | 'arguments' | 'returnByValue'
