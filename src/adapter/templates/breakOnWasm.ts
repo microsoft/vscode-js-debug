@@ -19,7 +19,11 @@ export const breakOnWasmInit = templateFunction(function() {
     const original = (WebAssembly as any)[fn];
     WebAssembly[fn] = function(...args) {
       return original.apply(this, args).then((r: unknown) => {
-        debugger;
+        // note: instantiating an existing module won't (re)compile the script
+        // so we have no need to stop.
+        if (!(args[0] instanceof WebAssembly.Module)) {
+          debugger;
+        }
         return r as any;
       });
     };
