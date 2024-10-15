@@ -923,6 +923,12 @@ export class Thread implements IVariableStoreLocationProvider {
     const context = new ExecutionContext(description);
     this._executionContexts.set(description.id, context);
 
+    if (this._scriptWithSourceMapHandler) {
+      this._installWasmPauseHandler(description.id);
+    }
+  }
+
+  private _installWasmPauseHandler(contextId: number) {
     // WASM files don't have sourcemaps and so aren't paused in the usual
     // instrumentation BP. But we do need to pause, either to figure out the WAT
     // lines or by mapping symbolicated files.
@@ -937,14 +943,14 @@ export class Thread implements IVariableStoreLocationProvider {
     // }),
     //
     // For now, overwrite WebAssembly methods in the runtime to get the same effect. This needs to be run in event new execution context:
-    this._cdp.Runtime.evaluate({
+    return this._cdp.Runtime.evaluate({
       expression: breakOnWasmInit.expr(),
       silent: true,
-      contextId: description.id,
+      contextId,
     });
   }
 
-  async _executionContextDestroyed(contextId: number) {
+  private async _executionContextDestroyed(contextId: number) {
     const context = this._executionContexts.get(contextId);
     if (!context) return;
     this._executionContexts.delete(contextId);
@@ -1016,13 +1022,18 @@ export class Thread implements IVariableStoreLocationProvider {
       }
 
       const expectedPauseReason = this._expectedPauseReason;
-      if (isWasmBreak && this._lastParsedWasmScriptIds) {
+      if (isWasmBreak) {
         // Resolve all pending WASM symbols when we've just initialized something
         const ids = this._lastParsedWasmScriptIds;
         this._lastParsedWasmScriptIds = undefined;
-        await Promise.all(
-          ids.map(id => this._handleSourceMapPause(id, location)),
-        );
+        // In theory `ids` should always have something, but it seems like we
+        // can see (and ignore) multiple scriptParsed events with the same ID
+        // for the same program if it's WebAssembly.compile'd multiple times.
+        if (ids) {
+          await Promise.all(
+            ids.map(id => this._handleSourceMapPause(id, location)),
+          );
+        }
         return this.resume();
       } else if (scriptId && (await this._handleSourceMapPause(scriptId, location))) {
         // Pause if we just resolved a breakpoint that's on this
@@ -1979,12 +1990,15 @@ export class Thread implements IVariableStoreLocationProvider {
       // setting the URL breakpoint for wasm fails if debugger isn't fully initialized
       await this.debuggerReady.promise;
 
+      const wasmHandlers = Promise.all([...this._executionContexts.keys()]
+        .map(id => this._installWasmPauseHandler(id)));
       const result = await Promise.all([
         this._cdp.Debugger.setInstrumentationBreakpoint({
           instrumentation: 'beforeScriptWithSourceMapExecution',
         }),
       ]);
       this._pauseOnSourceMapBreakpointIds = result.map(r => r?.breakpointId).filter(truthy);
+      await wasmHandlers;
     } else if (!needsPause && this._pauseOnSourceMapBreakpointIds?.length) {
       const breakpointIds = this._pauseOnSourceMapBreakpointIds;
       this._pauseOnSourceMapBreakpointIds = undefined;
