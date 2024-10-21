@@ -103,6 +103,11 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
       return;
     }
 
+    // It's possible the source might be using the `sourceURL`, so apply
+    // any source map overrides now (fixes vscode#204784) and before file
+    // URIs (vscode-dwarf-debugging-ext#7)
+    url = this.sourceMapOverrides.apply(url);
+
     // If we have a file URL, we know it's absolute already and points
     // to a location on disk.
     if (utils.isFileUrl(url)) {
@@ -118,10 +123,6 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
 
       return abs;
     }
-
-    // It's possible the source might be using the `sourceURL`, so apply
-    // any source map overrides now (fixes vscode#204784)
-    url = this.sourceMapOverrides.apply(url);
 
     let pathname: string;
     try {

@@ -4,6 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
+- fix: apply sourceMapPathOverrides to file URIs ([vscode-dwarf-debugging-ext#7](https://github.com/microsoft/vscode-dwarf-debugging-ext/issues/7))
 - fix: allow hitting breakpoints early in webassembly ([vscode#230875](https://github.com/microsoft/vscode/issues/230875))
 - fix: only autofill "debug link" input if the hostname resolves ([vscode#228950](https://github.com/microsoft/vscode/issues/228950))
 - fix: support ANSI colorization in stdout logged strings ([vscode#230441](https://github.com/microsoft/vscode/issues/230441))
