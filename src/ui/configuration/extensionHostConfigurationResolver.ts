@@ -46,18 +46,22 @@ export class ExtensionHostConfigurationResolver
       };
     }
 
-    applyNodeishDefaults(config);
-
     if (config.debugWebWorkerHost) {
       config.outFiles = []; // will have a runtime script offset which invalidates any predictions
+      config.resolveSourceMapLocations = extensionHostConfigDefaults.resolveSourceMapLocations;
     }
 
     if (!config.outFiles && pkgJson && folder) {
       const outFiles = await guessOutFiles(folder, pkgJson);
       if (outFiles) {
         config.outFiles = outFiles;
+        // Ensure the default resolution paths (the entire workspace folder)
+        // is kept so that transpiled sources work (#2101)
+        config.resolveSourceMapLocations ??= extensionHostConfigDefaults.resolveSourceMapLocations;
       }
     }
+
+    applyNodeishDefaults(config);
 
     return Promise.resolve({
       ...extensionHostConfigDefaults,
