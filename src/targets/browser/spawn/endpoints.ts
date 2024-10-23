@@ -20,6 +20,7 @@ export async function getWSEndpoint(
   cancellationToken: CancellationToken,
   logger: ILogger,
   isNode: boolean,
+  remoteHostHeader?: string,
 ): Promise<string> {
   const provider = new BasicResourceProvider(fs);
   const [jsonVersion, jsonList] = await Promise.all([
@@ -27,6 +28,7 @@ export async function getWSEndpoint(
       provider,
       new URL('/json/version', browserURL),
       cancellationToken,
+      remoteHostHeader,
     ),
     // Chrome publishes its top-level debugg on /json/version, while Node does not.
     // Request both and return whichever one got us a string. ONLY try this on
@@ -36,6 +38,7 @@ export async function getWSEndpoint(
         provider,
         new URL('/json/list', browserURL),
         cancellationToken,
+        remoteHostHeader,
       )
       : Promise.resolve(undefined),
   ]);
@@ -77,9 +80,12 @@ async function fetchJsonWithLocalhostFallback<T>(
   provider: BasicResourceProvider,
   url: URL,
   cancellationToken: CancellationToken,
+  remoteHostHeader?: string,
 ): Promise<Response<T>> {
   if (url.hostname !== 'localhost') {
-    return provider.fetchJson<T>(url.toString(), cancellationToken, { host: 'localhost' });
+    return provider.fetchJson<T>(url.toString(), cancellationToken, {
+      host: remoteHostHeader ?? 'localhost',
+    });
   }
 
   url.hostname = '127.0.0.1';
@@ -109,10 +115,11 @@ async (
   browserURL: string,
   cancellationToken: CancellationToken,
   logger: ILogger,
+  remoteHostHeader?: string,
 ): Promise<string> => {
   while (true) {
     try {
-      return await getWSEndpoint(browserURL, cancellationToken, logger, isNode);
+      return await getWSEndpoint(browserURL, cancellationToken, logger, isNode, remoteHostHeader);
     } catch (e) {
       if (cancellationToken.isCancellationRequested) {
         throw new Error(`Could not connect to debug target at ${browserURL}: ${e.message}`);

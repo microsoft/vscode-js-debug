@@ -74,6 +74,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
               ? CancellationTokenSource.withTimeout(runData.params.timeout).token
               : runData.context.cancellationToken,
             this.logger,
+            runData.params.remoteHostHeader,
           );
         }
       } catch (e) {
