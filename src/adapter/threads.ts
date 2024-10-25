@@ -145,9 +145,10 @@ class StateQueue {
 
   public async enqueue<T>(operation: string, fn: () => Promise<T>) {
     // If we would no-op the task because it's already ongoing, make sure we flush
-    // microtasks first to avoid a race https://github.com/microsoft/vscode/issues/204581
+    // tasks first to avoid a race https://github.com/microsoft/vscode/issues/204581
+    // This initially flushed microtasks, but that wasn't always sufficient.
     if (this.queue?.operation === operation) {
-      await new Promise<void>(r => queueMicrotask(r));
+      await new Promise<void>(r => setTimeout(r));
     }
 
     if (!this.queue || this.queue.operation !== operation) {
