@@ -927,6 +927,8 @@ export class Thread implements IVariableStoreLocationProvider {
     if (this._scriptWithSourceMapHandler) {
       this._installWasmPauseHandler(description.id);
     }
+
+    return context;
   }
 
   private _installWasmPauseHandler(contextId: number) {
@@ -1661,13 +1663,12 @@ export class Thread implements IVariableStoreLocationProvider {
     let executionContext = this._executionContexts.get(event.executionContextId);
     if (!executionContext) {
       this.logger.info(LogTag.Internal, 'Creating missing execution context id', event);
-      executionContext = new ExecutionContext({
+      executionContext = this._executionContextCreated({
         id: event.executionContextId,
         name: '<autofilled>',
         origin: '',
         uniqueId: String(event.executionContextId),
       });
-      this._executionContexts.set(event.executionContextId, executionContext);
     }
 
     const createSource = async () => {
