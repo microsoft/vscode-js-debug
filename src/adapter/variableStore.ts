@@ -428,20 +428,8 @@ class VariableContext {
       }
 
       let variable: Variable | undefined;
-      if (
-        p.name === '[[FunctionLocation]]'
-        && p.value
-        && (p.value.subtype as string) === 'internal#location'
-      ) {
-        variable = this.createVariable(
-          FunctionLocationVariable,
-          {
-            name: p.name,
-            presentationHint: { visibility: 'internal', attributes: ['readOnly'] },
-            sortOrder: SortOrder.Internal,
-          },
-          p.value,
-        );
+      if (isFunctionLocation(p)) {
+        variable = this.createFunctionLocationVariable(p);
       } else if (p.value !== undefined) {
         variable = this.createVariableByType(
           {
@@ -459,6 +447,18 @@ class VariableContext {
     }
 
     return flatten(await Promise.all(properties));
+  }
+
+  public createFunctionLocationVariable(p: FunctionLocationDescriptor) {
+    return this.createVariable(
+      FunctionLocationVariable,
+      {
+        name: p.name,
+        presentationHint: { visibility: 'internal', attributes: ['readOnly'] },
+        sortOrder: SortOrder.Internal,
+      },
+      p.value,
+    );
   }
 
   private async createPropertyVar(
@@ -971,16 +971,19 @@ class NodeVariable extends Variable {
 }
 
 class FunctionVariable extends ObjectVariable {
-  private readonly baseChildren = once(() => super.getChildren({ variablesReference: this.id }));
-
   public override async toDap(previewContext: PreviewContextType): Promise<Dap.Variable> {
-    const [dap, children] = await Promise.all([
+    const [dap, props] = await Promise.all([
       super.toDap(previewContext),
-      this.baseChildren(),
+      this.context.cdp.Runtime.getProperties({
+        objectId: this.remoteObject.objectId!,
+        ownProperties: true,
+        nonIndexedPropertiesOnly: true,
+      }),
     ]);
 
-    if (children.some(c => c instanceof FunctionLocationVariable)) {
-      dap.valueLocationReference = this.id;
+    const location = props?.internalProperties?.find(isFunctionLocation);
+    if (location) {
+      dap.valueLocationReference = this.context.createFunctionLocationVariable(location).id;
     }
 
     return dap;
@@ -1580,15 +1583,8 @@ export class VariableStore {
   }
 
   public async getLocations(variablesReference: number): Promise<Cdp.Debugger.Location> {
-    const container = this.vars.get(variablesReference);
-    if (!container) {
-      throw errors.locationNotFound();
-    }
-
-    // note: is actually free because the container will have cached its children
-    const children = await container.getChildren({ variablesReference });
-    const locationVar = children.find(isInstanceOf(FunctionLocationVariable));
-    if (!locationVar) {
+    const locationVar = this.vars.get(variablesReference);
+    if (!locationVar || !(locationVar instanceof FunctionLocationVariable)) {
       throw errors.locationNotFound();
     }
 
@@ -1629,4 +1625,16 @@ function errorFromException(details: Cdp.Runtime.ExceptionDetails): Dap.Error {
   const message = (details.exception && objectPreview.previewException(details.exception).title)
     || details.text;
   return errors.createUserError(message);
+}
+
+type FunctionLocationDescriptor = Cdp.Runtime.InternalPropertyDescriptor & {
+  value: Cdp.Debugger.Location;
+};
+
+function isFunctionLocation(
+  p: Cdp.Runtime.InternalPropertyDescriptor,
+): p is FunctionLocationDescriptor {
+  return p.name === '[[FunctionLocation]]'
+    && !!p.value
+    && (p.value.subtype as string) === 'internal#location';
 }
