@@ -2008,9 +2008,10 @@ export class Thread implements IVariableStoreLocationProvider {
     // WASM pauses should be unconditionally installed because DWARF parsing
     // always happens at runtime, not in the brekapoint predictor (currently)
     if (handler) {
-      await Promise.all(
+      const installed = Promise.all(
         [...this._executionContexts.keys()].map(id => this._installWasmPauseHandler(id)),
       );
+      await Promise.race([installed, delay(100)]);
     }
 
     return !!this._pauseOnSourceMapBreakpointIds?.length;
