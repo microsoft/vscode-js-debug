@@ -6,7 +6,12 @@ import { Container } from 'inversify';
 import { IDwarfModuleProvider } from '../adapter/dwarf/dwarfModuleProvider';
 import { IRequestOptionsProvider } from '../adapter/resourceProvider/requestOptionsProvider';
 import { ITerminalLinkProvider } from '../common/terminalLinkProvider';
-import { IExtensionContribution, trackDispose, VSCodeApi } from '../ioc-extras';
+import {
+  IDebugTerminalOptionsProviders,
+  IExtensionContribution,
+  trackDispose,
+  VSCodeApi,
+} from '../ioc-extras';
 import { TerminalNodeLauncher } from '../targets/node/terminalNodeLauncher';
 import { ILauncher } from '../targets/targets';
 import { IExperimentationService } from '../telemetry/experimentationService';
@@ -25,6 +30,7 @@ import { DisableSourceMapUI } from './disableSourceMapUI';
 import { DwarfModuleProvider } from './dwarfModuleProviderImpl';
 import { EdgeDevToolOpener } from './edgeDevToolOpener';
 import { ExcludedCallersUI } from './excludedCallersUI';
+import { ExtensionApiFactory } from './extensionApi';
 import { LaunchJsonCompletions } from './launchJsonCompletions';
 import { ILinkedBreakpointLocation } from './linkedBreakpointLocation';
 import { LinkedBreakpointLocationUI } from './linkedBreakpointLocationUI';
@@ -95,6 +101,11 @@ export const registerUiComponents = (container: Container) => {
     .bind(ITerminationConditionFactory)
     .to(BreakpointTerminationConditionFactory)
     .inSingletonScope();
+
+  container.bind(IDebugTerminalOptionsProviders)
+    .toConstantValue(new Set());
+
+  container.bind(ExtensionApiFactory).toSelf().inSingletonScope();
 };
 
 export const registerTopLevelSessionComponents = (container: Container) => {
