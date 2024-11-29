@@ -24,7 +24,7 @@ import {
   terminalBaseDefaults,
 } from '../configuration';
 import { createPendingDapApi } from '../dap/pending-api';
-import { FS } from '../ioc-extras';
+import { FS, IDebugTerminalOptionsProviders } from '../ioc-extras';
 import { DelegateLauncherFactory } from '../targets/delegate/delegateLauncherFactory';
 import { NodeBinaryProvider } from '../targets/node/nodeBinaryProvider';
 import { noPackageJsonProvider } from '../targets/node/packageJsonProvider';
@@ -216,6 +216,7 @@ export function registerDebugTerminalUI(
       services.get(FS),
       services.get(NodeOnlyPathResolverFactory),
       services.get(IPortLeaseTracker),
+      services.get(IDebugTerminalOptionsProviders),
       services.get(ITerminalLinkProvider),
     );
 
@@ -306,6 +307,7 @@ export function registerDebugTerminalUI(
               services.get(FS),
               services.get(NodeOnlyPathResolverFactory),
               services.get(IPortLeaseTracker),
+              services.get(IDebugTerminalOptionsProviders),
               services.get(ITerminalLinkProvider),
             );
 

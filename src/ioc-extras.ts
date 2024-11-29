@@ -134,3 +134,8 @@ export interface IExtensionContribution {
 }
 
 export const IExtensionContribution = Symbol('IExtensionContribution');
+
+/**
+ * Binding to a Set<IDebugTerminalOptionsProvider>.
+ */
+export const IDebugTerminalOptionsProviders = Symbol('IDebugTerminalOptionsProviders');

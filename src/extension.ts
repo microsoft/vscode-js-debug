@@ -2,6 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { IExports } from '@vscode/js-debug';
 import * as l10n from '@vscode/l10n';
 import { tmpdir } from 'os';
 import * as vscode from 'vscode';
@@ -23,6 +24,7 @@ import { registerCustomBreakpointsUI } from './ui/customBreakpointsUI';
 import { debugNpmScript } from './ui/debugNpmScript';
 import { DebugSessionTracker } from './ui/debugSessionTracker';
 import { registerDebugTerminalUI } from './ui/debugTerminalUI';
+import { ExtensionApiFactory } from './ui/extensionApi';
 import { attachProcess, pickProcess } from './ui/processPicker';
 import { registerProfilingCommand } from './ui/profiling';
 import { registerRequestCDPProxy } from './ui/requestCDPProxy';
@@ -30,7 +32,7 @@ import { registerRevealPage } from './ui/revealPage';
 import { toggleSkippingFile } from './ui/toggleSkippingFile';
 import { VSCodeSessionManager } from './ui/vsCodeSessionManager';
 
-export function activate(context: vscode.ExtensionContext) {
+export function activate(context: vscode.ExtensionContext): IExports {
   if (vscode.l10n.bundle) {
     l10n.config({ contents: vscode.l10n.bundle });
   }
@@ -101,6 +103,8 @@ export function activate(context: vscode.ExtensionContext) {
   registerRevealPage(context, debugSessionTracker);
   registerRequestCDPProxy(context, debugSessionTracker);
   services.getAll<IExtensionContribution>(IExtensionContribution).forEach(c => c.register(context));
+
+  return services.get(ExtensionApiFactory).create();
 }
 
 export function deactivate() {

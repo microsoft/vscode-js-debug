@@ -2,6 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { IDebugTerminalOptionsProvider } from '@vscode/js-debug';
 import { randomBytes } from 'crypto';
 import { inject, injectable, optional } from 'inversify';
 import { tmpdir } from 'os';
@@ -16,7 +17,7 @@ import { ITerminalLinkProvider } from '../../common/terminalLinkProvider';
 import { AnyLaunchConfiguration, ITerminalLaunchConfiguration } from '../../configuration';
 import { ErrorCodes } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
-import { FS, FsPromises } from '../../ioc-extras';
+import { FS, FsPromises, IDebugTerminalOptionsProviders } from '../../ioc-extras';
 import { ISourcePathResolverFactory } from '../sourcePathResolverFactory';
 import { IStopMetadata, ITarget } from '../targets';
 import { hideDebugInfoFromConsole, INodeBinaryProvider, NodeBinary } from './nodeBinaryProvider';
@@ -78,6 +79,9 @@ export class TerminalNodeLauncher extends NodeLauncherBase<ITerminalLaunchConfig
     @inject(FS) private readonly fs: FsPromises,
     @inject(ISourcePathResolverFactory) pathResolverFactory: ISourcePathResolverFactory,
     @inject(IPortLeaseTracker) portLeaseTracker: IPortLeaseTracker,
+    @inject(IDebugTerminalOptionsProviders) private readonly optionsProviders: ReadonlySet<
+      IDebugTerminalOptionsProvider
+    >,
     @optional()
     @inject(ITerminalLinkProvider)
     private readonly terminalLinkProvider: ITerminalLinkProvider | undefined,
@@ -134,13 +138,22 @@ export class TerminalNodeLauncher extends NodeLauncherBase<ITerminalLaunchConfig
       fileCallback: this.callbackFile,
     });
 
-    const terminal = await this.createTerminal({
+    let options: vscode.TerminalOptions = {
       name: runData.params.name,
       cwd: runData.params.cwd,
       iconPath: new vscode.ThemeIcon('debug'),
       env: hideDebugInfoFromConsole(binary, env).defined(),
       isTransient: true,
-    });
+    };
+
+    for (const provider of this.optionsProviders) {
+      const result = await provider.provideTerminalOptions(options);
+      if (result) {
+        options = result;
+      }
+    }
+
+    const terminal = await this.createTerminal(options);
     this.terminalLinkProvider?.enableHandlingInTerminal(terminal);
     this.terminalCreatedEmitter.fire(terminal);
 
