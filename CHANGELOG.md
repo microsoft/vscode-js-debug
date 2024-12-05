@@ -4,7 +4,10 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
-Nothing, yet
+## v1.96 (November 2024)
+
+- fix: performance degredation of repeated variable calls ([#2120](https://github.com/microsoft/vscode-js-debug/issues/2120))
+- feat: add extension API for debug terminal contributions ([#2136](https://github.com/microsoft/vscode-js-debug/pull/2136))
 
 ## v1.95 (October 2024)
 
