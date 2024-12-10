@@ -163,6 +163,15 @@ describe('hash process', function() {
       );
       expect(b).to.be.false;
     });
+
+    it('verifies raw content for BOM-less Node', async () => {
+      const a = await hasher.verifyFile(
+        join(hashTestCaseDir, 'utf8-bom.js'),
+        '027cd940c96749db7c716eabe8e09ad578a3c0b5dfc821dc2bb67f627be70ff1',
+        false,
+      );
+      expect(a).to.be.true;
+    });
   });
 
   it('verifies if wrapped in node module', async () => {
