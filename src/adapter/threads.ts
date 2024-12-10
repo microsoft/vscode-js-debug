@@ -972,7 +972,7 @@ export class Thread implements IVariableStoreLocationProvider {
     }
     this._breakpointManager.executionContextWasCleared();
 
-    if (pausedDetails && pausedDetails === this._pausedDetails) {
+    if (pausedDetails && pausedDetails === this._pausedDetails && !this.disposed) {
       this.onResumed();
     }
   }
