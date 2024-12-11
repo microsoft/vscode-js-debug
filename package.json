@@ -50,7 +50,7 @@
     "test:lint": "gulp lint"
   },
   "dependencies": {
-    "@c4312/chromehash": "^0.3.0",
+    "@c4312/chromehash": "^0.3.1",
     "@jridgewell/gen-mapping": "^0.3.3",
     "@jridgewell/trace-mapping": "^0.3.22",
     "@vscode/js-debug-browsers": "^1.1.2",
