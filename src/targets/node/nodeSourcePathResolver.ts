@@ -155,7 +155,7 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
     }
 
     if (urlUtils.isFileUrl(url)) {
-      return urlUtils.fileUrlToAbsolutePath(url);
+      return this.rebaseRemoteToLocal(urlUtils.fileUrlToAbsolutePath(url));
     }
 
     if (!path.isAbsolute(url) && this.options.basePath) {

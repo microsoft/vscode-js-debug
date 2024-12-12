@@ -206,6 +206,27 @@ describe('node source path resolver', () => {
       );
     });
 
+    it('applies rebase to file URIs (#2122)', async () => {
+      const resolver = new NodeSourcePathResolver(fsUtils, undefined, {
+        ...defaultOptions,
+        localRoot: '/biz',
+        remoteRoot: '/foo',
+      }, Logger.null);
+
+      const result = await resolver.urlToAbsolutePath({
+        url: 'file:///foo/bar/baz.ts',
+        map: {
+          metadata: {
+            sourceMapUrl: 'file:///foo/bar/baz/my.map.js',
+            compiledPath: 'file:///foo/bar/baz/my.map.js',
+          },
+          sourceRoot: '',
+        } as any,
+      });
+
+      expect(result).to.equal('/biz/bar/baz.ts');
+    });
+
     describe('source map filtering', () => {
       const testTable = {
         'matches paths': {
