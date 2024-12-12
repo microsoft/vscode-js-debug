@@ -5,7 +5,6 @@
 import { createWriteStream, mkdirSync } from 'fs';
 import { dirname } from 'path';
 import { Writable } from 'stream';
-import { constants, createGzip } from 'zlib';
 import Dap from '../../dap/api';
 import { ILogItem, ILogSink } from '.';
 
@@ -37,12 +36,7 @@ export class FileLogSink implements ILogSink {
       // already exists
     }
 
-    if (file.endsWith('.gz')) {
-      this.stream = createGzip();
-      this.stream.pipe(createWriteStream(file));
-    } else {
-      this.stream = createWriteStream(file);
-    }
+    this.stream = createWriteStream(file);
   }
 
   /**
@@ -71,9 +65,6 @@ export class FileLogSink implements ILogSink {
   public write(item: ILogItem<unknown>): void {
     if (this.stream) {
       this.stream.write(JSON.stringify(item, replacer) + '\n');
-      if ('flush' in this.stream && typeof this.stream.flush === 'function') {
-        this.stream.flush(constants.Z_SYNC_FLUSH);
-      }
     }
   }
 }

@@ -139,7 +139,7 @@ export function fulfillLoggerOptions(
 
   const defaults: ILoggingConfiguration = {
     stdio: true,
-    logFile: path.join(logDir, `vscode-debugadapter-${randomBytes(4).toString('hex')}.json.gz`),
+    logFile: path.join(logDir, `vscode-debugadapter-${randomBytes(4).toString('hex')}.json`),
   };
 
   if (config === true) {
