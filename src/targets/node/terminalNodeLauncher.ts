@@ -24,6 +24,10 @@ import { hideDebugInfoFromConsole, INodeBinaryProvider, NodeBinary } from './nod
 import { IProcessTelemetry, IRunData, NodeLauncherBase } from './nodeLauncherBase';
 import { IProgram } from './program';
 
+const SHELL_INTEGRATION_TIMEOUT = 1000;
+const SHELL_PROCESS_ID_TIMEOUT = 1000;
+const SHELL_INTEGRATION_SETTING = 'terminal.integrated.shellIntegration.enabled';
+
 class VSCodeTerminalProcess implements IProgram {
   public readonly stopped: Promise<IStopMetadata>;
 
@@ -161,10 +165,7 @@ export class TerminalNodeLauncher extends NodeLauncherBase<ITerminalLaunchConfig
     const program = (this.program = new VSCodeTerminalProcess(terminal));
 
     if (runData.params.command) {
-      // Add wait for #1642
-      // "There's a known issue that processId can not resolve... to be safe could you have a race timeout"
-      await Promise.race([terminal.processId, delay(1000)]);
-      terminal.sendText(runData.params.command, true);
+      await this.writeCommand(terminal, runData.params.command);
     }
 
     program.stopped.then(result => {
@@ -172,6 +173,35 @@ export class TerminalNodeLauncher extends NodeLauncherBase<ITerminalLaunchConfig
         this.onProgramTerminated(result);
       }
     });
+  }
+
+  private async writeCommand(terminal: vscode.Terminal, command: string) {
+    // Wait for shell integration if we expect it to be available
+    const config = vscode.workspace.getConfiguration();
+    if (!terminal.shellIntegration && config.get(SHELL_INTEGRATION_SETTING) !== false) {
+      let listener: vscode.Disposable;
+      await Promise.race([
+        delay(SHELL_INTEGRATION_TIMEOUT),
+        new Promise<void>(resolve => {
+          listener = vscode.window.onDidChangeTerminalShellIntegration(e => {
+            if (e.terminal === terminal && e.shellIntegration) {
+              resolve();
+            }
+          });
+        }),
+      ]);
+
+      listener!.dispose();
+    }
+
+    if (terminal.shellIntegration) {
+      terminal.shellIntegration.executeCommand(command);
+    } else {
+      // Add wait for #1642
+      // "There's a known issue that processId can not resolve... to be safe could you have a race timeout"
+      await Promise.race([terminal.processId, delay(SHELL_PROCESS_ID_TIMEOUT)]);
+      terminal.sendText(command, true);
+    }
   }
 
   /**
