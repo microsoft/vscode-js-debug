@@ -26,7 +26,6 @@ import { IProgram } from './program';
 
 const SHELL_INTEGRATION_TIMEOUT = 1000;
 const SHELL_PROCESS_ID_TIMEOUT = 1000;
-const SHELL_INTEGRATION_SETTING = 'terminal.integrated.shellIntegration.enabled';
 
 class VSCodeTerminalProcess implements IProgram {
   public readonly stopped: Promise<IStopMetadata>;
@@ -177,8 +176,7 @@ export class TerminalNodeLauncher extends NodeLauncherBase<ITerminalLaunchConfig
 
   private async writeCommand(terminal: vscode.Terminal, command: string) {
     // Wait for shell integration if we expect it to be available
-    const config = vscode.workspace.getConfiguration();
-    if (!terminal.shellIntegration && config.get(SHELL_INTEGRATION_SETTING) !== false) {
+    if (!terminal.shellIntegration) {
       let listener: vscode.Disposable;
       await Promise.race([
         delay(SHELL_INTEGRATION_TIMEOUT),
