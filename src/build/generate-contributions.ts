@@ -1668,7 +1668,7 @@ const menus: Menus = {
     {
       command: Commands.PrettyPrint,
       group: 'navigation',
-      when: `debugState == stopped && resource in ${ContextKey.CanPrettyPrint}`,
+      when: ContextKey.CanPrettyPrint,
     },
   ],
 };

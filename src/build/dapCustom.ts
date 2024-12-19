@@ -119,6 +119,17 @@ const dapCustom: JSONSchema4 = {
         },
       },
       required: ['source'],
+    }, {
+      properties: {
+        didReveal: {
+          type: 'boolean',
+          description: 'Whether the editor was revealed after pretty printing.',
+        },
+        source: {
+          $ref: '#/definitions/Source',
+          description: 'Pretty printed source.',
+        },
+      },
     }),
 
     ...makeRequest('toggleSkipFileStatus', 'Toggle skip status of file.', {
