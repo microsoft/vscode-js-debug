@@ -567,7 +567,7 @@ export class DebugAdapter implements IDisposable {
     params: Dap.PrettyPrintSourceParams,
   ): Promise<Dap.PrettyPrintSourceResult | Dap.Error> {
     if (!params.source || !this._thread) {
-      return { canPrettyPrint: false };
+      return {};
     }
 
     params.source.path = urlUtils.platformPathToPreferredCase(params.source.path);
@@ -585,9 +585,10 @@ export class DebugAdapter implements IDisposable {
 
     await this.breakpointManager.moveBreakpoints(this._thread, source, sourceMap, generated);
     this.sourceContainer.clearDisabledSourceMaps(source as ISourceWithMap);
+    const wasPaused = !!this._thread.pausedDetails();
     await this._refreshStackTrace();
 
-    return {};
+    return { source: await generated.toDap(), didReveal: wasPaused };
   }
 
   private onEvaluate(args: Dap.EvaluateParams): Promise<Dap.EvaluateResult> {

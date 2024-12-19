@@ -42,11 +42,28 @@ export class PrettyPrintUI implements IExtensionContribution {
     // For ephemeral files, they're attached to a single session, so go ahead
     // and send it to the owning session. For files on disk, send it to all
     // sessions--they will no-op if they don't know about the source.
+    let prettied: { session: vscode.DebugSession; result: Dap.PrettyPrintSourceResult }[];
     if (session) {
-      sendPrintCommand(session, source, editor.selection.start);
+      prettied = [{
+        session,
+        result: await sendPrintCommand(session, source, editor.selection.start),
+      }];
     } else {
-      for (const session of this.tracker.getConcreteSessions()) {
-        sendPrintCommand(session, source, editor.selection.start);
+      prettied = await Promise.all(
+        this.tracker.getConcreteSessions().map(async session => {
+          const result = await sendPrintCommand(session, source, editor.selection.start);
+          return { session, result };
+        }),
+      );
+    }
+
+    if (!prettied.some(p => p.result.didReveal)) {
+      const reveal = prettied.find(p => p.result.source);
+      if (reveal) {
+        const doc = await vscode.workspace.openTextDocument(
+          dapSourceToDebugUri(reveal.session, reveal.result.source!),
+        );
+        await vscode.window.showTextDocument(doc);
       }
     }
   }
@@ -55,7 +72,7 @@ export class PrettyPrintUI implements IExtensionContribution {
     return (
       this.tracker.isDebugging
       && editor.document.languageId === 'javascript'
-      && !editor.document.fileName.endsWith('-pretty.js')
+      && !editor.document.uri.path.endsWith('-pretty.js')
     );
   }
 
@@ -78,7 +95,7 @@ const sendPrintCommand = (
   session: vscode.DebugSession,
   source: Dap.Source,
   cursor: vscode.Position,
-) =>
+): Thenable<Dap.PrettyPrintSourceResult> =>
   session.customRequest('prettyPrintSource', {
     source,
     line: cursor.line,
@@ -97,4 +114,17 @@ const sourceForUri = (uri: vscode.Uri) => {
   };
 
   return { sessionId, source };
+};
+
+// https://github.com/microsoft/vscode/blob/7f9c7a41873b88861744d06aed33d2dbcaa3a92e/src/vs/workbench/contrib/debug/common/debugSource.ts#L132
+const dapSourceToDebugUri = (session: vscode.DebugSession, source: Dap.Source) => {
+  if (!source.sourceReference) {
+    return vscode.Uri.file(source.path || '');
+  }
+
+  return vscode.Uri.from({
+    scheme: 'debug',
+    path: source.path?.replace(/^\/+/g, '/'), // #174054
+    query: `session=${session.id}&ref=${source.sourceReference}`,
+  });
 };

@@ -4,6 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Nightly (only)
 
+- fix: allow pretty printing sources when not paused ([#2138](https://github.com/microsoft/vscode-js-debug/issues/2138))
 - fix: breakpoints not registered in transpiled file in remoteRoot ([#2122](https://github.com/microsoft/vscode-js-debug/issues/2122))
 - fix: content verification of files in Node.js failing with UTF-8 BOM
 - fix: extraneous threads continued event during shutdown at bp

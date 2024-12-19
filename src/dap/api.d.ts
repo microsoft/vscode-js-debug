@@ -2128,7 +2128,7 @@ export namespace Dap {
 
   export interface ContinueResult {
     /**
-     * The value true (or a missing property) signals to the client that all threads have been resumed. The value false indicates that not all threads were resumed.
+     * If omitted or set to `true`, this response signals to the client that all threads have been resumed. The value `false` indicates that not all threads were resumed.
      */
     allThreadsContinued?: boolean;
   }
@@ -2140,7 +2140,7 @@ export namespace Dap {
     threadId: integer;
 
     /**
-     * If `allThreadsContinued` is true, a debug adapter can announce that all threads have continued.
+     * If omitted or set to `true`, this event signals to the client that all threads have been resumed. The value `false` indicates that not all threads were resumed.
      */
     allThreadsContinued?: boolean;
   }
@@ -3103,7 +3103,7 @@ export namespace Dap {
     /**
      * The output to report.
      *
-     * ANSI escape sequences may be used to inflience text color and styling if `supportsANSIStyling` is present in both the adapter's `Capabilities` and the client's `InitializeRequestArguments`. A client may strip any unrecognized ANSI sequences.
+     * ANSI escape sequences may be used to influence text color and styling if `supportsANSIStyling` is present in both the adapter's `Capabilities` and the client's `InitializeRequestArguments`. A client may strip any unrecognized ANSI sequences.
      *
      * If the `supportsANSIStyling` capabilities are not both true, then the client should display the output literally.
      */
@@ -3175,6 +3175,15 @@ export namespace Dap {
   }
 
   export interface PrettyPrintSourceResult {
+    /**
+     * Whether the editor was revealed after pretty printing.
+     */
+    didReveal?: boolean;
+
+    /**
+     * Pretty printed source.
+     */
+    source?: Source;
   }
 
   export interface ProcessEventParams {
@@ -3810,7 +3819,7 @@ export namespace Dap {
     levels?: integer;
 
     /**
-     * Specifies details on how to format the stack frames.
+     * Specifies details on how to format the returned `StackFrame.name`. The debug adapter may format requested details in any way that would make sense to a developer.
      * The attribute is only honored by a debug adapter if the corresponding capability `supportsValueFormattingOptions` is true.
      */
     format?: StackFrameFormat;
