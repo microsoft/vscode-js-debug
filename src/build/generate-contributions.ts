@@ -1774,6 +1774,7 @@ if (require.main === module) {
             aliases: ['WebAssembly Text Format'],
             firstLine: '^\\(module',
             mimetypes: ['text/wat'],
+            configuration: './src/ui/basic-wat.configuration.json',
           },
         ],
         terminal: {

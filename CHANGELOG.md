@@ -9,6 +9,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: content verification of files in Node.js failing with UTF-8 BOM
 - fix: extraneous threads continued event during shutdown at bp
 - fix: webworker extension host not debuging ([#2147](https://github.com/microsoft/vscode-js-debug/issues/2147))
+- fix: add a basic language configuration for WAT ([vscode#224937](https://github.com/microsoft/vscode/issues/224937))
 
 ## v1.96 (November 2024)
 
