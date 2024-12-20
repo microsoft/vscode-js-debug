@@ -174,6 +174,7 @@ gulp.task('compile:static', () =>
         'package.nls.json',
         'src/**/*.sh',
         'src/ui/basic-wat.tmLanguage.json',
+        'src/ui/basic-wat.configuration.json',
         '.vscodeignore',
       ],
       {
