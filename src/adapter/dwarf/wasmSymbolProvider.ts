@@ -168,9 +168,17 @@ export class WasmSymbolProvider implements IWasmSymbolProvider, IDisposable {
 
     let symbolsUrl: URL | undefined;
     try {
-      symbolsUrl = script.debugSymbols?.externalURL
-        ? new URL(script.debugSymbols?.externalURL)
-        : undefined;
+      const symbols = script.debugSymbols;
+      if (isLegacyDebugSymbols(symbols) && symbols.externalURL) {
+        symbolsUrl = new URL(symbols.externalURL);
+      } else if (Array.isArray(symbols)) {
+        const entry = script.debugSymbols?.find(s =>
+          (s.type === 'EmbeddedDWARF' || s.type === 'ExternalDWARF') && s.externalURL
+        );
+        if (entry?.externalURL) {
+          symbolsUrl = new URL(entry.externalURL);
+        }
+      }
     } catch {
       // ignored
     }
@@ -236,6 +244,10 @@ export class WasmSymbolProvider implements IWasmSymbolProvider, IDisposable {
     return bytecode ? Buffer.from(bytecode, 'base64').buffer : undefined;
   }
 }
+
+const isLegacyDebugSymbols = (symbols: unknown): symbols is Cdp.Debugger.DebugSymbols => {
+  return !!(symbols as Cdp.Debugger.DebugSymbols)?.externalURL;
+};
 
 export interface IWasmVariableEvaluation {
   type: string;

@@ -49,6 +49,14 @@ interface ICDPOperationClassification {
     classification: 'CallstackOrException';
     purpose: 'PerformanceAndHealth';
   };
+  'animation.animationupdated': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!animation.animationupdated.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
 
   // Domain: Audits
   'audits.issueadded': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
@@ -84,6 +92,8 @@ interface ICDPOperationClassification {
     classification: 'CallstackOrException';
     purpose: 'PerformanceAndHealth';
   };
+
+  // Domain: BluetoothEmulation
 
   // Domain: Browser
   'browser.downloadwillbegin': {
@@ -147,6 +157,11 @@ interface ICDPOperationClassification {
   };
   'css.stylesheetremoved': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!css.stylesheetremoved.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'css.computedstyleupdated': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!css.computedstyleupdated.errors': {
     classification: 'CallstackOrException';
     purpose: 'PerformanceAndHealth';
   };
@@ -274,6 +289,14 @@ interface ICDPOperationClassification {
     classification: 'CallstackOrException';
     purpose: 'PerformanceAndHealth';
   };
+  'dom.scrollableflagupdated': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!dom.scrollableflagupdated.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   'dom.pseudoelementremoved': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!dom.pseudoelementremoved.errors': {
     classification: 'CallstackOrException';
@@ -355,6 +378,8 @@ interface ICDPOperationClassification {
 
   // Domain: EventBreakpoints
 
+  // Domain: Extensions
+
   // Domain: FedCm
   'fedcm.dialogshown': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!fedcm.dialogshown.errors': {
@@ -378,6 +403,8 @@ interface ICDPOperationClassification {
     classification: 'CallstackOrException';
     purpose: 'PerformanceAndHealth';
   };
+
+  // Domain: FileSystem
 
   // Domain: HeadlessExperimental
 
@@ -672,11 +699,24 @@ interface ICDPOperationClassification {
     classification: 'CallstackOrException';
     purpose: 'PerformanceAndHealth';
   };
+  'network.responsereceivedearlyhints': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!network.responsereceivedearlyhints.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   'network.trusttokenoperationdone': {
     classification: 'SystemMetaData';
     purpose: 'PerformanceAndHealth';
   };
   '!network.trusttokenoperationdone.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'network.policyupdated': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!network.policyupdated.errors': {
     classification: 'CallstackOrException';
     purpose: 'PerformanceAndHealth';
   };
@@ -854,6 +894,14 @@ interface ICDPOperationClassification {
   };
   'page.framedetached': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!page.framedetached.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'page.framesubtreewillbedetached': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!page.framesubtreewillbedetached.errors': {
     classification: 'CallstackOrException';
     purpose: 'PerformanceAndHealth';
   };
@@ -1073,6 +1121,8 @@ interface ICDPOperationClassification {
     classification: 'CallstackOrException';
     purpose: 'PerformanceAndHealth';
   };
+
+  // Domain: PWA
 
   // Domain: Runtime
   'runtime.bindingcalled': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
@@ -1446,6 +1496,22 @@ interface ICDPOperationClassification {
   // Domain: WebAuthn
   'webauthn.credentialadded': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!webauthn.credentialadded.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'webauthn.credentialdeleted': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!webauthn.credentialdeleted.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'webauthn.credentialupdated': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!webauthn.credentialupdated.errors': {
     classification: 'CallstackOrException';
     purpose: 'PerformanceAndHealth';
   };
