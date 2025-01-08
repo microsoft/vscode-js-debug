@@ -153,7 +153,7 @@ export class DebugAdapter implements IDisposable {
           source: params.source,
         };
       } else {
-        throw new Error('Missing source information');
+        throw new ProtocolError(errors.missingSourceInformation());
       }
     }
 

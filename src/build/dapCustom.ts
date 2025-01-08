@@ -805,7 +805,11 @@ const dapCustom: JSONSchema4 = {
         properties: {
           source: {
             $ref: '#/definitions/Source',
-            description: 'The source to look up.',
+            description: 'The source to look up. Either source or originalUrl must be set.',
+          },
+          originalUrl: {
+            type: 'string',
+            description: 'The original url to look up. Either source or originalUrl must be set.',
           },
           line: {
             type: 'integer',
@@ -816,7 +820,7 @@ const dapCustom: JSONSchema4 = {
             description: 'The base-0 column number to look up.',
           },
         },
-        required: ['source', 'line', 'column'],
+        required: ['line', 'column'],
       },
       {
         properties: {

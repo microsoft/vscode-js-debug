@@ -2460,14 +2460,12 @@ export namespace Dap {
 
   export interface GetPreferredUILocationParams {
     /**
-     * The source to look up.
-     * Either source or originalUrl must be set.
+     * The source to look up. Either source or originalUrl must be set.
      */
     source?: Source;
 
     /**
-     * The original url to look up.
-     * Either source or originalUrl must be set.
+     * The original url to look up. Either source or originalUrl must be set.
      */
     originalUrl?: string;
 
