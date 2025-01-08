@@ -11632,11 +11632,11 @@ export namespace Cdp {
     ): Promise<DotnetDebugger.SetSymbolOptionsResult | undefined>;
 
     /**
-     * Fired when the attached Blazor DotnetDebugger itself, not the blazor app being debugged, encounters an error.
+     * Fired when the attached Blazor DotnetDebugger itself, not the blazor app being debugged, reports an exception.
      */
     on(
-      event: 'reportBlazorDebugError',
-      listener: (event: DotnetDebugger.ReportBlazorDebugErrorEvent) => void,
+      event: 'reportBlazorDebugException',
+      listener: (event: DotnetDebugger.ReportBlazorDebugExceptionEvent) => void,
     ): IDisposable;
   }
 
@@ -11685,18 +11685,18 @@ export namespace Cdp {
     }
 
     /**
-     * Parameters of the 'DotnetDebugger.reportBlazorDebugError' event.
+     * Parameters of the 'DotnetDebugger.reportBlazorDebugException' event.
      */
-    export interface ReportBlazorDebugErrorEvent {
+    export interface ReportBlazorDebugExceptionEvent {
       /**
        * Specifies the type of exception.
        */
       exceptionType: 'uncaughtException' | 'unhandledRejection';
 
       /**
-       * The error message.
+       * Location in Blazor DotnetDebugger logic that is reporting the exception.
        */
-      error: 'unknown' | 'undefined';
+      exception: 'unknown' | 'undefined';
     }
 
     /**

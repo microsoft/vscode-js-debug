@@ -357,11 +357,11 @@ interface ICDPOperationClassification {
   };
 
   // Domain: DotnetDebugger
-  'dotnetdebugger.reportblazordebugerror': {
+  'dotnetdebugger.reportblazordebugexception': {
     classification: 'SystemMetaData';
     purpose: 'PerformanceAndHealth';
   };
-  '!dotnetdebugger.reportblazordebugerror.errors': {
+  '!dotnetdebugger.reportblazordebugexception.errors': {
     classification: 'CallstackOrException';
     purpose: 'PerformanceAndHealth';
   };

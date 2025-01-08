@@ -458,11 +458,11 @@ export class Binder implements IDisposable {
     telemetryReporter: ITelemetryReporter,
     isVsCode?: boolean,
   ) {
-    cdp.DotnetDebugger.on('reportBlazorDebugError', event => {
-      telemetryReporter.report('blazorDebugError', {
+    cdp.DotnetDebugger.on('reportBlazorDebugException', event => {
+      telemetryReporter.report('blazorDebugException', {
         exceptionType: event.exceptionType,
-        '!error': event.error,
-        error: isVsCode ? undefined : event.error,
+        '!error': event.exception,
+        error: isVsCode ? undefined : event.exception,
       });
     });
   }
