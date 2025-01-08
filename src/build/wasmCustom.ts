@@ -62,9 +62,9 @@ export default {
       ],
       events: [
         {
-          name: 'reportBlazorDebugError',
+          name: 'reportBlazorDebugException',
           description:
-            'Fired when the attached Blazor DotnetDebugger itself, not the blazor app being debugged, encounters an error.',
+            'Fired when the attached Blazor DotnetDebugger itself, not the blazor app being debugged, reports an exception.',
           parameters: [
             {
               name: 'exceptionType',
@@ -73,8 +73,9 @@ export default {
               enum: ['uncaughtException', 'unhandledRejection'],
             },
             {
-              name: 'error',
-              description: 'The error message.',
+              name: 'exception',
+              description:
+                'Location in Blazor DotnetDebugger logic that is reporting the exception.',
               type: 'string',
               enum: ['unknown', 'undefined'],
             },

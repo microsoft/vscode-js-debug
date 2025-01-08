@@ -220,9 +220,9 @@ export const createLoggers = (sendEvent: (event: Dap.OutputEventParams) => void)
       { ...globalMetrics, ...metrics },
     );
 
-  const blazorDebugError = (metrics: IErrorMetrics) =>
+  const blazorDebugException = (metrics: IErrorMetrics) =>
     publicLog2<IGlobalMetrics & IErrorMetrics, IErrorClassification & IGlobalClassification>(
-      'blazor-debug/blazorDebugError',
+      'blazor-debug/blazorDebugException',
       { ...globalMetrics, ...metrics },
     );
 
@@ -299,7 +299,7 @@ export const createLoggers = (sendEvent: (event: Dap.OutputEventParams) => void)
     nodeRuntime,
     diagnosticPrompt,
     setGlobalMetric,
-    blazorDebugError,
+    blazorDebugException,
   };
 };
 
