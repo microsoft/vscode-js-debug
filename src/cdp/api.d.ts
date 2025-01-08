@@ -29,6 +29,7 @@ export namespace Cdp {
     Audits: AuditsApi;
     Autofill: AutofillApi;
     BackgroundService: BackgroundServiceApi;
+    BluetoothEmulation: BluetoothEmulationApi;
     Browser: BrowserApi;
     CacheStorage: CacheStorageApi;
     Cast: CastApi;
@@ -45,8 +46,10 @@ export namespace Cdp {
     DotnetDebugger: DotnetDebuggerApi;
     Emulation: EmulationApi;
     EventBreakpoints: EventBreakpointsApi;
+    Extensions: ExtensionsApi;
     FedCm: FedCmApi;
     Fetch: FetchApi;
+    FileSystem: FileSystemApi;
     HeadlessExperimental: HeadlessExperimentalApi;
     HeapProfiler: HeapProfilerApi;
     IndexedDB: IndexedDBApi;
@@ -68,6 +71,7 @@ export namespace Cdp {
     PerformanceTimeline: PerformanceTimelineApi;
     Preload: PreloadApi;
     Profiler: ProfilerApi;
+    PWA: PWAApi;
     Runtime: RuntimeApi;
     Schema: SchemaApi;
     Security: SecurityApi;
@@ -170,22 +174,26 @@ export namespace Cdp {
     /**
      * Parameters of the 'Accessibility.disable' method.
      */
-    export interface DisableParams {}
+    export interface DisableParams {
+    }
 
     /**
      * Return value of the 'Accessibility.disable' method.
      */
-    export interface DisableResult {}
+    export interface DisableResult {
+    }
 
     /**
      * Parameters of the 'Accessibility.enable' method.
      */
-    export interface EnableParams {}
+    export interface EnableParams {
+    }
 
     /**
      * Return value of the 'Accessibility.enable' method.
      */
-    export interface EnableResult {}
+    export interface EnableResult {
+    }
 
     /**
      * Parameters of the 'Accessibility.getPartialAXTree' method.
@@ -539,6 +547,7 @@ export namespace Cdp {
      * - from 'activedescendant' to 'owns' - relationships between elements other than parent/child/sibling.
      */
     export type AXPropertyName =
+      | 'actions'
       | 'busy'
       | 'disabled'
       | 'editable'
@@ -577,7 +586,8 @@ export namespace Cdp {
       | 'errormessage'
       | 'flowto'
       | 'labelledby'
-      | 'owns';
+      | 'owns'
+      | 'url';
 
     /**
      * A node in the accessibility tree.
@@ -739,6 +749,14 @@ export namespace Cdp {
       event: 'animationStarted',
       listener: (event: Animation.AnimationStartedEvent) => void,
     ): IDisposable;
+
+    /**
+     * Event for animation that has been updated.
+     */
+    on(
+      event: 'animationUpdated',
+      listener: (event: Animation.AnimationUpdatedEvent) => void,
+    ): IDisposable;
   }
 
   /**
@@ -748,22 +766,26 @@ export namespace Cdp {
     /**
      * Parameters of the 'Animation.disable' method.
      */
-    export interface DisableParams {}
+    export interface DisableParams {
+    }
 
     /**
      * Return value of the 'Animation.disable' method.
      */
-    export interface DisableResult {}
+    export interface DisableResult {
+    }
 
     /**
      * Parameters of the 'Animation.enable' method.
      */
-    export interface EnableParams {}
+    export interface EnableParams {
+    }
 
     /**
      * Return value of the 'Animation.enable' method.
      */
-    export interface EnableResult {}
+    export interface EnableResult {
+    }
 
     /**
      * Parameters of the 'Animation.getCurrentTime' method.
@@ -788,7 +810,8 @@ export namespace Cdp {
     /**
      * Parameters of the 'Animation.getPlaybackRate' method.
      */
-    export interface GetPlaybackRateParams {}
+    export interface GetPlaybackRateParams {
+    }
 
     /**
      * Return value of the 'Animation.getPlaybackRate' method.
@@ -813,7 +836,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Animation.releaseAnimations' method.
      */
-    export interface ReleaseAnimationsResult {}
+    export interface ReleaseAnimationsResult {
+    }
 
     /**
      * Parameters of the 'Animation.resolveAnimation' method.
@@ -853,7 +877,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Animation.seekAnimations' method.
      */
-    export interface SeekAnimationsResult {}
+    export interface SeekAnimationsResult {
+    }
 
     /**
      * Parameters of the 'Animation.setPaused' method.
@@ -873,7 +898,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Animation.setPaused' method.
      */
-    export interface SetPausedResult {}
+    export interface SetPausedResult {
+    }
 
     /**
      * Parameters of the 'Animation.setPlaybackRate' method.
@@ -888,7 +914,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Animation.setPlaybackRate' method.
      */
-    export interface SetPlaybackRateResult {}
+    export interface SetPlaybackRateResult {
+    }
 
     /**
      * Parameters of the 'Animation.setTiming' method.
@@ -913,7 +940,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Animation.setTiming' method.
      */
-    export interface SetTimingResult {}
+    export interface SetTimingResult {
+    }
 
     /**
      * Parameters of the 'Animation.animationCanceled' event.
@@ -941,6 +969,16 @@ export namespace Cdp {
     export interface AnimationStartedEvent {
       /**
        * Animation that was started.
+       */
+      animation: Animation;
+    }
+
+    /**
+     * Parameters of the 'Animation.animationUpdated' event.
+     */
+    export interface AnimationUpdatedEvent {
+      /**
+       * Animation that was updated.
        */
       animation: Animation;
     }
@@ -1226,22 +1264,26 @@ export namespace Cdp {
     /**
      * Parameters of the 'Audits.disable' method.
      */
-    export interface DisableParams {}
+    export interface DisableParams {
+    }
 
     /**
      * Return value of the 'Audits.disable' method.
      */
-    export interface DisableResult {}
+    export interface DisableResult {
+    }
 
     /**
      * Parameters of the 'Audits.enable' method.
      */
-    export interface EnableParams {}
+    export interface EnableParams {
+    }
 
     /**
      * Return value of the 'Audits.enable' method.
      */
-    export interface EnableResult {}
+    export interface EnableResult {
+    }
 
     /**
      * Parameters of the 'Audits.checkContrast' method.
@@ -1256,12 +1298,14 @@ export namespace Cdp {
     /**
      * Return value of the 'Audits.checkContrast' method.
      */
-    export interface CheckContrastResult {}
+    export interface CheckContrastResult {
+    }
 
     /**
      * Parameters of the 'Audits.checkFormsIssues' method.
      */
-    export interface CheckFormsIssuesParams {}
+    export interface CheckFormsIssuesParams {
+    }
 
     /**
      * Return value of the 'Audits.checkFormsIssues' method.
@@ -1298,9 +1342,9 @@ export namespace Cdp {
       /**
        * The unique request id.
        */
-      requestId: Network.RequestId;
+      requestId?: Network.RequestId;
 
-      url?: string;
+      url: string;
     }
 
     /**
@@ -1319,7 +1363,9 @@ export namespace Cdp {
       | 'ExcludeSamePartyCrossPartyContext'
       | 'ExcludeDomainNonASCII'
       | 'ExcludeThirdPartyCookieBlockedInFirstPartySet'
-      | 'ExcludeThirdPartyPhaseout';
+      | 'ExcludeThirdPartyPhaseout'
+      | 'ExcludePortMismatch'
+      | 'ExcludeSchemeMismatch';
 
     export type CookieWarningReason =
       | 'WarnSameSiteUnspecifiedCrossSiteContext'
@@ -1333,9 +1379,28 @@ export namespace Cdp {
       | 'WarnAttributeValueExceedsMaxSize'
       | 'WarnDomainNonASCII'
       | 'WarnThirdPartyPhaseout'
-      | 'WarnCrossSiteRedirectDowngradeChangesInclusion';
+      | 'WarnCrossSiteRedirectDowngradeChangesInclusion'
+      | 'WarnDeprecationTrialMetadata'
+      | 'WarnThirdPartyCookieHeuristic';
 
     export type CookieOperation = 'SetCookie' | 'ReadCookie';
+
+    /**
+     * Represents the category of insight that a cookie issue falls under.
+     */
+    export type InsightType = 'GitHubResource' | 'GracePeriod' | 'Heuristics';
+
+    /**
+     * Information about the suggested solution to a cookie issue.
+     */
+    export interface CookieIssueInsight {
+      type: InsightType;
+
+      /**
+       * Link to table entry in third-party cookie migration readiness list.
+       */
+      tableEntryUrl?: string;
+    }
 
     /**
      * This information is currently necessary, as the front-end has a difficult
@@ -1368,6 +1433,11 @@ export namespace Cdp {
       cookieUrl?: string;
 
       request?: AffectedRequest;
+
+      /**
+       * The recommended solution to the issue.
+       */
+      insight?: CookieIssueInsight;
     }
 
     export type MixedContentResolutionStatus =
@@ -1451,7 +1521,10 @@ export namespace Cdp {
       | 'CoopSandboxedIFrameCannotNavigateToCoopPage'
       | 'CorpNotSameOrigin'
       | 'CorpNotSameOriginAfterDefaultedToSameOriginByCoep'
-      | 'CorpNotSameSite';
+      | 'CorpNotSameOriginAfterDefaultedToSameOriginByDip'
+      | 'CorpNotSameOriginAfterDefaultedToSameOriginByCoepAndDip'
+      | 'CorpNotSameSite'
+      | 'SRIMessageSignatureMismatch';
 
     /**
      * Details for a request that has been blocked with the BLOCKED_BY_RESPONSE
@@ -1599,7 +1672,33 @@ export namespace Cdp {
       | 'NoRegisterSourceHeader'
       | 'NoRegisterTriggerHeader'
       | 'NoRegisterOsSourceHeader'
-      | 'NoRegisterOsTriggerHeader';
+      | 'NoRegisterOsTriggerHeader'
+      | 'NavigationRegistrationUniqueScopeAlreadySet';
+
+    export type SharedDictionaryError =
+      | 'UseErrorCrossOriginNoCorsRequest'
+      | 'UseErrorDictionaryLoadFailure'
+      | 'UseErrorMatchingDictionaryNotUsed'
+      | 'UseErrorUnexpectedContentDictionaryHeader'
+      | 'WriteErrorCossOriginNoCorsRequest'
+      | 'WriteErrorDisallowedBySettings'
+      | 'WriteErrorExpiredResponse'
+      | 'WriteErrorFeatureDisabled'
+      | 'WriteErrorInsufficientResources'
+      | 'WriteErrorInvalidMatchField'
+      | 'WriteErrorInvalidStructuredHeader'
+      | 'WriteErrorNavigationRequest'
+      | 'WriteErrorNoMatchField'
+      | 'WriteErrorNonListMatchDestField'
+      | 'WriteErrorNonSecureContext'
+      | 'WriteErrorNonStringIdField'
+      | 'WriteErrorNonStringInMatchDestList'
+      | 'WriteErrorNonStringMatchField'
+      | 'WriteErrorNonTokenTypeField'
+      | 'WriteErrorRequestAborted'
+      | 'WriteErrorShuttingDown'
+      | 'WriteErrorTooLongIdField'
+      | 'WriteErrorUnsupportedType';
 
     /**
      * Details for issues around "Attribution Reporting API" usage.
@@ -1644,8 +1743,13 @@ export namespace Cdp {
       location?: SourceCodeLocation;
     }
 
+    export interface SharedDictionaryIssueDetails {
+      sharedDictionaryError: SharedDictionaryError;
+
+      request: AffectedRequest;
+    }
+
     export type GenericIssueErrorType =
-      | 'CrossOriginPortalPostMessageError'
       | 'FormLabelForNameError'
       | 'FormDuplicateIdForInputError'
       | 'FormInputWithNoLabelError'
@@ -1711,6 +1815,12 @@ export namespace Cdp {
      */
     export interface CookieDeprecationMetadataIssueDetails {
       allowedSites: string[];
+
+      optOutPercentage: number;
+
+      isOptOutTopLevel: boolean;
+
+      operation: CookieOperation;
     }
 
     export type ClientHintIssueReason = 'MetaTagAllowListInvalidOrigin' | 'MetaTagModifiedHTML';
@@ -1743,7 +1853,9 @@ export namespace Cdp {
       | 'ClientMetadataNoResponse'
       | 'ClientMetadataInvalidResponse'
       | 'ClientMetadataInvalidContentType'
+      | 'IdpNotPotentiallyTrustworthy'
       | 'DisabledInSettings'
+      | 'DisabledInFlags'
       | 'ErrorFetchingSignin'
       | 'InvalidSigninResponse'
       | 'AccountsHttpNotFound'
@@ -1763,7 +1875,12 @@ export namespace Cdp {
       | 'RpPageNotVisible'
       | 'SilentMediationFailure'
       | 'ThirdPartyCookiesBlocked'
-      | 'NotSignedInWithIdp';
+      | 'NotSignedInWithIdp'
+      | 'MissingTransientUserActivation'
+      | 'ReplacedByActiveMode'
+      | 'InvalidFieldsSpecified'
+      | 'RelyingPartyOriginIsOpaque'
+      | 'TypeNotMatching';
 
     export interface FederatedAuthUserInfoRequestIssueDetails {
       federatedAuthUserInfoRequestIssueReason: FederatedAuthUserInfoRequestIssueReason;
@@ -1807,6 +1924,24 @@ export namespace Cdp {
       failureMessage: string;
 
       requestId?: Network.RequestId;
+    }
+
+    export type SelectElementAccessibilityIssueReason =
+      | 'DisallowedSelectChild'
+      | 'DisallowedOptGroupChild'
+      | 'NonPhrasingContentOptionChild'
+      | 'InteractiveContentOptionChild'
+      | 'InteractiveContentLegendChild';
+
+    /**
+     * This isue warns about errors in the select element content model.
+     */
+    export interface SelectElementAccessibilityIssueDetails {
+      nodeId: DOM.BackendNodeId;
+
+      selectElementAccessibilityIssueReason: SelectElementAccessibilityIssueReason;
+
+      hasDisallowedAttributes: boolean;
     }
 
     export type StyleSheetLoadingIssueReason = 'LateImportRule' | 'RequestFailed';
@@ -1883,7 +2018,9 @@ export namespace Cdp {
       | 'CookieDeprecationMetadataIssue'
       | 'StylesheetLoadingIssue'
       | 'FederatedAuthUserInfoRequestIssue'
-      | 'PropertyRuleIssue';
+      | 'PropertyRuleIssue'
+      | 'SharedDictionaryIssue'
+      | 'SelectElementAccessibilityIssue';
 
     /**
      * This struct holds a list of optional fields with additional information
@@ -1933,6 +2070,10 @@ export namespace Cdp {
       propertyRuleIssueDetails?: PropertyRuleIssueDetails;
 
       federatedAuthUserInfoRequestIssueDetails?: FederatedAuthUserInfoRequestIssueDetails;
+
+      sharedDictionaryIssueDetails?: SharedDictionaryIssueDetails;
+
+      selectElementAccessibilityIssueDetails?: SelectElementAccessibilityIssueDetails;
     }
 
     /**
@@ -2020,7 +2161,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Autofill.trigger' method.
      */
-    export interface TriggerResult {}
+    export interface TriggerResult {
+    }
 
     /**
      * Parameters of the 'Autofill.setAddresses' method.
@@ -2032,27 +2174,32 @@ export namespace Cdp {
     /**
      * Return value of the 'Autofill.setAddresses' method.
      */
-    export interface SetAddressesResult {}
+    export interface SetAddressesResult {
+    }
 
     /**
      * Parameters of the 'Autofill.disable' method.
      */
-    export interface DisableParams {}
+    export interface DisableParams {
+    }
 
     /**
      * Return value of the 'Autofill.disable' method.
      */
-    export interface DisableResult {}
+    export interface DisableResult {
+    }
 
     /**
      * Parameters of the 'Autofill.enable' method.
      */
-    export interface EnableParams {}
+    export interface EnableParams {
+    }
 
     /**
      * Return value of the 'Autofill.enable' method.
      */
-    export interface EnableResult {}
+    export interface EnableResult {
+    }
 
     /**
      * Parameters of the 'Autofill.addressFormFilled' event.
@@ -2251,7 +2398,8 @@ export namespace Cdp {
     /**
      * Return value of the 'BackgroundService.startObserving' method.
      */
-    export interface StartObservingResult {}
+    export interface StartObservingResult {
+    }
 
     /**
      * Parameters of the 'BackgroundService.stopObserving' method.
@@ -2263,7 +2411,8 @@ export namespace Cdp {
     /**
      * Return value of the 'BackgroundService.stopObserving' method.
      */
-    export interface StopObservingResult {}
+    export interface StopObservingResult {
+    }
 
     /**
      * Parameters of the 'BackgroundService.setRecording' method.
@@ -2277,7 +2426,8 @@ export namespace Cdp {
     /**
      * Return value of the 'BackgroundService.setRecording' method.
      */
-    export interface SetRecordingResult {}
+    export interface SetRecordingResult {
+    }
 
     /**
      * Parameters of the 'BackgroundService.clearEvents' method.
@@ -2289,7 +2439,8 @@ export namespace Cdp {
     /**
      * Return value of the 'BackgroundService.clearEvents' method.
      */
-    export interface ClearEventsResult {}
+    export interface ClearEventsResult {
+    }
 
     /**
      * Parameters of the 'BackgroundService.recordingStateChanged' event.
@@ -2369,6 +2520,164 @@ export namespace Cdp {
        * Storage key this event belongs to.
        */
       storageKey: string;
+    }
+  }
+
+  /**
+   * Methods and events of the 'BluetoothEmulation' domain.
+   */
+  export interface BluetoothEmulationApi {
+    /**
+     * Enable the BluetoothEmulation domain.
+     */
+    enable(
+      params: BluetoothEmulation.EnableParams,
+    ): Promise<BluetoothEmulation.EnableResult | undefined>;
+
+    /**
+     * Disable the BluetoothEmulation domain.
+     */
+    disable(
+      params: BluetoothEmulation.DisableParams,
+    ): Promise<BluetoothEmulation.DisableResult | undefined>;
+
+    /**
+     * Simulates a peripheral with |address|, |name| and |knownServiceUuids|
+     * that has already been connected to the system.
+     */
+    simulatePreconnectedPeripheral(
+      params: BluetoothEmulation.SimulatePreconnectedPeripheralParams,
+    ): Promise<BluetoothEmulation.SimulatePreconnectedPeripheralResult | undefined>;
+
+    /**
+     * Simulates an advertisement packet described in |entry| being received by
+     * the central.
+     */
+    simulateAdvertisement(
+      params: BluetoothEmulation.SimulateAdvertisementParams,
+    ): Promise<BluetoothEmulation.SimulateAdvertisementResult | undefined>;
+  }
+
+  /**
+   * Types of the 'BluetoothEmulation' domain.
+   */
+  export namespace BluetoothEmulation {
+    /**
+     * Parameters of the 'BluetoothEmulation.enable' method.
+     */
+    export interface EnableParams {
+      /**
+       * State of the simulated central.
+       */
+      state: CentralState;
+    }
+
+    /**
+     * Return value of the 'BluetoothEmulation.enable' method.
+     */
+    export interface EnableResult {
+    }
+
+    /**
+     * Parameters of the 'BluetoothEmulation.disable' method.
+     */
+    export interface DisableParams {
+    }
+
+    /**
+     * Return value of the 'BluetoothEmulation.disable' method.
+     */
+    export interface DisableResult {
+    }
+
+    /**
+     * Parameters of the 'BluetoothEmulation.simulatePreconnectedPeripheral' method.
+     */
+    export interface SimulatePreconnectedPeripheralParams {
+      address: string;
+
+      name: string;
+
+      manufacturerData: ManufacturerData[];
+
+      knownServiceUuids: string[];
+    }
+
+    /**
+     * Return value of the 'BluetoothEmulation.simulatePreconnectedPeripheral' method.
+     */
+    export interface SimulatePreconnectedPeripheralResult {
+    }
+
+    /**
+     * Parameters of the 'BluetoothEmulation.simulateAdvertisement' method.
+     */
+    export interface SimulateAdvertisementParams {
+      entry: ScanEntry;
+    }
+
+    /**
+     * Return value of the 'BluetoothEmulation.simulateAdvertisement' method.
+     */
+    export interface SimulateAdvertisementResult {
+    }
+
+    /**
+     * Indicates the various states of Central.
+     */
+    export type CentralState = 'absent' | 'powered-off' | 'powered-on';
+
+    /**
+     * Stores the manufacturer data
+     */
+    export interface ManufacturerData {
+      /**
+       * Company identifier
+       * https://bitbucket.org/bluetooth-SIG/public/src/main/assigned_numbers/company_identifiers/company_identifiers.yaml
+       * https://usb.org/developers
+       */
+      key: integer;
+
+      /**
+       * Manufacturer-specific data (Encoded as a base64 string when passed over JSON)
+       */
+      data: string;
+    }
+
+    /**
+     * Stores the byte data of the advertisement packet sent by a Bluetooth device.
+     */
+    export interface ScanRecord {
+      name?: string;
+
+      uuids?: string[];
+
+      /**
+       * Stores the external appearance description of the device.
+       */
+      appearance?: integer;
+
+      /**
+       * Stores the transmission power of a broadcasting device.
+       */
+      txPower?: integer;
+
+      /**
+       * Key is the company identifier and the value is an array of bytes of
+       * manufacturer specific data.
+       */
+      manufacturerData?: ManufacturerData[];
+    }
+
+    /**
+     * Stores the advertisement packet information that is sent by a Bluetooth device.
+     */
+    export interface ScanEntry {
+      deviceAddress: string;
+
+      rssi: integer;
+
+      scanRecord: ScanRecord;
     }
   }
 
@@ -2545,7 +2854,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Browser.setPermission' method.
      */
-    export interface SetPermissionResult {}
+    export interface SetPermissionResult {
+    }
 
     /**
      * Parameters of the 'Browser.grantPermissions' method.
@@ -2567,7 +2877,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Browser.grantPermissions' method.
      */
-    export interface GrantPermissionsResult {}
+    export interface GrantPermissionsResult {
+    }
 
     /**
      * Parameters of the 'Browser.resetPermissions' method.
@@ -2582,7 +2893,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Browser.resetPermissions' method.
      */
-    export interface ResetPermissionsResult {}
+    export interface ResetPermissionsResult {
+    }
 
     /**
      * Parameters of the 'Browser.setDownloadBehavior' method.
@@ -2615,7 +2927,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Browser.setDownloadBehavior' method.
      */
-    export interface SetDownloadBehaviorResult {}
+    export interface SetDownloadBehaviorResult {
+    }
 
     /**
      * Parameters of the 'Browser.cancelDownload' method.
@@ -2635,42 +2948,50 @@ export namespace Cdp {
     /**
      * Return value of the 'Browser.cancelDownload' method.
      */
-    export interface CancelDownloadResult {}
+    export interface CancelDownloadResult {
+    }
 
     /**
      * Parameters of the 'Browser.close' method.
      */
-    export interface CloseParams {}
+    export interface CloseParams {
+    }
 
     /**
      * Return value of the 'Browser.close' method.
      */
-    export interface CloseResult {}
+    export interface CloseResult {
+    }
 
     /**
      * Parameters of the 'Browser.crash' method.
      */
-    export interface CrashParams {}
+    export interface CrashParams {
+    }
 
     /**
      * Return value of the 'Browser.crash' method.
      */
-    export interface CrashResult {}
+    export interface CrashResult {
+    }
 
     /**
      * Parameters of the 'Browser.crashGpuProcess' method.
      */
-    export interface CrashGpuProcessParams {}
+    export interface CrashGpuProcessParams {
+    }
 
     /**
      * Return value of the 'Browser.crashGpuProcess' method.
      */
-    export interface CrashGpuProcessResult {}
+    export interface CrashGpuProcessResult {
+    }
 
     /**
      * Parameters of the 'Browser.getVersion' method.
      */
-    export interface GetVersionParams {}
+    export interface GetVersionParams {
+    }
 
     /**
      * Return value of the 'Browser.getVersion' method.
@@ -2705,7 +3026,8 @@ export namespace Cdp {
     /**
      * Parameters of the 'Browser.getBrowserCommandLine' method.
      */
-    export interface GetBrowserCommandLineParams {}
+    export interface GetBrowserCommandLineParams {
+    }
 
     /**
      * Return value of the 'Browser.getBrowserCommandLine' method.
@@ -2835,7 +3157,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Browser.setWindowBounds' method.
      */
-    export interface SetWindowBoundsResult {}
+    export interface SetWindowBoundsResult {
+    }
 
     /**
      * Parameters of the 'Browser.setDockTile' method.
@@ -2852,7 +3175,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Browser.setDockTile' method.
      */
-    export interface SetDockTileResult {}
+    export interface SetDockTileResult {
+    }
 
     /**
      * Parameters of the 'Browser.executeBrowserCommand' method.
@@ -2864,7 +3188,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Browser.executeBrowserCommand' method.
      */
-    export interface ExecuteBrowserCommandResult {}
+    export interface ExecuteBrowserCommandResult {
+    }
 
     /**
      * Parameters of the 'Browser.addPrivacySandboxEnrollmentOverride' method.
@@ -2876,7 +3201,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Browser.addPrivacySandboxEnrollmentOverride' method.
      */
-    export interface AddPrivacySandboxEnrollmentOverrideResult {}
+    export interface AddPrivacySandboxEnrollmentOverrideResult {
+    }
 
     /**
      * Parameters of the 'Browser.downloadWillBegin' event.
@@ -2968,18 +3294,21 @@ export namespace Cdp {
     }
 
     export type PermissionType =
-      | 'accessibilityEvents'
+      | 'ar'
       | 'audioCapture'
-      | 'backgroundSync'
+      | 'automaticFullscreen'
       | 'backgroundFetch'
+      | 'backgroundSync'
+      | 'cameraPanTiltZoom'
       | 'capturedSurfaceControl'
       | 'clipboardReadWrite'
       | 'clipboardSanitizedWrite'
       | 'displayCapture'
       | 'durableStorage'
-      | 'flash'
       | 'geolocation'
+      | 'handTracking'
       | 'idleDetection'
+      | 'keyboardLock'
       | 'localFonts'
       | 'midi'
       | 'midiSysex'
@@ -2987,15 +3316,19 @@ export namespace Cdp {
       | 'notifications'
       | 'paymentHandler'
       | 'periodicBackgroundSync'
+      | 'pointerLock'
       | 'protectedMediaIdentifier'
       | 'sensors'
-      | 'storageAccess'
+      | 'smartCard'
       | 'speakerSelection'
+      | 'storageAccess'
       | 'topLevelStorageAccess'
       | 'videoCapture'
-      | 'videoCapturePanTiltZoom'
+      | 'vr'
       | 'wakeLockScreen'
       | 'wakeLockSystem'
+      | 'webAppInstallation'
+      | 'webPrinting'
       | 'windowManagement';
 
     export type PermissionSetting = 'granted' | 'denied' | 'prompt';
@@ -3026,6 +3359,11 @@ export namespace Cdp {
        * For "clipboard" permission, may specify allowWithoutSanitization.
        */
       allowWithoutSanitization?: boolean;
+
+      /**
+       * For "fullscreen" permission, must specify allowWithoutGesture:true.
+       */
+      allowWithoutGesture?: boolean;
 
       /**
        * For "camera" permission, may specify panTiltZoom.
@@ -3141,7 +3479,8 @@ export namespace Cdp {
     /**
      * Return value of the 'CacheStorage.deleteCache' method.
      */
-    export interface DeleteCacheResult {}
+    export interface DeleteCacheResult {
+    }
 
     /**
      * Parameters of the 'CacheStorage.deleteEntry' method.
@@ -3161,7 +3500,8 @@ export namespace Cdp {
     /**
      * Return value of the 'CacheStorage.deleteEntry' method.
      */
-    export interface DeleteEntryResult {}
+    export interface DeleteEntryResult {
+    }
 
     /**
      * Parameters of the 'CacheStorage.requestCacheNames' method.
@@ -3443,17 +3783,20 @@ export namespace Cdp {
     /**
      * Return value of the 'Cast.enable' method.
      */
-    export interface EnableResult {}
+    export interface EnableResult {
+    }
 
     /**
      * Parameters of the 'Cast.disable' method.
      */
-    export interface DisableParams {}
+    export interface DisableParams {
+    }
 
     /**
      * Return value of the 'Cast.disable' method.
      */
-    export interface DisableResult {}
+    export interface DisableResult {
+    }
 
     /**
      * Parameters of the 'Cast.setSinkToUse' method.
@@ -3465,7 +3808,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Cast.setSinkToUse' method.
      */
-    export interface SetSinkToUseResult {}
+    export interface SetSinkToUseResult {
+    }
 
     /**
      * Parameters of the 'Cast.startDesktopMirroring' method.
@@ -3477,7 +3821,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Cast.startDesktopMirroring' method.
      */
-    export interface StartDesktopMirroringResult {}
+    export interface StartDesktopMirroringResult {
+    }
 
     /**
      * Parameters of the 'Cast.startTabMirroring' method.
@@ -3489,7 +3834,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Cast.startTabMirroring' method.
      */
-    export interface StartTabMirroringResult {}
+    export interface StartTabMirroringResult {
+    }
 
     /**
      * Parameters of the 'Cast.stopCasting' method.
@@ -3501,7 +3847,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Cast.stopCasting' method.
      */
-    export interface StopCastingResult {}
+    export interface StopCastingResult {
+    }
 
     /**
      * Parameters of the 'Cast.sinksUpdated' event.
@@ -3565,32 +3912,38 @@ export namespace Cdp {
     /**
      * Parameters of the 'Console.clearMessages' method.
      */
-    export interface ClearMessagesParams {}
+    export interface ClearMessagesParams {
+    }
 
     /**
      * Return value of the 'Console.clearMessages' method.
      */
-    export interface ClearMessagesResult {}
+    export interface ClearMessagesResult {
+    }
 
     /**
      * Parameters of the 'Console.disable' method.
      */
-    export interface DisableParams {}
+    export interface DisableParams {
+    }
 
     /**
      * Return value of the 'Console.disable' method.
      */
-    export interface DisableResult {}
+    export interface DisableResult {
+    }
 
     /**
      * Parameters of the 'Console.enable' method.
      */
-    export interface EnableParams {}
+    export interface EnableParams {
+    }
 
     /**
      * Return value of the 'Console.enable' method.
      */
-    export interface EnableResult {}
+    export interface EnableResult {
+    }
 
     /**
      * Parameters of the 'Console.messageAdded' event.
@@ -3692,6 +4045,13 @@ export namespace Cdp {
       params: CSS.ForcePseudoStateParams,
     ): Promise<CSS.ForcePseudoStateResult | undefined>;
 
+    /**
+     * Ensures that the given node is in its starting-style state.
+     */
+    forceStartingStyle(
+      params: CSS.ForceStartingStyleParams,
+    ): Promise<CSS.ForceStartingStyleResult | undefined>;
+
     getBackgroundColors(
       params: CSS.GetBackgroundColorsParams,
     ): Promise<CSS.GetBackgroundColorsResult | undefined>;
@@ -3704,12 +4064,32 @@ export namespace Cdp {
     ): Promise<CSS.GetComputedStyleForNodeResult | undefined>;
 
     /**
+     * Resolve the specified values in the context of the provided element.
+     * For example, a value of '1em' is evaluated according to the computed
+     * 'font-size' of the element and a value 'calc(1px + 2px)' will be
+     * resolved to '3px'.
+     */
+    resolveValues(params: CSS.ResolveValuesParams): Promise<CSS.ResolveValuesResult | undefined>;
+
+    getLonghandProperties(
+      params: CSS.GetLonghandPropertiesParams,
+    ): Promise<CSS.GetLonghandPropertiesResult | undefined>;
+
+    /**
      * Returns the styles defined inline (explicitly in the "style" attribute and implicitly, using DOM
      * attributes) for a DOM node identified by `nodeId`.
      */
     getInlineStylesForNode(
       params: CSS.GetInlineStylesForNodeParams,
     ): Promise<CSS.GetInlineStylesForNodeResult | undefined>;
+
+    /**
+     * Returns the styles coming from animations & transitions
+     * including the animation & transition styles coming from inheritance chain.
+     */
+    getAnimatedStylesForNode(
+      params: CSS.GetAnimatedStylesForNodeParams,
+    ): Promise<CSS.GetAnimatedStylesForNodeResult | undefined>;
 
     /**
      * Returns requested styles for a DOM node identified by `nodeId`.
@@ -3751,6 +4131,26 @@ export namespace Cdp {
     ): Promise<CSS.GetLayersForNodeResult | undefined>;
 
     /**
+     * Given a CSS selector text and a style sheet ID, getLocationForSelector
+     * returns an array of locations of the CSS selector in the style sheet.
+     */
+    getLocationForSelector(
+      params: CSS.GetLocationForSelectorParams,
+    ): Promise<CSS.GetLocationForSelectorResult | undefined>;
+
+    /**
+     * Starts tracking the given node for the computed style updates
+     * and whenever the computed style is updated for node, it queues
+     * a `computedStyleUpdated` event with throttling.
+     * There can only be 1 node tracked for computed style updates
+     * so passing a new node id removes tracking from the previous node.
+     * Pass `undefined` to disable tracking.
+     */
+    trackComputedStyleUpdatesForNode(
+      params: CSS.TrackComputedStyleUpdatesForNodeParams,
+    ): Promise<CSS.TrackComputedStyleUpdatesForNodeResult | undefined>;
+
+    /**
      * Starts tracking the given computed styles for updates. The specified array of properties
      * replaces the one previously specified. Pass empty array to disable tracking.
      * Use takeComputedStyleUpdates to retrieve the list of nodes that had properties modified.
@@ -3787,9 +4187,7 @@ export namespace Cdp {
     /**
      * Modifies the keyframe rule key text.
      */
-    setKeyframeKey(
-      params: CSS.SetKeyframeKeyParams,
-    ): Promise<CSS.SetKeyframeKeyResult | undefined>;
+    setKeyframeKey(params: CSS.SetKeyframeKeyParams): Promise<CSS.SetKeyframeKeyResult | undefined>;
 
     /**
      * Modifies the rule selector.
@@ -3882,10 +4280,7 @@ export namespace Cdp {
     /**
      * Fired whenever an active document stylesheet is added.
      */
-    on(
-      event: 'styleSheetAdded',
-      listener: (event: CSS.StyleSheetAddedEvent) => void,
-    ): IDisposable;
+    on(event: 'styleSheetAdded', listener: (event: CSS.StyleSheetAddedEvent) => void): IDisposable;
 
     /**
      * Fired whenever a stylesheet is changed as a result of the client operation.
@@ -3901,6 +4296,11 @@ export namespace Cdp {
     on(
       event: 'styleSheetRemoved',
       listener: (event: CSS.StyleSheetRemovedEvent) => void,
+    ): IDisposable;
+
+    on(
+      event: 'computedStyleUpdated',
+      listener: (event: CSS.ComputedStyleUpdatedEvent) => void,
     ): IDisposable;
   }
 
@@ -3985,22 +4385,26 @@ export namespace Cdp {
     /**
      * Parameters of the 'CSS.disable' method.
      */
-    export interface DisableParams {}
+    export interface DisableParams {
+    }
 
     /**
      * Return value of the 'CSS.disable' method.
      */
-    export interface DisableResult {}
+    export interface DisableResult {
+    }
 
     /**
      * Parameters of the 'CSS.enable' method.
      */
-    export interface EnableParams {}
+    export interface EnableParams {
+    }
 
     /**
      * Return value of the 'CSS.enable' method.
      */
-    export interface EnableResult {}
+    export interface EnableResult {
+    }
 
     /**
      * Parameters of the 'CSS.forcePseudoState' method.
@@ -4020,7 +4424,29 @@ export namespace Cdp {
     /**
      * Return value of the 'CSS.forcePseudoState' method.
      */
-    export interface ForcePseudoStateResult {}
+    export interface ForcePseudoStateResult {
+    }
+
+    /**
+     * Parameters of the 'CSS.forceStartingStyle' method.
+     */
+    export interface ForceStartingStyleParams {
+      /**
+       * The element id for which to force the starting-style state.
+       */
+      nodeId: DOM.NodeId;
+
+      /**
+       * Boolean indicating if this is on or off.
+       */
+      forced: boolean;
+    }
+
+    /**
+     * Return value of the 'CSS.forceStartingStyle' method.
+     */
+    export interface ForceStartingStyleResult {
+    }
 
     /**
      * Parameters of the 'CSS.getBackgroundColors' method.
@@ -4075,6 +4501,61 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'CSS.resolveValues' method.
+     */
+    export interface ResolveValuesParams {
+      /**
+       * Substitution functions (var()/env()/attr()) and cascade-dependent
+       * keywords (revert/revert-layer) do not work.
+       */
+      values: string[];
+
+      /**
+       * Id of the node in whose context the expression is evaluated
+       */
+      nodeId: DOM.NodeId;
+
+      /**
+       * Only longhands and custom property names are accepted.
+       */
+      propertyName?: string;
+
+      /**
+       * Pseudo element type, only works for pseudo elements that generate
+       * elements in the tree, such as ::before and ::after.
+       */
+      pseudoType?: DOM.PseudoType;
+
+      /**
+       * Pseudo element custom ident.
+       */
+      pseudoIdentifier?: string;
+    }
+
+    /**
+     * Return value of the 'CSS.resolveValues' method.
+     */
+    export interface ResolveValuesResult {
+      results: string[];
+    }
+
+    /**
+     * Parameters of the 'CSS.getLonghandProperties' method.
+     */
+    export interface GetLonghandPropertiesParams {
+      shorthandName: string;
+
+      value: string;
+    }
+
+    /**
+     * Return value of the 'CSS.getLonghandProperties' method.
+     */
+    export interface GetLonghandPropertiesResult {
+      longhandProperties: CSSProperty[];
+    }
+
+    /**
      * Parameters of the 'CSS.getInlineStylesForNode' method.
      */
     export interface GetInlineStylesForNodeParams {
@@ -4094,6 +4575,34 @@ export namespace Cdp {
        * Attribute-defined element style (e.g. resulting from "width=20 height=100%").
        */
       attributesStyle?: CSSStyle;
+    }
+
+    /**
+     * Parameters of the 'CSS.getAnimatedStylesForNode' method.
+     */
+    export interface GetAnimatedStylesForNodeParams {
+      nodeId: DOM.NodeId;
+    }
+
+    /**
+     * Return value of the 'CSS.getAnimatedStylesForNode' method.
+     */
+    export interface GetAnimatedStylesForNodeResult {
+      /**
+       * Styles coming from animations.
+       */
+      animationStyles?: CSSAnimationStyle[];
+
+      /**
+       * Style coming from transitions.
+       */
+      transitionsStyle?: CSSStyle;
+
+      /**
+       * Inherited style entries for animationsStyle and transitionsStyle from
+       * the inheritance chain of the element.
+       */
+      inherited?: InheritedAnimatedStyleEntry[];
     }
 
     /**
@@ -4143,9 +4652,15 @@ export namespace Cdp {
       cssKeyframesRules?: CSSKeyframesRule[];
 
       /**
-       * A list of CSS position fallbacks matching this node.
+       * A list of CSS @position-try rules matching this node, based on the position-try-fallbacks property.
        */
-      cssPositionFallbackRules?: CSSPositionFallbackRule[];
+      cssPositionTryRules?: CSSPositionTryRule[];
+
+      /**
+       * Index of the active fallback in the applied position-try-fallback property,
+       * will not be set if there is no active position-try fallback.
+       */
+      activePositionFallbackIndex?: integer;
 
       /**
        * A list of CSS at-property rules matching this node.
@@ -4171,7 +4686,8 @@ export namespace Cdp {
     /**
      * Parameters of the 'CSS.getMediaQueries' method.
      */
-    export interface GetMediaQueriesParams {}
+    export interface GetMediaQueriesParams {
+    }
 
     /**
      * Return value of the 'CSS.getMediaQueries' method.
@@ -4229,6 +4745,35 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'CSS.getLocationForSelector' method.
+     */
+    export interface GetLocationForSelectorParams {
+      styleSheetId: StyleSheetId;
+
+      selectorText: string;
+    }
+
+    /**
+     * Return value of the 'CSS.getLocationForSelector' method.
+     */
+    export interface GetLocationForSelectorResult {
+      ranges: SourceRange[];
+    }
+
+    /**
+     * Parameters of the 'CSS.trackComputedStyleUpdatesForNode' method.
+     */
+    export interface TrackComputedStyleUpdatesForNodeParams {
+      nodeId?: DOM.NodeId;
+    }
+
+    /**
+     * Return value of the 'CSS.trackComputedStyleUpdatesForNode' method.
+     */
+    export interface TrackComputedStyleUpdatesForNodeResult {
+    }
+
+    /**
      * Parameters of the 'CSS.trackComputedStyleUpdates' method.
      */
     export interface TrackComputedStyleUpdatesParams {
@@ -4238,12 +4783,14 @@ export namespace Cdp {
     /**
      * Return value of the 'CSS.trackComputedStyleUpdates' method.
      */
-    export interface TrackComputedStyleUpdatesResult {}
+    export interface TrackComputedStyleUpdatesResult {
+    }
 
     /**
      * Parameters of the 'CSS.takeComputedStyleUpdates' method.
      */
-    export interface TakeComputedStyleUpdatesParams {}
+    export interface TakeComputedStyleUpdatesParams {
+    }
 
     /**
      * Return value of the 'CSS.takeComputedStyleUpdates' method.
@@ -4272,7 +4819,8 @@ export namespace Cdp {
     /**
      * Return value of the 'CSS.setEffectivePropertyValueForNode' method.
      */
-    export interface SetEffectivePropertyValueForNodeResult {}
+    export interface SetEffectivePropertyValueForNodeResult {
+    }
 
     /**
      * Parameters of the 'CSS.setPropertyRulePropertyName' method.
@@ -4467,17 +5015,20 @@ export namespace Cdp {
     /**
      * Parameters of the 'CSS.startRuleUsageTracking' method.
      */
-    export interface StartRuleUsageTrackingParams {}
+    export interface StartRuleUsageTrackingParams {
+    }
 
     /**
      * Return value of the 'CSS.startRuleUsageTracking' method.
      */
-    export interface StartRuleUsageTrackingResult {}
+    export interface StartRuleUsageTrackingResult {
+    }
 
     /**
      * Parameters of the 'CSS.stopRuleUsageTracking' method.
      */
-    export interface StopRuleUsageTrackingParams {}
+    export interface StopRuleUsageTrackingParams {
+    }
 
     /**
      * Return value of the 'CSS.stopRuleUsageTracking' method.
@@ -4489,7 +5040,8 @@ export namespace Cdp {
     /**
      * Parameters of the 'CSS.takeCoverageDelta' method.
      */
-    export interface TakeCoverageDeltaParams {}
+    export interface TakeCoverageDeltaParams {
+    }
 
     /**
      * Return value of the 'CSS.takeCoverageDelta' method.
@@ -4516,7 +5068,8 @@ export namespace Cdp {
     /**
      * Return value of the 'CSS.setLocalFontsEnabled' method.
      */
-    export interface SetLocalFontsEnabledResult {}
+    export interface SetLocalFontsEnabledResult {
+    }
 
     /**
      * Parameters of the 'CSS.fontsUpdated' event.
@@ -4531,7 +5084,8 @@ export namespace Cdp {
     /**
      * Parameters of the 'CSS.mediaQueryResultChanged' event.
      */
-    export interface MediaQueryResultChangedEvent {}
+    export interface MediaQueryResultChangedEvent {
+    }
 
     /**
      * Parameters of the 'CSS.styleSheetAdded' event.
@@ -4558,6 +5112,16 @@ export namespace Cdp {
        * Identifier of the removed stylesheet.
        */
       styleSheetId: StyleSheetId;
+    }
+
+    /**
+     * Parameters of the 'CSS.computedStyleUpdated' event.
+     */
+    export interface ComputedStyleUpdatedEvent {
+      /**
+       * The node id that has updated computed styles.
+       */
+      nodeId: DOM.NodeId;
     }
 
     export type StyleSheetId = string;
@@ -4590,6 +5154,21 @@ export namespace Cdp {
     }
 
     /**
+     * CSS style coming from animations with the name of the animation.
+     */
+    export interface CSSAnimationStyle {
+      /**
+       * The name of the animation.
+       */
+      name?: string;
+
+      /**
+       * The style coming from the animation.
+       */
+      style: CSSStyle;
+    }
+
+    /**
      * Inherited CSS rule collection from ancestor node.
      */
     export interface InheritedStyleEntry {
@@ -4602,6 +5181,21 @@ export namespace Cdp {
        * Matches of CSS rules matching the ancestor node in the style inheritance chain.
        */
       matchedCSSRules: RuleMatch[];
+    }
+
+    /**
+     * Inherited CSS style collection for animated styles from ancestor node.
+     */
+    export interface InheritedAnimatedStyleEntry {
+      /**
+       * Styles coming from the animations of the ancestor, if any, in the style inheritance chain.
+       */
+      animationStyles?: CSSAnimationStyle[];
+
+      /**
+       * The style coming from the transitions of the ancestor, if any, in the style inheritance chain.
+       */
+      transitionsStyle?: CSSStyle;
     }
 
     /**
@@ -4852,6 +5446,12 @@ export namespace Cdp {
        * The array keeps the types of ancestor CSSRules from the innermost going outwards.
        */
       ruleTypes?: CSSRuleType[];
+
+      /**
+       * @starting-style CSS at-rule array.
+       * The array enumerates @starting-style at-rules starting with the innermost one, going outwards.
+       */
+      startingStyles?: CSSStartingStyle[];
     }
 
     /**
@@ -4864,7 +5464,8 @@ export namespace Cdp {
       | 'ContainerRule'
       | 'LayerRule'
       | 'ScopeRule'
-      | 'StyleRule';
+      | 'StyleRule'
+      | 'StartingStyleRule';
 
     /**
      * CSS coverage information.
@@ -5146,6 +5747,11 @@ export namespace Cdp {
        * Optional logical axes queried for the container.
        */
       logicalAxes?: DOM.LogicalAxes;
+
+      /**
+       * true if the query contains scroll-state() queries.
+       */
+      queriesScrollState?: boolean;
     }
 
     /**
@@ -5204,6 +5810,22 @@ export namespace Cdp {
        */
       text: string;
 
+      /**
+       * The associated rule header range in the enclosing stylesheet (if
+       * available).
+       */
+      range?: SourceRange;
+
+      /**
+       * Identifier of the stylesheet containing this object (if exists).
+       */
+      styleSheetId?: StyleSheetId;
+    }
+
+    /**
+     * CSS Starting Style at-rule descriptor.
+     */
+    export interface CSSStartingStyle {
       /**
        * The associated rule header range in the enclosing stylesheet (if
        * available).
@@ -5370,15 +5992,31 @@ export namespace Cdp {
     }
 
     /**
-     * CSS position-fallback rule representation.
+     * CSS @position-try rule representation.
      */
-    export interface CSSPositionFallbackRule {
+    export interface CSSPositionTryRule {
+      /**
+       * The prelude dashed-ident name
+       */
       name: Value;
 
       /**
-       * List of keyframes.
+       * The css style sheet identifier (absent for user agent stylesheet and user-specified
+       * stylesheet rules) this rule came from.
        */
-      tryRules: CSSTryRule[];
+      styleSheetId?: StyleSheetId;
+
+      /**
+       * Parent stylesheet's origin.
+       */
+      origin: StyleSheetOrigin;
+
+      /**
+       * Associated style declaration.
+       */
+      style: CSSStyle;
+
+      active: boolean;
     }
 
     /**
@@ -5538,22 +6176,26 @@ export namespace Cdp {
     /**
      * Parameters of the 'Database.disable' method.
      */
-    export interface DisableParams {}
+    export interface DisableParams {
+    }
 
     /**
      * Return value of the 'Database.disable' method.
      */
-    export interface DisableResult {}
+    export interface DisableResult {
+    }
 
     /**
      * Parameters of the 'Database.enable' method.
      */
-    export interface EnableParams {}
+    export interface EnableParams {
+    }
 
     /**
      * Return value of the 'Database.enable' method.
      */
-    export interface EnableResult {}
+    export interface EnableResult {
+    }
 
     /**
      * Parameters of the 'Database.executeSQL' method.
@@ -5774,6 +6416,15 @@ export namespace Cdp {
     ): Promise<Debugger.SetAsyncCallStackDepthResult | undefined>;
 
     /**
+     * Replace previous blackbox execution contexts with passed ones. Forces backend to skip
+     * stepping/pausing in scripts in these execution contexts. VM will try to leave blackboxed script by
+     * performing 'step in' several times, finally resorting to 'step out' if unsuccessful.
+     */
+    setBlackboxExecutionContexts(
+      params: Debugger.SetBlackboxExecutionContextsParams,
+    ): Promise<Debugger.SetBlackboxExecutionContextsResult | undefined>;
+
+    /**
      * Replace previous blackbox patterns with passed ones. Forces backend to skip stepping/pausing in
      * scripts with url matching one of the patterns. VM will try to leave blackboxed script by
      * performing 'step in' several times, finally resorting to 'step out' if unsuccessful.
@@ -5942,17 +6593,20 @@ export namespace Cdp {
     /**
      * Return value of the 'Debugger.continueToLocation' method.
      */
-    export interface ContinueToLocationResult {}
+    export interface ContinueToLocationResult {
+    }
 
     /**
      * Parameters of the 'Debugger.disable' method.
      */
-    export interface DisableParams {}
+    export interface DisableParams {
+    }
 
     /**
      * Return value of the 'Debugger.disable' method.
      */
-    export interface DisableResult {}
+    export interface DisableResult {
+    }
 
     /**
      * Parameters of the 'Debugger.enable' method.
@@ -6190,12 +6844,14 @@ export namespace Cdp {
     /**
      * Parameters of the 'Debugger.pause' method.
      */
-    export interface PauseParams {}
+    export interface PauseParams {
+    }
 
     /**
      * Return value of the 'Debugger.pause' method.
      */
-    export interface PauseResult {}
+    export interface PauseResult {
+    }
 
     /**
      * Parameters of the 'Debugger.pauseOnAsyncCall' method.
@@ -6210,7 +6866,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Debugger.pauseOnAsyncCall' method.
      */
-    export interface PauseOnAsyncCallResult {}
+    export interface PauseOnAsyncCallResult {
+    }
 
     /**
      * Parameters of the 'Debugger.removeBreakpoint' method.
@@ -6222,7 +6879,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Debugger.removeBreakpoint' method.
      */
-    export interface RemoveBreakpointResult {}
+    export interface RemoveBreakpointResult {
+    }
 
     /**
      * Parameters of the 'Debugger.restartFrame' method.
@@ -6280,7 +6938,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Debugger.resume' method.
      */
-    export interface ResumeResult {}
+    export interface ResumeResult {
+    }
 
     /**
      * Parameters of the 'Debugger.searchInContent' method.
@@ -6331,7 +6990,24 @@ export namespace Cdp {
     /**
      * Return value of the 'Debugger.setAsyncCallStackDepth' method.
      */
-    export interface SetAsyncCallStackDepthResult {}
+    export interface SetAsyncCallStackDepthResult {
+    }
+
+    /**
+     * Parameters of the 'Debugger.setBlackboxExecutionContexts' method.
+     */
+    export interface SetBlackboxExecutionContextsParams {
+      /**
+       * Array of execution context unique ids for the debugger to ignore.
+       */
+      uniqueIds: string[];
+    }
+
+    /**
+     * Return value of the 'Debugger.setBlackboxExecutionContexts' method.
+     */
+    export interface SetBlackboxExecutionContextsResult {
+    }
 
     /**
      * Parameters of the 'Debugger.setBlackboxPatterns' method.
@@ -6341,12 +7017,18 @@ export namespace Cdp {
        * Array of regexps that will be used to check script url for blackbox state.
        */
       patterns: string[];
+
+      /**
+       * If true, also ignore scripts with no source url.
+       */
+      skipAnonymous?: boolean;
     }
 
     /**
      * Return value of the 'Debugger.setBlackboxPatterns' method.
      */
-    export interface SetBlackboxPatternsResult {}
+    export interface SetBlackboxPatternsResult {
+    }
 
     /**
      * Parameters of the 'Debugger.setBlackboxedRanges' method.
@@ -6363,7 +7045,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Debugger.setBlackboxedRanges' method.
      */
-    export interface SetBlackboxedRangesResult {}
+    export interface SetBlackboxedRangesResult {
+    }
 
     /**
      * Parameters of the 'Debugger.setBreakpoint' method.
@@ -6507,7 +7190,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Debugger.setBreakpointsActive' method.
      */
-    export interface SetBreakpointsActiveResult {}
+    export interface SetBreakpointsActiveResult {
+    }
 
     /**
      * Parameters of the 'Debugger.setPauseOnExceptions' method.
@@ -6522,7 +7206,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Debugger.setPauseOnExceptions' method.
      */
-    export interface SetPauseOnExceptionsResult {}
+    export interface SetPauseOnExceptionsResult {
+    }
 
     /**
      * Parameters of the 'Debugger.setReturnValue' method.
@@ -6537,7 +7222,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Debugger.setReturnValue' method.
      */
-    export interface SetReturnValueResult {}
+    export interface SetReturnValueResult {
+    }
 
     /**
      * Parameters of the 'Debugger.setScriptSource' method.
@@ -6625,7 +7311,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Debugger.setSkipAllPauses' method.
      */
-    export interface SetSkipAllPausesResult {}
+    export interface SetSkipAllPausesResult {
+    }
 
     /**
      * Parameters of the 'Debugger.setVariableValue' method.
@@ -6656,7 +7343,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Debugger.setVariableValue' method.
      */
-    export interface SetVariableValueResult {}
+    export interface SetVariableValueResult {
+    }
 
     /**
      * Parameters of the 'Debugger.stepInto' method.
@@ -6677,17 +7365,20 @@ export namespace Cdp {
     /**
      * Return value of the 'Debugger.stepInto' method.
      */
-    export interface StepIntoResult {}
+    export interface StepIntoResult {
+    }
 
     /**
      * Parameters of the 'Debugger.stepOut' method.
      */
-    export interface StepOutParams {}
+    export interface StepOutParams {
+    }
 
     /**
      * Return value of the 'Debugger.stepOut' method.
      */
-    export interface StepOutResult {}
+    export interface StepOutResult {
+    }
 
     /**
      * Parameters of the 'Debugger.stepOver' method.
@@ -6702,7 +7393,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Debugger.stepOver' method.
      */
-    export interface StepOverResult {}
+    export interface StepOverResult {
+    }
 
     /**
      * Parameters of the 'Debugger.breakpointResolved' event.
@@ -6776,7 +7468,8 @@ export namespace Cdp {
     /**
      * Parameters of the 'Debugger.resumed' event.
      */
-    export interface ResumedEvent {}
+    export interface ResumedEvent {
+    }
 
     /**
      * Parameters of the 'Debugger.scriptFailedToParse' event.
@@ -6821,6 +7514,11 @@ export namespace Cdp {
        * Content hash of the script, SHA-256.
        */
       hash: string;
+
+      /**
+       * For Wasm modules, the content of the `build_id` custom section.
+       */
+      buildId: string;
 
       /**
        * Embedder-specific auxiliary data likely matching {isDefault: boolean, type: 'default'|'isolated'|'worker', frameId: string}
@@ -6913,6 +7611,11 @@ export namespace Cdp {
       hash: string;
 
       /**
+       * For Wasm modules, the content of the `build_id` custom section.
+       */
+      buildId: string;
+
+      /**
        * Embedder-specific auxiliary data likely matching {isDefault: boolean, type: 'default'|'isolated'|'worker', frameId: string}
        */
       executionContextAuxData?: any;
@@ -6958,9 +7661,9 @@ export namespace Cdp {
       scriptLanguage?: Debugger.ScriptLanguage;
 
       /**
-       * If the scriptLanguage is WebASsembly, the source of debug symbols for the module.
+       * If the scriptLanguage is WebAssembly, the source of debug symbols for the module.
        */
-      debugSymbols?: Debugger.DebugSymbols;
+      debugSymbols?: Debugger.DebugSymbols[];
 
       /**
        * The name the embedder supplied for this script.
@@ -7171,7 +7874,7 @@ export namespace Cdp {
       /**
        * Type of the debug symbols.
        */
-      type: 'None' | 'SourceMap' | 'EmbeddedDWARF' | 'ExternalDWARF';
+      type: 'SourceMap' | 'EmbeddedDWARF' | 'ExternalDWARF';
 
       /**
        * URL of the external symbol source.
@@ -7225,22 +7928,26 @@ export namespace Cdp {
     /**
      * Parameters of the 'DeviceAccess.enable' method.
      */
-    export interface EnableParams {}
+    export interface EnableParams {
+    }
 
     /**
      * Return value of the 'DeviceAccess.enable' method.
      */
-    export interface EnableResult {}
+    export interface EnableResult {
+    }
 
     /**
      * Parameters of the 'DeviceAccess.disable' method.
      */
-    export interface DisableParams {}
+    export interface DisableParams {
+    }
 
     /**
      * Return value of the 'DeviceAccess.disable' method.
      */
-    export interface DisableResult {}
+    export interface DisableResult {
+    }
 
     /**
      * Parameters of the 'DeviceAccess.selectPrompt' method.
@@ -7254,7 +7961,8 @@ export namespace Cdp {
     /**
      * Return value of the 'DeviceAccess.selectPrompt' method.
      */
-    export interface SelectPromptResult {}
+    export interface SelectPromptResult {
+    }
 
     /**
      * Parameters of the 'DeviceAccess.cancelPrompt' method.
@@ -7266,7 +7974,8 @@ export namespace Cdp {
     /**
      * Return value of the 'DeviceAccess.cancelPrompt' method.
      */
-    export interface CancelPromptResult {}
+    export interface CancelPromptResult {
+    }
 
     /**
      * Parameters of the 'DeviceAccess.deviceRequestPrompted' event.
@@ -7326,12 +8035,14 @@ export namespace Cdp {
     /**
      * Parameters of the 'DeviceOrientation.clearDeviceOrientationOverride' method.
      */
-    export interface ClearDeviceOrientationOverrideParams {}
+    export interface ClearDeviceOrientationOverrideParams {
+    }
 
     /**
      * Return value of the 'DeviceOrientation.clearDeviceOrientationOverride' method.
      */
-    export interface ClearDeviceOrientationOverrideResult {}
+    export interface ClearDeviceOrientationOverrideResult {
+    }
 
     /**
      * Parameters of the 'DeviceOrientation.setDeviceOrientationOverride' method.
@@ -7356,7 +8067,8 @@ export namespace Cdp {
     /**
      * Return value of the 'DeviceOrientation.setDeviceOrientationOverride' method.
      */
-    export interface SetDeviceOrientationOverrideResult {}
+    export interface SetDeviceOrientationOverrideResult {
+    }
   }
 
   /**
@@ -7552,6 +8264,13 @@ export namespace Cdp {
     ): Promise<DOM.GetTopLayerElementsResult | undefined>;
 
     /**
+     * Returns the NodeId of the matched element according to certain relations.
+     */
+    getElementByRelation(
+      params: DOM.GetElementByRelationParams,
+    ): Promise<DOM.GetElementByRelationResult | undefined>;
+
+    /**
      * Re-does the last undone action.
      */
     redo(params: DOM.RedoParams): Promise<DOM.RedoResult | undefined>;
@@ -7632,6 +8351,13 @@ export namespace Cdp {
     getFileInfo(params: DOM.GetFileInfoParams): Promise<DOM.GetFileInfoResult | undefined>;
 
     /**
+     * Returns list of detached nodes
+     */
+    getDetachedDomNodes(
+      params: DOM.GetDetachedDomNodesParams,
+    ): Promise<DOM.GetDetachedDomNodesResult | undefined>;
+
+    /**
      * Enables console to refer to the node with given id via $x (see Command Line API for more details
      * $x functions).
      */
@@ -7666,9 +8392,10 @@ export namespace Cdp {
 
     /**
      * Returns the query container of the given node based on container query
-     * conditions: containerName, physical, and logical axes. If no axes are
-     * provided, the style container is returned, which is the direct parent or the
-     * closest element with a matching container-name.
+     * conditions: containerName, physical and logical axes, and whether it queries
+     * scroll-state. If no axes are provided and queriesScrollState is false, the
+     * style container is returned, which is the direct parent or the closest
+     * element with a matching container-name.
      */
     getContainerForNode(
       params: DOM.GetContainerForNodeParams,
@@ -7681,6 +8408,14 @@ export namespace Cdp {
     getQueryingDescendantsForContainer(
       params: DOM.GetQueryingDescendantsForContainerParams,
     ): Promise<DOM.GetQueryingDescendantsForContainerResult | undefined>;
+
+    /**
+     * Returns the target anchor element of the given anchor query according to
+     * https://www.w3.org/TR/css-anchor-position-1/#target.
+     */
+    getAnchorElement(
+      params: DOM.GetAnchorElementParams,
+    ): Promise<DOM.GetAnchorElementResult | undefined>;
 
     /**
      * Fired when `Element`'s attribute is modified.
@@ -7741,10 +8476,7 @@ export namespace Cdp {
     /**
      * Fired when `Document` has been totally updated. Node ids are no longer valid.
      */
-    on(
-      event: 'documentUpdated',
-      listener: (event: DOM.DocumentUpdatedEvent) => void,
-    ): IDisposable;
+    on(event: 'documentUpdated', listener: (event: DOM.DocumentUpdatedEvent) => void): IDisposable;
 
     /**
      * Fired when `Element`'s inline style is modified via a CSS property modification.
@@ -7768,6 +8500,14 @@ export namespace Cdp {
     on(
       event: 'topLayerElementsUpdated',
       listener: (event: DOM.TopLayerElementsUpdatedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when a node's scrollability state changes.
+     */
+    on(
+      event: 'scrollableFlagUpdated',
+      listener: (event: DOM.ScrollableFlagUpdatedEvent) => void,
     ): IDisposable;
 
     /**
@@ -7927,17 +8667,20 @@ export namespace Cdp {
     /**
      * Return value of the 'DOM.scrollIntoViewIfNeeded' method.
      */
-    export interface ScrollIntoViewIfNeededResult {}
+    export interface ScrollIntoViewIfNeededResult {
+    }
 
     /**
      * Parameters of the 'DOM.disable' method.
      */
-    export interface DisableParams {}
+    export interface DisableParams {
+    }
 
     /**
      * Return value of the 'DOM.disable' method.
      */
-    export interface DisableResult {}
+    export interface DisableResult {
+    }
 
     /**
      * Parameters of the 'DOM.discardSearchResults' method.
@@ -7952,7 +8695,8 @@ export namespace Cdp {
     /**
      * Return value of the 'DOM.discardSearchResults' method.
      */
-    export interface DiscardSearchResultsResult {}
+    export interface DiscardSearchResultsResult {
+    }
 
     /**
      * Parameters of the 'DOM.enable' method.
@@ -7967,7 +8711,8 @@ export namespace Cdp {
     /**
      * Return value of the 'DOM.enable' method.
      */
-    export interface EnableResult {}
+    export interface EnableResult {
+    }
 
     /**
      * Parameters of the 'DOM.focus' method.
@@ -7992,7 +8737,8 @@ export namespace Cdp {
     /**
      * Return value of the 'DOM.focus' method.
      */
-    export interface FocusResult {}
+    export interface FocusResult {
+    }
 
     /**
      * Parameters of the 'DOM.getAttributes' method.
@@ -8287,42 +9033,50 @@ export namespace Cdp {
     /**
      * Parameters of the 'DOM.hideHighlight' method.
      */
-    export interface HideHighlightParams {}
+    export interface HideHighlightParams {
+    }
 
     /**
      * Return value of the 'DOM.hideHighlight' method.
      */
-    export interface HideHighlightResult {}
+    export interface HideHighlightResult {
+    }
 
     /**
      * Parameters of the 'DOM.highlightNode' method.
      */
-    export interface HighlightNodeParams {}
+    export interface HighlightNodeParams {
+    }
 
     /**
      * Return value of the 'DOM.highlightNode' method.
      */
-    export interface HighlightNodeResult {}
+    export interface HighlightNodeResult {
+    }
 
     /**
      * Parameters of the 'DOM.highlightRect' method.
      */
-    export interface HighlightRectParams {}
+    export interface HighlightRectParams {
+    }
 
     /**
      * Return value of the 'DOM.highlightRect' method.
      */
-    export interface HighlightRectResult {}
+    export interface HighlightRectResult {
+    }
 
     /**
      * Parameters of the 'DOM.markUndoableState' method.
      */
-    export interface MarkUndoableStateParams {}
+    export interface MarkUndoableStateParams {
+    }
 
     /**
      * Return value of the 'DOM.markUndoableState' method.
      */
-    export interface MarkUndoableStateResult {}
+    export interface MarkUndoableStateResult {
+    }
 
     /**
      * Parameters of the 'DOM.moveTo' method.
@@ -8479,7 +9233,8 @@ export namespace Cdp {
     /**
      * Parameters of the 'DOM.getTopLayerElements' method.
      */
-    export interface GetTopLayerElementsParams {}
+    export interface GetTopLayerElementsParams {
+    }
 
     /**
      * Return value of the 'DOM.getTopLayerElements' method.
@@ -8492,14 +9247,41 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'DOM.getElementByRelation' method.
+     */
+    export interface GetElementByRelationParams {
+      /**
+       * Id of the node from which to query the relation.
+       */
+      nodeId: NodeId;
+
+      /**
+       * Type of relation to get.
+       */
+      relation: 'PopoverTarget';
+    }
+
+    /**
+     * Return value of the 'DOM.getElementByRelation' method.
+     */
+    export interface GetElementByRelationResult {
+      /**
+       * NodeId of the element matching the queried relation.
+       */
+      nodeId: NodeId;
+    }
+
+    /**
      * Parameters of the 'DOM.redo' method.
      */
-    export interface RedoParams {}
+    export interface RedoParams {
+    }
 
     /**
      * Return value of the 'DOM.redo' method.
      */
-    export interface RedoResult {}
+    export interface RedoResult {
+    }
 
     /**
      * Parameters of the 'DOM.removeAttribute' method.
@@ -8519,7 +9301,8 @@ export namespace Cdp {
     /**
      * Return value of the 'DOM.removeAttribute' method.
      */
-    export interface RemoveAttributeResult {}
+    export interface RemoveAttributeResult {
+    }
 
     /**
      * Parameters of the 'DOM.removeNode' method.
@@ -8534,7 +9317,8 @@ export namespace Cdp {
     /**
      * Return value of the 'DOM.removeNode' method.
      */
-    export interface RemoveNodeResult {}
+    export interface RemoveNodeResult {
+    }
 
     /**
      * Parameters of the 'DOM.requestChildNodes' method.
@@ -8561,7 +9345,8 @@ export namespace Cdp {
     /**
      * Return value of the 'DOM.requestChildNodes' method.
      */
-    export interface RequestChildNodesResult {}
+    export interface RequestChildNodesResult {
+    }
 
     /**
      * Parameters of the 'DOM.requestNode' method.
@@ -8641,7 +9426,8 @@ export namespace Cdp {
     /**
      * Return value of the 'DOM.setAttributeValue' method.
      */
-    export interface SetAttributeValueResult {}
+    export interface SetAttributeValueResult {
+    }
 
     /**
      * Parameters of the 'DOM.setAttributesAsText' method.
@@ -8667,7 +9453,8 @@ export namespace Cdp {
     /**
      * Return value of the 'DOM.setAttributesAsText' method.
      */
-    export interface SetAttributesAsTextResult {}
+    export interface SetAttributesAsTextResult {
+    }
 
     /**
      * Parameters of the 'DOM.setFileInputFiles' method.
@@ -8697,7 +9484,8 @@ export namespace Cdp {
     /**
      * Return value of the 'DOM.setFileInputFiles' method.
      */
-    export interface SetFileInputFilesResult {}
+    export interface SetFileInputFilesResult {
+    }
 
     /**
      * Parameters of the 'DOM.setNodeStackTracesEnabled' method.
@@ -8712,7 +9500,8 @@ export namespace Cdp {
     /**
      * Return value of the 'DOM.setNodeStackTracesEnabled' method.
      */
-    export interface SetNodeStackTracesEnabledResult {}
+    export interface SetNodeStackTracesEnabledResult {
+    }
 
     /**
      * Parameters of the 'DOM.getNodeStackTraces' method.
@@ -8752,6 +9541,22 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'DOM.getDetachedDomNodes' method.
+     */
+    export interface GetDetachedDomNodesParams {
+    }
+
+    /**
+     * Return value of the 'DOM.getDetachedDomNodes' method.
+     */
+    export interface GetDetachedDomNodesResult {
+      /**
+       * The list of detached nodes
+       */
+      detachedNodes: DetachedElementInfo[];
+    }
+
+    /**
      * Parameters of the 'DOM.setInspectedNode' method.
      */
     export interface SetInspectedNodeParams {
@@ -8764,7 +9569,8 @@ export namespace Cdp {
     /**
      * Return value of the 'DOM.setInspectedNode' method.
      */
-    export interface SetInspectedNodeResult {}
+    export interface SetInspectedNodeResult {
+    }
 
     /**
      * Parameters of the 'DOM.setNodeName' method.
@@ -8809,7 +9615,8 @@ export namespace Cdp {
     /**
      * Return value of the 'DOM.setNodeValue' method.
      */
-    export interface SetNodeValueResult {}
+    export interface SetNodeValueResult {
+    }
 
     /**
      * Parameters of the 'DOM.setOuterHTML' method.
@@ -8829,17 +9636,20 @@ export namespace Cdp {
     /**
      * Return value of the 'DOM.setOuterHTML' method.
      */
-    export interface SetOuterHTMLResult {}
+    export interface SetOuterHTMLResult {
+    }
 
     /**
      * Parameters of the 'DOM.undo' method.
      */
-    export interface UndoParams {}
+    export interface UndoParams {
+    }
 
     /**
      * Return value of the 'DOM.undo' method.
      */
-    export interface UndoResult {}
+    export interface UndoResult {
+    }
 
     /**
      * Parameters of the 'DOM.getFrameOwner' method.
@@ -8874,6 +9684,8 @@ export namespace Cdp {
       physicalAxes?: PhysicalAxes;
 
       logicalAxes?: LogicalAxes;
+
+      queriesScrollState?: boolean;
     }
 
     /**
@@ -8904,6 +9716,34 @@ export namespace Cdp {
        * Descendant nodes with container queries against the given container.
        */
       nodeIds: NodeId[];
+    }
+
+    /**
+     * Parameters of the 'DOM.getAnchorElement' method.
+     */
+    export interface GetAnchorElementParams {
+      /**
+       * Id of the positioned element from which to find the anchor.
+       */
+      nodeId: NodeId;
+
+      /**
+       * An optional anchor specifier, as defined in
+       * https://www.w3.org/TR/css-anchor-position-1/#anchor-specifier.
+       * If not provided, it will return the implicit anchor element for
+       * the given positioned element.
+       */
+      anchorSpecifier?: string;
+    }
+
+    /**
+     * Return value of the 'DOM.getAnchorElement' method.
+     */
+    export interface GetAnchorElementResult {
+      /**
+       * The anchor element of the given anchor query.
+       */
+      nodeId: NodeId;
     }
 
     /**
@@ -9024,7 +9864,8 @@ export namespace Cdp {
     /**
      * Parameters of the 'DOM.documentUpdated' event.
      */
-    export interface DocumentUpdatedEvent {}
+    export interface DocumentUpdatedEvent {
+    }
 
     /**
      * Parameters of the 'DOM.inlineStyleInvalidated' event.
@@ -9054,7 +9895,23 @@ export namespace Cdp {
     /**
      * Parameters of the 'DOM.topLayerElementsUpdated' event.
      */
-    export interface TopLayerElementsUpdatedEvent {}
+    export interface TopLayerElementsUpdatedEvent {
+    }
+
+    /**
+     * Parameters of the 'DOM.scrollableFlagUpdated' event.
+     */
+    export interface ScrollableFlagUpdatedEvent {
+      /**
+       * The id of the node.
+       */
+      nodeId: DOM.NodeId;
+
+      /**
+       * If the node is scrollable.
+       */
+      isScrollable: boolean;
+    }
 
     /**
      * Parameters of the 'DOM.pseudoElementRemoved' event.
@@ -9150,16 +10007,23 @@ export namespace Cdp {
     export type PseudoType =
       | 'first-line'
       | 'first-letter'
+      | 'checkmark'
       | 'before'
       | 'after'
+      | 'picker-icon'
       | 'marker'
       | 'backdrop'
+      | 'column'
       | 'selection'
+      | 'search-text'
       | 'target-text'
       | 'spelling-error'
       | 'grammar-error'
       | 'highlight'
       | 'first-line-inherited'
+      | 'scroll-marker'
+      | 'scroll-marker-group'
+      | 'scroll-button'
       | 'scrollbar'
       | 'scrollbar-thumb'
       | 'scrollbar-button'
@@ -9172,7 +10036,11 @@ export namespace Cdp {
       | 'view-transition-group'
       | 'view-transition-image-pair'
       | 'view-transition-old'
-      | 'view-transition-new';
+      | 'view-transition-new'
+      | 'placeholder'
+      | 'file-selector-button'
+      | 'details-content'
+      | 'picker';
 
     /**
      * Shadow root type.
@@ -9358,6 +10226,17 @@ export namespace Cdp {
       compatibilityMode?: CompatibilityMode;
 
       assignedSlot?: BackendNode;
+
+      isScrollable?: boolean;
+    }
+
+    /**
+     * A structure to hold the top-level node of a detached tree and an array of its retained descendants.
+     */
+    export interface DetachedElementInfo {
+      treeNode: Node;
+
+      retainedNodeIds: NodeId[];
     }
 
     /**
@@ -9619,7 +10498,8 @@ export namespace Cdp {
     /**
      * Return value of the 'DOMDebugger.removeDOMBreakpoint' method.
      */
-    export interface RemoveDOMBreakpointResult {}
+    export interface RemoveDOMBreakpointResult {
+    }
 
     /**
      * Parameters of the 'DOMDebugger.removeEventListenerBreakpoint' method.
@@ -9639,7 +10519,8 @@ export namespace Cdp {
     /**
      * Return value of the 'DOMDebugger.removeEventListenerBreakpoint' method.
      */
-    export interface RemoveEventListenerBreakpointResult {}
+    export interface RemoveEventListenerBreakpointResult {
+    }
 
     /**
      * Parameters of the 'DOMDebugger.removeInstrumentationBreakpoint' method.
@@ -9654,7 +10535,8 @@ export namespace Cdp {
     /**
      * Return value of the 'DOMDebugger.removeInstrumentationBreakpoint' method.
      */
-    export interface RemoveInstrumentationBreakpointResult {}
+    export interface RemoveInstrumentationBreakpointResult {
+    }
 
     /**
      * Parameters of the 'DOMDebugger.removeXHRBreakpoint' method.
@@ -9669,7 +10551,8 @@ export namespace Cdp {
     /**
      * Return value of the 'DOMDebugger.removeXHRBreakpoint' method.
      */
-    export interface RemoveXHRBreakpointResult {}
+    export interface RemoveXHRBreakpointResult {
+    }
 
     /**
      * Parameters of the 'DOMDebugger.setBreakOnCSPViolation' method.
@@ -9684,7 +10567,8 @@ export namespace Cdp {
     /**
      * Return value of the 'DOMDebugger.setBreakOnCSPViolation' method.
      */
-    export interface SetBreakOnCSPViolationResult {}
+    export interface SetBreakOnCSPViolationResult {
+    }
 
     /**
      * Parameters of the 'DOMDebugger.setDOMBreakpoint' method.
@@ -9704,7 +10588,8 @@ export namespace Cdp {
     /**
      * Return value of the 'DOMDebugger.setDOMBreakpoint' method.
      */
-    export interface SetDOMBreakpointResult {}
+    export interface SetDOMBreakpointResult {
+    }
 
     /**
      * Parameters of the 'DOMDebugger.setEventListenerBreakpoint' method.
@@ -9725,7 +10610,8 @@ export namespace Cdp {
     /**
      * Return value of the 'DOMDebugger.setEventListenerBreakpoint' method.
      */
-    export interface SetEventListenerBreakpointResult {}
+    export interface SetEventListenerBreakpointResult {
+    }
 
     /**
      * Parameters of the 'DOMDebugger.setInstrumentationBreakpoint' method.
@@ -9740,7 +10626,8 @@ export namespace Cdp {
     /**
      * Return value of the 'DOMDebugger.setInstrumentationBreakpoint' method.
      */
-    export interface SetInstrumentationBreakpointResult {}
+    export interface SetInstrumentationBreakpointResult {
+    }
 
     /**
      * Parameters of the 'DOMDebugger.setXHRBreakpoint' method.
@@ -9755,7 +10642,8 @@ export namespace Cdp {
     /**
      * Return value of the 'DOMDebugger.setXHRBreakpoint' method.
      */
-    export interface SetXHRBreakpointResult {}
+    export interface SetXHRBreakpointResult {
+    }
 
     /**
      * DOM breakpoint type.
@@ -9866,22 +10754,26 @@ export namespace Cdp {
     /**
      * Parameters of the 'DOMSnapshot.disable' method.
      */
-    export interface DisableParams {}
+    export interface DisableParams {
+    }
 
     /**
      * Return value of the 'DOMSnapshot.disable' method.
      */
-    export interface DisableResult {}
+    export interface DisableResult {
+    }
 
     /**
      * Parameters of the 'DOMSnapshot.enable' method.
      */
-    export interface EnableParams {}
+    export interface EnableParams {
+    }
 
     /**
      * Return value of the 'DOMSnapshot.enable' method.
      */
-    export interface EnableResult {}
+    export interface EnableResult {
+    }
 
     /**
      * Parameters of the 'DOMSnapshot.getSnapshot' method.
@@ -10573,27 +11465,32 @@ export namespace Cdp {
     /**
      * Return value of the 'DOMStorage.clear' method.
      */
-    export interface ClearResult {}
+    export interface ClearResult {
+    }
 
     /**
      * Parameters of the 'DOMStorage.disable' method.
      */
-    export interface DisableParams {}
+    export interface DisableParams {
+    }
 
     /**
      * Return value of the 'DOMStorage.disable' method.
      */
-    export interface DisableResult {}
+    export interface DisableResult {
+    }
 
     /**
      * Parameters of the 'DOMStorage.enable' method.
      */
-    export interface EnableParams {}
+    export interface EnableParams {
+    }
 
     /**
      * Return value of the 'DOMStorage.enable' method.
      */
-    export interface EnableResult {}
+    export interface EnableResult {
+    }
 
     /**
      * Parameters of the 'DOMStorage.getDOMStorageItems' method.
@@ -10621,7 +11518,8 @@ export namespace Cdp {
     /**
      * Return value of the 'DOMStorage.removeDOMStorageItem' method.
      */
-    export interface RemoveDOMStorageItemResult {}
+    export interface RemoveDOMStorageItemResult {
+    }
 
     /**
      * Parameters of the 'DOMStorage.setDOMStorageItem' method.
@@ -10637,7 +11535,8 @@ export namespace Cdp {
     /**
      * Return value of the 'DOMStorage.setDOMStorageItem' method.
      */
-    export interface SetDOMStorageItemResult {}
+    export interface SetDOMStorageItemResult {
+    }
 
     /**
      * Parameters of the 'DOMStorage.domStorageItemAdded' event.
@@ -10755,7 +11654,8 @@ export namespace Cdp {
     /**
      * Return value of the 'DotnetDebugger.setDebuggerProperty' method.
      */
-    export interface SetDebuggerPropertyResult {}
+    export interface SetDebuggerPropertyResult {
+    }
 
     /**
      * Parameters of the 'DotnetDebugger.setEvaluationOptions' method.
@@ -10769,17 +11669,20 @@ export namespace Cdp {
     /**
      * Return value of the 'DotnetDebugger.setEvaluationOptions' method.
      */
-    export interface SetEvaluationOptionsResult {}
+    export interface SetEvaluationOptionsResult {
+    }
 
     /**
      * Parameters of the 'DotnetDebugger.setSymbolOptions' method.
      */
-    export interface SetSymbolOptionsParams {}
+    export interface SetSymbolOptionsParams {
+    }
 
     /**
      * Return value of the 'DotnetDebugger.setSymbolOptions' method.
      */
-    export interface SetSymbolOptionsResult {}
+    export interface SetSymbolOptionsResult {
+    }
 
     /**
      * Parameters of the 'DotnetDebugger.reportBlazorDebugError' event.
@@ -10826,9 +11729,7 @@ export namespace Cdp {
      * Tells whether emulation is supported.
      * @deprecated
      */
-    canEmulate(
-      params: Emulation.CanEmulateParams,
-    ): Promise<Emulation.CanEmulateResult | undefined>;
+    canEmulate(params: Emulation.CanEmulateParams): Promise<Emulation.CanEmulateResult | undefined>;
 
     /**
      * Clears the overridden device metrics.
@@ -10889,6 +11790,24 @@ export namespace Cdp {
       params: Emulation.SetDeviceMetricsOverrideParams,
     ): Promise<Emulation.SetDeviceMetricsOverrideResult | undefined>;
 
+    /**
+     * Start reporting the given posture value to the Device Posture API.
+     * This override can also be set in setDeviceMetricsOverride().
+     */
+    setDevicePostureOverride(
+      params: Emulation.SetDevicePostureOverrideParams,
+    ): Promise<Emulation.SetDevicePostureOverrideResult | undefined>;
+
+    /**
+     * Clears a device posture override set with either setDeviceMetricsOverride()
+     * or setDevicePostureOverride() and starts using posture information from the
+     * platform again.
+     * Does nothing if no override is set.
+     */
+    clearDevicePostureOverride(
+      params: Emulation.ClearDevicePostureOverrideParams,
+    ): Promise<Emulation.ClearDevicePostureOverrideResult | undefined>;
+
     setScrollbarsHidden(
       params: Emulation.SetScrollbarsHiddenParams,
     ): Promise<Emulation.SetScrollbarsHiddenResult | undefined>;
@@ -10945,6 +11864,25 @@ export namespace Cdp {
     setSensorOverrideReadings(
       params: Emulation.SetSensorOverrideReadingsParams,
     ): Promise<Emulation.SetSensorOverrideReadingsResult | undefined>;
+
+    /**
+     * Overrides a pressure source of a given type, as used by the Compute
+     * Pressure API, so that updates to PressureObserver.observe() are provided
+     * via setPressureStateOverride instead of being retrieved from
+     * platform-provided telemetry data.
+     */
+    setPressureSourceOverrideEnabled(
+      params: Emulation.SetPressureSourceOverrideEnabledParams,
+    ): Promise<Emulation.SetPressureSourceOverrideEnabledResult | undefined>;
+
+    /**
+     * Provides a given pressure state that will be processed and eventually be
+     * delivered to PressureObserver users. |source| must have been previously
+     * overridden by setPressureSourceOverrideEnabled.
+     */
+    setPressureStateOverride(
+      params: Emulation.SetPressureStateOverrideParams,
+    ): Promise<Emulation.SetPressureStateOverrideResult | undefined>;
 
     /**
      * Overrides the Idle state.
@@ -11060,7 +11998,8 @@ export namespace Cdp {
     /**
      * Parameters of the 'Emulation.canEmulate' method.
      */
-    export interface CanEmulateParams {}
+    export interface CanEmulateParams {
+    }
 
     /**
      * Return value of the 'Emulation.canEmulate' method.
@@ -11075,32 +12014,38 @@ export namespace Cdp {
     /**
      * Parameters of the 'Emulation.clearDeviceMetricsOverride' method.
      */
-    export interface ClearDeviceMetricsOverrideParams {}
+    export interface ClearDeviceMetricsOverrideParams {
+    }
 
     /**
      * Return value of the 'Emulation.clearDeviceMetricsOverride' method.
      */
-    export interface ClearDeviceMetricsOverrideResult {}
+    export interface ClearDeviceMetricsOverrideResult {
+    }
 
     /**
      * Parameters of the 'Emulation.clearGeolocationOverride' method.
      */
-    export interface ClearGeolocationOverrideParams {}
+    export interface ClearGeolocationOverrideParams {
+    }
 
     /**
      * Return value of the 'Emulation.clearGeolocationOverride' method.
      */
-    export interface ClearGeolocationOverrideResult {}
+    export interface ClearGeolocationOverrideResult {
+    }
 
     /**
      * Parameters of the 'Emulation.resetPageScaleFactor' method.
      */
-    export interface ResetPageScaleFactorParams {}
+    export interface ResetPageScaleFactorParams {
+    }
 
     /**
      * Return value of the 'Emulation.resetPageScaleFactor' method.
      */
-    export interface ResetPageScaleFactorResult {}
+    export interface ResetPageScaleFactorResult {
+    }
 
     /**
      * Parameters of the 'Emulation.setFocusEmulationEnabled' method.
@@ -11115,7 +12060,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Emulation.setFocusEmulationEnabled' method.
      */
-    export interface SetFocusEmulationEnabledResult {}
+    export interface SetFocusEmulationEnabledResult {
+    }
 
     /**
      * Parameters of the 'Emulation.setAutoDarkModeOverride' method.
@@ -11131,7 +12077,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Emulation.setAutoDarkModeOverride' method.
      */
-    export interface SetAutoDarkModeOverrideResult {}
+    export interface SetAutoDarkModeOverrideResult {
+    }
 
     /**
      * Parameters of the 'Emulation.setCPUThrottlingRate' method.
@@ -11146,7 +12093,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Emulation.setCPUThrottlingRate' method.
      */
-    export interface SetCPUThrottlingRateResult {}
+    export interface SetCPUThrottlingRateResult {
+    }
 
     /**
      * Parameters of the 'Emulation.setDefaultBackgroundColorOverride' method.
@@ -11162,7 +12110,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Emulation.setDefaultBackgroundColorOverride' method.
      */
-    export interface SetDefaultBackgroundColorOverrideResult {}
+    export interface SetDefaultBackgroundColorOverrideResult {
+    }
 
     /**
      * Parameters of the 'Emulation.setDeviceMetricsOverride' method.
@@ -11239,6 +12188,8 @@ export namespace Cdp {
       /**
        * If set, the posture of a foldable device. If not set the posture is set
        * to continuous.
+       * Deprecated, use Emulation.setDevicePostureOverride.
+       * @deprecated
        */
       devicePosture?: DevicePosture;
     }
@@ -11246,7 +12197,33 @@ export namespace Cdp {
     /**
      * Return value of the 'Emulation.setDeviceMetricsOverride' method.
      */
-    export interface SetDeviceMetricsOverrideResult {}
+    export interface SetDeviceMetricsOverrideResult {
+    }
+
+    /**
+     * Parameters of the 'Emulation.setDevicePostureOverride' method.
+     */
+    export interface SetDevicePostureOverrideParams {
+      posture: DevicePosture;
+    }
+
+    /**
+     * Return value of the 'Emulation.setDevicePostureOverride' method.
+     */
+    export interface SetDevicePostureOverrideResult {
+    }
+
+    /**
+     * Parameters of the 'Emulation.clearDevicePostureOverride' method.
+     */
+    export interface ClearDevicePostureOverrideParams {
+    }
+
+    /**
+     * Return value of the 'Emulation.clearDevicePostureOverride' method.
+     */
+    export interface ClearDevicePostureOverrideResult {
+    }
 
     /**
      * Parameters of the 'Emulation.setScrollbarsHidden' method.
@@ -11261,7 +12238,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Emulation.setScrollbarsHidden' method.
      */
-    export interface SetScrollbarsHiddenResult {}
+    export interface SetScrollbarsHiddenResult {
+    }
 
     /**
      * Parameters of the 'Emulation.setDocumentCookieDisabled' method.
@@ -11276,7 +12254,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Emulation.setDocumentCookieDisabled' method.
      */
-    export interface SetDocumentCookieDisabledResult {}
+    export interface SetDocumentCookieDisabledResult {
+    }
 
     /**
      * Parameters of the 'Emulation.setEmitTouchEventsForMouse' method.
@@ -11296,7 +12275,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Emulation.setEmitTouchEventsForMouse' method.
      */
-    export interface SetEmitTouchEventsForMouseResult {}
+    export interface SetEmitTouchEventsForMouseResult {
+    }
 
     /**
      * Parameters of the 'Emulation.setEmulatedMedia' method.
@@ -11316,7 +12296,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Emulation.setEmulatedMedia' method.
      */
-    export interface SetEmulatedMediaResult {}
+    export interface SetEmulatedMediaResult {
+    }
 
     /**
      * Parameters of the 'Emulation.setEmulatedVisionDeficiency' method.
@@ -11339,7 +12320,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Emulation.setEmulatedVisionDeficiency' method.
      */
-    export interface SetEmulatedVisionDeficiencyResult {}
+    export interface SetEmulatedVisionDeficiencyResult {
+    }
 
     /**
      * Parameters of the 'Emulation.setGeolocationOverride' method.
@@ -11364,7 +12346,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Emulation.setGeolocationOverride' method.
      */
-    export interface SetGeolocationOverrideResult {}
+    export interface SetGeolocationOverrideResult {
+    }
 
     /**
      * Parameters of the 'Emulation.getOverriddenSensorInformation' method.
@@ -11394,7 +12377,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Emulation.setSensorOverrideEnabled' method.
      */
-    export interface SetSensorOverrideEnabledResult {}
+    export interface SetSensorOverrideEnabledResult {
+    }
 
     /**
      * Parameters of the 'Emulation.setSensorOverrideReadings' method.
@@ -11408,7 +12392,40 @@ export namespace Cdp {
     /**
      * Return value of the 'Emulation.setSensorOverrideReadings' method.
      */
-    export interface SetSensorOverrideReadingsResult {}
+    export interface SetSensorOverrideReadingsResult {
+    }
+
+    /**
+     * Parameters of the 'Emulation.setPressureSourceOverrideEnabled' method.
+     */
+    export interface SetPressureSourceOverrideEnabledParams {
+      enabled: boolean;
+
+      source: PressureSource;
+
+      metadata?: PressureMetadata;
+    }
+
+    /**
+     * Return value of the 'Emulation.setPressureSourceOverrideEnabled' method.
+     */
+    export interface SetPressureSourceOverrideEnabledResult {
+    }
+
+    /**
+     * Parameters of the 'Emulation.setPressureStateOverride' method.
+     */
+    export interface SetPressureStateOverrideParams {
+      source: PressureSource;
+
+      state: PressureState;
+    }
+
+    /**
+     * Return value of the 'Emulation.setPressureStateOverride' method.
+     */
+    export interface SetPressureStateOverrideResult {
+    }
 
     /**
      * Parameters of the 'Emulation.setIdleOverride' method.
@@ -11428,17 +12445,20 @@ export namespace Cdp {
     /**
      * Return value of the 'Emulation.setIdleOverride' method.
      */
-    export interface SetIdleOverrideResult {}
+    export interface SetIdleOverrideResult {
+    }
 
     /**
      * Parameters of the 'Emulation.clearIdleOverride' method.
      */
-    export interface ClearIdleOverrideParams {}
+    export interface ClearIdleOverrideParams {
+    }
 
     /**
      * Return value of the 'Emulation.clearIdleOverride' method.
      */
-    export interface ClearIdleOverrideResult {}
+    export interface ClearIdleOverrideResult {
+    }
 
     /**
      * Parameters of the 'Emulation.setNavigatorOverrides' method.
@@ -11453,7 +12473,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Emulation.setNavigatorOverrides' method.
      */
-    export interface SetNavigatorOverridesResult {}
+    export interface SetNavigatorOverridesResult {
+    }
 
     /**
      * Parameters of the 'Emulation.setPageScaleFactor' method.
@@ -11468,7 +12489,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Emulation.setPageScaleFactor' method.
      */
-    export interface SetPageScaleFactorResult {}
+    export interface SetPageScaleFactorResult {
+    }
 
     /**
      * Parameters of the 'Emulation.setScriptExecutionDisabled' method.
@@ -11483,7 +12505,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Emulation.setScriptExecutionDisabled' method.
      */
-    export interface SetScriptExecutionDisabledResult {}
+    export interface SetScriptExecutionDisabledResult {
+    }
 
     /**
      * Parameters of the 'Emulation.setTouchEmulationEnabled' method.
@@ -11503,7 +12526,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Emulation.setTouchEmulationEnabled' method.
      */
-    export interface SetTouchEmulationEnabledResult {}
+    export interface SetTouchEmulationEnabledResult {
+    }
 
     /**
      * Parameters of the 'Emulation.setVirtualTimePolicy' method.
@@ -11553,7 +12577,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Emulation.setLocaleOverride' method.
      */
-    export interface SetLocaleOverrideResult {}
+    export interface SetLocaleOverrideResult {
+    }
 
     /**
      * Parameters of the 'Emulation.setTimezoneOverride' method.
@@ -11570,7 +12595,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Emulation.setTimezoneOverride' method.
      */
-    export interface SetTimezoneOverrideResult {}
+    export interface SetTimezoneOverrideResult {
+    }
 
     /**
      * Parameters of the 'Emulation.setVisibleSize' method.
@@ -11590,7 +12616,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Emulation.setVisibleSize' method.
      */
-    export interface SetVisibleSizeResult {}
+    export interface SetVisibleSizeResult {
+    }
 
     /**
      * Parameters of the 'Emulation.setDisabledImageTypes' method.
@@ -11605,7 +12632,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Emulation.setDisabledImageTypes' method.
      */
-    export interface SetDisabledImageTypesResult {}
+    export interface SetDisabledImageTypesResult {
+    }
 
     /**
      * Parameters of the 'Emulation.setHardwareConcurrencyOverride' method.
@@ -11620,7 +12648,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Emulation.setHardwareConcurrencyOverride' method.
      */
-    export interface SetHardwareConcurrencyOverrideResult {}
+    export interface SetHardwareConcurrencyOverrideResult {
+    }
 
     /**
      * Parameters of the 'Emulation.setUserAgentOverride' method.
@@ -11650,7 +12679,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Emulation.setUserAgentOverride' method.
      */
-    export interface SetUserAgentOverrideResult {}
+    export interface SetUserAgentOverrideResult {
+    }
 
     /**
      * Parameters of the 'Emulation.setAutomationOverride' method.
@@ -11665,12 +12695,14 @@ export namespace Cdp {
     /**
      * Return value of the 'Emulation.setAutomationOverride' method.
      */
-    export interface SetAutomationOverrideResult {}
+    export interface SetAutomationOverrideResult {
+    }
 
     /**
      * Parameters of the 'Emulation.virtualTimeBudgetExpired' event.
      */
-    export interface VirtualTimeBudgetExpiredEvent {}
+    export interface VirtualTimeBudgetExpiredEvent {
+    }
 
     /**
      * Screen orientation.
@@ -11784,7 +12816,6 @@ export namespace Cdp {
       | 'gyroscope'
       | 'linear-acceleration'
       | 'magnetometer'
-      | 'proximity'
       | 'relative-orientation';
 
     export interface SensorMetadata {
@@ -11823,6 +12854,14 @@ export namespace Cdp {
       xyz?: SensorReadingXYZ;
 
       quaternion?: SensorReadingQuaternion;
+    }
+
+    export type PressureSource = 'cpu';
+
+    export type PressureState = 'nominal' | 'fair' | 'serious' | 'critical';
+
+    export interface PressureMetadata {
+      available?: boolean;
     }
 
     /**
@@ -11874,7 +12913,8 @@ export namespace Cdp {
     /**
      * Return value of the 'EventBreakpoints.setInstrumentationBreakpoint' method.
      */
-    export interface SetInstrumentationBreakpointResult {}
+    export interface SetInstrumentationBreakpointResult {
+    }
 
     /**
      * Parameters of the 'EventBreakpoints.removeInstrumentationBreakpoint' method.
@@ -11889,17 +12929,196 @@ export namespace Cdp {
     /**
      * Return value of the 'EventBreakpoints.removeInstrumentationBreakpoint' method.
      */
-    export interface RemoveInstrumentationBreakpointResult {}
+    export interface RemoveInstrumentationBreakpointResult {
+    }
 
     /**
      * Parameters of the 'EventBreakpoints.disable' method.
      */
-    export interface DisableParams {}
+    export interface DisableParams {
+    }
 
     /**
      * Return value of the 'EventBreakpoints.disable' method.
      */
-    export interface DisableResult {}
+    export interface DisableResult {
+    }
+  }
+
+  /**
+   * Methods and events of the 'Extensions' domain.
+   */
+  export interface ExtensionsApi {
+    /**
+     * Installs an unpacked extension from the filesystem similar to
+     * --load-extension CLI flags. Returns extension ID once the extension
+     * has been installed. Available if the client is connected using the
+     * --remote-debugging-pipe flag and the --enable-unsafe-extension-debugging
+     * flag is set.
+     */
+    loadUnpacked(
+      params: Extensions.LoadUnpackedParams,
+    ): Promise<Extensions.LoadUnpackedResult | undefined>;
+
+    /**
+     * Gets data from extension storage in the given `storageArea`. If `keys` is
+     * specified, these are used to filter the result.
+     */
+    getStorageItems(
+      params: Extensions.GetStorageItemsParams,
+    ): Promise<Extensions.GetStorageItemsResult | undefined>;
+
+    /**
+     * Removes `keys` from extension storage in the given `storageArea`.
+     */
+    removeStorageItems(
+      params: Extensions.RemoveStorageItemsParams,
+    ): Promise<Extensions.RemoveStorageItemsResult | undefined>;
+
+    /**
+     * Clears extension storage in the given `storageArea`.
+     */
+    clearStorageItems(
+      params: Extensions.ClearStorageItemsParams,
+    ): Promise<Extensions.ClearStorageItemsResult | undefined>;
+
+    /**
+     * Sets `values` in extension storage in the given `storageArea`. The provided `values`
+     * will be merged with existing values in the storage area.
+     */
+    setStorageItems(
+      params: Extensions.SetStorageItemsParams,
+    ): Promise<Extensions.SetStorageItemsResult | undefined>;
+  }
+
+  /**
+   * Types of the 'Extensions' domain.
+   */
+  export namespace Extensions {
+    /**
+     * Parameters of the 'Extensions.loadUnpacked' method.
+     */
+    export interface LoadUnpackedParams {
+      /**
+       * Absolute file path.
+       */
+      path: string;
+    }
+
+    /**
+     * Return value of the 'Extensions.loadUnpacked' method.
+     */
+    export interface LoadUnpackedResult {
+      /**
+       * Extension id.
+       */
+      id: string;
+    }
+
+    /**
+     * Parameters of the 'Extensions.getStorageItems' method.
+     */
+    export interface GetStorageItemsParams {
+      /**
+       * ID of extension.
+       */
+      id: string;
+
+      /**
+       * StorageArea to retrieve data from.
+       */
+      storageArea: StorageArea;
+
+      /**
+       * Keys to retrieve.
+       */
+      keys?: string[];
+    }
+
+    /**
+     * Return value of the 'Extensions.getStorageItems' method.
+     */
+    export interface GetStorageItemsResult {
+      data: any;
+    }
+
+    /**
+     * Parameters of the 'Extensions.removeStorageItems' method.
+     */
+    export interface RemoveStorageItemsParams {
+      /**
+       * ID of extension.
+       */
+      id: string;
+
+      /**
+       * StorageArea to remove data from.
+       */
+      storageArea: StorageArea;
+
+      /**
+       * Keys to remove.
+       */
+      keys: string[];
+    }
+
+    /**
+     * Return value of the 'Extensions.removeStorageItems' method.
+     */
+    export interface RemoveStorageItemsResult {
+    }
+
+    /**
+     * Parameters of the 'Extensions.clearStorageItems' method.
+     */
+    export interface ClearStorageItemsParams {
+      /**
+       * ID of extension.
+       */
+      id: string;
+
+      /**
+       * StorageArea to remove data from.
+       */
+      storageArea: StorageArea;
+    }
+
+    /**
+     * Return value of the 'Extensions.clearStorageItems' method.
+     */
+    export interface ClearStorageItemsResult {
+    }
+
+    /**
+     * Parameters of the 'Extensions.setStorageItems' method.
+     */
+    export interface SetStorageItemsParams {
+      /**
+       * ID of extension.
+       */
+      id: string;
+
+      /**
+       * StorageArea to set data in.
+       */
+      storageArea: StorageArea;
+
+      /**
+       * Values to set.
+       */
+      values: any;
+    }
+
+    /**
+     * Return value of the 'Extensions.setStorageItems' method.
+     */
+    export interface SetStorageItemsResult {
+    }
+
+    /**
+     * Storage areas.
+     */
+    export type StorageArea = 'session' | 'local' | 'sync' | 'managed';
   }
 
   /**
@@ -11960,17 +13179,20 @@ export namespace Cdp {
     /**
      * Return value of the 'FedCm.enable' method.
      */
-    export interface EnableResult {}
+    export interface EnableResult {
+    }
 
     /**
      * Parameters of the 'FedCm.disable' method.
      */
-    export interface DisableParams {}
+    export interface DisableParams {
+    }
 
     /**
      * Return value of the 'FedCm.disable' method.
      */
-    export interface DisableResult {}
+    export interface DisableResult {
+    }
 
     /**
      * Parameters of the 'FedCm.selectAccount' method.
@@ -11984,7 +13206,8 @@ export namespace Cdp {
     /**
      * Return value of the 'FedCm.selectAccount' method.
      */
-    export interface SelectAccountResult {}
+    export interface SelectAccountResult {
+    }
 
     /**
      * Parameters of the 'FedCm.clickDialogButton' method.
@@ -11998,7 +13221,8 @@ export namespace Cdp {
     /**
      * Return value of the 'FedCm.clickDialogButton' method.
      */
-    export interface ClickDialogButtonResult {}
+    export interface ClickDialogButtonResult {
+    }
 
     /**
      * Parameters of the 'FedCm.openUrl' method.
@@ -12014,7 +13238,8 @@ export namespace Cdp {
     /**
      * Return value of the 'FedCm.openUrl' method.
      */
-    export interface OpenUrlResult {}
+    export interface OpenUrlResult {
+    }
 
     /**
      * Parameters of the 'FedCm.dismissDialog' method.
@@ -12028,17 +13253,20 @@ export namespace Cdp {
     /**
      * Return value of the 'FedCm.dismissDialog' method.
      */
-    export interface DismissDialogResult {}
+    export interface DismissDialogResult {
+    }
 
     /**
      * Parameters of the 'FedCm.resetCooldown' method.
      */
-    export interface ResetCooldownParams {}
+    export interface ResetCooldownParams {
+    }
 
     /**
      * Return value of the 'FedCm.resetCooldown' method.
      */
-    export interface ResetCooldownResult {}
+    export interface ResetCooldownResult {
+    }
 
     /**
      * Parameters of the 'FedCm.dialogShown' event.
@@ -12227,12 +13455,14 @@ export namespace Cdp {
     /**
      * Parameters of the 'Fetch.disable' method.
      */
-    export interface DisableParams {}
+    export interface DisableParams {
+    }
 
     /**
      * Return value of the 'Fetch.disable' method.
      */
-    export interface DisableResult {}
+    export interface DisableResult {
+    }
 
     /**
      * Parameters of the 'Fetch.enable' method.
@@ -12255,7 +13485,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Fetch.enable' method.
      */
-    export interface EnableResult {}
+    export interface EnableResult {
+    }
 
     /**
      * Parameters of the 'Fetch.failRequest' method.
@@ -12275,7 +13506,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Fetch.failRequest' method.
      */
-    export interface FailRequestResult {}
+    export interface FailRequestResult {
+    }
 
     /**
      * Parameters of the 'Fetch.fulfillRequest' method.
@@ -12321,7 +13553,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Fetch.fulfillRequest' method.
      */
-    export interface FulfillRequestResult {}
+    export interface FulfillRequestResult {
+    }
 
     /**
      * Parameters of the 'Fetch.continueRequest' method.
@@ -12363,7 +13596,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Fetch.continueRequest' method.
      */
-    export interface ContinueRequestResult {}
+    export interface ContinueRequestResult {
+    }
 
     /**
      * Parameters of the 'Fetch.continueWithAuth' method.
@@ -12383,7 +13617,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Fetch.continueWithAuth' method.
      */
-    export interface ContinueWithAuthResult {}
+    export interface ContinueWithAuthResult {
+    }
 
     /**
      * Parameters of the 'Fetch.continueResponse' method.
@@ -12422,7 +13657,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Fetch.continueResponse' method.
      */
-    export interface ContinueResponseResult {}
+    export interface ContinueResponseResult {
+    }
 
     /**
      * Parameters of the 'Fetch.getResponseBody' method.
@@ -12554,6 +13790,8 @@ export namespace Cdp {
 
     /**
      * Unique request identifier.
+     * Note that this does not identify individual HTTP requests that are part of
+     * a network request.
      */
     export type RequestId = string;
 
@@ -12642,6 +13880,81 @@ export namespace Cdp {
   }
 
   /**
+   * Methods and events of the 'FileSystem' domain.
+   */
+  export interface FileSystemApi {
+    getDirectory(
+      params: FileSystem.GetDirectoryParams,
+    ): Promise<FileSystem.GetDirectoryResult | undefined>;
+  }
+
+  /**
+   * Types of the 'FileSystem' domain.
+   */
+  export namespace FileSystem {
+    /**
+     * Parameters of the 'FileSystem.getDirectory' method.
+     */
+    export interface GetDirectoryParams {
+      bucketFileSystemLocator: BucketFileSystemLocator;
+    }
+
+    /**
+     * Return value of the 'FileSystem.getDirectory' method.
+     */
+    export interface GetDirectoryResult {
+      /**
+       * Returns the directory object at the path.
+       */
+      directory: Directory;
+    }
+
+    export interface File {
+      name: string;
+
+      /**
+       * Timestamp
+       */
+      lastModified: Network.TimeSinceEpoch;
+
+      /**
+       * Size in bytes
+       */
+      size: number;
+
+      type: string;
+    }
+
+    export interface Directory {
+      name: string;
+
+      nestedDirectories: string[];
+
+      /**
+       * Files that are directly nested under this directory.
+       */
+      nestedFiles: File[];
+    }
+
+    export interface BucketFileSystemLocator {
+      /**
+       * Storage key
+       */
+      storageKey: Storage.SerializedStorageKey;
+
+      /**
+       * Bucket name. Not passing a `bucketName` will retrieve the default Bucket. (https://developer.mozilla.org/en-US/docs/Web/API/Storage_API#storage_buckets)
+       */
+      bucketName?: string;
+
+      /**
+       * Path to the directory using each path component as an array item.
+       */
+      pathComponents: string[];
+    }
+  }
+
+  /**
    * Methods and events of the 'HeadlessExperimental' domain.
    */
   export interface HeadlessExperimentalApi {
@@ -12726,22 +14039,26 @@ export namespace Cdp {
     /**
      * Parameters of the 'HeadlessExperimental.disable' method.
      */
-    export interface DisableParams {}
+    export interface DisableParams {
+    }
 
     /**
      * Return value of the 'HeadlessExperimental.disable' method.
      */
-    export interface DisableResult {}
+    export interface DisableResult {
+    }
 
     /**
      * Parameters of the 'HeadlessExperimental.enable' method.
      */
-    export interface EnableParams {}
+    export interface EnableParams {
+    }
 
     /**
      * Return value of the 'HeadlessExperimental.enable' method.
      */
-    export interface EnableResult {}
+    export interface EnableResult {
+    }
 
     /**
      * Encoding options for a screenshot.
@@ -12867,37 +14184,44 @@ export namespace Cdp {
     /**
      * Return value of the 'HeapProfiler.addInspectedHeapObject' method.
      */
-    export interface AddInspectedHeapObjectResult {}
+    export interface AddInspectedHeapObjectResult {
+    }
 
     /**
      * Parameters of the 'HeapProfiler.collectGarbage' method.
      */
-    export interface CollectGarbageParams {}
+    export interface CollectGarbageParams {
+    }
 
     /**
      * Return value of the 'HeapProfiler.collectGarbage' method.
      */
-    export interface CollectGarbageResult {}
+    export interface CollectGarbageResult {
+    }
 
     /**
      * Parameters of the 'HeapProfiler.disable' method.
      */
-    export interface DisableParams {}
+    export interface DisableParams {
+    }
 
     /**
      * Return value of the 'HeapProfiler.disable' method.
      */
-    export interface DisableResult {}
+    export interface DisableResult {
+    }
 
     /**
      * Parameters of the 'HeapProfiler.enable' method.
      */
-    export interface EnableParams {}
+    export interface EnableParams {
+    }
 
     /**
      * Return value of the 'HeapProfiler.enable' method.
      */
-    export interface EnableResult {}
+    export interface EnableResult {
+    }
 
     /**
      * Parameters of the 'HeapProfiler.getHeapObjectId' method.
@@ -12944,7 +14268,8 @@ export namespace Cdp {
     /**
      * Parameters of the 'HeapProfiler.getSamplingProfile' method.
      */
-    export interface GetSamplingProfileParams {}
+    export interface GetSamplingProfileParams {
+    }
 
     /**
      * Return value of the 'HeapProfiler.getSamplingProfile' method.
@@ -12992,7 +14317,8 @@ export namespace Cdp {
     /**
      * Return value of the 'HeapProfiler.startSampling' method.
      */
-    export interface StartSamplingResult {}
+    export interface StartSamplingResult {
+    }
 
     /**
      * Parameters of the 'HeapProfiler.startTrackingHeapObjects' method.
@@ -13004,12 +14330,14 @@ export namespace Cdp {
     /**
      * Return value of the 'HeapProfiler.startTrackingHeapObjects' method.
      */
-    export interface StartTrackingHeapObjectsResult {}
+    export interface StartTrackingHeapObjectsResult {
+    }
 
     /**
      * Parameters of the 'HeapProfiler.stopSampling' method.
      */
-    export interface StopSamplingParams {}
+    export interface StopSamplingParams {
+    }
 
     /**
      * Return value of the 'HeapProfiler.stopSampling' method.
@@ -13051,7 +14379,8 @@ export namespace Cdp {
     /**
      * Return value of the 'HeapProfiler.stopTrackingHeapObjects' method.
      */
-    export interface StopTrackingHeapObjectsResult {}
+    export interface StopTrackingHeapObjectsResult {
+    }
 
     /**
      * Parameters of the 'HeapProfiler.takeHeapSnapshot' method.
@@ -13083,7 +14412,8 @@ export namespace Cdp {
     /**
      * Return value of the 'HeapProfiler.takeHeapSnapshot' method.
      */
-    export interface TakeHeapSnapshotResult {}
+    export interface TakeHeapSnapshotResult {
+    }
 
     /**
      * Parameters of the 'HeapProfiler.addHeapSnapshotChunk' event.
@@ -13127,7 +14457,8 @@ export namespace Cdp {
     /**
      * Parameters of the 'HeapProfiler.resetProfiles' event.
      */
-    export interface ResetProfilesEvent {}
+    export interface ResetProfilesEvent {
+    }
 
     /**
      * Heap snapshot object id.
@@ -13292,7 +14623,8 @@ export namespace Cdp {
     /**
      * Return value of the 'IndexedDB.clearObjectStore' method.
      */
-    export interface ClearObjectStoreResult {}
+    export interface ClearObjectStoreResult {
+    }
 
     /**
      * Parameters of the 'IndexedDB.deleteDatabase' method.
@@ -13323,7 +14655,8 @@ export namespace Cdp {
     /**
      * Return value of the 'IndexedDB.deleteDatabase' method.
      */
-    export interface DeleteDatabaseResult {}
+    export interface DeleteDatabaseResult {
+    }
 
     /**
      * Parameters of the 'IndexedDB.deleteObjectStoreEntries' method.
@@ -13358,27 +14691,32 @@ export namespace Cdp {
     /**
      * Return value of the 'IndexedDB.deleteObjectStoreEntries' method.
      */
-    export interface DeleteObjectStoreEntriesResult {}
+    export interface DeleteObjectStoreEntriesResult {
+    }
 
     /**
      * Parameters of the 'IndexedDB.disable' method.
      */
-    export interface DisableParams {}
+    export interface DisableParams {
+    }
 
     /**
      * Return value of the 'IndexedDB.disable' method.
      */
-    export interface DisableResult {}
+    export interface DisableResult {
+    }
 
     /**
      * Parameters of the 'IndexedDB.enable' method.
      */
-    export interface EnableParams {}
+    export interface EnableParams {
+    }
 
     /**
      * Return value of the 'IndexedDB.enable' method.
      */
-    export interface EnableResult {}
+    export interface EnableResult {
+    }
 
     /**
      * Parameters of the 'IndexedDB.requestData' method.
@@ -13871,7 +15209,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Input.dispatchDragEvent' method.
      */
-    export interface DispatchDragEventResult {}
+    export interface DispatchDragEventResult {
+    }
 
     /**
      * Parameters of the 'Input.dispatchKeyEvent' method.
@@ -13963,7 +15302,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Input.dispatchKeyEvent' method.
      */
-    export interface DispatchKeyEventResult {}
+    export interface DispatchKeyEventResult {
+    }
 
     /**
      * Parameters of the 'Input.insertText' method.
@@ -13978,7 +15318,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Input.insertText' method.
      */
-    export interface InsertTextResult {}
+    export interface InsertTextResult {
+    }
 
     /**
      * Parameters of the 'Input.imeSetComposition' method.
@@ -14013,7 +15354,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Input.imeSetComposition' method.
      */
-    export interface ImeSetCompositionResult {}
+    export interface ImeSetCompositionResult {
+    }
 
     /**
      * Parameters of the 'Input.dispatchMouseEvent' method.
@@ -14106,7 +15448,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Input.dispatchMouseEvent' method.
      */
-    export interface DispatchMouseEventResult {}
+    export interface DispatchMouseEventResult {
+    }
 
     /**
      * Parameters of the 'Input.dispatchTouchEvent' method.
@@ -14140,17 +15483,20 @@ export namespace Cdp {
     /**
      * Return value of the 'Input.dispatchTouchEvent' method.
      */
-    export interface DispatchTouchEventResult {}
+    export interface DispatchTouchEventResult {
+    }
 
     /**
      * Parameters of the 'Input.cancelDragging' method.
      */
-    export interface CancelDraggingParams {}
+    export interface CancelDraggingParams {
+    }
 
     /**
      * Return value of the 'Input.cancelDragging' method.
      */
-    export interface CancelDraggingResult {}
+    export interface CancelDraggingResult {
+    }
 
     /**
      * Parameters of the 'Input.emulateTouchFromMouseEvent' method.
@@ -14206,7 +15552,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Input.emulateTouchFromMouseEvent' method.
      */
-    export interface EmulateTouchFromMouseEventResult {}
+    export interface EmulateTouchFromMouseEventResult {
+    }
 
     /**
      * Parameters of the 'Input.setIgnoreInputEvents' method.
@@ -14221,7 +15568,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Input.setIgnoreInputEvents' method.
      */
-    export interface SetIgnoreInputEventsResult {}
+    export interface SetIgnoreInputEventsResult {
+    }
 
     /**
      * Parameters of the 'Input.setInterceptDrags' method.
@@ -14233,7 +15581,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Input.setInterceptDrags' method.
      */
-    export interface SetInterceptDragsResult {}
+    export interface SetInterceptDragsResult {
+    }
 
     /**
      * Parameters of the 'Input.synthesizePinchGesture' method.
@@ -14269,7 +15618,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Input.synthesizePinchGesture' method.
      */
-    export interface SynthesizePinchGestureResult {}
+    export interface SynthesizePinchGestureResult {
+    }
 
     /**
      * Parameters of the 'Input.synthesizeScrollGesture' method.
@@ -14342,7 +15692,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Input.synthesizeScrollGesture' method.
      */
-    export interface SynthesizeScrollGestureResult {}
+    export interface SynthesizeScrollGestureResult {
+    }
 
     /**
      * Parameters of the 'Input.synthesizeTapGesture' method.
@@ -14378,7 +15729,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Input.synthesizeTapGesture' method.
      */
-    export interface SynthesizeTapGestureResult {}
+    export interface SynthesizeTapGestureResult {
+    }
 
     /**
      * Parameters of the 'Input.dragIntercepted' event.
@@ -14536,22 +15888,26 @@ export namespace Cdp {
     /**
      * Parameters of the 'Inspector.disable' method.
      */
-    export interface DisableParams {}
+    export interface DisableParams {
+    }
 
     /**
      * Return value of the 'Inspector.disable' method.
      */
-    export interface DisableResult {}
+    export interface DisableResult {
+    }
 
     /**
      * Parameters of the 'Inspector.enable' method.
      */
-    export interface EnableParams {}
+    export interface EnableParams {
+    }
 
     /**
      * Return value of the 'Inspector.enable' method.
      */
-    export interface EnableResult {}
+    export interface EnableResult {
+    }
 
     /**
      * Parameters of the 'Inspector.detached' event.
@@ -14566,12 +15922,14 @@ export namespace Cdp {
     /**
      * Parameters of the 'Inspector.targetCrashed' event.
      */
-    export interface TargetCrashedEvent {}
+    export interface TargetCrashedEvent {
+    }
 
     /**
      * Parameters of the 'Inspector.targetReloadedAfterCrash' event.
      */
-    export interface TargetReloadedAfterCrashEvent {}
+    export interface TargetReloadedAfterCrashEvent {
+    }
   }
 
   /**
@@ -14611,7 +15969,8 @@ export namespace Cdp {
     /**
      * Return value of the 'IO.close' method.
      */
-    export interface CloseResult {}
+    export interface CloseResult {
+    }
 
     /**
      * Parameters of the 'IO.read' method.
@@ -14710,7 +16069,8 @@ export namespace Cdp {
     /**
      * Return value of the 'JsDebug.subscribe' method.
      */
-    export interface SubscribeResult {}
+    export interface SubscribeResult {
+    }
   }
 
   /**
@@ -14773,10 +16133,7 @@ export namespace Cdp {
       params: LayerTree.SnapshotCommandLogParams,
     ): Promise<LayerTree.SnapshotCommandLogResult | undefined>;
 
-    on(
-      event: 'layerPainted',
-      listener: (event: LayerTree.LayerPaintedEvent) => void,
-    ): IDisposable;
+    on(event: 'layerPainted', listener: (event: LayerTree.LayerPaintedEvent) => void): IDisposable;
 
     on(
       event: 'layerTreeDidChange',
@@ -14816,22 +16173,26 @@ export namespace Cdp {
     /**
      * Parameters of the 'LayerTree.disable' method.
      */
-    export interface DisableParams {}
+    export interface DisableParams {
+    }
 
     /**
      * Return value of the 'LayerTree.disable' method.
      */
-    export interface DisableResult {}
+    export interface DisableResult {
+    }
 
     /**
      * Parameters of the 'LayerTree.enable' method.
      */
-    export interface EnableParams {}
+    export interface EnableParams {
+    }
 
     /**
      * Return value of the 'LayerTree.enable' method.
      */
-    export interface EnableResult {}
+    export interface EnableResult {
+    }
 
     /**
      * Parameters of the 'LayerTree.loadSnapshot' method.
@@ -14921,7 +16282,8 @@ export namespace Cdp {
     /**
      * Return value of the 'LayerTree.releaseSnapshot' method.
      */
-    export interface ReleaseSnapshotResult {}
+    export interface ReleaseSnapshotResult {
+    }
 
     /**
      * Parameters of the 'LayerTree.replaySnapshot' method.
@@ -15212,32 +16574,38 @@ export namespace Cdp {
     /**
      * Parameters of the 'Log.clear' method.
      */
-    export interface ClearParams {}
+    export interface ClearParams {
+    }
 
     /**
      * Return value of the 'Log.clear' method.
      */
-    export interface ClearResult {}
+    export interface ClearResult {
+    }
 
     /**
      * Parameters of the 'Log.disable' method.
      */
-    export interface DisableParams {}
+    export interface DisableParams {
+    }
 
     /**
      * Return value of the 'Log.disable' method.
      */
-    export interface DisableResult {}
+    export interface DisableResult {
+    }
 
     /**
      * Parameters of the 'Log.enable' method.
      */
-    export interface EnableParams {}
+    export interface EnableParams {
+    }
 
     /**
      * Return value of the 'Log.enable' method.
      */
-    export interface EnableResult {}
+    export interface EnableResult {
+    }
 
     /**
      * Parameters of the 'Log.startViolationsReport' method.
@@ -15252,17 +16620,20 @@ export namespace Cdp {
     /**
      * Return value of the 'Log.startViolationsReport' method.
      */
-    export interface StartViolationsReportResult {}
+    export interface StartViolationsReportResult {
+    }
 
     /**
      * Parameters of the 'Log.stopViolationsReport' method.
      */
-    export interface StopViolationsReportParams {}
+    export interface StopViolationsReportParams {
+    }
 
     /**
      * Return value of the 'Log.stopViolationsReport' method.
      */
-    export interface StopViolationsReportResult {}
+    export interface StopViolationsReportResult {
+    }
 
     /**
      * Parameters of the 'Log.entryAdded' event.
@@ -15420,10 +16791,7 @@ export namespace Cdp {
      * a list of active players. If an agent is restored, it will receive the full
      * list of player ids and all events again.
      */
-    on(
-      event: 'playersCreated',
-      listener: (event: Media.PlayersCreatedEvent) => void,
-    ): IDisposable;
+    on(event: 'playersCreated', listener: (event: Media.PlayersCreatedEvent) => void): IDisposable;
   }
 
   /**
@@ -15433,22 +16801,26 @@ export namespace Cdp {
     /**
      * Parameters of the 'Media.enable' method.
      */
-    export interface EnableParams {}
+    export interface EnableParams {
+    }
 
     /**
      * Return value of the 'Media.enable' method.
      */
-    export interface EnableResult {}
+    export interface EnableResult {
+    }
 
     /**
      * Parameters of the 'Media.disable' method.
      */
-    export interface DisableParams {}
+    export interface DisableParams {
+    }
 
     /**
      * Return value of the 'Media.disable' method.
      */
-    export interface DisableResult {}
+    export interface DisableResult {
+    }
 
     /**
      * Parameters of the 'Media.playerPropertiesChanged' event.
@@ -15583,10 +16955,24 @@ export namespace Cdp {
    * Methods and events of the 'Memory' domain.
    */
   export interface MemoryApi {
+    /**
+     * Retruns current DOM object counters.
+     */
     getDOMCounters(
       params: Memory.GetDOMCountersParams,
     ): Promise<Memory.GetDOMCountersResult | undefined>;
 
+    /**
+     * Retruns DOM object counters after preparing renderer for leak detection.
+     */
+    getDOMCountersForLeakDetection(
+      params: Memory.GetDOMCountersForLeakDetectionParams,
+    ): Promise<Memory.GetDOMCountersForLeakDetectionResult | undefined>;
+
+    /**
+     * Prepares for leak detection by terminating workers, stopping spellcheckers,
+     * dropping non-essential internal caches, running garbage collections, etc.
+     */
     prepareForLeakDetection(
       params: Memory.PrepareForLeakDetectionParams,
     ): Promise<Memory.PrepareForLeakDetectionResult | undefined>;
@@ -15622,9 +17008,7 @@ export namespace Cdp {
     /**
      * Stop collecting native memory profile.
      */
-    stopSampling(
-      params: Memory.StopSamplingParams,
-    ): Promise<Memory.StopSamplingResult | undefined>;
+    stopSampling(params: Memory.StopSamplingParams): Promise<Memory.StopSamplingResult | undefined>;
 
     /**
      * Retrieve native memory allocations profile
@@ -15658,7 +17042,8 @@ export namespace Cdp {
     /**
      * Parameters of the 'Memory.getDOMCounters' method.
      */
-    export interface GetDOMCountersParams {}
+    export interface GetDOMCountersParams {
+    }
 
     /**
      * Return value of the 'Memory.getDOMCounters' method.
@@ -15672,24 +17057,44 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'Memory.getDOMCountersForLeakDetection' method.
+     */
+    export interface GetDOMCountersForLeakDetectionParams {
+    }
+
+    /**
+     * Return value of the 'Memory.getDOMCountersForLeakDetection' method.
+     */
+    export interface GetDOMCountersForLeakDetectionResult {
+      /**
+       * DOM object counters.
+       */
+      counters: DOMCounter[];
+    }
+
+    /**
      * Parameters of the 'Memory.prepareForLeakDetection' method.
      */
-    export interface PrepareForLeakDetectionParams {}
+    export interface PrepareForLeakDetectionParams {
+    }
 
     /**
      * Return value of the 'Memory.prepareForLeakDetection' method.
      */
-    export interface PrepareForLeakDetectionResult {}
+    export interface PrepareForLeakDetectionResult {
+    }
 
     /**
      * Parameters of the 'Memory.forciblyPurgeJavaScriptMemory' method.
      */
-    export interface ForciblyPurgeJavaScriptMemoryParams {}
+    export interface ForciblyPurgeJavaScriptMemoryParams {
+    }
 
     /**
      * Return value of the 'Memory.forciblyPurgeJavaScriptMemory' method.
      */
-    export interface ForciblyPurgeJavaScriptMemoryResult {}
+    export interface ForciblyPurgeJavaScriptMemoryResult {
+    }
 
     /**
      * Parameters of the 'Memory.setPressureNotificationsSuppressed' method.
@@ -15704,7 +17109,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Memory.setPressureNotificationsSuppressed' method.
      */
-    export interface SetPressureNotificationsSuppressedResult {}
+    export interface SetPressureNotificationsSuppressedResult {
+    }
 
     /**
      * Parameters of the 'Memory.simulatePressureNotification' method.
@@ -15719,7 +17125,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Memory.simulatePressureNotification' method.
      */
-    export interface SimulatePressureNotificationResult {}
+    export interface SimulatePressureNotificationResult {
+    }
 
     /**
      * Parameters of the 'Memory.startSampling' method.
@@ -15739,22 +17146,26 @@ export namespace Cdp {
     /**
      * Return value of the 'Memory.startSampling' method.
      */
-    export interface StartSamplingResult {}
+    export interface StartSamplingResult {
+    }
 
     /**
      * Parameters of the 'Memory.stopSampling' method.
      */
-    export interface StopSamplingParams {}
+    export interface StopSamplingParams {
+    }
 
     /**
      * Return value of the 'Memory.stopSampling' method.
      */
-    export interface StopSamplingResult {}
+    export interface StopSamplingResult {
+    }
 
     /**
      * Parameters of the 'Memory.getAllTimeSamplingProfile' method.
      */
-    export interface GetAllTimeSamplingProfileParams {}
+    export interface GetAllTimeSamplingProfileParams {
+    }
 
     /**
      * Return value of the 'Memory.getAllTimeSamplingProfile' method.
@@ -15766,7 +17177,8 @@ export namespace Cdp {
     /**
      * Parameters of the 'Memory.getBrowserSamplingProfile' method.
      */
-    export interface GetBrowserSamplingProfileParams {}
+    export interface GetBrowserSamplingProfileParams {
+    }
 
     /**
      * Return value of the 'Memory.getBrowserSamplingProfile' method.
@@ -15778,7 +17190,8 @@ export namespace Cdp {
     /**
      * Parameters of the 'Memory.getSamplingProfile' method.
      */
-    export interface GetSamplingProfileParams {}
+    export interface GetSamplingProfileParams {
+    }
 
     /**
      * Return value of the 'Memory.getSamplingProfile' method.
@@ -15845,6 +17258,22 @@ export namespace Cdp {
        * Size of the module in bytes.
        */
       size: number;
+    }
+
+    /**
+     * DOM object counter data.
+     */
+    export interface DOMCounter {
+      /**
+       * Object name. Note: object names should be presumed volatile and clients should not expect
+       * the returned names to be consistent across runs.
+       */
+      name: string;
+
+      /**
+       * Object count.
+       */
+      count: integer;
     }
   }
 
@@ -16100,6 +17529,14 @@ export namespace Cdp {
     ): Promise<Network.LoadNetworkResourceResult | undefined>;
 
     /**
+     * Sets Controls for third-party cookie access
+     * Page reload is required before the new cookie bahavior will be observed
+     */
+    setCookieControls(
+      params: Network.SetCookieControlsParams,
+    ): Promise<Network.SetCookieControlsResult | undefined>;
+
+    /**
      * Fired when data chunk was received over the network.
      */
     on(event: 'dataReceived', listener: (event: Network.DataReceivedEvent) => void): IDisposable;
@@ -16115,10 +17552,7 @@ export namespace Cdp {
     /**
      * Fired when HTTP request has failed to load.
      */
-    on(
-      event: 'loadingFailed',
-      listener: (event: Network.LoadingFailedEvent) => void,
-    ): IDisposable;
+    on(event: 'loadingFailed', listener: (event: Network.LoadingFailedEvent) => void): IDisposable;
 
     /**
      * Fired when HTTP request has finished loading.
@@ -16281,6 +17715,16 @@ export namespace Cdp {
     ): IDisposable;
 
     /**
+     * Fired when 103 Early Hints headers is received in addition to the common response.
+     * Not every responseReceived event will have an responseReceivedEarlyHints fired.
+     * Only one responseReceivedEarlyHints may be fired for eached responseReceived event.
+     */
+    on(
+      event: 'responseReceivedEarlyHints',
+      listener: (event: Network.ResponseReceivedEarlyHintsEvent) => void,
+    ): IDisposable;
+
+    /**
      * Fired exactly once for each Trust Token operation. Depending on
      * the type of the operation and whether the operation succeeded or
      * failed, the event is fired before the corresponding request was sent
@@ -16290,6 +17734,11 @@ export namespace Cdp {
       event: 'trustTokenOperationDone',
       listener: (event: Network.TrustTokenOperationDoneEvent) => void,
     ): IDisposable;
+
+    /**
+     * Fired once security policy has been updated.
+     */
+    on(event: 'policyUpdated', listener: (event: Network.PolicyUpdatedEvent) => void): IDisposable;
 
     /**
      * Fired once when parsing the .wbn file has succeeded.
@@ -16362,22 +17811,26 @@ export namespace Cdp {
     /**
      * Return value of the 'Network.setAcceptedEncodings' method.
      */
-    export interface SetAcceptedEncodingsResult {}
+    export interface SetAcceptedEncodingsResult {
+    }
 
     /**
      * Parameters of the 'Network.clearAcceptedEncodingsOverride' method.
      */
-    export interface ClearAcceptedEncodingsOverrideParams {}
+    export interface ClearAcceptedEncodingsOverrideParams {
+    }
 
     /**
      * Return value of the 'Network.clearAcceptedEncodingsOverride' method.
      */
-    export interface ClearAcceptedEncodingsOverrideResult {}
+    export interface ClearAcceptedEncodingsOverrideResult {
+    }
 
     /**
      * Parameters of the 'Network.canClearBrowserCache' method.
      */
-    export interface CanClearBrowserCacheParams {}
+    export interface CanClearBrowserCacheParams {
+    }
 
     /**
      * Return value of the 'Network.canClearBrowserCache' method.
@@ -16392,7 +17845,8 @@ export namespace Cdp {
     /**
      * Parameters of the 'Network.canClearBrowserCookies' method.
      */
-    export interface CanClearBrowserCookiesParams {}
+    export interface CanClearBrowserCookiesParams {
+    }
 
     /**
      * Return value of the 'Network.canClearBrowserCookies' method.
@@ -16407,7 +17861,8 @@ export namespace Cdp {
     /**
      * Parameters of the 'Network.canEmulateNetworkConditions' method.
      */
-    export interface CanEmulateNetworkConditionsParams {}
+    export interface CanEmulateNetworkConditionsParams {
+    }
 
     /**
      * Return value of the 'Network.canEmulateNetworkConditions' method.
@@ -16422,22 +17877,26 @@ export namespace Cdp {
     /**
      * Parameters of the 'Network.clearBrowserCache' method.
      */
-    export interface ClearBrowserCacheParams {}
+    export interface ClearBrowserCacheParams {
+    }
 
     /**
      * Return value of the 'Network.clearBrowserCache' method.
      */
-    export interface ClearBrowserCacheResult {}
+    export interface ClearBrowserCacheResult {
+    }
 
     /**
      * Parameters of the 'Network.clearBrowserCookies' method.
      */
-    export interface ClearBrowserCookiesParams {}
+    export interface ClearBrowserCookiesParams {
+    }
 
     /**
      * Return value of the 'Network.clearBrowserCookies' method.
      */
-    export interface ClearBrowserCookiesResult {}
+    export interface ClearBrowserCookiesResult {
+    }
 
     /**
      * Parameters of the 'Network.continueInterceptedRequest' method.
@@ -16490,7 +17949,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Network.continueInterceptedRequest' method.
      */
-    export interface ContinueInterceptedRequestResult {}
+    export interface ContinueInterceptedRequestResult {
+    }
 
     /**
      * Parameters of the 'Network.deleteCookies' method.
@@ -16518,26 +17978,29 @@ export namespace Cdp {
       path?: string;
 
       /**
-       * If specified, deletes only cookies with the the given name and partitionKey where domain
-       * matches provided URL.
+       * If specified, deletes only cookies with the the given name and partitionKey where
+       * all partition key attributes match the cookie partition key attribute.
        */
-      partitionKey?: string;
+      partitionKey?: CookiePartitionKey;
     }
 
     /**
      * Return value of the 'Network.deleteCookies' method.
      */
-    export interface DeleteCookiesResult {}
+    export interface DeleteCookiesResult {
+    }
 
     /**
      * Parameters of the 'Network.disable' method.
      */
-    export interface DisableParams {}
+    export interface DisableParams {
+    }
 
     /**
      * Return value of the 'Network.disable' method.
      */
-    export interface DisableResult {}
+    export interface DisableResult {
+    }
 
     /**
      * Parameters of the 'Network.emulateNetworkConditions' method.
@@ -16567,12 +18030,28 @@ export namespace Cdp {
        * Connection type if known.
        */
       connectionType?: ConnectionType;
+
+      /**
+       * WebRTC packet loss (percent, 0-100). 0 disables packet loss emulation, 100 drops all the packets.
+       */
+      packetLoss?: number;
+
+      /**
+       * WebRTC packet queue length (packet). 0 removes any queue length limitations.
+       */
+      packetQueueLength?: integer;
+
+      /**
+       * WebRTC packetReordering feature.
+       */
+      packetReordering?: boolean;
     }
 
     /**
      * Return value of the 'Network.emulateNetworkConditions' method.
      */
-    export interface EmulateNetworkConditionsResult {}
+    export interface EmulateNetworkConditionsResult {
+    }
 
     /**
      * Parameters of the 'Network.enable' method.
@@ -16597,12 +18076,14 @@ export namespace Cdp {
     /**
      * Return value of the 'Network.enable' method.
      */
-    export interface EnableResult {}
+    export interface EnableResult {
+    }
 
     /**
      * Parameters of the 'Network.getAllCookies' method.
      */
-    export interface GetAllCookiesParams {}
+    export interface GetAllCookiesParams {
+    }
 
     /**
      * Return value of the 'Network.getAllCookies' method.
@@ -16750,7 +18231,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Network.replayXHR' method.
      */
-    export interface ReplayXHRResult {}
+    export interface ReplayXHRResult {
+    }
 
     /**
      * Parameters of the 'Network.searchInResponseBody' method.
@@ -16800,7 +18282,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Network.setBlockedURLs' method.
      */
-    export interface SetBlockedURLsResult {}
+    export interface SetBlockedURLsResult {
+    }
 
     /**
      * Parameters of the 'Network.setBypassServiceWorker' method.
@@ -16815,7 +18298,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Network.setBypassServiceWorker' method.
      */
-    export interface SetBypassServiceWorkerResult {}
+    export interface SetBypassServiceWorkerResult {
+    }
 
     /**
      * Parameters of the 'Network.setCacheDisabled' method.
@@ -16830,7 +18314,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Network.setCacheDisabled' method.
      */
-    export interface SetCacheDisabledResult {}
+    export interface SetCacheDisabledResult {
+    }
 
     /**
      * Parameters of the 'Network.setCookie' method.
@@ -16905,11 +18390,9 @@ export namespace Cdp {
       sourcePort?: integer;
 
       /**
-       * Cookie partition key. The site of the top-level URL the browser was visiting at the start
-       * of the request to the endpoint that set the cookie.
-       * If not set, the cookie will be set as not partitioned.
+       * Cookie partition key. If not set, the cookie will be set as not partitioned.
        */
-      partitionKey?: string;
+      partitionKey?: CookiePartitionKey;
     }
 
     /**
@@ -16936,7 +18419,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Network.setCookies' method.
      */
-    export interface SetCookiesResult {}
+    export interface SetCookiesResult {
+    }
 
     /**
      * Parameters of the 'Network.setExtraHTTPHeaders' method.
@@ -16951,7 +18435,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Network.setExtraHTTPHeaders' method.
      */
-    export interface SetExtraHTTPHeadersResult {}
+    export interface SetExtraHTTPHeadersResult {
+    }
 
     /**
      * Parameters of the 'Network.setAttachDebugStack' method.
@@ -16966,7 +18451,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Network.setAttachDebugStack' method.
      */
-    export interface SetAttachDebugStackResult {}
+    export interface SetAttachDebugStackResult {
+    }
 
     /**
      * Parameters of the 'Network.setRequestInterception' method.
@@ -16982,7 +18468,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Network.setRequestInterception' method.
      */
-    export interface SetRequestInterceptionResult {}
+    export interface SetRequestInterceptionResult {
+    }
 
     /**
      * Parameters of the 'Network.setUserAgentOverride' method.
@@ -17012,7 +18499,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Network.setUserAgentOverride' method.
      */
-    export interface SetUserAgentOverrideResult {}
+    export interface SetUserAgentOverrideResult {
+    }
 
     /**
      * Parameters of the 'Network.streamResourceContent' method.
@@ -17064,7 +18552,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Network.enableReportingApi' method.
      */
-    export interface EnableReportingApiResult {}
+    export interface EnableReportingApiResult {
+    }
 
     /**
      * Parameters of the 'Network.loadNetworkResource' method.
@@ -17092,6 +18581,32 @@ export namespace Cdp {
      */
     export interface LoadNetworkResourceResult {
       resource: LoadNetworkResourcePageResult;
+    }
+
+    /**
+     * Parameters of the 'Network.setCookieControls' method.
+     */
+    export interface SetCookieControlsParams {
+      /**
+       * Whether 3pc restriction is enabled.
+       */
+      enableThirdPartyCookieRestriction: boolean;
+
+      /**
+       * Whether 3pc grace period exception should be enabled; false by default.
+       */
+      disableThirdPartyCookieMetadata: boolean;
+
+      /**
+       * Whether 3pc heuristics exceptions should be enabled; false by default.
+       */
+      disableThirdPartyCookieHeuristics: boolean;
+    }
+
+    /**
+     * Return value of the 'Network.setCookieControls' method.
+     */
+    export interface SetCookieControlsResult {
     }
 
     /**
@@ -17686,6 +19201,9 @@ export namespace Cdp {
 
       /**
        * Raw response headers as they were received over the wire.
+       * Duplicate headers in the response are represented as a single key with their values
+       * concatentated using `\n` as the separator.
+       * See also `headersText` that contains verbatim text for HTTP/1.*.
        */
       headers: Headers;
 
@@ -17712,7 +19230,7 @@ export namespace Cdp {
        * The cookie partition key that will be used to store partitioned cookies set in this response.
        * Only sent when partitioned cookies are enabled.
        */
-      cookiePartitionKey?: string;
+      cookiePartitionKey?: CookiePartitionKey;
 
       /**
        * True if partitioned cookies are enabled, but the partition key is not serializable to string.
@@ -17724,6 +19242,24 @@ export namespace Cdp {
        * the response with the corresponding reason.
        */
       exemptedCookies?: ExemptedSetCookieWithReason[];
+    }
+
+    /**
+     * Parameters of the 'Network.responseReceivedEarlyHints' event.
+     */
+    export interface ResponseReceivedEarlyHintsEvent {
+      /**
+       * Request identifier. Used to match this information to another responseReceived event.
+       */
+      requestId: RequestId;
+
+      /**
+       * Raw response headers as they were received over the wire.
+       * Duplicate headers in the response are represented as a single key with their values
+       * concatentated using `\n` as the separator.
+       * See also `headersText` that contains verbatim text for HTTP/1.*.
+       */
+      headers: Headers;
     }
 
     /**
@@ -17743,12 +19279,13 @@ export namespace Cdp {
         | 'FailedPrecondition'
         | 'ResourceExhausted'
         | 'AlreadyExists'
-        | 'Unavailable'
+        | 'ResourceLimited'
         | 'Unauthorized'
         | 'BadResponse'
         | 'InternalError'
         | 'UnknownError'
-        | 'FulfilledLocally';
+        | 'FulfilledLocally'
+        | 'SiteIssuerLimit';
 
       type: TrustTokenOperationType;
 
@@ -17768,6 +19305,12 @@ export namespace Cdp {
        * The number of obtained Trust Tokens on a successful "Issuance" operation.
        */
       issuedTokenCount?: integer;
+    }
+
+    /**
+     * Parameters of the 'Network.policyUpdated' event.
+     */
+    export interface PolicyUpdatedEvent {
     }
 
     /**
@@ -17904,7 +19447,9 @@ export namespace Cdp {
     export type LoaderId = string;
 
     /**
-     * Unique request identifier.
+     * Unique network request identifier.
+     * Note that this does not identify individual HTTP requests that are part of
+     * a network request.
      */
     export type RequestId = string;
 
@@ -18053,6 +19598,16 @@ export namespace Cdp {
       workerRespondWithSettled: number;
 
       /**
+       * Started ServiceWorker static routing source evaluation.
+       */
+      workerRouterEvaluationStart?: number;
+
+      /**
+       * Started cache lookup when the source was evaluated to `cache`.
+       */
+      workerCacheLookupStart?: number;
+
+      /**
        * Started sending request.
        */
       sendStart: number;
@@ -18121,6 +19676,8 @@ export namespace Cdp {
 
       /**
        * HTTP POST request data.
+       * Use postDataEntries instead.
+       * @deprecated
        */
       postData?: string;
 
@@ -18130,7 +19687,7 @@ export namespace Cdp {
       hasPostData?: boolean;
 
       /**
-       * Request body elements. This will be converted from base64 to binary
+       * Request body elements (post data broken into individual entries).
        */
       postDataEntries?: PostDataEntry[];
 
@@ -18323,7 +19880,10 @@ export namespace Cdp {
       | 'coop-sandboxed-iframe-cannot-navigate-to-coop-page'
       | 'corp-not-same-origin'
       | 'corp-not-same-origin-after-defaulted-to-same-origin-by-coep'
-      | 'corp-not-same-site';
+      | 'corp-not-same-origin-after-defaulted-to-same-origin-by-dip'
+      | 'corp-not-same-origin-after-defaulted-to-same-origin-by-coep-and-dip'
+      | 'corp-not-same-site'
+      | 'sri-message-signature-mismatch';
 
     /**
      * The reason why request was blocked.
@@ -18425,9 +19985,22 @@ export namespace Cdp {
       | 'race-network-and-fetch-handler';
 
     export interface ServiceWorkerRouterInfo {
-      ruleIdMatched: integer;
+      /**
+       * ID of the rule matched. If there is a matched rule, this field will
+       * be set, otherwiser no value will be set.
+       */
+      ruleIdMatched?: integer;
 
-      matchedSourceType: ServiceWorkerRouterSource;
+      /**
+       * The router source of the matched rule. If there is a matched rule, this
+       * field will be set, otherwise no value will be set.
+       */
+      matchedSourceType?: ServiceWorkerRouterSource;
+
+      /**
+       * The actual router source used.
+       */
+      actualSourceType?: ServiceWorkerRouterSource;
     }
 
     /**
@@ -18517,7 +20090,15 @@ export namespace Cdp {
       fromPrefetchCache?: boolean;
 
       /**
-       * Information about how Service Worker Static Router was used.
+       * Specifies that the request was served from the prefetch cache.
+       */
+      fromEarlyHints?: boolean;
+
+      /**
+       * Information about how ServiceWorker Static Router API was used. If this
+       * field is set with `matchedSourceType` field, a matching rule is found.
+       * If this field is set without `matchedSource`, no matching rule is found.
+       * Otherwise, the API is not used.
        */
       serviceWorkerRouterInfo?: ServiceWorkerRouterInfo;
 
@@ -18670,6 +20251,7 @@ export namespace Cdp {
 
       /**
        * Initiator JavaScript stack trace, set for Script only.
+       * Requires the Debugger domain to be enabled.
        */
       stack?: Runtime.StackTrace;
 
@@ -18694,6 +20276,23 @@ export namespace Cdp {
        * Set if another request triggered this request (e.g. preflight).
        */
       requestId?: RequestId;
+    }
+
+    /**
+     * cookiePartitionKey object
+     * The representation of the components of the key that are created by the cookiePartitionKey class contained in net/cookies/cookie_partition_key.h.
+     */
+    export interface CookiePartitionKey {
+      /**
+       * The site of the top-level URL the browser was visiting at the start
+       * of the request to the endpoint that set the cookie.
+       */
+      topLevelSite: string;
+
+      /**
+       * Indicates if the cookie has any ancestors that are cross-site to the topLevelSite.
+       */
+      hasCrossSiteAncestor: boolean;
     }
 
     /**
@@ -18774,10 +20373,9 @@ export namespace Cdp {
       sourcePort: integer;
 
       /**
-       * Cookie partition key. The site of the top-level URL the browser was visiting at the start
-       * of the request to the endpoint that set the cookie.
+       * Cookie partition key.
        */
-      partitionKey?: string;
+      partitionKey?: CookiePartitionKey;
 
       /**
        * True if cookie partition key is opaque.
@@ -18831,7 +20429,9 @@ export namespace Cdp {
       | 'SchemefulSameSiteLax'
       | 'SchemefulSameSiteUnspecifiedTreatedAsLax'
       | 'SamePartyFromCrossPartyContext'
-      | 'NameValuePairExceedsMaxSize';
+      | 'NameValuePairExceedsMaxSize'
+      | 'PortMismatch'
+      | 'SchemeMismatch';
 
     /**
      * Types of reasons why a cookie should have been blocked by 3PCD but is exempted for the request.
@@ -18841,11 +20441,12 @@ export namespace Cdp {
       | 'UserSetting'
       | 'TPCDMetadata'
       | 'TPCDDeprecationTrial'
+      | 'TopLevelTPCDDeprecationTrial'
       | 'TPCDHeuristics'
       | 'EnterprisePolicy'
       | 'StorageAccess'
       | 'TopLevelStorageAccess'
-      | 'CorsOptIn';
+      | 'Scheme';
 
     /**
      * A cookie which was not stored from a response with the corresponding reason.
@@ -18879,6 +20480,11 @@ export namespace Cdp {
        * The reason the cookie was exempted.
        */
       exemptionReason: CookieExemptionReason;
+
+      /**
+       * The string representing this individual cookie as it would appear in the header.
+       */
+      cookieLine: string;
 
       /**
        * The cookie object representing the cookie.
@@ -18981,11 +20587,9 @@ export namespace Cdp {
       sourcePort?: integer;
 
       /**
-       * Cookie partition key. The site of the top-level URL the browser was visiting at the start
-       * of the request to the endpoint that set the cookie.
-       * If not set, the cookie will be set as not partitioned.
+       * Cookie partition key. If not set, the cookie will be set as not partitioned.
        */
-      partitionKey?: string;
+      partitionKey?: CookiePartitionKey;
     }
 
     /**
@@ -19239,7 +20843,8 @@ export namespace Cdp {
       | 'RestrictProperties'
       | 'UnsafeNone'
       | 'SameOriginPlusCoep'
-      | 'RestrictPropertiesPlusCoep';
+      | 'RestrictPropertiesPlusCoep'
+      | 'NoopenerAllowPopups';
 
     export interface CrossOriginOpenerPolicyStatus {
       value: CrossOriginOpenerPolicyValue;
@@ -19415,12 +21020,14 @@ export namespace Cdp {
     /**
      * Return value of the 'NodeRuntime.notifyWhenWaitingForDisconnect' method.
      */
-    export interface NotifyWhenWaitingForDisconnectResult {}
+    export interface NotifyWhenWaitingForDisconnectResult {
+    }
 
     /**
      * Parameters of the 'NodeRuntime.waitingForDisconnect' event.
      */
-    export interface WaitingForDisconnectEvent {}
+    export interface WaitingForDisconnectEvent {
+    }
   }
 
   /**
@@ -19470,7 +21077,8 @@ export namespace Cdp {
     /**
      * Parameters of the 'NodeTracing.getCategories' method.
      */
-    export interface GetCategoriesParams {}
+    export interface GetCategoriesParams {
+    }
 
     /**
      * Return value of the 'NodeTracing.getCategories' method.
@@ -19492,17 +21100,20 @@ export namespace Cdp {
     /**
      * Return value of the 'NodeTracing.start' method.
      */
-    export interface StartResult {}
+    export interface StartResult {
+    }
 
     /**
      * Parameters of the 'NodeTracing.stop' method.
      */
-    export interface StopParams {}
+    export interface StopParams {
+    }
 
     /**
      * Return value of the 'NodeTracing.stop' method.
      */
-    export interface StopResult {}
+    export interface StopResult {
+    }
 
     /**
      * Parameters of the 'NodeTracing.dataCollected' event.
@@ -19514,7 +21125,8 @@ export namespace Cdp {
     /**
      * Parameters of the 'NodeTracing.tracingComplete' event.
      */
-    export interface TracingCompleteEvent {}
+    export interface TracingCompleteEvent {
+    }
 
     export interface TraceConfig {
       /**
@@ -19601,7 +21213,8 @@ export namespace Cdp {
     /**
      * Return value of the 'NodeWorker.sendMessageToWorker' method.
      */
-    export interface SendMessageToWorkerResult {}
+    export interface SendMessageToWorkerResult {
+    }
 
     /**
      * Parameters of the 'NodeWorker.enable' method.
@@ -19617,17 +21230,20 @@ export namespace Cdp {
     /**
      * Return value of the 'NodeWorker.enable' method.
      */
-    export interface EnableResult {}
+    export interface EnableResult {
+    }
 
     /**
      * Parameters of the 'NodeWorker.disable' method.
      */
-    export interface DisableParams {}
+    export interface DisableParams {
+    }
 
     /**
      * Return value of the 'NodeWorker.disable' method.
      */
-    export interface DisableResult {}
+    export interface DisableResult {
+    }
 
     /**
      * Parameters of the 'NodeWorker.detach' method.
@@ -19639,7 +21255,8 @@ export namespace Cdp {
     /**
      * Return value of the 'NodeWorker.detach' method.
      */
-    export interface DetachResult {}
+    export interface DetachResult {
+    }
 
     /**
      * Parameters of the 'NodeWorker.attachedToWorker' event.
@@ -19860,7 +21477,8 @@ export namespace Cdp {
     ): Promise<Overlay.SetShowHitTestBordersResult | undefined>;
 
     /**
-     * Request that backend shows an overlay with web vital metrics.
+     * Deprecated, no longer has any effect.
+     * @deprecated
      */
     setShowWebVitals(
       params: Overlay.SetShowWebVitalsParams,
@@ -19935,22 +21553,26 @@ export namespace Cdp {
     /**
      * Parameters of the 'Overlay.disable' method.
      */
-    export interface DisableParams {}
+    export interface DisableParams {
+    }
 
     /**
      * Return value of the 'Overlay.disable' method.
      */
-    export interface DisableResult {}
+    export interface DisableResult {
+    }
 
     /**
      * Parameters of the 'Overlay.enable' method.
      */
-    export interface EnableParams {}
+    export interface EnableParams {
+    }
 
     /**
      * Return value of the 'Overlay.enable' method.
      */
-    export interface EnableResult {}
+    export interface EnableResult {
+    }
 
     /**
      * Parameters of the 'Overlay.getHighlightObjectForTest' method.
@@ -20035,12 +21657,14 @@ export namespace Cdp {
     /**
      * Parameters of the 'Overlay.hideHighlight' method.
      */
-    export interface HideHighlightParams {}
+    export interface HideHighlightParams {
+    }
 
     /**
      * Return value of the 'Overlay.hideHighlight' method.
      */
-    export interface HideHighlightResult {}
+    export interface HideHighlightResult {
+    }
 
     /**
      * Parameters of the 'Overlay.highlightFrame' method.
@@ -20065,7 +21689,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Overlay.highlightFrame' method.
      */
-    export interface HighlightFrameResult {}
+    export interface HighlightFrameResult {
+    }
 
     /**
      * Parameters of the 'Overlay.highlightNode' method.
@@ -20100,7 +21725,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Overlay.highlightNode' method.
      */
-    export interface HighlightNodeResult {}
+    export interface HighlightNodeResult {
+    }
 
     /**
      * Parameters of the 'Overlay.highlightQuad' method.
@@ -20125,7 +21751,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Overlay.highlightQuad' method.
      */
-    export interface HighlightQuadResult {}
+    export interface HighlightQuadResult {
+    }
 
     /**
      * Parameters of the 'Overlay.highlightRect' method.
@@ -20165,7 +21792,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Overlay.highlightRect' method.
      */
-    export interface HighlightRectResult {}
+    export interface HighlightRectResult {
+    }
 
     /**
      * Parameters of the 'Overlay.highlightSourceOrder' method.
@@ -20195,7 +21823,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Overlay.highlightSourceOrder' method.
      */
-    export interface HighlightSourceOrderResult {}
+    export interface HighlightSourceOrderResult {
+    }
 
     /**
      * Parameters of the 'Overlay.setInspectMode' method.
@@ -20216,7 +21845,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Overlay.setInspectMode' method.
      */
-    export interface SetInspectModeResult {}
+    export interface SetInspectModeResult {
+    }
 
     /**
      * Parameters of the 'Overlay.setShowAdHighlights' method.
@@ -20231,7 +21861,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Overlay.setShowAdHighlights' method.
      */
-    export interface SetShowAdHighlightsResult {}
+    export interface SetShowAdHighlightsResult {
+    }
 
     /**
      * Parameters of the 'Overlay.setPausedInDebuggerMessage' method.
@@ -20246,7 +21877,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Overlay.setPausedInDebuggerMessage' method.
      */
-    export interface SetPausedInDebuggerMessageResult {}
+    export interface SetPausedInDebuggerMessageResult {
+    }
 
     /**
      * Parameters of the 'Overlay.setShowDebugBorders' method.
@@ -20261,7 +21893,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Overlay.setShowDebugBorders' method.
      */
-    export interface SetShowDebugBordersResult {}
+    export interface SetShowDebugBordersResult {
+    }
 
     /**
      * Parameters of the 'Overlay.setShowFPSCounter' method.
@@ -20276,7 +21909,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Overlay.setShowFPSCounter' method.
      */
-    export interface SetShowFPSCounterResult {}
+    export interface SetShowFPSCounterResult {
+    }
 
     /**
      * Parameters of the 'Overlay.setShowGridOverlays' method.
@@ -20291,7 +21925,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Overlay.setShowGridOverlays' method.
      */
-    export interface SetShowGridOverlaysResult {}
+    export interface SetShowGridOverlaysResult {
+    }
 
     /**
      * Parameters of the 'Overlay.setShowFlexOverlays' method.
@@ -20306,7 +21941,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Overlay.setShowFlexOverlays' method.
      */
-    export interface SetShowFlexOverlaysResult {}
+    export interface SetShowFlexOverlaysResult {
+    }
 
     /**
      * Parameters of the 'Overlay.setShowScrollSnapOverlays' method.
@@ -20321,7 +21957,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Overlay.setShowScrollSnapOverlays' method.
      */
-    export interface SetShowScrollSnapOverlaysResult {}
+    export interface SetShowScrollSnapOverlaysResult {
+    }
 
     /**
      * Parameters of the 'Overlay.setShowContainerQueryOverlays' method.
@@ -20336,7 +21973,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Overlay.setShowContainerQueryOverlays' method.
      */
-    export interface SetShowContainerQueryOverlaysResult {}
+    export interface SetShowContainerQueryOverlaysResult {
+    }
 
     /**
      * Parameters of the 'Overlay.setShowPaintRects' method.
@@ -20351,7 +21989,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Overlay.setShowPaintRects' method.
      */
-    export interface SetShowPaintRectsResult {}
+    export interface SetShowPaintRectsResult {
+    }
 
     /**
      * Parameters of the 'Overlay.setShowLayoutShiftRegions' method.
@@ -20366,7 +22005,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Overlay.setShowLayoutShiftRegions' method.
      */
-    export interface SetShowLayoutShiftRegionsResult {}
+    export interface SetShowLayoutShiftRegionsResult {
+    }
 
     /**
      * Parameters of the 'Overlay.setShowScrollBottleneckRects' method.
@@ -20381,7 +22021,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Overlay.setShowScrollBottleneckRects' method.
      */
-    export interface SetShowScrollBottleneckRectsResult {}
+    export interface SetShowScrollBottleneckRectsResult {
+    }
 
     /**
      * Parameters of the 'Overlay.setShowHitTestBorders' method.
@@ -20396,7 +22037,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Overlay.setShowHitTestBorders' method.
      */
-    export interface SetShowHitTestBordersResult {}
+    export interface SetShowHitTestBordersResult {
+    }
 
     /**
      * Parameters of the 'Overlay.setShowWebVitals' method.
@@ -20408,7 +22050,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Overlay.setShowWebVitals' method.
      */
-    export interface SetShowWebVitalsResult {}
+    export interface SetShowWebVitalsResult {
+    }
 
     /**
      * Parameters of the 'Overlay.setShowViewportSizeOnResize' method.
@@ -20423,7 +22066,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Overlay.setShowViewportSizeOnResize' method.
      */
-    export interface SetShowViewportSizeOnResizeResult {}
+    export interface SetShowViewportSizeOnResizeResult {
+    }
 
     /**
      * Parameters of the 'Overlay.setShowHinge' method.
@@ -20438,7 +22082,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Overlay.setShowHinge' method.
      */
-    export interface SetShowHingeResult {}
+    export interface SetShowHingeResult {
+    }
 
     /**
      * Parameters of the 'Overlay.setShowIsolatedElements' method.
@@ -20453,7 +22098,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Overlay.setShowIsolatedElements' method.
      */
-    export interface SetShowIsolatedElementsResult {}
+    export interface SetShowIsolatedElementsResult {
+    }
 
     /**
      * Parameters of the 'Overlay.setShowWindowControlsOverlay' method.
@@ -20468,7 +22114,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Overlay.setShowWindowControlsOverlay' method.
      */
-    export interface SetShowWindowControlsOverlayResult {}
+    export interface SetShowWindowControlsOverlayResult {
+    }
 
     /**
      * Parameters of the 'Overlay.inspectNodeRequested' event.
@@ -20500,7 +22147,8 @@ export namespace Cdp {
     /**
      * Parameters of the 'Overlay.inspectModeCanceled' event.
      */
-    export interface InspectModeCanceledEvent {}
+    export interface InspectModeCanceledEvent {
+    }
 
     /**
      * Configuration data for drawing the source order of an elements children.
@@ -21071,6 +22719,13 @@ export namespace Cdp {
      */
     enable(params: Page.EnableParams): Promise<Page.EnableResult | undefined>;
 
+    /**
+     * Gets the processed manifest for this current document.
+     *   This API always waits for the manifest to be loaded.
+     *   If manifestId is provided, and it does not match the manifest of the
+     *     current document, this API errors out.
+     *   If there is not a loaded page, this API errors out immediately.
+     */
     getAppManifest(
       params: Page.GetAppManifestParams,
     ): Promise<Page.GetAppManifestResult | undefined>;
@@ -21438,6 +23093,15 @@ export namespace Cdp {
     on(event: 'frameDetached', listener: (event: Page.FrameDetachedEvent) => void): IDisposable;
 
     /**
+     * Fired before frame subtree is detached. Emitted before any frame of the
+     * subtree is actually detached.
+     */
+    on(
+      event: 'frameSubtreeWillBeDetached',
+      listener: (event: Page.FrameSubtreeWillBeDetachedEvent) => void,
+    ): IDisposable;
+
+    /**
      * Fired once navigation of the frame has completed. Frame is now associated with the new loader.
      */
     on(event: 'frameNavigated', listener: (event: Page.FrameNavigatedEvent) => void): IDisposable;
@@ -21538,7 +23202,8 @@ export namespace Cdp {
     ): IDisposable;
 
     /**
-     * Fired for top level page lifecycle events such as navigation, load, paint, etc.
+     * Fired for lifecycle events (navigation, load, paint, etc) in the current
+     * target (including local frames).
      */
     on(event: 'lifecycleEvent', listener: (event: Page.LifecycleEventEvent) => void): IDisposable;
 
@@ -21566,10 +23231,7 @@ export namespace Cdp {
     /**
      * Compressed image data requested by the `startScreencast`.
      */
-    on(
-      event: 'screencastFrame',
-      listener: (event: Page.ScreencastFrameEvent) => void,
-    ): IDisposable;
+    on(event: 'screencastFrame', listener: (event: Page.ScreencastFrameEvent) => void): IDisposable;
 
     /**
      * Fired when the page with currently enabled screencast was shown or hidden `.
@@ -21655,12 +23317,14 @@ export namespace Cdp {
     /**
      * Parameters of the 'Page.bringToFront' method.
      */
-    export interface BringToFrontParams {}
+    export interface BringToFrontParams {
+    }
 
     /**
      * Return value of the 'Page.bringToFront' method.
      */
-    export interface BringToFrontResult {}
+    export interface BringToFrontResult {
+    }
 
     /**
      * Parameters of the 'Page.captureScreenshot' method.
@@ -21730,32 +23394,38 @@ export namespace Cdp {
     /**
      * Parameters of the 'Page.clearDeviceMetricsOverride' method.
      */
-    export interface ClearDeviceMetricsOverrideParams {}
+    export interface ClearDeviceMetricsOverrideParams {
+    }
 
     /**
      * Return value of the 'Page.clearDeviceMetricsOverride' method.
      */
-    export interface ClearDeviceMetricsOverrideResult {}
+    export interface ClearDeviceMetricsOverrideResult {
+    }
 
     /**
      * Parameters of the 'Page.clearDeviceOrientationOverride' method.
      */
-    export interface ClearDeviceOrientationOverrideParams {}
+    export interface ClearDeviceOrientationOverrideParams {
+    }
 
     /**
      * Return value of the 'Page.clearDeviceOrientationOverride' method.
      */
-    export interface ClearDeviceOrientationOverrideResult {}
+    export interface ClearDeviceOrientationOverrideResult {
+    }
 
     /**
      * Parameters of the 'Page.clearGeolocationOverride' method.
      */
-    export interface ClearGeolocationOverrideParams {}
+    export interface ClearGeolocationOverrideParams {
+    }
 
     /**
      * Return value of the 'Page.clearGeolocationOverride' method.
      */
-    export interface ClearGeolocationOverrideResult {}
+    export interface ClearGeolocationOverrideResult {
+    }
 
     /**
      * Parameters of the 'Page.createIsolatedWorld' method.
@@ -21806,32 +23476,39 @@ export namespace Cdp {
     /**
      * Return value of the 'Page.deleteCookie' method.
      */
-    export interface DeleteCookieResult {}
+    export interface DeleteCookieResult {
+    }
 
     /**
      * Parameters of the 'Page.disable' method.
      */
-    export interface DisableParams {}
+    export interface DisableParams {
+    }
 
     /**
      * Return value of the 'Page.disable' method.
      */
-    export interface DisableResult {}
+    export interface DisableResult {
+    }
 
     /**
      * Parameters of the 'Page.enable' method.
      */
-    export interface EnableParams {}
+    export interface EnableParams {
+    }
 
     /**
      * Return value of the 'Page.enable' method.
      */
-    export interface EnableResult {}
+    export interface EnableResult {
+    }
 
     /**
      * Parameters of the 'Page.getAppManifest' method.
      */
-    export interface GetAppManifestParams {}
+    export interface GetAppManifestParams {
+      manifestId?: string;
+    }
 
     /**
      * Return value of the 'Page.getAppManifest' method.
@@ -21850,15 +23527,19 @@ export namespace Cdp {
       data?: string;
 
       /**
-       * Parsed manifest properties
+       * Parsed manifest properties. Deprecated, use manifest instead.
+       * @deprecated
        */
       parsed?: AppManifestParsedProperties;
+
+      manifest: WebAppManifest;
     }
 
     /**
      * Parameters of the 'Page.getInstallabilityErrors' method.
      */
-    export interface GetInstallabilityErrorsParams {}
+    export interface GetInstallabilityErrorsParams {
+    }
 
     /**
      * Return value of the 'Page.getInstallabilityErrors' method.
@@ -21870,7 +23551,8 @@ export namespace Cdp {
     /**
      * Parameters of the 'Page.getManifestIcons' method.
      */
-    export interface GetManifestIconsParams {}
+    export interface GetManifestIconsParams {
+    }
 
     /**
      * Return value of the 'Page.getManifestIcons' method.
@@ -21882,7 +23564,8 @@ export namespace Cdp {
     /**
      * Parameters of the 'Page.getAppId' method.
      */
-    export interface GetAppIdParams {}
+    export interface GetAppIdParams {
+    }
 
     /**
      * Return value of the 'Page.getAppId' method.
@@ -21920,7 +23603,8 @@ export namespace Cdp {
     /**
      * Parameters of the 'Page.getFrameTree' method.
      */
-    export interface GetFrameTreeParams {}
+    export interface GetFrameTreeParams {
+    }
 
     /**
      * Return value of the 'Page.getFrameTree' method.
@@ -21935,7 +23619,8 @@ export namespace Cdp {
     /**
      * Parameters of the 'Page.getLayoutMetrics' method.
      */
-    export interface GetLayoutMetricsParams {}
+    export interface GetLayoutMetricsParams {
+    }
 
     /**
      * Return value of the 'Page.getLayoutMetrics' method.
@@ -21978,7 +23663,8 @@ export namespace Cdp {
     /**
      * Parameters of the 'Page.getNavigationHistory' method.
      */
-    export interface GetNavigationHistoryParams {}
+    export interface GetNavigationHistoryParams {
+    }
 
     /**
      * Return value of the 'Page.getNavigationHistory' method.
@@ -21998,12 +23684,14 @@ export namespace Cdp {
     /**
      * Parameters of the 'Page.resetNavigationHistory' method.
      */
-    export interface ResetNavigationHistoryParams {}
+    export interface ResetNavigationHistoryParams {
+    }
 
     /**
      * Return value of the 'Page.resetNavigationHistory' method.
      */
-    export interface ResetNavigationHistoryResult {}
+    export interface ResetNavigationHistoryResult {
+    }
 
     /**
      * Parameters of the 'Page.getResourceContent' method.
@@ -22038,7 +23726,8 @@ export namespace Cdp {
     /**
      * Parameters of the 'Page.getResourceTree' method.
      */
-    export interface GetResourceTreeParams {}
+    export interface GetResourceTreeParams {
+    }
 
     /**
      * Return value of the 'Page.getResourceTree' method.
@@ -22069,7 +23758,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Page.handleJavaScriptDialog' method.
      */
-    export interface HandleJavaScriptDialogResult {}
+    export interface HandleJavaScriptDialogResult {
+    }
 
     /**
      * Parameters of the 'Page.navigate' method.
@@ -22135,7 +23825,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Page.navigateToHistoryEntry' method.
      */
-    export interface NavigateToHistoryEntryResult {}
+    export interface NavigateToHistoryEntryResult {
+    }
 
     /**
      * Parameters of the 'Page.printToPDF' method.
@@ -22272,12 +23963,20 @@ export namespace Cdp {
        * Argument will be ignored if reloading dataURL origin.
        */
       scriptToEvaluateOnLoad?: string;
+
+      /**
+       * If set, an error will be thrown if the target page's main frame's
+       * loader id does not match the provided id. This prevents accidentally
+       * reloading an unintended target in case there's a racing navigation.
+       */
+      loaderId?: Network.LoaderId;
     }
 
     /**
      * Return value of the 'Page.reload' method.
      */
-    export interface ReloadResult {}
+    export interface ReloadResult {
+    }
 
     /**
      * Parameters of the 'Page.removeScriptToEvaluateOnLoad' method.
@@ -22289,7 +23988,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Page.removeScriptToEvaluateOnLoad' method.
      */
-    export interface RemoveScriptToEvaluateOnLoadResult {}
+    export interface RemoveScriptToEvaluateOnLoadResult {
+    }
 
     /**
      * Parameters of the 'Page.removeScriptToEvaluateOnNewDocument' method.
@@ -22301,7 +24001,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Page.removeScriptToEvaluateOnNewDocument' method.
      */
-    export interface RemoveScriptToEvaluateOnNewDocumentResult {}
+    export interface RemoveScriptToEvaluateOnNewDocumentResult {
+    }
 
     /**
      * Parameters of the 'Page.screencastFrameAck' method.
@@ -22316,7 +24017,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Page.screencastFrameAck' method.
      */
-    export interface ScreencastFrameAckResult {}
+    export interface ScreencastFrameAckResult {
+    }
 
     /**
      * Parameters of the 'Page.searchInResource' method.
@@ -22371,7 +24073,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Page.setAdBlockingEnabled' method.
      */
-    export interface SetAdBlockingEnabledResult {}
+    export interface SetAdBlockingEnabledResult {
+    }
 
     /**
      * Parameters of the 'Page.setBypassCSP' method.
@@ -22386,7 +24089,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Page.setBypassCSP' method.
      */
-    export interface SetBypassCSPResult {}
+    export interface SetBypassCSPResult {
+    }
 
     /**
      * Parameters of the 'Page.getPermissionsPolicyState' method.
@@ -22485,7 +24189,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Page.setDeviceMetricsOverride' method.
      */
-    export interface SetDeviceMetricsOverrideResult {}
+    export interface SetDeviceMetricsOverrideResult {
+    }
 
     /**
      * Parameters of the 'Page.setDeviceOrientationOverride' method.
@@ -22510,7 +24215,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Page.setDeviceOrientationOverride' method.
      */
-    export interface SetDeviceOrientationOverrideResult {}
+    export interface SetDeviceOrientationOverrideResult {
+    }
 
     /**
      * Parameters of the 'Page.setFontFamilies' method.
@@ -22530,7 +24236,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Page.setFontFamilies' method.
      */
-    export interface SetFontFamiliesResult {}
+    export interface SetFontFamiliesResult {
+    }
 
     /**
      * Parameters of the 'Page.setFontSizes' method.
@@ -22545,7 +24252,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Page.setFontSizes' method.
      */
-    export interface SetFontSizesResult {}
+    export interface SetFontSizesResult {
+    }
 
     /**
      * Parameters of the 'Page.setDocumentContent' method.
@@ -22565,7 +24273,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Page.setDocumentContent' method.
      */
-    export interface SetDocumentContentResult {}
+    export interface SetDocumentContentResult {
+    }
 
     /**
      * Parameters of the 'Page.setDownloadBehavior' method.
@@ -22586,7 +24295,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Page.setDownloadBehavior' method.
      */
-    export interface SetDownloadBehaviorResult {}
+    export interface SetDownloadBehaviorResult {
+    }
 
     /**
      * Parameters of the 'Page.setGeolocationOverride' method.
@@ -22611,7 +24321,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Page.setGeolocationOverride' method.
      */
-    export interface SetGeolocationOverrideResult {}
+    export interface SetGeolocationOverrideResult {
+    }
 
     /**
      * Parameters of the 'Page.setLifecycleEventsEnabled' method.
@@ -22626,7 +24337,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Page.setLifecycleEventsEnabled' method.
      */
-    export interface SetLifecycleEventsEnabledResult {}
+    export interface SetLifecycleEventsEnabledResult {
+    }
 
     /**
      * Parameters of the 'Page.setTouchEmulationEnabled' method.
@@ -22646,7 +24358,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Page.setTouchEmulationEnabled' method.
      */
-    export interface SetTouchEmulationEnabledResult {}
+    export interface SetTouchEmulationEnabledResult {
+    }
 
     /**
      * Parameters of the 'Page.startScreencast' method.
@@ -22681,37 +24394,44 @@ export namespace Cdp {
     /**
      * Return value of the 'Page.startScreencast' method.
      */
-    export interface StartScreencastResult {}
+    export interface StartScreencastResult {
+    }
 
     /**
      * Parameters of the 'Page.stopLoading' method.
      */
-    export interface StopLoadingParams {}
+    export interface StopLoadingParams {
+    }
 
     /**
      * Return value of the 'Page.stopLoading' method.
      */
-    export interface StopLoadingResult {}
+    export interface StopLoadingResult {
+    }
 
     /**
      * Parameters of the 'Page.crash' method.
      */
-    export interface CrashParams {}
+    export interface CrashParams {
+    }
 
     /**
      * Return value of the 'Page.crash' method.
      */
-    export interface CrashResult {}
+    export interface CrashResult {
+    }
 
     /**
      * Parameters of the 'Page.close' method.
      */
-    export interface CloseParams {}
+    export interface CloseParams {
+    }
 
     /**
      * Return value of the 'Page.close' method.
      */
-    export interface CloseResult {}
+    export interface CloseResult {
+    }
 
     /**
      * Parameters of the 'Page.setWebLifecycleState' method.
@@ -22726,17 +24446,20 @@ export namespace Cdp {
     /**
      * Return value of the 'Page.setWebLifecycleState' method.
      */
-    export interface SetWebLifecycleStateResult {}
+    export interface SetWebLifecycleStateResult {
+    }
 
     /**
      * Parameters of the 'Page.stopScreencast' method.
      */
-    export interface StopScreencastParams {}
+    export interface StopScreencastParams {
+    }
 
     /**
      * Return value of the 'Page.stopScreencast' method.
      */
-    export interface StopScreencastResult {}
+    export interface StopScreencastResult {
+    }
 
     /**
      * Parameters of the 'Page.produceCompilationCache' method.
@@ -22748,7 +24471,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Page.produceCompilationCache' method.
      */
-    export interface ProduceCompilationCacheResult {}
+    export interface ProduceCompilationCacheResult {
+    }
 
     /**
      * Parameters of the 'Page.addCompilationCache' method.
@@ -22765,17 +24489,20 @@ export namespace Cdp {
     /**
      * Return value of the 'Page.addCompilationCache' method.
      */
-    export interface AddCompilationCacheResult {}
+    export interface AddCompilationCacheResult {
+    }
 
     /**
      * Parameters of the 'Page.clearCompilationCache' method.
      */
-    export interface ClearCompilationCacheParams {}
+    export interface ClearCompilationCacheParams {
+    }
 
     /**
      * Return value of the 'Page.clearCompilationCache' method.
      */
-    export interface ClearCompilationCacheResult {}
+    export interface ClearCompilationCacheResult {
+    }
 
     /**
      * Parameters of the 'Page.setSPCTransactionMode' method.
@@ -22787,7 +24514,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Page.setSPCTransactionMode' method.
      */
-    export interface SetSPCTransactionModeResult {}
+    export interface SetSPCTransactionModeResult {
+    }
 
     /**
      * Parameters of the 'Page.setRPHRegistrationMode' method.
@@ -22799,7 +24527,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Page.setRPHRegistrationMode' method.
      */
-    export interface SetRPHRegistrationModeResult {}
+    export interface SetRPHRegistrationModeResult {
+    }
 
     /**
      * Parameters of the 'Page.generateTestReport' method.
@@ -22819,17 +24548,20 @@ export namespace Cdp {
     /**
      * Return value of the 'Page.generateTestReport' method.
      */
-    export interface GenerateTestReportResult {}
+    export interface GenerateTestReportResult {
+    }
 
     /**
      * Parameters of the 'Page.waitForDebugger' method.
      */
-    export interface WaitForDebuggerParams {}
+    export interface WaitForDebuggerParams {
+    }
 
     /**
      * Return value of the 'Page.waitForDebugger' method.
      */
-    export interface WaitForDebuggerResult {}
+    export interface WaitForDebuggerResult {
+    }
 
     /**
      * Parameters of the 'Page.setInterceptFileChooserDialog' method.
@@ -22841,7 +24573,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Page.setInterceptFileChooserDialog' method.
      */
-    export interface SetInterceptFileChooserDialogResult {}
+    export interface SetInterceptFileChooserDialogResult {
+    }
 
     /**
      * Parameters of the 'Page.setPrerenderingAllowed' method.
@@ -22853,7 +24586,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Page.setPrerenderingAllowed' method.
      */
-    export interface SetPrerenderingAllowedResult {}
+    export interface SetPrerenderingAllowedResult {
+    }
 
     /**
      * Parameters of the 'Page.domContentEventFired' event.
@@ -22925,6 +24659,16 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'Page.frameSubtreeWillBeDetached' event.
+     */
+    export interface FrameSubtreeWillBeDetachedEvent {
+      /**
+       * Id of the frame that is the root of the subtree that will be detached.
+       */
+      frameId: FrameId;
+    }
+
+    /**
      * Parameters of the 'Page.frameNavigated' event.
      */
     export interface FrameNavigatedEvent {
@@ -22949,7 +24693,8 @@ export namespace Cdp {
     /**
      * Parameters of the 'Page.frameResized' event.
      */
-    export interface FrameResizedEvent {}
+    export interface FrameResizedEvent {
+    }
 
     /**
      * Parameters of the 'Page.frameRequestedNavigation' event.
@@ -23075,12 +24820,14 @@ export namespace Cdp {
     /**
      * Parameters of the 'Page.interstitialHidden' event.
      */
-    export interface InterstitialHiddenEvent {}
+    export interface InterstitialHiddenEvent {
+    }
 
     /**
      * Parameters of the 'Page.interstitialShown' event.
      */
-    export interface InterstitialShownEvent {}
+    export interface InterstitialShownEvent {
+    }
 
     /**
      * Parameters of the 'Page.javascriptDialogClosed' event.
@@ -23193,6 +24940,11 @@ export namespace Cdp {
        * Frame's new url.
        */
       url: string;
+
+      /**
+       * Navigation type
+       */
+      navigationType: 'fragment' | 'historyApi' | 'other';
     }
 
     /**
@@ -23329,6 +25081,7 @@ export namespace Cdp {
      */
     export type PermissionsPolicyFeature =
       | 'accelerometer'
+      | 'all-screens-capture'
       | 'ambient-light-sensor'
       | 'attribution-reporting'
       | 'autoplay'
@@ -23351,7 +25104,7 @@ export namespace Cdp {
       | 'ch-ua-platform'
       | 'ch-ua-model'
       | 'ch-ua-mobile'
-      | 'ch-ua-form-factor'
+      | 'ch-ua-form-factors'
       | 'ch-ua-full-version'
       | 'ch-ua-full-version-list'
       | 'ch-ua-platform-version'
@@ -23362,13 +25115,19 @@ export namespace Cdp {
       | 'clipboard-read'
       | 'clipboard-write'
       | 'compute-pressure'
+      | 'controlled-frame'
       | 'cross-origin-isolated'
+      | 'deferred-fetch'
+      | 'deferred-fetch-minimal'
+      | 'digital-credentials-get'
       | 'direct-sockets'
+      | 'direct-sockets-private'
       | 'display-capture'
       | 'document-domain'
       | 'encrypted-media'
       | 'execution-while-out-of-viewport'
       | 'execution-while-not-rendered'
+      | 'fenced-unpartitioned-storage-read'
       | 'focus-without-user-activation'
       | 'fullscreen'
       | 'frobulate'
@@ -23383,11 +25142,13 @@ export namespace Cdp {
       | 'keyboard-map'
       | 'local-fonts'
       | 'magnetometer'
+      | 'media-playback-while-not-visible'
       | 'microphone'
       | 'midi'
       | 'otp-credentials'
       | 'payment'
       | 'picture-in-picture'
+      | 'popins'
       | 'private-aggregation'
       | 'private-state-token-issuance'
       | 'private-state-token-redemption'
@@ -23408,10 +25169,10 @@ export namespace Cdp {
       | 'usb'
       | 'usb-unrestricted'
       | 'vertical-scroll'
+      | 'web-app-installation'
       | 'web-printing'
       | 'web-share'
       | 'window-management'
-      | 'window-placement'
       | 'xr-spatial-tracking';
 
     /**
@@ -23957,14 +25718,16 @@ export namespace Cdp {
     }
 
     export type ClientNavigationReason =
+      | 'anchorClick'
       | 'formSubmissionGet'
       | 'formSubmissionPost'
       | 'httpHeaderRefresh'
-      | 'scriptInitiated'
+      | 'initialFrameNavigation'
       | 'metaTagRefresh'
+      | 'other'
       | 'pageBlockInterstitial'
       | 'reload'
-      | 'anchorClick';
+      | 'scriptInitiated';
 
     export type ClientNavigationDisposition = 'currentTab' | 'newTab' | 'newWindow' | 'download';
 
@@ -24022,6 +25785,177 @@ export namespace Cdp {
        * (the actual compilation mode used is upon backend discretion).
        */
       eager?: boolean;
+    }
+
+    export interface FileFilter {
+      name?: string;
+
+      accepts?: string[];
+    }
+
+    export interface FileHandler {
+      action: string;
+
+      name: string;
+
+      icons?: ImageResource[];
+
+      /**
+       * Mimic a map, name is the key, accepts is the value.
+       */
+      accepts?: FileFilter[];
+
+      /**
+       * Won't repeat the enums, using string for easy comparison. Same as the
+       * other enums below.
+       */
+      launchType: string;
+    }
+
+    /**
+     * The image definition used in both icon and screenshot.
+     */
+    export interface ImageResource {
+      /**
+       * The src field in the definition, but changing to url in favor of
+       * consistency.
+       */
+      url: string;
+
+      sizes?: string;
+
+      type?: string;
+    }
+
+    export interface LaunchHandler {
+      clientMode: string;
+    }
+
+    export interface ProtocolHandler {
+      protocol: string;
+
+      url: string;
+    }
+
+    export interface RelatedApplication {
+      id?: string;
+
+      url: string;
+    }
+
+    export interface ScopeExtension {
+      /**
+       * Instead of using tuple, this field always returns the serialized string
+       * for easy understanding and comparison.
+       */
+      origin: string;
+
+      hasOriginWildcard: boolean;
+    }
+
+    export interface Screenshot {
+      image: ImageResource;
+
+      formFactor: string;
+
+      label?: string;
+    }
+
+    export interface ShareTarget {
+      action: string;
+
+      method: string;
+
+      enctype: string;
+
+      /**
+       * Embed the ShareTargetParams
+       */
+      title?: string;
+
+      text?: string;
+
+      url?: string;
+
+      files?: FileFilter[];
+    }
+
+    export interface Shortcut {
+      name: string;
+
+      url: string;
+    }
+
+    export interface WebAppManifest {
+      backgroundColor?: string;
+
+      /**
+       * The extra description provided by the manifest.
+       */
+      description?: string;
+
+      dir?: string;
+
+      display?: string;
+
+      /**
+       * The overrided display mode controlled by the user.
+       */
+      displayOverrides?: string[];
+
+      /**
+       * The handlers to open files.
+       */
+      fileHandlers?: FileHandler[];
+
+      icons?: ImageResource[];
+
+      id?: string;
+
+      lang?: string;
+
+      /**
+       * TODO(crbug.com/1231886): This field is non-standard and part of a Chrome
+       * experiment. See:
+       * https://github.com/WICG/web-app-launch/blob/main/launch_handler.md
+       */
+      launchHandler?: LaunchHandler;
+
+      name?: string;
+
+      orientation?: string;
+
+      preferRelatedApplications?: boolean;
+
+      /**
+       * The handlers to open protocols.
+       */
+      protocolHandlers?: ProtocolHandler[];
+
+      relatedApplications?: RelatedApplication[];
+
+      scope?: string;
+
+      /**
+       * Non-standard, see
+       * https://github.com/WICG/manifest-incubations/blob/gh-pages/scope_extensions-explainer.md
+       */
+      scopeExtensions?: ScopeExtension[];
+
+      /**
+       * The screenshots used by chromium.
+       */
+      screenshots?: Screenshot[];
+
+      shareTarget?: ShareTarget;
+
+      shortName?: string;
+
+      shortcuts?: Shortcut[];
+
+      startUrl?: string;
+
+      themeColor?: string;
     }
 
     /**
@@ -24094,6 +26028,12 @@ export namespace Cdp {
       | 'CookieDisabled'
       | 'HTTPAuthRequired'
       | 'CookieFlushed'
+      | 'BroadcastChannelOnMessage'
+      | 'WebViewSettingsChanged'
+      | 'WebViewJavaScriptObjectChanged'
+      | 'WebViewMessageListenerInjected'
+      | 'WebViewSafeBrowsingAllowlistChanged'
+      | 'WebViewDocumentStartJavascriptChanged'
       | 'WebSocket'
       | 'WebTransport'
       | 'WebRTC'
@@ -24123,7 +26063,6 @@ export namespace Cdp {
       | 'Printing'
       | 'WebDatabase'
       | 'PictureInPicture'
-      | 'Portal'
       | 'SpeechRecognizer'
       | 'IdleManager'
       | 'PaymentManager'
@@ -24154,6 +26093,7 @@ export namespace Cdp {
       | 'ContentWebUSB'
       | 'ContentMediaSessionService'
       | 'ContentScreenReader'
+      | 'ContentDiscarded'
       | 'EmbedderPopupBlockerTabHelper'
       | 'EmbedderSafeBrowsingTriggeredPopupBlocker'
       | 'EmbedderSafeBrowsingThreatDetails'
@@ -24168,7 +26108,9 @@ export namespace Cdp {
       | 'EmbedderExtensions'
       | 'EmbedderExtensionMessaging'
       | 'EmbedderExtensionMessagingForOpenPort'
-      | 'EmbedderExtensionSentMessageToCachedFrame';
+      | 'EmbedderExtensionSentMessageToCachedFrame'
+      | 'RequestedByWebViewClient'
+      | 'PostMessageByWebViewClient';
 
     /**
      * Types of not restored reasons for back-forward cache.
@@ -24283,12 +26225,14 @@ export namespace Cdp {
     /**
      * Parameters of the 'Performance.disable' method.
      */
-    export interface DisableParams {}
+    export interface DisableParams {
+    }
 
     /**
      * Return value of the 'Performance.disable' method.
      */
-    export interface DisableResult {}
+    export interface DisableResult {
+    }
 
     /**
      * Parameters of the 'Performance.enable' method.
@@ -24303,7 +26247,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Performance.enable' method.
      */
-    export interface EnableResult {}
+    export interface EnableResult {
+    }
 
     /**
      * Parameters of the 'Performance.setTimeDomain' method.
@@ -24318,12 +26263,14 @@ export namespace Cdp {
     /**
      * Return value of the 'Performance.setTimeDomain' method.
      */
-    export interface SetTimeDomainResult {}
+    export interface SetTimeDomainResult {
+    }
 
     /**
      * Parameters of the 'Performance.getMetrics' method.
      */
-    export interface GetMetricsParams {}
+    export interface GetMetricsParams {
+    }
 
     /**
      * Return value of the 'Performance.getMetrics' method.
@@ -24408,7 +26355,8 @@ export namespace Cdp {
     /**
      * Return value of the 'PerformanceTimeline.enable' method.
      */
-    export interface EnableResult {}
+    export interface EnableResult {
+    }
 
     /**
      * Parameters of the 'PerformanceTimeline.timelineEventAdded' event.
@@ -24561,22 +26509,26 @@ export namespace Cdp {
     /**
      * Parameters of the 'Preload.enable' method.
      */
-    export interface EnableParams {}
+    export interface EnableParams {
+    }
 
     /**
      * Return value of the 'Preload.enable' method.
      */
-    export interface EnableResult {}
+    export interface EnableResult {
+    }
 
     /**
      * Parameters of the 'Preload.disable' method.
      */
-    export interface DisableParams {}
+    export interface DisableParams {
+    }
 
     /**
      * Return value of the 'Preload.disable' method.
      */
-    export interface DisableResult {}
+    export interface DisableResult {
+    }
 
     /**
      * Parameters of the 'Preload.ruleSetUpdated' event.
@@ -24613,6 +26565,8 @@ export namespace Cdp {
     export interface PrefetchStatusUpdatedEvent {
       key: PreloadingAttemptKey;
 
+      pipelineId: PreloadPipelineId;
+
       /**
        * The frame id of the frame initiating prefetch.
        */
@@ -24632,6 +26586,8 @@ export namespace Cdp {
      */
     export interface PrerenderStatusUpdatedEvent {
       key: PreloadingAttemptKey;
+
+      pipelineId: PreloadPipelineId;
 
       status: PreloadingStatus;
 
@@ -24762,6 +26718,17 @@ export namespace Cdp {
     }
 
     /**
+     * Chrome manages different types of preloads together using a
+     * concept of preloading pipeline. For example, if a site uses a
+     * SpeculationRules for prerender, Chrome first starts a prefetch and
+     * then upgrades it to prerender.
+     *
+     * CDP events for them are emitted separately but they share
+     * `PreloadPipelineId`.
+     */
+    export type PreloadPipelineId = string;
+
+    /**
      * List of FinalStatus reasons for Prerender2.
      */
     export type PrerenderFinalStatus =
@@ -24829,7 +26796,15 @@ export namespace Cdp {
       | 'MaxNumOfRunningEmbedderPrerendersExceeded'
       | 'PrerenderingUrlHasEffectiveUrl'
       | 'RedirectedPrerenderingUrlHasEffectiveUrl'
-      | 'ActivationUrlHasEffectiveUrl';
+      | 'ActivationUrlHasEffectiveUrl'
+      | 'JavaScriptInterfaceAdded'
+      | 'JavaScriptInterfaceRemoved'
+      | 'AllPrerenderingCanceled'
+      | 'WindowClosed'
+      | 'SlowNetwork'
+      | 'OtherPrerenderedPageActivated'
+      | 'V8OptimizerDisabled'
+      | 'PrerenderFailedDuringPrefetch';
 
     /**
      * Preloading status values, see also PreloadingTriggeringOutcome. This
@@ -24854,7 +26829,6 @@ export namespace Cdp {
       | 'PrefetchFailedMIMENotSupported'
       | 'PrefetchFailedNetError'
       | 'PrefetchFailedNon2XX'
-      | 'PrefetchFailedPerPageLimitExceeded'
       | 'PrefetchEvictedAfterCandidateRemoved'
       | 'PrefetchEvictedForNewerPrefetch'
       | 'PrefetchHeldback'
@@ -24976,27 +26950,32 @@ export namespace Cdp {
     /**
      * Parameters of the 'Profiler.disable' method.
      */
-    export interface DisableParams {}
+    export interface DisableParams {
+    }
 
     /**
      * Return value of the 'Profiler.disable' method.
      */
-    export interface DisableResult {}
+    export interface DisableResult {
+    }
 
     /**
      * Parameters of the 'Profiler.enable' method.
      */
-    export interface EnableParams {}
+    export interface EnableParams {
+    }
 
     /**
      * Return value of the 'Profiler.enable' method.
      */
-    export interface EnableResult {}
+    export interface EnableResult {
+    }
 
     /**
      * Parameters of the 'Profiler.getBestEffortCoverage' method.
      */
-    export interface GetBestEffortCoverageParams {}
+    export interface GetBestEffortCoverageParams {
+    }
 
     /**
      * Return value of the 'Profiler.getBestEffortCoverage' method.
@@ -25021,17 +27000,20 @@ export namespace Cdp {
     /**
      * Return value of the 'Profiler.setSamplingInterval' method.
      */
-    export interface SetSamplingIntervalResult {}
+    export interface SetSamplingIntervalResult {
+    }
 
     /**
      * Parameters of the 'Profiler.start' method.
      */
-    export interface StartParams {}
+    export interface StartParams {
+    }
 
     /**
      * Return value of the 'Profiler.start' method.
      */
-    export interface StartResult {}
+    export interface StartResult {
+    }
 
     /**
      * Parameters of the 'Profiler.startPreciseCoverage' method.
@@ -25066,7 +27048,8 @@ export namespace Cdp {
     /**
      * Parameters of the 'Profiler.stop' method.
      */
-    export interface StopParams {}
+    export interface StopParams {
+    }
 
     /**
      * Return value of the 'Profiler.stop' method.
@@ -25081,17 +27064,20 @@ export namespace Cdp {
     /**
      * Parameters of the 'Profiler.stopPreciseCoverage' method.
      */
-    export interface StopPreciseCoverageParams {}
+    export interface StopPreciseCoverageParams {
+    }
 
     /**
      * Return value of the 'Profiler.stopPreciseCoverage' method.
      */
-    export interface StopPreciseCoverageResult {}
+    export interface StopPreciseCoverageResult {
+    }
 
     /**
      * Parameters of the 'Profiler.takePreciseCoverage' method.
      */
-    export interface TakePreciseCoverageParams {}
+    export interface TakePreciseCoverageParams {
+    }
 
     /**
      * Return value of the 'Profiler.takePreciseCoverage' method.
@@ -25308,6 +27294,251 @@ export namespace Cdp {
   }
 
   /**
+   * Methods and events of the 'PWA' domain.
+   */
+  export interface PWAApi {
+    /**
+     * Returns the following OS state for the given manifest id.
+     */
+    getOsAppState(params: PWA.GetOsAppStateParams): Promise<PWA.GetOsAppStateResult | undefined>;
+
+    /**
+     * Installs the given manifest identity, optionally using the given install_url
+     * or IWA bundle location.
+     *
+     * TODO(crbug.com/337872319) Support IWA to meet the following specific
+     * requirement.
+     * IWA-specific install description: If the manifest_id is isolated-app://,
+     * install_url_or_bundle_url is required, and can be either an http(s) URL or
+     * file:// URL pointing to a signed web bundle (.swbn). The .swbn file's
+     * signing key must correspond to manifest_id. If Chrome is not in IWA dev
+     * mode, the installation will fail, regardless of the state of the allowlist.
+     */
+    install(params: PWA.InstallParams): Promise<PWA.InstallResult | undefined>;
+
+    /**
+     * Uninstalls the given manifest_id and closes any opened app windows.
+     */
+    uninstall(params: PWA.UninstallParams): Promise<PWA.UninstallResult | undefined>;
+
+    /**
+     * Launches the installed web app, or an url in the same web app instead of the
+     * default start url if it is provided. Returns a page Target.TargetID which
+     * can be used to attach to via Target.attachToTarget or similar APIs.
+     */
+    launch(params: PWA.LaunchParams): Promise<PWA.LaunchResult | undefined>;
+
+    /**
+     * Opens one or more local files from an installed web app identified by its
+     * manifestId. The web app needs to have file handlers registered to process
+     * the files. The API returns one or more page Target.TargetIDs which can be
+     * used to attach to via Target.attachToTarget or similar APIs.
+     * If some files in the parameters cannot be handled by the web app, they will
+     * be ignored. If none of the files can be handled, this API returns an error.
+     * If no files are provided as the parameter, this API also returns an error.
+     *
+     * According to the definition of the file handlers in the manifest file, one
+     * Target.TargetID may represent a page handling one or more files. The order
+     * of the returned Target.TargetIDs is not guaranteed.
+     *
+     * TODO(crbug.com/339454034): Check the existences of the input files.
+     */
+    launchFilesInApp(
+      params: PWA.LaunchFilesInAppParams,
+    ): Promise<PWA.LaunchFilesInAppResult | undefined>;
+
+    /**
+     * Opens the current page in its web app identified by the manifest id, needs
+     * to be called on a page target. This function returns immediately without
+     * waiting for the app to finish loading.
+     */
+    openCurrentPageInApp(
+      params: PWA.OpenCurrentPageInAppParams,
+    ): Promise<PWA.OpenCurrentPageInAppResult | undefined>;
+
+    /**
+     * Changes user settings of the web app identified by its manifestId. If the
+     * app was not installed, this command returns an error. Unset parameters will
+     * be ignored; unrecognized values will cause an error.
+     *
+     * Unlike the ones defined in the manifest files of the web apps, these
+     * settings are provided by the browser and controlled by the users, they
+     * impact the way the browser handling the web apps.
+     *
+     * See the comment of each parameter.
+     */
+    changeAppUserSettings(
+      params: PWA.ChangeAppUserSettingsParams,
+    ): Promise<PWA.ChangeAppUserSettingsResult | undefined>;
+  }
+
+  /**
+   * Types of the 'PWA' domain.
+   */
+  export namespace PWA {
+    /**
+     * Parameters of the 'PWA.getOsAppState' method.
+     */
+    export interface GetOsAppStateParams {
+      /**
+       * The id from the webapp's manifest file, commonly it's the url of the
+       * site installing the webapp. See
+       * https://web.dev/learn/pwa/web-app-manifest.
+       */
+      manifestId: string;
+    }
+
+    /**
+     * Return value of the 'PWA.getOsAppState' method.
+     */
+    export interface GetOsAppStateResult {
+      badgeCount: integer;
+
+      fileHandlers: FileHandler[];
+    }
+
+    /**
+     * Parameters of the 'PWA.install' method.
+     */
+    export interface InstallParams {
+      manifestId: string;
+
+      /**
+       * The location of the app or bundle overriding the one derived from the
+       * manifestId.
+       */
+      installUrlOrBundleUrl?: string;
+    }
+
+    /**
+     * Return value of the 'PWA.install' method.
+     */
+    export interface InstallResult {
+    }
+
+    /**
+     * Parameters of the 'PWA.uninstall' method.
+     */
+    export interface UninstallParams {
+      manifestId: string;
+    }
+
+    /**
+     * Return value of the 'PWA.uninstall' method.
+     */
+    export interface UninstallResult {
+    }
+
+    /**
+     * Parameters of the 'PWA.launch' method.
+     */
+    export interface LaunchParams {
+      manifestId: string;
+
+      url?: string;
+    }
+
+    /**
+     * Return value of the 'PWA.launch' method.
+     */
+    export interface LaunchResult {
+      /**
+       * ID of the tab target created as a result.
+       */
+      targetId: Target.TargetID;
+    }
+
+    /**
+     * Parameters of the 'PWA.launchFilesInApp' method.
+     */
+    export interface LaunchFilesInAppParams {
+      manifestId: string;
+
+      files: string[];
+    }
+
+    /**
+     * Return value of the 'PWA.launchFilesInApp' method.
+     */
+    export interface LaunchFilesInAppResult {
+      /**
+       * IDs of the tab targets created as the result.
+       */
+      targetIds: Target.TargetID[];
+    }
+
+    /**
+     * Parameters of the 'PWA.openCurrentPageInApp' method.
+     */
+    export interface OpenCurrentPageInAppParams {
+      manifestId: string;
+    }
+
+    /**
+     * Return value of the 'PWA.openCurrentPageInApp' method.
+     */
+    export interface OpenCurrentPageInAppResult {
+    }
+
+    /**
+     * Parameters of the 'PWA.changeAppUserSettings' method.
+     */
+    export interface ChangeAppUserSettingsParams {
+      manifestId: string;
+
+      /**
+       * If user allows the links clicked on by the user in the app's scope, or
+       * extended scope if the manifest has scope extensions and the flags
+       * `DesktopPWAsLinkCapturingWithScopeExtensions` and
+       * `WebAppEnableScopeExtensions` are enabled.
+       *
+       * Note, the API does not support resetting the linkCapturing to the
+       * initial value, uninstalling and installing the web app again will reset
+       * it.
+       *
+       * TODO(crbug.com/339453269): Setting this value on ChromeOS is not
+       * supported yet.
+       */
+      linkCapturing?: boolean;
+
+      displayMode?: DisplayMode;
+    }
+
+    /**
+     * Return value of the 'PWA.changeAppUserSettings' method.
+     */
+    export interface ChangeAppUserSettingsResult {
+    }
+
+    /**
+     * The following types are the replica of
+     * https://crsrc.org/c/chrome/browser/web_applications/proto/web_app_os_integration_state.proto;drc=9910d3be894c8f142c977ba1023f30a656bc13fc;l=67
+     */
+    export interface FileHandlerAccept {
+      /**
+       * New name of the mimetype according to
+       * https://www.iana.org/assignments/media-types/media-types.xhtml
+       */
+      mediaType: string;
+
+      fileExtensions: string[];
+    }
+
+    export interface FileHandler {
+      action: string;
+
+      accepts: FileHandlerAccept[];
+
+      displayName: string;
+    }
+
+    /**
+     * If user prefers opening the app in browser or an app window.
+     */
+    export type DisplayMode = 'standalone' | 'browser';
+  }
+
+  /**
    * Methods and events of the 'Runtime' domain.
    */
   export interface RuntimeApi {
@@ -25472,10 +27703,7 @@ export namespace Cdp {
     /**
      * Notification is issued every time when binding is called.
      */
-    on(
-      event: 'bindingCalled',
-      listener: (event: Runtime.BindingCalledEvent) => void,
-    ): IDisposable;
+    on(event: 'bindingCalled', listener: (event: Runtime.BindingCalledEvent) => void): IDisposable;
 
     /**
      * Issued when console API was called.
@@ -25716,32 +27944,38 @@ export namespace Cdp {
     /**
      * Parameters of the 'Runtime.disable' method.
      */
-    export interface DisableParams {}
+    export interface DisableParams {
+    }
 
     /**
      * Return value of the 'Runtime.disable' method.
      */
-    export interface DisableResult {}
+    export interface DisableResult {
+    }
 
     /**
      * Parameters of the 'Runtime.discardConsoleEntries' method.
      */
-    export interface DiscardConsoleEntriesParams {}
+    export interface DiscardConsoleEntriesParams {
+    }
 
     /**
      * Return value of the 'Runtime.discardConsoleEntries' method.
      */
-    export interface DiscardConsoleEntriesResult {}
+    export interface DiscardConsoleEntriesResult {
+    }
 
     /**
      * Parameters of the 'Runtime.enable' method.
      */
-    export interface EnableParams {}
+    export interface EnableParams {
+    }
 
     /**
      * Return value of the 'Runtime.enable' method.
      */
-    export interface EnableResult {}
+    export interface EnableResult {
+    }
 
     /**
      * Parameters of the 'Runtime.evaluate' method.
@@ -25864,7 +28098,8 @@ export namespace Cdp {
     /**
      * Parameters of the 'Runtime.getIsolateId' method.
      */
-    export interface GetIsolateIdParams {}
+    export interface GetIsolateIdParams {
+    }
 
     /**
      * Return value of the 'Runtime.getIsolateId' method.
@@ -25879,7 +28114,8 @@ export namespace Cdp {
     /**
      * Parameters of the 'Runtime.getHeapUsage' method.
      */
-    export interface GetHeapUsageParams {}
+    export interface GetHeapUsageParams {
+    }
 
     /**
      * Return value of the 'Runtime.getHeapUsage' method.
@@ -26008,7 +28244,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Runtime.releaseObject' method.
      */
-    export interface ReleaseObjectResult {}
+    export interface ReleaseObjectResult {
+    }
 
     /**
      * Parameters of the 'Runtime.releaseObjectGroup' method.
@@ -26023,17 +28260,20 @@ export namespace Cdp {
     /**
      * Return value of the 'Runtime.releaseObjectGroup' method.
      */
-    export interface ReleaseObjectGroupResult {}
+    export interface ReleaseObjectGroupResult {
+    }
 
     /**
      * Parameters of the 'Runtime.runIfWaitingForDebugger' method.
      */
-    export interface RunIfWaitingForDebuggerParams {}
+    export interface RunIfWaitingForDebuggerParams {
+    }
 
     /**
      * Return value of the 'Runtime.runIfWaitingForDebugger' method.
      */
-    export interface RunIfWaitingForDebuggerResult {}
+    export interface RunIfWaitingForDebuggerResult {
+    }
 
     /**
      * Parameters of the 'Runtime.runScript' method.
@@ -26112,7 +28352,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Runtime.setAsyncCallStackDepth' method.
      */
-    export interface SetAsyncCallStackDepthResult {}
+    export interface SetAsyncCallStackDepthResult {
+    }
 
     /**
      * Parameters of the 'Runtime.setCustomObjectFormatterEnabled' method.
@@ -26124,7 +28365,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Runtime.setCustomObjectFormatterEnabled' method.
      */
-    export interface SetCustomObjectFormatterEnabledResult {}
+    export interface SetCustomObjectFormatterEnabledResult {
+    }
 
     /**
      * Parameters of the 'Runtime.setMaxCallStackSizeToCapture' method.
@@ -26136,17 +28378,20 @@ export namespace Cdp {
     /**
      * Return value of the 'Runtime.setMaxCallStackSizeToCapture' method.
      */
-    export interface SetMaxCallStackSizeToCaptureResult {}
+    export interface SetMaxCallStackSizeToCaptureResult {
+    }
 
     /**
      * Parameters of the 'Runtime.terminateExecution' method.
      */
-    export interface TerminateExecutionParams {}
+    export interface TerminateExecutionParams {
+    }
 
     /**
      * Return value of the 'Runtime.terminateExecution' method.
      */
-    export interface TerminateExecutionResult {}
+    export interface TerminateExecutionResult {
+    }
 
     /**
      * Parameters of the 'Runtime.addBinding' method.
@@ -26179,7 +28424,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Runtime.addBinding' method.
      */
-    export interface AddBindingResult {}
+    export interface AddBindingResult {
+    }
 
     /**
      * Parameters of the 'Runtime.removeBinding' method.
@@ -26191,7 +28437,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Runtime.removeBinding' method.
      */
-    export interface RemoveBindingResult {}
+    export interface RemoveBindingResult {
+    }
 
     /**
      * Parameters of the 'Runtime.getExceptionDetails' method.
@@ -26337,7 +28584,8 @@ export namespace Cdp {
     /**
      * Parameters of the 'Runtime.executionContextsCleared' event.
      */
-    export interface ExecutionContextsClearedEvent {}
+    export interface ExecutionContextsClearedEvent {
+    }
 
     /**
      * Parameters of the 'Runtime.inspectRequested' event.
@@ -26973,7 +29221,8 @@ export namespace Cdp {
     /**
      * Parameters of the 'Schema.getDomains' method.
      */
-    export interface GetDomainsParams {}
+    export interface GetDomainsParams {
+    }
 
     /**
      * Return value of the 'Schema.getDomains' method.
@@ -27076,22 +29325,26 @@ export namespace Cdp {
     /**
      * Parameters of the 'Security.disable' method.
      */
-    export interface DisableParams {}
+    export interface DisableParams {
+    }
 
     /**
      * Return value of the 'Security.disable' method.
      */
-    export interface DisableResult {}
+    export interface DisableResult {
+    }
 
     /**
      * Parameters of the 'Security.enable' method.
      */
-    export interface EnableParams {}
+    export interface EnableParams {
+    }
 
     /**
      * Return value of the 'Security.enable' method.
      */
-    export interface EnableResult {}
+    export interface EnableResult {
+    }
 
     /**
      * Parameters of the 'Security.setIgnoreCertificateErrors' method.
@@ -27106,7 +29359,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Security.setIgnoreCertificateErrors' method.
      */
-    export interface SetIgnoreCertificateErrorsResult {}
+    export interface SetIgnoreCertificateErrorsResult {
+    }
 
     /**
      * Parameters of the 'Security.handleCertificateError' method.
@@ -27126,7 +29380,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Security.handleCertificateError' method.
      */
-    export interface HandleCertificateErrorResult {}
+    export interface HandleCertificateErrorResult {
+    }
 
     /**
      * Parameters of the 'Security.setOverrideCertificateErrors' method.
@@ -27141,7 +29396,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Security.setOverrideCertificateErrors' method.
      */
-    export interface SetOverrideCertificateErrorsResult {}
+    export interface SetOverrideCertificateErrorsResult {
+    }
 
     /**
      * Parameters of the 'Security.certificateError' event.
@@ -27538,17 +29794,20 @@ export namespace Cdp {
     /**
      * Return value of the 'ServiceWorker.deliverPushMessage' method.
      */
-    export interface DeliverPushMessageResult {}
+    export interface DeliverPushMessageResult {
+    }
 
     /**
      * Parameters of the 'ServiceWorker.disable' method.
      */
-    export interface DisableParams {}
+    export interface DisableParams {
+    }
 
     /**
      * Return value of the 'ServiceWorker.disable' method.
      */
-    export interface DisableResult {}
+    export interface DisableResult {
+    }
 
     /**
      * Parameters of the 'ServiceWorker.dispatchSyncEvent' method.
@@ -27566,7 +29825,8 @@ export namespace Cdp {
     /**
      * Return value of the 'ServiceWorker.dispatchSyncEvent' method.
      */
-    export interface DispatchSyncEventResult {}
+    export interface DispatchSyncEventResult {
+    }
 
     /**
      * Parameters of the 'ServiceWorker.dispatchPeriodicSyncEvent' method.
@@ -27582,17 +29842,20 @@ export namespace Cdp {
     /**
      * Return value of the 'ServiceWorker.dispatchPeriodicSyncEvent' method.
      */
-    export interface DispatchPeriodicSyncEventResult {}
+    export interface DispatchPeriodicSyncEventResult {
+    }
 
     /**
      * Parameters of the 'ServiceWorker.enable' method.
      */
-    export interface EnableParams {}
+    export interface EnableParams {
+    }
 
     /**
      * Return value of the 'ServiceWorker.enable' method.
      */
-    export interface EnableResult {}
+    export interface EnableResult {
+    }
 
     /**
      * Parameters of the 'ServiceWorker.inspectWorker' method.
@@ -27604,7 +29867,8 @@ export namespace Cdp {
     /**
      * Return value of the 'ServiceWorker.inspectWorker' method.
      */
-    export interface InspectWorkerResult {}
+    export interface InspectWorkerResult {
+    }
 
     /**
      * Parameters of the 'ServiceWorker.setForceUpdateOnPageLoad' method.
@@ -27616,7 +29880,8 @@ export namespace Cdp {
     /**
      * Return value of the 'ServiceWorker.setForceUpdateOnPageLoad' method.
      */
-    export interface SetForceUpdateOnPageLoadResult {}
+    export interface SetForceUpdateOnPageLoadResult {
+    }
 
     /**
      * Parameters of the 'ServiceWorker.skipWaiting' method.
@@ -27628,7 +29893,8 @@ export namespace Cdp {
     /**
      * Return value of the 'ServiceWorker.skipWaiting' method.
      */
-    export interface SkipWaitingResult {}
+    export interface SkipWaitingResult {
+    }
 
     /**
      * Parameters of the 'ServiceWorker.startWorker' method.
@@ -27640,17 +29906,20 @@ export namespace Cdp {
     /**
      * Return value of the 'ServiceWorker.startWorker' method.
      */
-    export interface StartWorkerResult {}
+    export interface StartWorkerResult {
+    }
 
     /**
      * Parameters of the 'ServiceWorker.stopAllWorkers' method.
      */
-    export interface StopAllWorkersParams {}
+    export interface StopAllWorkersParams {
+    }
 
     /**
      * Return value of the 'ServiceWorker.stopAllWorkers' method.
      */
-    export interface StopAllWorkersResult {}
+    export interface StopAllWorkersResult {
+    }
 
     /**
      * Parameters of the 'ServiceWorker.stopWorker' method.
@@ -27662,7 +29931,8 @@ export namespace Cdp {
     /**
      * Return value of the 'ServiceWorker.stopWorker' method.
      */
-    export interface StopWorkerResult {}
+    export interface StopWorkerResult {
+    }
 
     /**
      * Parameters of the 'ServiceWorker.unregister' method.
@@ -27674,7 +29944,8 @@ export namespace Cdp {
     /**
      * Return value of the 'ServiceWorker.unregister' method.
      */
-    export interface UnregisterResult {}
+    export interface UnregisterResult {
+    }
 
     /**
      * Parameters of the 'ServiceWorker.updateRegistration' method.
@@ -27686,7 +29957,8 @@ export namespace Cdp {
     /**
      * Return value of the 'ServiceWorker.updateRegistration' method.
      */
-    export interface UpdateRegistrationResult {}
+    export interface UpdateRegistrationResult {
+    }
 
     /**
      * Parameters of the 'ServiceWorker.workerErrorReported' event.
@@ -28017,6 +30289,22 @@ export namespace Cdp {
     ): Promise<Storage.SetAttributionReportingTrackingResult | undefined>;
 
     /**
+     * Sends all pending Attribution Reports immediately, regardless of their
+     * scheduled report time.
+     */
+    sendPendingAttributionReports(
+      params: Storage.SendPendingAttributionReportsParams,
+    ): Promise<Storage.SendPendingAttributionReportsResult | undefined>;
+
+    /**
+     * Returns the effective Related Website Sets in use by this profile for the browser
+     * session. The effective Related Website Sets will not change during a browser session.
+     */
+    getRelatedWebsiteSets(
+      params: Storage.GetRelatedWebsiteSetsParams,
+    ): Promise<Storage.GetRelatedWebsiteSetsResult | undefined>;
+
+    /**
      * A cache's contents have been modified.
      */
     on(
@@ -28143,7 +30431,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Storage.clearDataForOrigin' method.
      */
-    export interface ClearDataForOriginResult {}
+    export interface ClearDataForOriginResult {
+    }
 
     /**
      * Parameters of the 'Storage.clearDataForStorageKey' method.
@@ -28163,7 +30452,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Storage.clearDataForStorageKey' method.
      */
-    export interface ClearDataForStorageKeyResult {}
+    export interface ClearDataForStorageKeyResult {
+    }
 
     /**
      * Parameters of the 'Storage.getCookies' method.
@@ -28203,7 +30493,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Storage.setCookies' method.
      */
-    export interface SetCookiesResult {}
+    export interface SetCookiesResult {
+    }
 
     /**
      * Parameters of the 'Storage.clearCookies' method.
@@ -28218,7 +30509,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Storage.clearCookies' method.
      */
-    export interface ClearCookiesResult {}
+    export interface ClearCookiesResult {
+    }
 
     /**
      * Parameters of the 'Storage.getUsageAndQuota' method.
@@ -28279,7 +30571,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Storage.overrideQuotaForOrigin' method.
      */
-    export interface OverrideQuotaForOriginResult {}
+    export interface OverrideQuotaForOriginResult {
+    }
 
     /**
      * Parameters of the 'Storage.trackCacheStorageForOrigin' method.
@@ -28294,7 +30587,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Storage.trackCacheStorageForOrigin' method.
      */
-    export interface TrackCacheStorageForOriginResult {}
+    export interface TrackCacheStorageForOriginResult {
+    }
 
     /**
      * Parameters of the 'Storage.trackCacheStorageForStorageKey' method.
@@ -28309,7 +30603,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Storage.trackCacheStorageForStorageKey' method.
      */
-    export interface TrackCacheStorageForStorageKeyResult {}
+    export interface TrackCacheStorageForStorageKeyResult {
+    }
 
     /**
      * Parameters of the 'Storage.trackIndexedDBForOrigin' method.
@@ -28324,7 +30619,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Storage.trackIndexedDBForOrigin' method.
      */
-    export interface TrackIndexedDBForOriginResult {}
+    export interface TrackIndexedDBForOriginResult {
+    }
 
     /**
      * Parameters of the 'Storage.trackIndexedDBForStorageKey' method.
@@ -28339,7 +30635,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Storage.trackIndexedDBForStorageKey' method.
      */
-    export interface TrackIndexedDBForStorageKeyResult {}
+    export interface TrackIndexedDBForStorageKeyResult {
+    }
 
     /**
      * Parameters of the 'Storage.untrackCacheStorageForOrigin' method.
@@ -28354,7 +30651,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Storage.untrackCacheStorageForOrigin' method.
      */
-    export interface UntrackCacheStorageForOriginResult {}
+    export interface UntrackCacheStorageForOriginResult {
+    }
 
     /**
      * Parameters of the 'Storage.untrackCacheStorageForStorageKey' method.
@@ -28369,7 +30667,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Storage.untrackCacheStorageForStorageKey' method.
      */
-    export interface UntrackCacheStorageForStorageKeyResult {}
+    export interface UntrackCacheStorageForStorageKeyResult {
+    }
 
     /**
      * Parameters of the 'Storage.untrackIndexedDBForOrigin' method.
@@ -28384,7 +30683,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Storage.untrackIndexedDBForOrigin' method.
      */
-    export interface UntrackIndexedDBForOriginResult {}
+    export interface UntrackIndexedDBForOriginResult {
+    }
 
     /**
      * Parameters of the 'Storage.untrackIndexedDBForStorageKey' method.
@@ -28399,12 +30699,14 @@ export namespace Cdp {
     /**
      * Return value of the 'Storage.untrackIndexedDBForStorageKey' method.
      */
-    export interface UntrackIndexedDBForStorageKeyResult {}
+    export interface UntrackIndexedDBForStorageKeyResult {
+    }
 
     /**
      * Parameters of the 'Storage.getTrustTokens' method.
      */
-    export interface GetTrustTokensParams {}
+    export interface GetTrustTokensParams {
+    }
 
     /**
      * Return value of the 'Storage.getTrustTokens' method.
@@ -28443,7 +30745,13 @@ export namespace Cdp {
      * Return value of the 'Storage.getInterestGroupDetails' method.
      */
     export interface GetInterestGroupDetailsResult {
-      details: InterestGroupDetails;
+      /**
+       * This largely corresponds to:
+       * https://wicg.github.io/turtledove/#dictdef-generatebidinterestgroup
+       * but has absolute expirationTime instead of relative lifetimeMs and
+       * also adds joiningOrigin.
+       */
+      details: any;
     }
 
     /**
@@ -28456,7 +30764,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Storage.setInterestGroupTracking' method.
      */
-    export interface SetInterestGroupTrackingResult {}
+    export interface SetInterestGroupTrackingResult {
+    }
 
     /**
      * Parameters of the 'Storage.setInterestGroupAuctionTracking' method.
@@ -28468,7 +30777,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Storage.setInterestGroupAuctionTracking' method.
      */
-    export interface SetInterestGroupAuctionTrackingResult {}
+    export interface SetInterestGroupAuctionTrackingResult {
+    }
 
     /**
      * Parameters of the 'Storage.getSharedStorageMetadata' method.
@@ -28518,7 +30828,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Storage.setSharedStorageEntry' method.
      */
-    export interface SetSharedStorageEntryResult {}
+    export interface SetSharedStorageEntryResult {
+    }
 
     /**
      * Parameters of the 'Storage.deleteSharedStorageEntry' method.
@@ -28532,7 +30843,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Storage.deleteSharedStorageEntry' method.
      */
-    export interface DeleteSharedStorageEntryResult {}
+    export interface DeleteSharedStorageEntryResult {
+    }
 
     /**
      * Parameters of the 'Storage.clearSharedStorageEntries' method.
@@ -28544,7 +30856,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Storage.clearSharedStorageEntries' method.
      */
-    export interface ClearSharedStorageEntriesResult {}
+    export interface ClearSharedStorageEntriesResult {
+    }
 
     /**
      * Parameters of the 'Storage.resetSharedStorageBudget' method.
@@ -28556,7 +30869,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Storage.resetSharedStorageBudget' method.
      */
-    export interface ResetSharedStorageBudgetResult {}
+    export interface ResetSharedStorageBudgetResult {
+    }
 
     /**
      * Parameters of the 'Storage.setSharedStorageTracking' method.
@@ -28568,7 +30882,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Storage.setSharedStorageTracking' method.
      */
-    export interface SetSharedStorageTrackingResult {}
+    export interface SetSharedStorageTrackingResult {
+    }
 
     /**
      * Parameters of the 'Storage.setStorageBucketTracking' method.
@@ -28582,7 +30897,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Storage.setStorageBucketTracking' method.
      */
-    export interface SetStorageBucketTrackingResult {}
+    export interface SetStorageBucketTrackingResult {
+    }
 
     /**
      * Parameters of the 'Storage.deleteStorageBucket' method.
@@ -28594,12 +30910,14 @@ export namespace Cdp {
     /**
      * Return value of the 'Storage.deleteStorageBucket' method.
      */
-    export interface DeleteStorageBucketResult {}
+    export interface DeleteStorageBucketResult {
+    }
 
     /**
      * Parameters of the 'Storage.runBounceTrackingMitigations' method.
      */
-    export interface RunBounceTrackingMitigationsParams {}
+    export interface RunBounceTrackingMitigationsParams {
+    }
 
     /**
      * Return value of the 'Storage.runBounceTrackingMitigations' method.
@@ -28621,7 +30939,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Storage.setAttributionReportingLocalTestingMode' method.
      */
-    export interface SetAttributionReportingLocalTestingModeResult {}
+    export interface SetAttributionReportingLocalTestingModeResult {
+    }
 
     /**
      * Parameters of the 'Storage.setAttributionReportingTracking' method.
@@ -28633,7 +30952,37 @@ export namespace Cdp {
     /**
      * Return value of the 'Storage.setAttributionReportingTracking' method.
      */
-    export interface SetAttributionReportingTrackingResult {}
+    export interface SetAttributionReportingTrackingResult {
+    }
+
+    /**
+     * Parameters of the 'Storage.sendPendingAttributionReports' method.
+     */
+    export interface SendPendingAttributionReportsParams {
+    }
+
+    /**
+     * Return value of the 'Storage.sendPendingAttributionReports' method.
+     */
+    export interface SendPendingAttributionReportsResult {
+      /**
+       * The number of reports that were sent.
+       */
+      numSent: integer;
+    }
+
+    /**
+     * Parameters of the 'Storage.getRelatedWebsiteSets' method.
+     */
+    export interface GetRelatedWebsiteSetsParams {
+    }
+
+    /**
+     * Return value of the 'Storage.getRelatedWebsiteSets' method.
+     */
+    export interface GetRelatedWebsiteSetsResult {
+      sets: RelatedWebsiteSet[];
+    }
 
     /**
      * Parameters of the 'Storage.cacheStorageContentUpdated' event.
@@ -28946,44 +31295,6 @@ export namespace Cdp {
       | 'sellerTrustedSignals';
 
     /**
-     * Ad advertising element inside an interest group.
-     */
-    export interface InterestGroupAd {
-      renderURL: string;
-
-      metadata?: string;
-    }
-
-    /**
-     * The full details of an interest group.
-     */
-    export interface InterestGroupDetails {
-      ownerOrigin: string;
-
-      name: string;
-
-      expirationTime: Network.TimeSinceEpoch;
-
-      joiningOrigin: string;
-
-      biddingLogicURL?: string;
-
-      biddingWasmHelperURL?: string;
-
-      updateURL?: string;
-
-      trustedBiddingSignalsURL?: string;
-
-      trustedBiddingSignalsKeys: string[];
-
-      userBiddingSignals?: string;
-
-      ads: InterestGroupAd[];
-
-      adComponents: InterestGroupAd[];
-    }
-
-    /**
      * Enum of shared storage access types.
      */
     export type SharedStorageAccessType =
@@ -28994,6 +31305,7 @@ export namespace Cdp {
       | 'documentAppend'
       | 'documentDelete'
       | 'documentClear'
+      | 'documentGet'
       | 'workletSet'
       | 'workletAppend'
       | 'workletDelete'
@@ -29002,7 +31314,11 @@ export namespace Cdp {
       | 'workletKeys'
       | 'workletEntries'
       | 'workletLength'
-      | 'workletRemainingBudget';
+      | 'workletRemainingBudget'
+      | 'headerSet'
+      | 'headerAppend'
+      | 'headerDelete'
+      | 'headerClear';
 
     /**
      * Struct for a single key-value pair in an origin's shared storage.
@@ -29101,8 +31417,11 @@ export namespace Cdp {
        * SharedStorageAccessType.documentDelete,
        * SharedStorageAccessType.workletSet,
        * SharedStorageAccessType.workletAppend,
-       * SharedStorageAccessType.workletDelete, and
-       * SharedStorageAccessType.workletGet.
+       * SharedStorageAccessType.workletDelete,
+       * SharedStorageAccessType.workletGet,
+       * SharedStorageAccessType.headerSet,
+       * SharedStorageAccessType.headerAppend, and
+       * SharedStorageAccessType.headerDelete.
        */
       key?: string;
 
@@ -29110,15 +31429,18 @@ export namespace Cdp {
        * Value for a specific entry in an origin's shared storage.
        * Present only for SharedStorageAccessType.documentSet,
        * SharedStorageAccessType.documentAppend,
-       * SharedStorageAccessType.workletSet, and
-       * SharedStorageAccessType.workletAppend.
+       * SharedStorageAccessType.workletSet,
+       * SharedStorageAccessType.workletAppend,
+       * SharedStorageAccessType.headerSet, and
+       * SharedStorageAccessType.headerAppend.
        */
       value?: string;
 
       /**
        * Whether or not to set an entry for a key if that key is already present.
-       * Present only for SharedStorageAccessType.documentSet and
-       * SharedStorageAccessType.workletSet.
+       * Present only for SharedStorageAccessType.documentSet,
+       * SharedStorageAccessType.workletSet, and
+       * SharedStorageAccessType.headerSet.
        */
       ignoreIfPresent?: boolean;
     }
@@ -29210,6 +31532,44 @@ export namespace Cdp {
 
     export type AttributionReportingTriggerDataMatching = 'exact' | 'modulus';
 
+    export interface AttributionReportingAggregatableDebugReportingData {
+      keyPiece: UnsignedInt128AsBase16;
+
+      /**
+       * number instead of integer because not all uint32 can be represented by
+       * int
+       */
+      value: number;
+
+      types: string[];
+    }
+
+    export interface AttributionReportingAggregatableDebugReportingConfig {
+      /**
+       * number instead of integer because not all uint32 can be represented by
+       * int, only present for source registrations
+       */
+      budget?: number;
+
+      keyPiece: UnsignedInt128AsBase16;
+
+      debugData: AttributionReportingAggregatableDebugReportingData[];
+
+      aggregationCoordinatorOrigin?: string;
+    }
+
+    export interface AttributionScopesData {
+      values: string[];
+
+      /**
+       * number instead of integer because not all uint32 can be represented by
+       * int
+       */
+      limit: number;
+
+      maxEventStates: number;
+    }
+
     export interface AttributionReportingSourceRegistration {
       time: Network.TimeSinceEpoch;
 
@@ -29244,6 +31604,14 @@ export namespace Cdp {
       debugKey?: UnsignedInt64AsBase10;
 
       triggerDataMatching: AttributionReportingTriggerDataMatching;
+
+      destinationLimitPriority: SignedInt64AsBase10;
+
+      aggregatableDebugReportingConfig: AttributionReportingAggregatableDebugReportingConfig;
+
+      scopesData?: AttributionScopesData;
+
+      maxEventLevelReports: integer;
     }
 
     export type AttributionReportingSourceRegistrationResult =
@@ -29258,7 +31626,11 @@ export namespace Cdp {
       | 'destinationGlobalLimitReached'
       | 'destinationBothLimitsReached'
       | 'reportingOriginsPerSiteLimitReached'
-      | 'exceedsMaxChannelCapacity';
+      | 'exceedsMaxChannelCapacity'
+      | 'exceedsMaxScopesChannelCapacity'
+      | 'exceedsMaxTriggerStateCardinality'
+      | 'exceedsMaxEventStatesLimit'
+      | 'destinationPerDayReportingLimitReached';
 
     export type AttributionReportingSourceRegistrationTimeConfig = 'include' | 'exclude';
 
@@ -29270,6 +31642,8 @@ export namespace Cdp {
        * int
        */
       value: number;
+
+      filteringId: UnsignedInt64AsBase10;
     }
 
     export interface AttributionReportingAggregatableValueEntry {
@@ -29315,6 +31689,8 @@ export namespace Cdp {
 
       aggregatableValues: AttributionReportingAggregatableValueEntry[];
 
+      aggregatableFilteringIdMaxBytes: integer;
+
       debugReporting: boolean;
 
       aggregationCoordinatorOrigin?: string;
@@ -29322,6 +31698,10 @@ export namespace Cdp {
       sourceRegistrationTimeConfig: AttributionReportingSourceRegistrationTimeConfig;
 
       triggerContextId?: string;
+
+      aggregatableDebugReportingConfig: AttributionReportingAggregatableDebugReportingConfig;
+
+      scopes: string[];
     }
 
     export type AttributionReportingEventLevelResult =
@@ -29354,12 +31734,33 @@ export namespace Cdp {
       | 'excessiveReportingOrigins'
       | 'noHistograms'
       | 'insufficientBudget'
+      | 'insufficientNamedBudget'
       | 'noMatchingSourceFilterData'
       | 'notRegistered'
       | 'prohibitedByBrowserPolicy'
       | 'deduplicated'
       | 'reportWindowPassed'
       | 'excessiveReports';
+
+    /**
+     * A single Related Website Set object.
+     */
+    export interface RelatedWebsiteSet {
+      /**
+       * The primary site of this set, along with the ccTLDs if there is any.
+       */
+      primarySites: string[];
+
+      /**
+       * The associated sites of this set, along with the ccTLDs if there is any.
+       */
+      associatedSites: string[];
+
+      /**
+       * The service sites of this set, along with the ccTLDs if there is any.
+       */
+      serviceSites: string[];
+    }
   }
 
   /**
@@ -29393,7 +31794,8 @@ export namespace Cdp {
     /**
      * Parameters of the 'SystemInfo.getInfo' method.
      */
-    export interface GetInfoParams {}
+    export interface GetInfoParams {
+    }
 
     /**
      * Return value of the 'SystemInfo.getInfo' method.
@@ -29440,7 +31842,8 @@ export namespace Cdp {
     /**
      * Parameters of the 'SystemInfo.getProcessInfo' method.
      */
-    export interface GetProcessInfoParams {}
+    export interface GetProcessInfoParams {
+    }
 
     /**
      * Return value of the 'SystemInfo.getProcessInfo' method.
@@ -29718,9 +32121,7 @@ export namespace Cdp {
     /**
      * Creates a new page.
      */
-    createTarget(
-      params: Target.CreateTargetParams,
-    ): Promise<Target.CreateTargetResult | undefined>;
+    createTarget(params: Target.CreateTargetParams): Promise<Target.CreateTargetResult | undefined>;
 
     /**
      * Detaches session with given id.
@@ -29865,7 +32266,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Target.activateTarget' method.
      */
-    export interface ActivateTargetResult {}
+    export interface ActivateTargetResult {
+    }
 
     /**
      * Parameters of the 'Target.attachToTarget' method.
@@ -29894,7 +32296,8 @@ export namespace Cdp {
     /**
      * Parameters of the 'Target.attachToBrowserTarget' method.
      */
-    export interface AttachToBrowserTargetParams {}
+    export interface AttachToBrowserTargetParams {
+    }
 
     /**
      * Return value of the 'Target.attachToBrowserTarget' method.
@@ -29939,7 +32342,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Target.exposeDevToolsProtocol' method.
      */
-    export interface ExposeDevToolsProtocolResult {}
+    export interface ExposeDevToolsProtocolResult {
+    }
 
     /**
      * Parameters of the 'Target.createBrowserContext' method.
@@ -29980,7 +32384,8 @@ export namespace Cdp {
     /**
      * Parameters of the 'Target.getBrowserContexts' method.
      */
-    export interface GetBrowserContextsParams {}
+    export interface GetBrowserContextsParams {
+    }
 
     /**
      * Return value of the 'Target.getBrowserContexts' method.
@@ -30000,6 +32405,16 @@ export namespace Cdp {
        * The initial URL the page will be navigated to. An empty string indicates about:blank.
        */
       url: string;
+
+      /**
+       * Frame left origin in DIP (headless chrome only).
+       */
+      left?: integer;
+
+      /**
+       * Frame top origin in DIP (headless chrome only).
+       */
+      top?: integer;
 
       /**
        * Frame width in DIP (headless chrome only).
@@ -30068,7 +32483,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Target.detachFromTarget' method.
      */
-    export interface DetachFromTargetResult {}
+    export interface DetachFromTargetResult {
+    }
 
     /**
      * Parameters of the 'Target.disposeBrowserContext' method.
@@ -30080,7 +32496,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Target.disposeBrowserContext' method.
      */
-    export interface DisposeBrowserContextResult {}
+    export interface DisposeBrowserContextResult {
+    }
 
     /**
      * Parameters of the 'Target.getTargetInfo' method.
@@ -30139,7 +32556,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Target.sendMessageToTarget' method.
      */
-    export interface SendMessageToTargetResult {}
+    export interface SendMessageToTargetResult {
+    }
 
     /**
      * Parameters of the 'Target.setAutoAttach' method.
@@ -30172,7 +32590,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Target.setAutoAttach' method.
      */
-    export interface SetAutoAttachResult {}
+    export interface SetAutoAttachResult {
+    }
 
     /**
      * Parameters of the 'Target.autoAttachRelated' method.
@@ -30195,7 +32614,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Target.autoAttachRelated' method.
      */
-    export interface AutoAttachRelatedResult {}
+    export interface AutoAttachRelatedResult {
+    }
 
     /**
      * Parameters of the 'Target.setDiscoverTargets' method.
@@ -30216,7 +32636,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Target.setDiscoverTargets' method.
      */
-    export interface SetDiscoverTargetsResult {}
+    export interface SetDiscoverTargetsResult {
+    }
 
     /**
      * Parameters of the 'Target.setRemoteLocations' method.
@@ -30231,7 +32652,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Target.setRemoteLocations' method.
      */
-    export interface SetRemoteLocationsResult {}
+    export interface SetRemoteLocationsResult {
+    }
 
     /**
      * Parameters of the 'Target.attachedToTarget' event.
@@ -30362,7 +32784,7 @@ export namespace Cdp {
 
       /**
        * Provides additional details for specific target types. For example, for
-       * the type of "page", this may be set to "portal" or "prerender".
+       * the type of "page", this may be set to "prerender".
        */
       subtype?: string;
     }
@@ -30436,7 +32858,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Tethering.bind' method.
      */
-    export interface BindResult {}
+    export interface BindResult {
+    }
 
     /**
      * Parameters of the 'Tethering.unbind' method.
@@ -30451,7 +32874,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Tethering.unbind' method.
      */
-    export interface UnbindResult {}
+    export interface UnbindResult {
+    }
 
     /**
      * Parameters of the 'Tethering.accepted' event.
@@ -30510,10 +32934,7 @@ export namespace Cdp {
      * Contains a bucket of collected trace events. When tracing is stopped collected events will be
      * sent as a sequence of dataCollected events followed by tracingComplete event.
      */
-    on(
-      event: 'dataCollected',
-      listener: (event: Tracing.DataCollectedEvent) => void,
-    ): IDisposable;
+    on(event: 'dataCollected', listener: (event: Tracing.DataCollectedEvent) => void): IDisposable;
 
     /**
      * Signals that tracing is stopped and there is no trace buffers pending flush, all data were
@@ -30532,17 +32953,20 @@ export namespace Cdp {
     /**
      * Parameters of the 'Tracing.end' method.
      */
-    export interface EndParams {}
+    export interface EndParams {
+    }
 
     /**
      * Return value of the 'Tracing.end' method.
      */
-    export interface EndResult {}
+    export interface EndResult {
+    }
 
     /**
      * Parameters of the 'Tracing.getCategories' method.
      */
-    export interface GetCategoriesParams {}
+    export interface GetCategoriesParams {
+    }
 
     /**
      * Return value of the 'Tracing.getCategories' method.
@@ -30567,7 +32991,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Tracing.recordClockSyncMarker' method.
      */
-    export interface RecordClockSyncMarkerResult {}
+    export interface RecordClockSyncMarkerResult {
+    }
 
     /**
      * Parameters of the 'Tracing.requestMemoryDump' method.
@@ -30656,7 +33081,8 @@ export namespace Cdp {
     /**
      * Return value of the 'Tracing.start' method.
      */
-    export interface StartResult {}
+    export interface StartResult {
+    }
 
     /**
      * Parameters of the 'Tracing.bufferUsage' event.
@@ -30933,22 +33359,26 @@ export namespace Cdp {
     /**
      * Parameters of the 'WebAudio.enable' method.
      */
-    export interface EnableParams {}
+    export interface EnableParams {
+    }
 
     /**
      * Return value of the 'WebAudio.enable' method.
      */
-    export interface EnableResult {}
+    export interface EnableResult {
+    }
 
     /**
      * Parameters of the 'WebAudio.disable' method.
      */
-    export interface DisableParams {}
+    export interface DisableParams {
+    }
 
     /**
      * Return value of the 'WebAudio.disable' method.
      */
-    export interface DisableResult {}
+    export interface DisableResult {
+    }
 
     /**
      * Parameters of the 'WebAudio.getRealtimeData' method.
@@ -31104,7 +33534,7 @@ export namespace Cdp {
     /**
      * Enum of AudioContextState from the spec
      */
-    export type ContextState = 'suspended' | 'running' | 'closed';
+    export type ContextState = 'suspended' | 'running' | 'closed' | 'interrupted';
 
     /**
      * Enum of AudioNode types
@@ -31343,6 +33773,24 @@ export namespace Cdp {
     ): IDisposable;
 
     /**
+     * Triggered when a credential is deleted, e.g. through
+     * PublicKeyCredential.signalUnknownCredential().
+     */
+    on(
+      event: 'credentialDeleted',
+      listener: (event: WebAuthn.CredentialDeletedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Triggered when a credential is updated, e.g. through
+     * PublicKeyCredential.signalCurrentUserDetails().
+     */
+    on(
+      event: 'credentialUpdated',
+      listener: (event: WebAuthn.CredentialUpdatedEvent) => void,
+    ): IDisposable;
+
+    /**
      * Triggered when a credential is used in a webauthn assertion.
      */
     on(
@@ -31372,17 +33820,20 @@ export namespace Cdp {
     /**
      * Return value of the 'WebAuthn.enable' method.
      */
-    export interface EnableResult {}
+    export interface EnableResult {
+    }
 
     /**
      * Parameters of the 'WebAuthn.disable' method.
      */
-    export interface DisableParams {}
+    export interface DisableParams {
+    }
 
     /**
      * Return value of the 'WebAuthn.disable' method.
      */
-    export interface DisableResult {}
+    export interface DisableResult {
+    }
 
     /**
      * Parameters of the 'WebAuthn.addVirtualAuthenticator' method.
@@ -31426,7 +33877,8 @@ export namespace Cdp {
     /**
      * Return value of the 'WebAuthn.setResponseOverrideBits' method.
      */
-    export interface SetResponseOverrideBitsResult {}
+    export interface SetResponseOverrideBitsResult {
+    }
 
     /**
      * Parameters of the 'WebAuthn.removeVirtualAuthenticator' method.
@@ -31438,7 +33890,8 @@ export namespace Cdp {
     /**
      * Return value of the 'WebAuthn.removeVirtualAuthenticator' method.
      */
-    export interface RemoveVirtualAuthenticatorResult {}
+    export interface RemoveVirtualAuthenticatorResult {
+    }
 
     /**
      * Parameters of the 'WebAuthn.addCredential' method.
@@ -31452,7 +33905,8 @@ export namespace Cdp {
     /**
      * Return value of the 'WebAuthn.addCredential' method.
      */
-    export interface AddCredentialResult {}
+    export interface AddCredentialResult {
+    }
 
     /**
      * Parameters of the 'WebAuthn.getCredential' method.
@@ -31496,7 +33950,8 @@ export namespace Cdp {
     /**
      * Return value of the 'WebAuthn.removeCredential' method.
      */
-    export interface RemoveCredentialResult {}
+    export interface RemoveCredentialResult {
+    }
 
     /**
      * Parameters of the 'WebAuthn.clearCredentials' method.
@@ -31508,7 +33963,8 @@ export namespace Cdp {
     /**
      * Return value of the 'WebAuthn.clearCredentials' method.
      */
-    export interface ClearCredentialsResult {}
+    export interface ClearCredentialsResult {
+    }
 
     /**
      * Parameters of the 'WebAuthn.setUserVerified' method.
@@ -31522,7 +33978,8 @@ export namespace Cdp {
     /**
      * Return value of the 'WebAuthn.setUserVerified' method.
      */
-    export interface SetUserVerifiedResult {}
+    export interface SetUserVerifiedResult {
+    }
 
     /**
      * Parameters of the 'WebAuthn.setAutomaticPresenceSimulation' method.
@@ -31536,7 +33993,8 @@ export namespace Cdp {
     /**
      * Return value of the 'WebAuthn.setAutomaticPresenceSimulation' method.
      */
-    export interface SetAutomaticPresenceSimulationResult {}
+    export interface SetAutomaticPresenceSimulationResult {
+    }
 
     /**
      * Parameters of the 'WebAuthn.setCredentialProperties' method.
@@ -31554,12 +34012,31 @@ export namespace Cdp {
     /**
      * Return value of the 'WebAuthn.setCredentialProperties' method.
      */
-    export interface SetCredentialPropertiesResult {}
+    export interface SetCredentialPropertiesResult {
+    }
 
     /**
      * Parameters of the 'WebAuthn.credentialAdded' event.
      */
     export interface CredentialAddedEvent {
+      authenticatorId: AuthenticatorId;
+
+      credential: Credential;
+    }
+
+    /**
+     * Parameters of the 'WebAuthn.credentialDeleted' event.
+     */
+    export interface CredentialDeletedEvent {
+      authenticatorId: AuthenticatorId;
+
+      credentialId: string;
+    }
+
+    /**
+     * Parameters of the 'WebAuthn.credentialUpdated' event.
+     */
+    export interface CredentialUpdatedEvent {
       authenticatorId: AuthenticatorId;
 
       credential: Credential;
@@ -31705,6 +34182,19 @@ export namespace Cdp {
        * defaultBackupState value.
        */
       backupState?: boolean;
+
+      /**
+       * The credential's user.name property. Equivalent to empty if not set.
+       * https://w3c.github.io/webauthn/#dom-publickeycredentialentity-name
+       */
+      userName?: string;
+
+      /**
+       * The credential's user.displayName property. Equivalent to empty if
+       * not set.
+       * https://w3c.github.io/webauthn/#dom-publickeycredentialuserentity-displayname
+       */
+      userDisplayName?: string;
     }
   }
 }
