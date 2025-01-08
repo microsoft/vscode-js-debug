@@ -2461,8 +2461,15 @@ export namespace Dap {
   export interface GetPreferredUILocationParams {
     /**
      * The source to look up.
+     * Either source or originalUrl must be set.
      */
-    source: Source;
+    source?: Source;
+
+    /**
+     * The original url to look up.
+     * Either source or originalUrl must be set.
+     */
+    originalUrl?: string;
 
     /**
      * The base-0 line number to look up.
