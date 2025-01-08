@@ -237,6 +237,9 @@ export const noUwpPipeFound = () =>
 export const locationNotFound = () =>
   createUserError(l10n.t('Could not find a location for the variable'));
 
+export const missingSourceInformation = () =>
+  createSilentError(l10n.t('Missing source information. Did you set "originalUrl" or "source"?'));
+
 /**
  * Returns if the value looks like a DAP error.
  */

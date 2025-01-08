@@ -37,7 +37,7 @@ import { BasicCpuProfiler } from './profiling/basicCpuProfiler';
 import { ScriptSkipper } from './scriptSkipper/implementation';
 import { IScriptSkipper } from './scriptSkipper/scriptSkipper';
 import { SmartStepper } from './smartStepping';
-import { ISourceWithMap, SourceFromMap } from './source';
+import { ISourceWithMap, Source, SourceFromMap } from './source';
 import { SourceContainer } from './sourceContainer';
 import { Thread } from './threads';
 import { VariableStore } from './variableStore';
@@ -136,9 +136,25 @@ export class DebugAdapter implements IDisposable {
   private async _getPreferredUILocation(
     params: Dap.GetPreferredUILocationParams,
   ): Promise<Dap.GetPreferredUILocationResult> {
-    const source = this.sourceContainer.source(params.source);
+    let source: Source | undefined = undefined;
+    if (params.originalUrl) {
+      source = this.sourceContainer.getSourceByOriginalUrl(params.originalUrl);
+    }
+    if (!source && params.source) {
+      source = this.sourceContainer.source(params.source);
+    }
+
     if (!source) {
-      return params;
+      if (params.source) {
+        // Return unmodified input source
+        return {
+          column: params.column,
+          line: params.line,
+          source: params.source,
+        };
+      } else {
+        throw new ProtocolError(errors.missingSourceInformation());
+      }
     }
 
     const location = await this.sourceContainer.preferredUiLocation({
