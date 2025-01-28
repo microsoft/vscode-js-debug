@@ -14,6 +14,13 @@ pipelines:
           lastModifiedDate: 2024-09-11
         policheck:
           lastModifiedDate: 2024-11-30
+      binary:
+        credscan:
+          lastModifiedDate: 2025-01-28
+        binskim:
+          lastModifiedDate: 2025-01-28
+        spotbugs:
+          lastModifiedDate: 2025-01-28
   291:
     retail:
       source:
