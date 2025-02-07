@@ -8,7 +8,9 @@ import { join } from 'path';
 import { SinonStub, stub } from 'sinon';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { Logger } from '../../common/logging/logger';
+import { upcastPartial } from '../../common/objUtils';
 import { Semver } from '../../common/semver';
+import { AnyLaunchConfiguration } from '../../configuration';
 import { ErrorCodes } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
 import { Capability, NodeBinary, NodeBinaryProvider } from '../../targets/node/nodeBinaryProvider';
@@ -20,6 +22,8 @@ describe('NodeBinaryProvider', function() {
   this.timeout(30 * 1000); // windows lookups in CI seem to be very slow sometimes
 
   let p: NodeBinaryProvider;
+  let dir: string;
+
   const env = (name: string) =>
     EnvironmentVars.empty.addToPath(join(testWorkspace, 'nodePathProvider', name));
   const binaryLocation = (name: string, binary = 'node') =>
@@ -33,11 +37,17 @@ describe('NodeBinaryProvider', function() {
   let packageJson: IPackageJsonProvider;
 
   beforeEach(() => {
+    dir = getTestDir();
     packageJson = {
       getPath: () => Promise.resolve(undefined),
       getContents: () => Promise.resolve(undefined),
     };
-    p = new NodeBinaryProvider(Logger.null, fsPromises, packageJson);
+    p = new NodeBinaryProvider(
+      Logger.null,
+      fsPromises,
+      packageJson,
+      upcastPartial<AnyLaunchConfiguration>({ __workspaceFolder: dir }),
+    );
   });
 
   it('rejects not found', async () => {
@@ -198,8 +208,38 @@ describe('NodeBinaryProvider', function() {
     });
   });
 
+  it('does not recurse upwards past workspace folder', async () => {
+    const cwd = join(dir, 'subdir');
+    p = new NodeBinaryProvider(
+      Logger.null,
+      fsPromises,
+      packageJson,
+      upcastPartial<AnyLaunchConfiguration>({ __workspaceFolder: cwd }),
+    );
+    await fsPromises.mkdir(cwd, { recursive: true });
+
+    createFileTree(dir, {
+      'node_modules/.bin': {
+        'node.exe': '',
+        node: '',
+      },
+    });
+
+    try {
+      const r = await p.resolveAndValidate(
+        EnvironmentVars.empty.update('PATHEXT', '.EXE'),
+        'node',
+        undefined,
+        cwd,
+      );
+      console.log(r);
+    } catch (err) {
+      expect(err).to.be.an.instanceOf(ProtocolError);
+      expect(err.cause.id).to.equal(ErrorCodes.CannotFindNodeBinary);
+    }
+  });
+
   it('automatically finds programs in node_modules/.bin', async () => {
-    const dir = getTestDir();
     createFileTree(dir, {
       'node_modules/.bin': {
         'mocha.cmd': '',

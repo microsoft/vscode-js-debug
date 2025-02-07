@@ -258,7 +258,7 @@ export function registerDebugTerminalUI(
     const logger = new ProxyLogger();
     const launcher = createLauncherFn(
       logger,
-      new NodeBinaryProvider(logger, services.get(FS), noPackageJsonProvider),
+      new NodeBinaryProvider(logger, services.get(FS), noPackageJsonProvider, {}),
     );
 
     launcher.onTerminalCreated(terminal => {
