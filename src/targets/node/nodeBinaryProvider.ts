@@ -9,10 +9,11 @@ import type * as vscodeType from 'vscode';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { existsInjected } from '../../common/fsUtils';
 import { ILogger, LogTag } from '../../common/logging';
-import { findExecutable, findInPath } from '../../common/pathUtils';
+import { findExecutable, findInPath, isSubpathOrEqualTo } from '../../common/pathUtils';
 import { spawnAsync } from '../../common/processUtils';
 import { Semver } from '../../common/semver';
 import { getNormalizedBinaryName, nearestDirectoryWhere } from '../../common/urlUtils';
+import { AnyLaunchConfiguration } from '../../configuration';
 import {
   cannotFindNodeBinary,
   cwdDoesNotExist,
@@ -220,6 +221,7 @@ export class NodeBinaryProvider implements INodeBinaryProvider {
     @inject(ILogger) private readonly logger: ILogger,
     @inject(FS) private readonly fs: FsPromises,
     @inject(IPackageJsonProvider) private readonly packageJson: IPackageJsonProvider,
+    @inject(AnyLaunchConfiguration) private readonly launchConfig: Partial<AnyLaunchConfiguration>,
   ) {}
 
   /**
@@ -263,9 +265,17 @@ export class NodeBinaryProvider implements INodeBinaryProvider {
       return undefined;
     }
 
+    const workspaceFolder = this.launchConfig.__workspaceFolder;
+    if (!workspaceFolder) {
+      return undefined;
+    }
+
     return nearestDirectoryWhere(
       cwd,
-      dir => findExecutable(this.fs, join(dir, 'node_modules', '.bin', executable), env),
+      dir =>
+        !isSubpathOrEqualTo(workspaceFolder, dir)
+          ? Promise.resolve(undefined)
+          : findExecutable(this.fs, join(dir, 'node_modules', '.bin', executable), env),
     );
   }
 
@@ -391,9 +401,10 @@ export class InteractiveNodeBinaryProvider extends NodeBinaryProvider {
     @inject(ILogger) logger: ILogger,
     @inject(FS) fs: FsPromises,
     @inject(IPackageJsonProvider) packageJson: IPackageJsonProvider,
+    @inject(AnyLaunchConfiguration) launchConfig: Partial<AnyLaunchConfiguration>,
     @optional() @inject(VSCodeApi) private readonly vscode: typeof vscodeType | undefined,
   ) {
-    super(logger, fs, packageJson);
+    super(logger, fs, packageJson, launchConfig);
   }
 
   /**

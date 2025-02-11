@@ -34,21 +34,20 @@ export function registerAutoAttach(
 
     const launcher = (async () => {
       const logger = new ProxyLogger();
+      let config = readConfig(vscode.workspace, Configuration.TerminalDebugConfig);
+      if (workspaceFolder) {
+        const fsPath = workspaceFolder?.uri.fsPath;
+        config = { ...config, cwd: fsPath, __workspaceFolder: fsPath };
+      }
       // TODO: Figure out how to inject FsUtils
       const inst = new AutoAttachLauncher(
-        new NodeBinaryProvider(logger, services.get(FS), noPackageJsonProvider),
+        new NodeBinaryProvider(logger, services.get(FS), noPackageJsonProvider, config || {}),
         logger,
         context,
         services.get(FS),
         services.get(NodeOnlyPathResolverFactory),
         services.get(IPortLeaseTracker),
       );
-
-      let config = readConfig(vscode.workspace, Configuration.TerminalDebugConfig);
-      if (workspaceFolder) {
-        const fsPath = workspaceFolder?.uri.fsPath;
-        config = { ...config, cwd: fsPath, __workspaceFolder: fsPath };
-      }
 
       await launchVirtualTerminalParent(delegate, inst, config);
 
