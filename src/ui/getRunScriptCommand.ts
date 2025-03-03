@@ -22,5 +22,7 @@ export const getScriptRunner = async (folder: WorkspaceFolder | undefined) => {
 /**
  * Gets a command to run a script
  */
-export const getRunScriptCommand = async (name: string, folder?: WorkspaceFolder) =>
-  `${await getScriptRunner(folder)} run ${name}`;
+export const getRunScriptCommand = async (name: string, folder?: WorkspaceFolder) => {
+  const scriptRunner = await getScriptRunner(folder);
+  return `${scriptRunner} ${scriptRunner === 'node' ? '--run' : 'run'} ${name}`;
+};
