@@ -17,7 +17,7 @@ import {
   ResolvingTerminalConfiguration,
 } from '../../configuration';
 import { findScripts } from '../debugNpmScript';
-import { getPackageManager } from '../getRunScriptCommand';
+import { getScriptRunner } from '../getRunScriptCommand';
 import { BaseConfigurationProvider } from './baseConfigurationProvider';
 import { createLaunchConfigFromContext } from './nodeDebugConfigurationResolver';
 
@@ -98,7 +98,7 @@ export class NodeDynamicDebugConfigurationProvider extends BaseConfigurationProv
       return [openTerminal];
     }
 
-    const packageManager = await getPackageManager(folder);
+    const packageManager = await getScriptRunner(folder);
     return scripts
       .map<DynamicConfig>(script => ({
         type: getPreferredOrDebugType(DebugType.Terminal),
