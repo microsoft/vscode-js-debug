@@ -79,28 +79,28 @@ export const enum Commands {
 export const enum DebugType {
   ExtensionHost = 'pwa-extensionHost',
   Terminal = 'node-terminal',
-  Node = 'pwa-node',
+  Node = 'radon-pwa-node',
   Chrome = 'pwa-chrome',
   Edge = 'pwa-msedge',
 }
 
 export const preferredDebugTypes: ReadonlyMap<DebugType, string> = new Map([
-  [DebugType.Node, 'node'],
-  [DebugType.Chrome, 'chrome'],
-  [DebugType.ExtensionHost, 'extensionHost'],
-  [DebugType.Edge, 'msedge'],
+  // [DebugType.Node, 'node'],
+  // [DebugType.Chrome, 'chrome'],
+  // [DebugType.ExtensionHost, 'extensionHost'],
+  // [DebugType.Edge, 'msedge'],
 ]);
 
 export const getPreferredOrDebugType = <T extends DebugType>(t: T) =>
   (preferredDebugTypes.get(t) as T) || t;
 
 // constructing it this way makes sure we can't forget to add a type:
-const debugTypes: { [K in DebugType]: null } = {
-  [DebugType.ExtensionHost]: null,
-  [DebugType.Terminal]: null,
+const debugTypes: { [K in DebugType]?: null } = {
+  // [DebugType.ExtensionHost]: null,
+  // [DebugType.Terminal]: null,
   [DebugType.Node]: null,
-  [DebugType.Chrome]: null,
-  [DebugType.Edge]: null,
+  // [DebugType.Chrome]: null,
+  // [DebugType.Edge]: null,
 };
 
 const commandsObj: { [K in Commands]: null } = {

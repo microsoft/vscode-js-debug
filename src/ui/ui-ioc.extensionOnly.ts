@@ -36,7 +36,7 @@ import { ILinkedBreakpointLocation } from './linkedBreakpointLocation';
 import { LinkedBreakpointLocationUI } from './linkedBreakpointLocationUI';
 import { LongPredictionUI } from './longPredictionUI';
 import { NetworkTree } from './networkTree';
-import { JsDebugPortAttributesProvider } from './portAttributesProvider';
+// import { JsDebugPortAttributesProvider } from './portAttributesProvider';
 import { PrettyPrintUI } from './prettyPrint';
 import { BreakpointTerminationConditionFactory } from './profiling/breakpointTerminationCondition';
 import { DurationTerminationConditionFactory } from './profiling/durationTerminationCondition';
@@ -69,7 +69,7 @@ export const registerUiComponents = (container: Container) => {
   container.bind(IExtensionContribution).to(DisableSourceMapUI).inSingletonScope();
   container.bind(IExtensionContribution).to(DiagnosticsUI).inSingletonScope();
   container.bind(IExtensionContribution).to(StartDebugingAndStopOnEntry).inSingletonScope();
-  container.bind(IExtensionContribution).to(JsDebugPortAttributesProvider).inSingletonScope();
+  // container.bind(IExtensionContribution).to(JsDebugPortAttributesProvider).inSingletonScope();
   container.bind(IExtensionContribution).to(EdgeDevToolOpener).inSingletonScope();
   container.bind(IExtensionContribution).to(ExcludedCallersUI).inSingletonScope();
   container.bind(IExtensionContribution).to(PrettyPrintUI).inSingletonScope();

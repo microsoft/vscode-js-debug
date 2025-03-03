@@ -8,7 +8,7 @@ const nodeInternalMarker = '<node_internals>';
 const node16InternalUrl = 'node:';
 
 export const isNodeType = (dump: IDiagnosticDump) =>
-  dump.config.type === 'pwa-node'
+  dump.config.type === 'radon-pwa-node'
   || dump.config.type === 'pwa-extensionHost'
   || dump.config.type === 'node-terminal';
 

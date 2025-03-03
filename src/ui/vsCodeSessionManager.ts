@@ -35,6 +35,10 @@ class VsCodeSessionLauncher implements ISessionLauncher<vscode.DebugSession> {
         noDebug: parentSession.debugSession.configuration.noDebug,
         compact: parentSession instanceof RootSession, // don't compact workers/child processes
         lifecycleManagedByParent: target.independentLifeycle ? false : true,
+        suppressDebugStatusbar: true,
+        suppressDebugToolbar: true,
+        suppressDebugView: true,
+        suppressSaveBeforeStart: true,
       },
     );
   }
