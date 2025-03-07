@@ -114,5 +114,6 @@ export const registerTopLevelSessionComponents = (container: Container) => {
   // request options:
   container.bind(IRequestOptionsProvider).to(SettingRequestOptionsProvider).inSingletonScope();
 
-  container.bind(IExperimentationService).to(VSCodeExperimentationService).inSingletonScope();
+  container.bind(IExperimentationService).to(VSCodeExperimentationService).inSingletonScope()
+    .onActivation(trackDispose);
 };

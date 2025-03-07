@@ -195,7 +195,7 @@ export const createTargetContainer = (
   container.bind(SourceContainer).toSelf().inSingletonScope();
   container.bind(Diagnostics).toSelf().inSingletonScope();
 
-  container.bind(IScriptSkipper).to(ScriptSkipper).inSingletonScope();
+  container.bind(IScriptSkipper).to(ScriptSkipper).inSingletonScope().onActivation(trackDispose);
   container.bind(SmartStepper).toSelf().inSingletonScope();
   container.bind(IExceptionPauseService).to(ExceptionPauseService).inSingletonScope();
   container.bind(ICompletions).to(Completions).inSingletonScope();

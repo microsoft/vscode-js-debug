@@ -7,6 +7,7 @@ import micromatch from 'micromatch';
 import { Cdp } from '../../cdp/api';
 import { ICdpApi } from '../../cdp/connection';
 import { MapUsingProjection } from '../../common/datastructure/mapUsingProjection';
+import { IDisposable } from '../../common/disposable';
 import { EventEmitter } from '../../common/events';
 import { ILogger, LogTag } from '../../common/logging';
 import { node15InternalsPrefix, nodeInternalsToken } from '../../common/node15Internal';
@@ -62,7 +63,7 @@ function preprocessAuthoredGlobs(
 }
 
 @injectable()
-export class ScriptSkipper implements IScriptSkipper {
+export class ScriptSkipper implements IScriptSkipper, IDisposable {
   private static sharedSkipsEmitter = new EventEmitter<ISharedSkipToggleEvent>();
 
   /**
@@ -104,6 +105,7 @@ export class ScriptSkipper implements IScriptSkipper {
   private _updateSkippedDebounce: () => void;
   private _targetId: string;
   private _rootTargetId: string;
+  private _sharedSkipListener: IDisposable;
 
   constructor(
     @inject(AnyLaunchConfiguration) { skipFiles }: AnyLaunchConfiguration,
@@ -131,11 +133,15 @@ export class ScriptSkipper implements IScriptSkipper {
       this._updateGeneratedSkippedSources();
     }
 
-    ScriptSkipper.sharedSkipsEmitter.event(e => {
+    this._sharedSkipListener = ScriptSkipper.sharedSkipsEmitter.event(e => {
       if (e.rootTargetId === this._rootTargetId && e.targetId !== this._targetId) {
         this._toggleSkippingFile(e.params);
       }
     });
+  }
+
+  public dispose(): void {
+    this._sharedSkipListener.dispose();
   }
 
   public setSourceContainer(sourceContainer: SourceContainer): void {
