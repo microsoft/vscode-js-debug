@@ -9,6 +9,7 @@ import {
   IExperimentationService,
   TargetPopulation,
 } from 'vscode-tas-client';
+import { IDisposable } from '../common/disposable';
 import { isNightly, packageVersion } from '../configuration';
 import { ExtensionContext } from '../ioc-extras';
 import { DapTelemetryReporter } from './dapTelemetryReporter';
@@ -19,7 +20,7 @@ import {
 import { ITelemetryReporter } from './telemetryReporter';
 
 @injectable()
-export class VSCodeExperimentationService implements IJsDebugExpService {
+export class VSCodeExperimentationService implements IJsDebugExpService, IDisposable {
   private service?: IExperimentationService;
 
   constructor(
@@ -48,6 +49,13 @@ export class VSCodeExperimentationService implements IJsDebugExpService {
         context.globalState,
       );
     }
+  }
+
+  dispose(): void {
+    // See microsoft/tas-client#74
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const polling = (this.service as any).pollingService;
+    polling?.StopPolling();
   }
 
   /**

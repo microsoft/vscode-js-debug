@@ -42,7 +42,7 @@ export class Logger implements ILogger, IDisposable {
   /**
    * Log buffer for replaying diagnostics.
    */
-  private readonly logBuffer = new RingBuffer();
+  private readonly logBuffer = new RingBuffer(1);
 
   /**
    * A no-op logger that never logs anything.

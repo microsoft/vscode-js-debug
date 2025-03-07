@@ -124,6 +124,7 @@ export const trackDispose = <T>(ctx: interfaces.Context, service: T): T => {
  */
 export const disposeContainer = (container: interfaces.Container) => {
   toDispose.get(container)?.forEach(d => d.dispose());
+  toDispose.delete(container);
 };
 
 /**
