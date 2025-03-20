@@ -6,6 +6,7 @@ import { inject, injectable } from 'inversify';
 import Cdp from '../cdp/api';
 import { ILogger, LogTag } from '../common/logging';
 import { bisectArrayAsync, flatten } from '../common/objUtils';
+import { fixDriveLetterAndSlashes } from '../common/pathUtils';
 import { IPosition } from '../common/positions';
 import { delay } from '../common/promiseUtil';
 import { SourceMap } from '../common/sourceMaps/sourceMap';
@@ -526,7 +527,7 @@ export class BreakpointManager {
     }
 
     const wasEntryBpSet = await this._sourceMapHandlerInstalled?.entryBpSet;
-    params.source.path = urlUtils.platformPathToPreferredCase(params.source.path);
+    params.source.path = fixDriveLetterAndSlashes(params.source.path, true);
     const containedSource = this._sourceContainer.source(params.source);
 
     // Wait until the breakpoint predictor finishes to be sure that we

@@ -184,7 +184,18 @@ export function fixDriveLetter(aPath: string, uppercaseDriveLetter = false): str
 /**
  * Ensure lower case drive letter and \ on Windows
  */
-export function fixDriveLetterAndSlashes(aPath: string, uppercaseDriveLetter = false): string {
+export function fixDriveLetterAndSlashes(
+  aPath: string,
+  uppercaseDriveLetter?: boolean,
+): string;
+export function fixDriveLetterAndSlashes(
+  aPath: string | undefined,
+  uppercaseDriveLetter?: boolean,
+): string | undefined;
+export function fixDriveLetterAndSlashes(
+  aPath: string | undefined,
+  uppercaseDriveLetter = false,
+): string | undefined {
   if (!aPath) return aPath;
 
   aPath = fixDriveLetter(aPath, uppercaseDriveLetter);
