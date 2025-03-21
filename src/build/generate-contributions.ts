@@ -311,6 +311,30 @@ const baseConfigurationAttributes: ConfigurationAttributes<IBaseConfiguration> =
     default: true,
     markdownDescription: refString('base.enableDWARF.label'),
   },
+  wasmModuleConfigurations: {
+    type: 'array',
+    default: [],
+    markdownDescription: refString('base.wasmModuleConfigurations.description'),
+    items: {
+      type: 'object',
+      properties: {
+        name: { type: 'string' },
+        pathSubstitutions: {
+          type: 'array',
+          description: refString('base.wasmModuleConfigurations.pathSubstitutions.description'),
+          items: {
+            type: 'object',
+            properties: {
+              from: { type: 'string' },
+              to: { type: 'string' },
+            },
+            required: ['from', 'to'],
+          },
+        },
+      },
+      required: ['pathSubstitutions'],
+    },
+  },
 };
 
 /**

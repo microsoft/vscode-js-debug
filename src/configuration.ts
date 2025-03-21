@@ -2,6 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { type ModuleConfigurations } from '@vscode/dwarf-debugging/chrome-cxx/mnt/extension/ModuleConfiguration';
 import { homedir } from 'os';
 import { SourceMapTimeouts } from './adapter/sourceContainer';
 import { DebugType } from './common/contributionUtils';
@@ -166,6 +167,17 @@ export interface IBaseConfiguration extends IMandatedConfiguration {
    * `ms-vscode.wasm-dwarf-debugging` extension to function.
    */
   enableDWARF: boolean;
+
+  /**
+   * Configuration for locating source files for a given WebAssembly module.
+   * If the name is `undefined`, the configuration is the default configuration,
+   * which is chosen if there's no named configuration matching the basename of
+   * the WebAssembly module file.
+   * The name can be a wildcard pattern, and global match will be used to
+   * match the name against the URL of the WebAssembly module file.
+   * Requires the `ms-vscode.wasm-dwarf-debugging` extension to function.
+   */
+  wasmModuleConfigurations: ModuleConfigurations;
 
   /**
    * The value of the ${workspaceFolder} variable
@@ -840,6 +852,7 @@ export const baseDefaults: IBaseConfiguration = {
   enableContentValidation: true,
   cascadeTerminateToConfigurations: [],
   enableDWARF: true,
+  wasmModuleConfigurations: [],
   // Should always be determined upstream;
   __workspaceFolder: '',
   __remoteFilePrefix: undefined,

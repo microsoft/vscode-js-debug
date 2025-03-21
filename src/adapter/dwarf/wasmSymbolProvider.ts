@@ -85,7 +85,7 @@ export class WasmWorkerFactory implements IWasmWorkerFactory {
           ).then((v: number[]) => new Uint8Array(v).buffer),
       });
 
-      worker.rpc.sendMessage('hello', [], false);
+      worker.rpc.sendMessage('hello', this.launchConfig.wasmModuleConfigurations, false);
 
       return worker;
     });
