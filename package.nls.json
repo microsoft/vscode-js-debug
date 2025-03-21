@@ -7,6 +7,8 @@
   "attach.node.process": "Attach to Node Process",
   "base.cascadeTerminateToConfigurations.label": "A list of debug sessions which, when this debug session is terminated, will also be stopped.",
   "base.enableDWARF.label": "Toggles whether the debugger will try to read DWARF debug symbols from WebAssembly, which can be resource intensive. Requires the `ms-vscode.wasm-dwarf-debugging` extension to function.",
+  "base.wasmModuleConfigurations.description": "Configuration for locating source files for a given WebAssembly module. If the name is `undefined`, the configuration is the default configuration, which is chosen if there's no named configuration matching the basename of the WebAssembly module file. The name can be a wildcard pattern, and global match will be used to match the name against the URL of the WebAssembly module file. Requires the `ms-vscode.wasm-dwarf-debugging` extension to function.",
+  "base.wasmModuleConfigurations.pathSubstitutions.description": "A path substitution specifies a string prefix pattern to be replaced with a new string. This is the pendant of the `set substitute-path old new` feature that is found in GDB and `settings set target.source-map old new` feature that is found in LLDB.",
   "browser.address.description": "IP address or hostname the debugged browser is listening on.",
   "browser.attach.port.description": "Port to use to remote debugging the browser, given as `--remote-debugging-port` when launching the browser.",
   "browser.baseUrl.description": "Base URL to resolve paths baseUrl. baseURL is trimmed when mapping URLs to the files on disk. Defaults to the launch URL domain.",
@@ -86,7 +88,9 @@
   "debug.terminal.toggleAuto": "Toggle Terminal Node.js Auto Attach",
   "debug.terminal.welcome": {
     "message": "[JavaScript Debug Terminal](command:extension.js-debug.createDebuggerTerminal)\n\nYou can use the JavaScript Debug Terminal to debug Node.js processes run on the command line.",
-    "comment": ["{Locked='](command:extension.js-debug.createDebuggerTerminal)'}"]
+    "comment": [
+      "{Locked='](command:extension.js-debug.createDebuggerTerminal)'}"
+    ]
   },
   "debug.terminal.welcomeWithLink": {
     "message": "[JavaScript Debug Terminal](command:extension.js-debug.createDebuggerTerminal)\n\nYou can use the JavaScript Debug Terminal to debug Node.js processes run on the command line.\n\n[Debug URL](command:extension.js-debug.debugLink)",

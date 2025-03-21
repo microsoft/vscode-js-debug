@@ -51,7 +51,8 @@
 <h5>Default value:</h4><pre><code>true</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
 <h5>Default value:</h4><pre><code>10000</pre></code><h4>timeouts</h4><p>Timeouts for several debugger operations.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
-<h5>Default value:</h4><pre><code>false</pre></code><h4>websocketAddress</h4><p>Exact websocket address to attach to. If unspecified, it will be discovered from the address and port.</p>
+<h5>Default value:</h4><pre><code>false</pre></code><h4>wasmModuleConfigurations</h4><p>Configuration for locating source files for a given WebAssembly module. If the name is <code>undefined</code>, the configuration is the default configuration, which is chosen if there&#39;s no named configuration matching the basename of the WebAssembly module file. The name can be a wildcard pattern, and global match will be used to match the name against the URL of the WebAssembly module file. Requires the <code>ms-vscode.wasm-dwarf-debugging</code> extension to function.</p>
+<h5>Default value:</h4><pre><code>[]</pre></code><h4>websocketAddress</h4><p>Exact websocket address to attach to. If unspecified, it will be discovered from the address and port.</p>
 <h5>Default value:</h4><pre><code>undefined</pre></code></details>
 
 ### node: launch
@@ -110,7 +111,8 @@
 <h5>Default value:</h4><pre><code>false</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
 <h5>Default value:</h4><pre><code>10000</pre></code><h4>timeouts</h4><p>Timeouts for several debugger operations.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
-<h5>Default value:</h4><pre><code>false</pre></code></details>
+<h5>Default value:</h4><pre><code>false</pre></code><h4>wasmModuleConfigurations</h4><p>Configuration for locating source files for a given WebAssembly module. If the name is <code>undefined</code>, the configuration is the default configuration, which is chosen if there&#39;s no named configuration matching the basename of the WebAssembly module file. The name can be a wildcard pattern, and global match will be used to match the name against the URL of the WebAssembly module file. Requires the <code>ms-vscode.wasm-dwarf-debugging</code> extension to function.</p>
+<h5>Default value:</h4><pre><code>[]</pre></code></details>
 
 ### node-terminal: launch
 
@@ -159,7 +161,8 @@
 <h5>Default value:</h4><pre><code>true</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
 <h5>Default value:</h4><pre><code>10000</pre></code><h4>timeouts</h4><p>Timeouts for several debugger operations.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
-<h5>Default value:</h4><pre><code>false</pre></code></details>
+<h5>Default value:</h4><pre><code>false</pre></code><h4>wasmModuleConfigurations</h4><p>Configuration for locating source files for a given WebAssembly module. If the name is <code>undefined</code>, the configuration is the default configuration, which is chosen if there&#39;s no named configuration matching the basename of the WebAssembly module file. The name can be a wildcard pattern, and global match will be used to match the name against the URL of the WebAssembly module file. Requires the <code>ms-vscode.wasm-dwarf-debugging</code> extension to function.</p>
+<h5>Default value:</h4><pre><code>[]</pre></code></details>
 
 ### extensionHost: launch
 
@@ -213,7 +216,8 @@
 <h5>Default value:</h4><pre><code>undefined</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
 <h5>Default value:</h4><pre><code>10000</pre></code><h4>timeouts</h4><p>Timeouts for several debugger operations.</p>
 <h5>Default value:</h4><pre><code>{}</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
-<h5>Default value:</h4><pre><code>false</pre></code></details>
+<h5>Default value:</h4><pre><code>false</pre></code><h4>wasmModuleConfigurations</h4><p>Configuration for locating source files for a given WebAssembly module. If the name is <code>undefined</code>, the configuration is the default configuration, which is chosen if there&#39;s no named configuration matching the basename of the WebAssembly module file. The name can be a wildcard pattern, and global match will be used to match the name against the URL of the WebAssembly module file. Requires the <code>ms-vscode.wasm-dwarf-debugging</code> extension to function.</p>
+<h5>Default value:</h4><pre><code>[]</pre></code></details>
 
 ### chrome: launch
 
@@ -268,7 +272,8 @@
 <h5>Default value:</h4><pre><code>[
   "${workspaceFolder}/**/*.vue",
   "!**/node_modules/**"
-]</pre></code><h4>webRoot</h4><p>This specifies the workspace absolute path to the webserver root. Used to resolve paths like <code>/app.js</code> to files on disk. Shorthand for a pathMapping for &quot;/&quot;</p>
+]</pre></code><h4>wasmModuleConfigurations</h4><p>Configuration for locating source files for a given WebAssembly module. If the name is <code>undefined</code>, the configuration is the default configuration, which is chosen if there&#39;s no named configuration matching the basename of the WebAssembly module file. The name can be a wildcard pattern, and global match will be used to match the name against the URL of the WebAssembly module file. Requires the <code>ms-vscode.wasm-dwarf-debugging</code> extension to function.</p>
+<h5>Default value:</h4><pre><code>[]</pre></code><h4>webRoot</h4><p>This specifies the workspace absolute path to the webserver root. Used to resolve paths like <code>/app.js</code> to files on disk. Shorthand for a pathMapping for &quot;/&quot;</p>
 <h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code></details>
 
 ### chrome: attach
@@ -317,7 +322,8 @@
 <h5>Default value:</h4><pre><code>[
   "${workspaceFolder}/**/*.vue",
   "!**/node_modules/**"
-]</pre></code><h4>webRoot</h4><p>This specifies the workspace absolute path to the webserver root. Used to resolve paths like <code>/app.js</code> to files on disk. Shorthand for a pathMapping for &quot;/&quot;</p>
+]</pre></code><h4>wasmModuleConfigurations</h4><p>Configuration for locating source files for a given WebAssembly module. If the name is <code>undefined</code>, the configuration is the default configuration, which is chosen if there&#39;s no named configuration matching the basename of the WebAssembly module file. The name can be a wildcard pattern, and global match will be used to match the name against the URL of the WebAssembly module file. Requires the <code>ms-vscode.wasm-dwarf-debugging</code> extension to function.</p>
+<h5>Default value:</h4><pre><code>[]</pre></code><h4>webRoot</h4><p>This specifies the workspace absolute path to the webserver root. Used to resolve paths like <code>/app.js</code> to files on disk. Shorthand for a pathMapping for &quot;/&quot;</p>
 <h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code></details>
 
 ### msedge: launch
@@ -375,7 +381,8 @@
 <h5>Default value:</h4><pre><code>[
   "${workspaceFolder}/**/*.vue",
   "!**/node_modules/**"
-]</pre></code><h4>webRoot</h4><p>This specifies the workspace absolute path to the webserver root. Used to resolve paths like <code>/app.js</code> to files on disk. Shorthand for a pathMapping for &quot;/&quot;</p>
+]</pre></code><h4>wasmModuleConfigurations</h4><p>Configuration for locating source files for a given WebAssembly module. If the name is <code>undefined</code>, the configuration is the default configuration, which is chosen if there&#39;s no named configuration matching the basename of the WebAssembly module file. The name can be a wildcard pattern, and global match will be used to match the name against the URL of the WebAssembly module file. Requires the <code>ms-vscode.wasm-dwarf-debugging</code> extension to function.</p>
+<h5>Default value:</h4><pre><code>[]</pre></code><h4>webRoot</h4><p>This specifies the workspace absolute path to the webserver root. Used to resolve paths like <code>/app.js</code> to files on disk. Shorthand for a pathMapping for &quot;/&quot;</p>
 <h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code></details>
 
 ### msedge: attach
@@ -425,5 +432,6 @@
 <h5>Default value:</h4><pre><code>[
   "${workspaceFolder}/**/*.vue",
   "!**/node_modules/**"
-]</pre></code><h4>webRoot</h4><p>This specifies the workspace absolute path to the webserver root. Used to resolve paths like <code>/app.js</code> to files on disk. Shorthand for a pathMapping for &quot;/&quot;</p>
+]</pre></code><h4>wasmModuleConfigurations</h4><p>Configuration for locating source files for a given WebAssembly module. If the name is <code>undefined</code>, the configuration is the default configuration, which is chosen if there&#39;s no named configuration matching the basename of the WebAssembly module file. The name can be a wildcard pattern, and global match will be used to match the name against the URL of the WebAssembly module file. Requires the <code>ms-vscode.wasm-dwarf-debugging</code> extension to function.</p>
+<h5>Default value:</h4><pre><code>[]</pre></code><h4>webRoot</h4><p>This specifies the workspace absolute path to the webserver root. Used to resolve paths like <code>/app.js</code> to files on disk. Shorthand for a pathMapping for &quot;/&quot;</p>
 <h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code></details>
