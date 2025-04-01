@@ -8,8 +8,22 @@ import { itIntegrates } from '../testIntegrationUtils';
 
 describe('completion', () => {
   const tcases: [string, Dap.CompletionItem[]][] = [
-    ['ar|', [{ label: 'arr', sortText: '~~arr', type: 'variable', detail: 'Array' }]],
-    ['ar|.length', [{ label: 'arr', sortText: '~~arr', type: 'variable', detail: 'Array' }]],
+    ['ar|', [{
+      label: 'arr',
+      sortText: '~~arr',
+      type: 'variable',
+      detail: 'Array',
+      start: 0,
+      length: 2,
+    }]],
+    ['ar|.length', [{
+      label: 'arr',
+      sortText: '~~arr',
+      type: 'variable',
+      detail: 'Array',
+      start: 0,
+      length: 2,
+    }]],
     [
       'arr.|',
       [
@@ -106,21 +120,51 @@ describe('completion', () => {
         },
       ],
     ],
-    ['ob|', [{ label: 'obj', sortText: '~~obj', type: 'variable', detail: 'Object' }]],
+    ['ob|', [{
+      label: 'obj',
+      sortText: '~~obj',
+      type: 'variable',
+      detail: 'Object',
+      start: 0,
+      length: 2,
+    }]],
     [
       'arr[myStr|',
-      [{ label: 'myString', sortText: '~~myString', type: 'variable', detail: 'string' }],
+      [{
+        label: 'myString',
+        sortText: '~~myString',
+        type: 'variable',
+        detail: 'string',
+        start: 4,
+        length: 5,
+      }],
     ],
     ['const replVar = 42; replV|', [{
       label: 'replVar',
       sortText: 'replVar',
       type: 'variable',
+      start: 20,
+      length: 5,
     }]],
     [
       'MyCoolCl|',
-      [{ label: 'MyCoolClass', sortText: '~~MyCoolClass', type: 'class', detail: 'fn()' }],
+      [{
+        label: 'MyCoolClass',
+        sortText: '~~MyCoolClass',
+        type: 'class',
+        detail: 'fn()',
+        start: 0,
+        length: 8,
+      }],
     ],
-    ['Strin|', [{ label: 'String', sortText: '~~String', type: 'class', detail: 'fn(?)' }]],
+    ['Strin|', [{
+      label: 'String',
+      sortText: '~~String',
+      type: 'class',
+      detail: 'fn(?)',
+      start: 0,
+      length: 5,
+    }]],
     [
       'myNeatFun|',
       [
@@ -129,6 +173,8 @@ describe('completion', () => {
           sortText: '~~myNeatFunction',
           type: 'function',
           detail: 'fn()',
+          start: 0,
+          length: 9,
         },
       ],
     ],
@@ -258,6 +304,8 @@ describe('completion', () => {
       {
         label: 'helloWorld',
         type: 'property',
+        start: 0,
+        length: 6,
       },
     ]);
   });
