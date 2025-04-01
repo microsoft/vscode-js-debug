@@ -217,6 +217,7 @@ export class Completions {
   ) {
     // Walk through the expression and look for any locally-declared variables or identifiers.
     const localIdentifiers: ICompletionWithSort[] = [];
+    const start = getStart(node);
     traverse(source, {
       enter(node) {
         const completion = inferCompletionInfoForDeclaration(node);
@@ -230,7 +231,7 @@ export class Completions {
       },
     });
 
-    const prefix = options.expression.slice(getStart(node), offset);
+    const prefix = options.expression.slice(start, offset);
     const completions = [
       ...localIdentifiers,
       ...(await this.defaultCompletions(options, prefix)),
@@ -246,6 +247,11 @@ export class Completions {
         label: returnValueStr,
         type: 'variable',
       });
+    }
+
+    for (const completion of completions) {
+      completion.start = start;
+      completion.length = offset - start;
     }
 
     return completions;
