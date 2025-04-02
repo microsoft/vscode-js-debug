@@ -73,6 +73,11 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
   public async urlToAbsolutePath({ url, map }: IUrlResolution): Promise<string | undefined> {
     url = this.normalizeSourceMapUrl(url);
 
+    // It's possible the source might be using the `sourceURL`, so apply
+    // any source map overrides now (fixes vscode#204784) and before file
+    // URIs (vscode-dwarf-debugging-ext#7)
+    url = this.sourceMapOverrides.apply(url);
+
     // Allow debugging of externally loaded Node internals
     // [ by building Node with ./configure --node-builtin-modules-path $(pwd) ]
     if (url.startsWith(localNodeInternalsPrefix) && this.options.basePath) {
