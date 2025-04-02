@@ -1252,7 +1252,7 @@ const configurationSchema: ConfigurationAttributes<IConfigurationTypes> = {
   },
   [Configuration.EnableNetworkView]: {
     type: 'boolean',
-    default: false,
+    default: true,
     description: refString('configuration.enableNetworkView'),
   },
 };

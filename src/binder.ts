@@ -174,6 +174,10 @@ export class Binder implements IDisposable {
 
       return {};
     });
+    dap.on('enableNetworking', () => {
+      // handled on a session level
+      return Promise.resolve({});
+    });
   }
 
   private readonly getLaunchers = once(() => {

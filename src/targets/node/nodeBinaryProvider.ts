@@ -132,13 +132,9 @@ export class NodeBinary {
       this.capabilities.add(Capability.UseInspectPublishUid);
     }
 
-    // todo@connor4312: the current API we get in Node.js is pretty tiny and
-    // I don't want to ship it by default in its current version, ref
-    // https://github.com/nodejs/node/pull/53593#issuecomment-2276367389
-    // Users can still turn it on by setting `experimentalNetworking: on`.
-    // if (version.gte(new Semver(22, 6, 0)) && version.lt(new Semver(24, 0, 0))) {
-    //   this.capabilities.add(Capability.UseExperimentalNetworking);
-    // }
+    if (version.gte(new Semver(22, 14, 0)) && version.lt(new Semver(24, 0, 0))) {
+      this.capabilities.add(Capability.UseExperimentalNetworking);
+    }
   }
 
   /**
