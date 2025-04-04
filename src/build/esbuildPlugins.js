@@ -39,17 +39,18 @@ exports.nativeNodeModulesPlugin = () => ({
   setup(build) {
     // If a ".node" file is imported within a module in the "file" namespace, resolve
     // it to an absolute path and put it into the "node-file" virtual namespace.
-    build.onResolve({ filter: /\.node$/, namespace: 'file' }, args => ({
-      path: require.resolve(args.path, { paths: [args.resolveDir] }),
-      namespace: 'node-file',
-    }));
+    build.onResolve({ filter: /\.node$/, namespace: 'file' }, args => {
+      return ({
+        path: require.resolve(args.path, { paths: [args.resolveDir] }),
+        namespace: 'node-file',
+      });
+    });
 
     // Files in the "node-file" virtual namespace call "require()" on the
     // path from esbuild of the ".node" file in the output directory.
     build.onLoad({ filter: /.*/, namespace: 'node-file' }, args => ({
       contents: `
-        import path from ${JSON.stringify(args.path)}
-        try { module.exports = require(path) }
+        try { module.exports = require(${JSON.stringify(args.path)}) }
         catch {}
       `,
     }));
@@ -66,7 +67,7 @@ exports.nativeNodeModulesPlugin = () => ({
     // these ".node" files.
     let opts = build.initialOptions;
     opts.loader = opts.loader || {};
-    opts.loader['.node'] = 'file';
+    opts.loader['.node'] = 'copy';
   },
 });
 

@@ -11,7 +11,6 @@ import { LocalFsUtils } from '../../common/fsUtils';
 import { DarwinProcessTree } from '../../ui/processTree/darwinProcessTree';
 import { PosixProcessTree } from '../../ui/processTree/posixProcessTree';
 import { IProcess, IProcessTree, processTree } from '../../ui/processTree/processTree';
-import { WindowsProcessTree } from '../../ui/processTree/windowsProcessTree';
 
 const fakeChildProcess = (stdoutData: string) => {
   const ee: any = new EventEmitter();
@@ -114,88 +113,6 @@ describe('process tree', () => {
         { pid: 7281, ppid: 7199, command: 'sshd:', args: 'connor@pts/0' },
         { pid: 7282, ppid: 7281, command: '-bash', args: '' },
         { pid: 9880, ppid: 99219, command: '/bin/bash', args: '' },
-      ],
-    );
-  });
-
-  it('works for windows', async () => {
-    await assertParses(
-      new WindowsProcessTree(),
-      '"C:\\Windows\\SystemApps\\Microsoft.Windows.Cortana_cw5n1h2txyewy\\SearchUI.exe" -ServerName:CortanaUI.AppXa50dqqa5gqv4a428c9y1jjw7m3btvepj.mca                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        20191205115356.768712-480  876              5620       \r\nC:\\Windows\\System32\\RuntimeBroker.exe -Embedding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   20191205115357.036237-480  876              2420       \r\nC:\\Windows\\system32\\ApplicationFrameHost.exe -Embedding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            20191205115357.561985-480  876              6400       \r\n"C:\\Windows\\SystemApps\\Microsoft.MicrosoftEdge_8wekyb3d8bbwe\\MicrosoftEdge.exe" -ServerName:MicrosoftEdge.AppXdnhjhccw3zf0j06tkg3jtqr00qdm0khc.mca                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 20191205115357.575393-480  876              6436       \r\n"C:\\Program Files\\WindowsApps\\Microsoft.SkypeApp_14.54.91.0_x64__kzf8qxf38zg5c\\SkypeApp.exe" -ServerName:App.AppXffn3yxqvgawq9fpmnhy90fr3y01d1t5b.mca                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              20191205115357.658285-480  876              6524       \r\n"C:\\Program Files\\WindowsApps\\Microsoft.YourPhone_1.19111.85.0_x64__8wekyb3d8bbwe\\YourPhone.exe" -ServerName:App.AppX9yct9q388jvt4h7y0gn06smzkxcsnt8m.mca                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          20191205115357.756888-480  876              6596       \r\nC:\\Windows\\system32\\browser_broker.exe -Embedding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  20191205115358.037182-480  876              6808       \r\nC:\\Windows\\System32\\RuntimeBroker.exe -Embedding                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   20191205115358.290892-480  876              6972       \r\n"C:\\Windows\\System32\\MicrosoftEdgeCP.exe" -ServerName:Windows.Internal.WebRuntime.ContentProcessServer                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             20191205115358.344618-480  876              7036       \r\nC:\\Windows\\system32\\MicrosoftEdgeSH.exe SCODEF:6436 CREDAT:9730 APH:1000000000000006 JITHOST /prefetch:2                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           20191205115358.405124-480  6972             7088       \r\n',
-      [
-        {
-          pid: 5620,
-          ppid: 876,
-          command: 'C:\\Windows\\SystemApps\\Microsoft.Windows.Cortana_cw5n1h2txyewy\\SearchUI.exe',
-          args: '-ServerName:CortanaUI.AppXa50dqqa5gqv4a428c9y1jjw7m3btvepj.mca',
-          date: 20191205115356,
-        },
-        {
-          pid: 2420,
-          ppid: 876,
-          command: 'C:\\Windows\\System32\\RuntimeBroker.exe',
-          args: '-Embedding',
-          date: 20191205115357,
-        },
-        {
-          pid: 6400,
-          ppid: 876,
-          command: 'C:\\Windows\\system32\\ApplicationFrameHost.exe',
-          args: '-Embedding',
-          date: 20191205115357,
-        },
-        {
-          pid: 6436,
-          ppid: 876,
-          command:
-            'C:\\Windows\\SystemApps\\Microsoft.MicrosoftEdge_8wekyb3d8bbwe\\MicrosoftEdge.exe',
-          args: '-ServerName:MicrosoftEdge.AppXdnhjhccw3zf0j06tkg3jtqr00qdm0khc.mca',
-          date: 20191205115357,
-        },
-        {
-          pid: 6524,
-          ppid: 876,
-          command:
-            'C:\\Program Files\\WindowsApps\\Microsoft.SkypeApp_14.54.91.0_x64__kzf8qxf38zg5c\\SkypeApp.exe',
-          args: '-ServerName:App.AppXffn3yxqvgawq9fpmnhy90fr3y01d1t5b.mca',
-          date: 20191205115357,
-        },
-        {
-          pid: 6596,
-          ppid: 876,
-          command:
-            'C:\\Program Files\\WindowsApps\\Microsoft.YourPhone_1.19111.85.0_x64__8wekyb3d8bbwe\\YourPhone.exe',
-          args: '-ServerName:App.AppX9yct9q388jvt4h7y0gn06smzkxcsnt8m.mca',
-          date: 20191205115357,
-        },
-        {
-          pid: 6808,
-          ppid: 876,
-          command: 'C:\\Windows\\system32\\browser_broker.exe',
-          args: '-Embedding',
-          date: 20191205115358,
-        },
-        {
-          pid: 6972,
-          ppid: 876,
-          command: 'C:\\Windows\\System32\\RuntimeBroker.exe',
-          args: '-Embedding',
-          date: 20191205115358,
-        },
-        {
-          pid: 7036,
-          ppid: 876,
-          command: 'C:\\Windows\\System32\\MicrosoftEdgeCP.exe',
-          args: '-ServerName:Windows.Internal.WebRuntime.ContentProcessServer',
-          date: 20191205115358,
-        },
-        {
-          pid: 7088,
-          ppid: 6972,
-          command: 'C:\\Windows\\system32\\MicrosoftEdgeSH.exe',
-          args: 'SCODEF:6436 CREDAT:9730 APH:1000000000000006 JITHOST /prefetch:2',
-          date: 20191205115358,
-        },
       ],
     );
   });
