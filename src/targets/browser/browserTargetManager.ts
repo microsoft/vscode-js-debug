@@ -260,7 +260,9 @@ export class BrowserTargetManager implements IDisposable {
     // Also for service workers: https://bugs.chromium.org/p/chromium/issues/detail?id=1281013
     if (!jsTypes.has(type) || type === BrowserTargetType.ServiceWorker) {
       target.runIfWaitingForDebugger();
-    } else if (type === BrowserTargetType.Page && waitForDebuggerOnStart) {
+    } else if (
+      type === BrowserTargetType.Page && waitForDebuggerOnStart && !targetInfo.canAccessOpener
+    ) {
       cdp.Page.waitForDebugger({});
     }
 
