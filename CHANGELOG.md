@@ -7,6 +7,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - fix: explicitly specify completion ranges ([vscode#243409](https://github.com/microsoft/vscode/issues/243409))
 - fix: memory leak between debug sessions ([#2173](https://github.com/microsoft/vscode-js-debug/issues/2173))
 - fix: support `npm.scriptRunner: node`
+- fix: copy multiline values as template literals ([vscode#241008](https://github.com/microsoft/vscode/issues/241008))
 - fix: support "attach to node process" without wmic.exe and on arm64 ([vscode#244139](https://github.com/microsoft/vscode/issues/244139))
 - fix: support webview2 debugging on arm64
 - fix: race condition when opening attached windows ([vscode#239769](https://github.com/microsoft/vscode/issues/239769))
