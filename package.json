@@ -55,7 +55,7 @@
     "@jridgewell/trace-mapping": "^0.3.22",
     "@vscode/js-debug-browsers": "^1.1.2",
     "@vscode/l10n": "^0.0.18",
-    "@vscode/win32-app-container-tokens": "^0.1.0",
+    "@vscode/win32-app-container-tokens": "^0.2.0",
     "acorn": "^8.11.3",
     "acorn-loose": "^8.4.0",
     "astring": "^1.8.6",

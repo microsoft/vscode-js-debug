@@ -4,6 +4,7 @@
 
 import { inject, injectable, optional } from 'inversify';
 import { connect, Socket } from 'net';
+import { join } from 'path';
 import type * as vscodeType from 'vscode';
 import Connection from '../../cdp/connection';
 import { RawPipeTransport } from '../../cdp/rawPipeTransport';
@@ -12,6 +13,7 @@ import { DebugType } from '../../common/contributionUtils';
 import { ILogger } from '../../common/logging';
 import { some } from '../../common/promiseUtil';
 import { ISourcePathResolver } from '../../common/sourcePathResolver';
+import { getWinUtils } from '../../common/win32Utils';
 import { AnyLaunchConfiguration, IEdgeAttachConfiguration } from '../../configuration';
 import { noUwpPipeFound, uwpPipeNotAvailable } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
@@ -51,8 +53,8 @@ export class UWPWebviewBrowserAttacher extends BrowserAttacher<IEdgeParamsWithWe
     context: ILaunchContext,
     params: IEdgeParamsWithWebviewPipe,
   ): Promise<Connection> {
-    const { getAppContainerProcessTokens } = await import('@vscode/win32-app-container-tokens');
-    const pipeNames = getAppContainerProcessTokens(params.useWebView.pipeName);
+    const { getAppContainerProcessTokens } = await getWinUtils();
+    const pipeNames = getAppContainerProcessTokens().map(n => join(n, params.useWebView.pipeName));
     if (!pipeNames) {
       throw new ProtocolError(uwpPipeNotAvailable());
     }
