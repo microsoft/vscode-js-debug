@@ -92,6 +92,7 @@ export class BrowserTarget implements ITarget {
   }
 
   _children: Map<Cdp.Target.TargetID, BrowserTarget> = new Map();
+  willWaitForDebugger: Promise<unknown> = Promise.resolve();
 
   public readonly sourcePathResolver = this._manager._sourcePathResolver;
 
@@ -150,7 +151,9 @@ export class BrowserTarget implements ITarget {
 
   async runIfWaitingForDebugger() {
     await Promise.all([
-      this._cdp.Runtime.runIfWaitingForDebugger({}),
+      // If it can access the opener, the debugger state is shared with the parent,
+      // and calling `runIfWaitingForDebugger` can resume the parent.
+      !this._targetInfo.canAccessOpener && this._cdp.Runtime.runIfWaitingForDebugger({}),
       this._cdp.Runtime.evaluate({ expression: signalReadyExpr() }),
     ]);
   }
