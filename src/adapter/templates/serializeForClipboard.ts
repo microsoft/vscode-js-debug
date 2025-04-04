@@ -121,8 +121,13 @@ export const serializeForClipboardTmpl = templateFunction(function(
           ),
           indent.repeat(level) + '}',
         ].join(eol);
-      case 'string':
-        return JSON.stringify(value);
+      case 'string': {
+        if (value.includes('\n')) {
+          return '`' + value.replace(/[`\\\\]|\${/g, '\\$&') + '`';
+        } else {
+          return JSON.stringify(value);
+        }
+      }
       case 'symbol':
         return value.toString();
       case 'undefined':

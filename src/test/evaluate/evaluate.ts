@@ -252,13 +252,18 @@ describe('evaluate', () => {
     'new Date(1665007127286)': '"2022-10-05T21:58:47.286Z"',
     '(() => { const node = document.createElement("div"); node.innerText = "hi"; return node })()':
       `<div>hi</div>`,
+    '"hello\\nmu`lti${line}"': '`hello\nmu\\`lti\\${line}`',
+  };
+
+  const fnCopyExpressions = {
+    '"hello"': 'hello',
+    '"hello\\nmu`lti${line}"': 'hello\nmu`lti${line}',
   };
 
   itIntegrates('copy via function', async ({ r }) => {
     const p = await r.launchAndLoad('blank');
-    p.dap.evaluate({ expression: 'var x = "hello"; copy(x)' });
-    expect((await p.dap.once('copyRequested')).text).to.equal('hello');
-    for (const [expression, expected] of Object.entries(copyExpressions)) {
+    const mapping = { ...copyExpressions, ...fnCopyExpressions };
+    for (const [expression, expected] of Object.entries(mapping)) {
       p.dap.evaluate({ expression: `copy(${expression})` });
       const actual = await p.dap.once('copyRequested');
       expect(actual.text).to.equal(expected, expression);
