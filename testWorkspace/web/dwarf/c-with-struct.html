@@ -1,0 +1,14 @@
+<!doctype html>
+<html>
+    <head>
+        <title>C with struct</title>
+        <meta charset="utf-8">
+    </head>
+    <body>
+    </body>
+    <script>
+        WebAssembly
+            .instantiateStreaming(fetch('c-with-struct.wasm'))
+            .then(({ instance }) => instance.exports._start());
+    </script>
+</html>

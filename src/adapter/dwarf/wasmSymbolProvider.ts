@@ -345,7 +345,7 @@ export interface IWasmSymbols extends IDisposable {
     callFrameId: string,
     position: IPosition,
     expression: string,
-  ): Promise<Cdp.Runtime.RemoteObject | undefined>;
+  ): Promise<IWasmVariableEvaluation>;
 
   /**
    * Gets ranges that should be stepped for the given step kind and location.
@@ -681,9 +681,9 @@ class WasmSymbols extends DecompiledWasmSymbols {
     callFrameId: string,
     position: IPosition,
     expression: string,
-  ): Promise<Cdp.Runtime.RemoteObject | undefined> {
+  ): Promise<IWasmVariableEvaluation> {
     try {
-      const r = await this.worker.rpc.sendMessage(
+      const result = await this.worker.rpc.sendMessage(
         'evaluate',
         expression,
         {
@@ -694,8 +694,7 @@ class WasmSymbols extends DecompiledWasmSymbols {
         this.worker.getStopId(callFrameId),
       );
 
-      // cast since types in dwarf-debugging are slightly different than generated cdp API
-      return (r as Cdp.Runtime.RemoteObject) ?? undefined;
+      return result ? new WasmVariableEvaluation(result, this.worker.rpc) : nullType;
     } catch (e) {
       // errors are expected here if the user tries to evaluate expressions
       // the simple lldb-eval can't handle.

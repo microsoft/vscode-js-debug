@@ -287,6 +287,14 @@ class VariableContext {
     return this.createVariable(Variable, ctx, object);
   }
 
+  public createWasmVariable(
+    ctx: IContextInit,
+    evaluation: IWasmVariableEvaluation,
+    scopeRef: IScopeRef,
+  ) {
+    return this.createVariable(WasmVariable, ctx, evaluation, scopeRef);
+  }
+
   /**
    * Ensures symbols for custom descriptions are available, must be used
    * before getStringProps/getToStringIfCustom
@@ -1430,6 +1438,22 @@ export class VariableStore {
   public createFloatingVariable(expression: string, value: Cdp.Runtime.RemoteObject): IVariable {
     const ctx = this.createFloatingContext();
     return ctx.createVariableByType({ name: expression }, value);
+  }
+
+  /** Creates a wasm variable not attached to any specific scope. */
+  public createFloatingWasmVariable(
+    expression: string,
+    evaluation: IWasmVariableEvaluation,
+    stackFrame: StackFrame,
+    callFrameId: Cdp.Debugger.CallFrameId,
+  ): IVariable {
+    const ctx = this.createFloatingContext();
+    const scopeRef: IScopeRef = {
+      stackFrame,
+      callFrameId,
+      scopeNumber: 0, // this is only used for setting variables, which wasm doesn't support
+    };
+    return ctx.createWasmVariable({ name: expression }, evaluation, scopeRef);
   }
 
   /**

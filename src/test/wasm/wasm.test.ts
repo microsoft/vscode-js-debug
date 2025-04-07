@@ -227,5 +227,19 @@ describe('webassembly', () => {
 
       r.assertLog();
     });
+
+    itIntegrates('does lldb evaluation for structs', async ({ r, context }) => {
+      const p = await prepare(r, context, 'c-with-struct', {
+        source: { path: 'web/dwarf/c-with-struct.c' },
+        breakpoints: [{ line: 11 }],
+      });
+
+      const { threadId } = p.log(await p.dap.once('stopped'));
+      const { id: frameId } = (await p.dap.stackTrace({ threadId })).stackFrames[0];
+
+      await p.logger.evaluateAndLog('(data_t*)data', { params: { frameId }, depth: 3 });
+
+      r.assertLog();
+    });
   });
 });
