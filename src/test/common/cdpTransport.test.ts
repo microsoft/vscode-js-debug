@@ -61,7 +61,7 @@ describe('cdp transport', () => {
         b.onMessage(([msg]) => actual.push(msg));
 
         for (let i = 0; i < rawData.length;) {
-          const consume = Math.floor(Math.random() * 20);
+          const consume = 1 + Math.floor(Math.random() * 20);
           const str = rawData.slice(i, i + consume).toString('base64');
           expected.push(str);
           a.send(str);
