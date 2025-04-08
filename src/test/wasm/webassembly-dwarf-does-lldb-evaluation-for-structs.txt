@@ -1,0 +1,23 @@
+{
+    allThreadsStopped : false
+    description : Paused on breakpoint
+    reason : breakpoint
+    threadId : <number>
+}
+> result: data_t *
+    > 0x10408: data_t
+        > id: char[12]
+            0: 'H'
+            1: 'e'
+            2: 'l'
+            3: 'l'
+            4: 'o'
+            5: ' '
+            6: 'w'
+            7: 'o'
+            8: 'r'
+            9: 'l'
+            10: 'd'
+            11: '\0'
+        x: 12
+        y: 34

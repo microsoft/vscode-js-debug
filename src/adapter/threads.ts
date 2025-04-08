@@ -524,11 +524,10 @@ export class Thread implements IVariableStoreLocationProvider {
     );
 
     const result = await symbols.evaluate(cfId, position, args.expression);
-    if (result) {
-      return await variables
-        .createFloatingVariable(args.expression, result)
-        .toDap(args.context as PreviewContextType, args.format);
-    }
+
+    return await variables
+      .createFloatingWasmVariable(args.expression, result, root, cfId)
+      .toDap(args.context as PreviewContextType, args.format);
   }
 
   /**

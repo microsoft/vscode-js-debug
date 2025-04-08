@@ -12,7 +12,8 @@ export const readMemory = remoteFunction(function(
   start: number,
   count: number,
 ) {
-  const { buffer, byteLength, byteOffset } = this instanceof ArrayBuffer
+  const { buffer, byteLength, byteOffset } = (this instanceof ArrayBuffer
+      || (typeof SharedArrayBuffer !== 'undefined' && this instanceof SharedArrayBuffer))
     ? new DataView(this)
     : this instanceof WebAssembly.Memory
     ? new DataView(this.buffer)
