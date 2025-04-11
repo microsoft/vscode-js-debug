@@ -33,7 +33,7 @@ export const extractScopeRenames = async (source: string, sourceMap: SourceMap) 
   ) => {
     // keep things as numbers for performance: number in upper bits (until MAX_SAFE_INTEGER),
     // column in lower 32 bits.
-    const cacheKey = (generatedLineBase0 * 0x7fffffff) | generatedColumnBase0;
+    const cacheKey = (generatedLineBase0 * 0x7fffffff) + generatedColumnBase0;
     if (usedMappings.has(cacheKey)) {
       return undefined;
     }
@@ -75,16 +75,10 @@ export const extractScopeRenames = async (source: string, sourceMap: SourceMap) 
 
         const generatedLineBase0 = i;
         const generatedColumnBase0 = mapping[0];
-        if (
-          generatedLineBase0 === node.range.begin.base0.lineNumber
-          && node.range.begin.base0.columnNumber > generatedColumnBase0
-        ) {
+        if (generatedLineBase0 === start.lineNumber && start.columnNumber > generatedColumnBase0) {
           continue;
         }
-        if (
-          generatedLineBase0 === node.range.end.base0.lineNumber
-          && node.range.end.base0.columnNumber < generatedColumnBase0
-        ) {
+        if (generatedLineBase0 === end.lineNumber && end.columnNumber < generatedColumnBase0) {
           continue;
         }
 
