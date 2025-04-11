@@ -83,7 +83,7 @@ export class Base1Position implements IPosition {
 }
 
 /**
- * A position that starts a line 0 and column 1 (used by sourcemaps).
+ * A position that starts a line 1 and column 0 (used by sourcemaps).
  */
 export class Base01Position implements IPosition {
   declare readonly __isBase01: undefined;
