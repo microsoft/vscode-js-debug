@@ -130,6 +130,14 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
    */
   private bootloaderFile = once(this.getBootloaderFile.bind(this));
 
+  /**
+   * Map of all cached openers we've seen. It's possible for a command to run
+   * and spawn another command and then exit. We want to make that command
+   * debuggable so long as there is anyone in the tree to parent to, so we
+   * can use this tree to look that up (where targets are deleted once exited).
+   */
+  private seenOpeners = new Map</* opener ID */ string, { openedBy: string | undefined }>();
+
   constructor(
     @inject(INodeBinaryProvider) private readonly pathProvider: INodeBinaryProvider,
     @inject(ILogger) protected readonly logger: ILogger,
@@ -391,6 +399,13 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
       targetInfo.processId = Number(targetInfo.targetId); // old bootloaders
     }
 
+    let livingOpenerId = targetInfo.openerId;
+    while (
+      livingOpenerId && !this.targets.get(livingOpenerId) && this.seenOpeners.has(livingOpenerId)
+    ) {
+      livingOpenerId = this.seenOpeners.get(livingOpenerId)?.openedBy;
+    }
+
     const target = new NodeTarget(
       this.run.params,
       this.run.context.targetOrigin,
@@ -399,9 +414,10 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
       targetInfo,
       this.run.logger,
       this.createLifecycle(cdp, this.run, targetInfo),
-      targetInfo.openerId ? this.targets.get(targetInfo.openerId) : undefined,
+      livingOpenerId ? this.targets.get(livingOpenerId) : undefined,
     );
 
+    this.seenOpeners.set(targetInfo.targetId, { openedBy: targetInfo.openerId });
     this.listenToWorkerDomain(cdp, telemetryReporter, target);
     this.targets.add(targetInfo.targetId, target);
     target.onDisconnect(() => this.targets.remove(targetInfo.targetId));
