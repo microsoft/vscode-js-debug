@@ -33,7 +33,8 @@ export abstract class NodeAttacherBase<T extends AnyNodeConfiguration> extends N
       + '})()'
       + getSourceSuffix();
 
-    for (let retries = 0; retries < 200; retries++) {
+    // We don't need to set the environment in React Native, so let's just skip it.
+    for (let retries = 0; retries < 0; retries++) {
       const result = await cdp.Runtime.evaluate({
         contextId: 1,
         returnByValue: true,
