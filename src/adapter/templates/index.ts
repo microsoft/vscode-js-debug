@@ -6,6 +6,7 @@ import { Node, parseExpressionAt } from 'acorn';
 import { randomBytes } from 'crypto';
 import { Expression } from 'estree';
 import Cdp from '../../cdp/api';
+import { Base0Position, Range } from '../../common/positions';
 import { SourceConstants } from '../../common/sourceUtils';
 
 /**
@@ -18,6 +19,7 @@ export const makeInternalSourceUrl = () =>
 
 export type TemplateFunction<A extends unknown[]> = {
   expr: (...args: A) => string;
+  exprArgRanges: (...args: A) => Range[];
   decl: (...args: A) => string;
 };
 
@@ -88,14 +90,29 @@ function templateFunctionStr<Args extends string[]>(
   });
 
   const { start, end } = decl.body as unknown as Node;
-  const inner = (args: string[]) => `
-    ${args.map((a, i) => `let ${params[i]} = ${a}`).join('; ')};
-    ${stringified.slice(start + 1, end - 1)}
-  `;
+  const inner = (args: string[], prefix: string, suffix: string) => {
+    let out = prefix;
+    const argRanges: Range[] = [];
+    for (const [i, arg] of args.entries()) {
+      out += `let ${params[i]}=`;
+      argRanges.push(
+        new Range(new Base0Position(0, out.length), new Base0Position(0, out.length + arg.length)),
+      );
+      out += arg;
+      out += ';';
+    }
+
+    out += stringified.slice(start + 1, end - 1);
+    out += suffix;
+    out += `\n${getSourceSuffix(sourceURL)}`;
+
+    return { out, argRanges };
+  };
+
   return {
-    expr: (...args: Args) => `(()=>{${inner(args)}})();\n${getSourceSuffix(sourceURL)}`,
-    decl: (...args: Args) =>
-      `function(...runtimeArgs){${inner(args)};\n${getSourceSuffix(sourceURL)}}`,
+    expr: (...args: Args) => inner(args, '(()=>{', '})();').out,
+    exprArgRanges: (...args: Args) => inner(args, '(()=>{', '})();').argRanges,
+    decl: (...args: Args) => inner(args, 'function(...runtimeArgs){', '};').out,
   };
 }
 
