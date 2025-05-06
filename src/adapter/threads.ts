@@ -539,20 +539,25 @@ export class Thread implements IVariableStoreLocationProvider {
     variables: VariableStore,
   ): Promise<Dap.Variable> {
     // For clipboard evaluations, return a safe JSON-stringified string.
-    const params: Cdp.Runtime.EvaluateParams = args.context === 'clipboard'
-      ? {
+    let params: Cdp.Runtime.EvaluateParams;
+    let transformRanges: Range[] | undefined;
+    if (args.context === 'clipboard') {
+      transformRanges = serializeForClipboardTmpl.exprArgRanges(args.expression, '2');
+      params = {
         expression: serializeForClipboardTmpl.expr(args.expression, '2'),
         includeCommandLineAPI: true,
         returnByValue: true,
         objectGroup: 'console',
-      }
-      : {
+      };
+    } else {
+      params = {
         expression: args.expression,
         includeCommandLineAPI: true,
         objectGroup: 'console',
         generatePreview: true,
         timeout: args.context === 'hover' ? this.getHoverEvalTimeout() : undefined,
       };
+    }
 
     if (args.context === 'repl') {
       params.expression = sourceUtils.wrapObjectLiteral(params.expression);
@@ -590,7 +595,7 @@ export class Thread implements IVariableStoreLocationProvider {
           ...params,
           contextId: this._selectedContext ? this._selectedContext.description.id : undefined,
         },
-      { isInternalScript: false, stackFrame: stackFrame?.root, location },
+      { isInternalScript: false, stackFrame: stackFrame?.root, location, transformRanges },
     );
 
     // Report result for repl immediately so that the user could see the expression they entered.

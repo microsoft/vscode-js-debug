@@ -10,7 +10,7 @@ import { inject, injectable } from 'inversify';
 import Cdp from '../cdp/api';
 import { ICdpApi } from '../cdp/connection';
 import { ILogger, LogTag } from '../common/logging';
-import { Base1Position, IPosition, Range } from '../common/positions';
+import { Base01Position, Base1Position, IPosition, Range } from '../common/positions';
 import { findIndexAsync } from '../common/promiseUtil';
 import { parseProgram, replace } from '../common/sourceCodeManipulations';
 import { IRenameProvider, RenameMapping } from '../common/sourceMaps/renameProvider';
@@ -100,6 +100,13 @@ interface IEvaluatorBaseOptions {
    * not be shown in the sources directory.
    */
   isInternalScript?: boolean;
+
+  /**
+   * A list of ranges in the expression where transformations can happen.
+   * If this is present, any expression outside of the ranges will be
+   * be untouched.
+   */
+  transformRanges?: Range[];
 }
 
 export interface IPrepareOptions extends IEvaluatorBaseOptions {
@@ -169,7 +176,7 @@ export class Evaluator implements IEvaluator {
    */
   public prepare(
     expression: string,
-    { isInternalScript, hoist, renames }: IPrepareOptions = {},
+    { isInternalScript, hoist, renames, transformRanges }: IPrepareOptions = {},
   ): { canEvaluateDirectly: boolean; invoke: PreparedCallFrameExpr } {
     if (isInternalScript !== false) {
       expression += getSourceSuffix();
@@ -185,7 +192,12 @@ export class Evaluator implements IEvaluator {
       toHoist.set(key, makeHoistedName());
     }
 
-    let { transformed, hoisted } = this.replaceVariableInExpression(expression, toHoist, renames);
+    let { transformed, hoisted } = this.replaceVariableInExpression(
+      expression,
+      toHoist,
+      renames,
+      transformRanges,
+    );
     if (!hoisted.size) {
       return {
         canEvaluateDirectly: true,
@@ -361,6 +373,7 @@ export class Evaluator implements IEvaluator {
     expr: string,
     hoistMap: Map<string, /* identifier */ string /* hoised */>,
     renames: RenamePrepareOptions | undefined,
+    transformRanges: Range[] | undefined,
   ): { hoisted: Set<string>; transformed: string } {
     const hoisted = new Set<string>();
     let mutated = false;
@@ -389,6 +402,20 @@ export class Evaluator implements IEvaluator {
         const asAcorn = node as AcornNode;
         if (node.type !== 'Identifier' || expr[asAcorn.start - 1] === '.') {
           return;
+        }
+
+        if (transformRanges) {
+          if (!node.loc) {
+            throw new Error('Node should have location');
+          }
+
+          const lr = new Range(
+            new Base01Position(node.loc.start.line, node.loc.start.column),
+            new Base01Position(node.loc.end.line, node.loc.end.column),
+          );
+          if (!transformRanges.some(r => r.containsRange(lr))) {
+            return;
+          }
         }
 
         const hoistName = hoistMap.get(node.name);
