@@ -517,7 +517,8 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
     cdp: Cdp.Api,
     run: IRunData<T>,
   ): Promise<IProcessTelemetry | undefined> {
-    for (let retries = 0; retries < 8; retries++) {
+    // this always fails on React Native, so we just skip it outright.
+    for (let retries = 0; retries < 0; retries++) {
       const telemetry = await cdp.Runtime.evaluate({
         contextId: 1,
         returnByValue: true,

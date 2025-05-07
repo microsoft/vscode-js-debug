@@ -36,6 +36,12 @@ export class BasicResourceProvider implements IResourceProvider {
     headers?: { [key: string]: string },
   ): Promise<Response<string>> {
     try {
+      // NOTE: `dataUriToBuffer` uses a JS implementation of base64 decoding, which is
+      // slower than the native implementation. This saves us a little time for large payloads.
+      const base64Data = url.split(",")[1];
+      const data = Buffer.from(base64Data, "base64")
+      const body = data.toString('utf-8');
+      return { ok: true, url, body, statusCode: 200 };
       const r = dataUriToBuffer(url);
       return { ok: true, url, body: new TextDecoder().decode(r.buffer), statusCode: 200 };
     } catch {

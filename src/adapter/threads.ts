@@ -931,6 +931,8 @@ export class Thread implements IVariableStoreLocationProvider {
   }
 
   private _installWasmPauseHandler(contextId: number) {
+    // No WASM in React Native, no point in doing this.
+    return undefined;
     // WASM files don't have sourcemaps and so aren't paused in the usual
     // instrumentation BP. But we do need to pause, either to figure out the WAT
     // lines or by mapping symbolicated files.
@@ -945,11 +947,11 @@ export class Thread implements IVariableStoreLocationProvider {
     // }),
     //
     // For now, overwrite WebAssembly methods in the runtime to get the same effect. This needs to be run in event new execution context:
-    return this._cdp.Runtime.evaluate({
-      expression: breakOnWasmInit.expr(),
-      silent: true,
-      contextId,
-    });
+    // this._cdp.Runtime.evaluate({
+    //   expression: breakOnWasmInit.expr(),
+    //   silent: true,
+    //   contextId,
+    // });
   }
 
   private async _executionContextDestroyed(contextId: number) {
