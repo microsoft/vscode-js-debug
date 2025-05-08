@@ -299,6 +299,10 @@ export class NodeBinaryProvider implements INodeBinaryProvider {
     // script that boots Node by itself, for instance) try to find Node itself
     // on the path as a fallback.
     const exeName = getNormalizedBinaryName(location);
+    if (exeName === 'deno') {
+      return new NodeBinary(location, new Semver(20, 0, 0)); // approximately
+    }
+
     if (!nodeOrElectronBinaries.includes(exeName)) {
       if (isPackageManager(location)) {
         const packageJson = await this.packageJson.getPath();
