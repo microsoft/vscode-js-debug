@@ -85,6 +85,7 @@
   "devDependencies": {
     "@c4312/matcha": "^1.3.1",
     "@dprint/linux-x64-glibc": "^0.49.1",
+    "@esbuild/linux-x64": "0.25.4",
     "@pptr/testrunner": "^0.8.0",
     "@types/chai": "^4.3.11",
     "@types/chai-as-promised": "^7.1.8",

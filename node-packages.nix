@@ -184,6 +184,15 @@ let
         sha512 = "MjFE894mIQXOKBencuakKyzAI4KcDe/p0Y9lRp9YSw/FneR4QWH9VBH90h8fRxcIlWMArjFFJJAtsBnn5qgxeg==";
       };
     };
+    "@esbuild/linux-x64-0.25.4" = {
+      name = "_at_esbuild_slash_linux-x64";
+      packageName = "@esbuild/linux-x64";
+      version = "0.25.4";
+      src = fetchurl {
+        url = "https://registry.npmjs.org/@esbuild/linux-x64/-/linux-x64-0.25.4.tgz";
+        sha512 = "6e0cvXwzOnVWJHq+mskP8DNSrKBr1bULBvnFLpc1KY+d+irZSgZ02TGse5FsafKS5jg2e4pbvK6TPXaF/A6+CA==";
+      };
+    };
     "@eslint-community/eslint-utils-4.7.0" = {
       name = "_at_eslint-community_slash_eslint-utils";
       packageName = "@eslint-community/eslint-utils";
@@ -9668,6 +9677,7 @@ let
         ];
       })
       sources."@dprint/linux-x64-glibc-0.49.1"
+      sources."@esbuild/linux-x64-0.25.4"
       sources."@eslint-community/eslint-utils-4.7.0"
       sources."@eslint-community/regexpp-4.12.1"
       (sources."@eslint/eslintrc-2.1.4" // {
