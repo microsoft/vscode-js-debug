@@ -132,7 +132,7 @@ export class BootloaderEnvironment {
       return undefined;
     }
 
-    const ownOptions = value.split(variableDelimiter).find(v => !!v);
+    const ownOptions = value.split(variableDelimiter).reverse().find(v => !!v);
     if (!ownOptions) {
       return;
     }
