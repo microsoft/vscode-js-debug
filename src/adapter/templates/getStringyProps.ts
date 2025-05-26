@@ -40,7 +40,12 @@ export const getStringyProps = templateFunction(function(
     return out;
   }
 
-  for (const [key, value] of Object.entries(this)) {
+  const descriptors = Object.getOwnPropertyDescriptors(this);
+  for (const [key, descriptor] of Object.entries(descriptors)) {
+    if (!descriptor.enumerable || descriptor.get) {
+      continue;
+    }
+    const value = descriptor.value;
     if (customToString) {
       try {
         const repr = customToString.call(value, defaultPlaceholder);
