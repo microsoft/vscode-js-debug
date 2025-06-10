@@ -14,6 +14,7 @@ import { DisposableList } from '../../../common/disposable';
 import { EventEmitter } from '../../../common/events';
 import { ILogger } from '../../../common/logging';
 import { delay } from '../../../common/promiseUtil';
+import { KillBehavior } from '../../../configuration';
 import { killTree } from '../../node/killTree';
 import { constructInspectorWSUri } from '../constructInspectorWSUri';
 import { retryGetBrowserEndpoint } from './endpoints';
@@ -130,6 +131,7 @@ export class ChildProcessBrowserProcess implements IBrowserProcess {
   constructor(
     private readonly cp: ChildProcessWithoutNullStreams,
     private readonly logger: ILogger,
+    private readonly killBehavior: KillBehavior,
   ) {
     cp.on('exit', code => this.exitEmitter.fire(code || 0));
     cp.on('error', error => this.errorEmitter.fire(error));
@@ -165,7 +167,7 @@ export class ChildProcessBrowserProcess implements IBrowserProcess {
    * @inheritdoc
    */
   public kill() {
-    killTree(this.cp.pid as number, this.logger);
+    killTree(this.cp.pid as number, this.logger, this.killBehavior);
   }
 }
 

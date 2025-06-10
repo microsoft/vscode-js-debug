@@ -13,6 +13,7 @@ import { canAccess } from '../../common/fsUtils';
 import { ILogger, LogTag } from '../../common/logging';
 import { formatSubprocessArguments } from '../../common/processUtils';
 import { delay } from '../../common/promiseUtil';
+import { KillBehavior } from '../../configuration';
 import Dap from '../../dap/api';
 import { browserProcessExitedBeforePort } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
@@ -46,6 +47,7 @@ interface ILaunchOptions {
   url?: string | null;
   promisedPort?: Promise<number>;
   inspectUri?: string | null;
+  killBehavior?: KillBehavior;
   cleanUp?: 'wholeBrowser' | 'onlyTab';
 }
 
@@ -74,6 +76,7 @@ export async function launch(
     connection: defaultConnection = 'pipe',
     cleanUp = 'wholeBrowser',
     url,
+    killBehavior = KillBehavior.Forceful,
     inspectUri,
   } = options;
 
@@ -134,7 +137,7 @@ export async function launch(
       ]);
     }
 
-    browserProcess = new ChildProcessBrowserProcess(cp, logger);
+    browserProcess = new ChildProcessBrowserProcess(cp, logger, killBehavior);
   }
 
   if (dumpio) {
