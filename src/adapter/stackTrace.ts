@@ -284,7 +284,7 @@ export class AsyncSeparator implements IFrameElement {
   constructor(private readonly label = 'async') {}
 
   public async toDap(): Promise<Dap.StackFrame> {
-    return { name: this.label, id: 0, line: 0, column: 0, presentationHint: 'label' };
+    return { name: this.label, id: this.frameId, line: 0, column: 0, presentationHint: 'label' };
   }
 
   public async formatAsNative(): Promise<string> {
