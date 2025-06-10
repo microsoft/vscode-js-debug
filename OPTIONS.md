@@ -45,7 +45,8 @@
   "webpack://?:*/*": "${workspaceFolder}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${workspaceFolder}/*",
-  "turbopack://[project]/*": "${workspaceFolder}/*"
+  "turbopack://[project]/*": "${workspaceFolder}/*",
+  "turbopack:///[project]/*": "${workspaceFolder}/*"
 }</pre></code><h4>sourceMapRenames</h4><p>Whether to use the &quot;names&quot; mapping in sourcemaps. This requires requesting source content, which can be slow with certain debuggers.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
@@ -103,7 +104,8 @@
   "webpack://?:*/*": "${workspaceFolder}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${workspaceFolder}/*",
-  "turbopack://[project]/*": "${workspaceFolder}/*"
+  "turbopack://[project]/*": "${workspaceFolder}/*",
+  "turbopack:///[project]/*": "${workspaceFolder}/*"
 }</pre></code><h4>sourceMapRenames</h4><p>Whether to use the &quot;names&quot; mapping in sourcemaps. This requires requesting source content, which can be slow with certain debuggers.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>stopOnEntry</h4><p>Automatically stop program after launch.</p>
@@ -153,7 +155,8 @@
   "webpack://?:*/*": "${workspaceFolder}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${workspaceFolder}/*",
-  "turbopack://[project]/*": "${workspaceFolder}/*"
+  "turbopack://[project]/*": "${workspaceFolder}/*",
+  "turbopack:///[project]/*": "${workspaceFolder}/*"
 }</pre></code><h4>sourceMapRenames</h4><p>Whether to use the &quot;names&quot; mapping in sourcemaps. This requires requesting source content, which can be slow with certain debuggers.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
@@ -205,7 +208,8 @@
   "webpack://?:*/*": "${workspaceFolder}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${workspaceFolder}/*",
-  "turbopack://[project]/*": "${workspaceFolder}/*"
+  "turbopack://[project]/*": "${workspaceFolder}/*",
+  "turbopack:///[project]/*": "${workspaceFolder}/*"
 }</pre></code><h4>sourceMapRenames</h4><p>Whether to use the &quot;names&quot; mapping in sourcemaps. This requires requesting source content, which can be slow with certain debuggers.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>testConfiguration</h4><p>Path to a test configuration file for the <a href="https://code.visualstudio.com/api/working-with-extensions/testing-extension#quick-setup-the-test-cli">test CLI</a>.</p>
@@ -255,7 +259,8 @@
   "webpack://?:*/*": "${webRoot}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${webRoot}/*",
-  "turbopack://[project]/*": "${workspaceFolder}/*"
+  "turbopack://[project]/*": "${workspaceFolder}/*",
+  "turbopack:///[project]/*": "${workspaceFolder}/*"
 }</pre></code><h4>sourceMapRenames</h4><p>Whether to use the &quot;names&quot; mapping in sourcemaps. This requires requesting source content, which can be slow with certain debuggers.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
@@ -304,7 +309,8 @@
   "webpack://?:*/*": "${webRoot}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${webRoot}/*",
-  "turbopack://[project]/*": "${workspaceFolder}/*"
+  "turbopack://[project]/*": "${workspaceFolder}/*",
+  "turbopack:///[project]/*": "${workspaceFolder}/*"
 }</pre></code><h4>sourceMapRenames</h4><p>Whether to use the &quot;names&quot; mapping in sourcemaps. This requires requesting source content, which can be slow with certain debuggers.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>targetSelection</h4><p>Whether to attach to all targets that match the URL filter (&quot;automatic&quot;) or ask to pick one (&quot;pick&quot;).</p>
@@ -361,7 +367,8 @@
   "webpack://?:*/*": "${webRoot}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${webRoot}/*",
-  "turbopack://[project]/*": "${workspaceFolder}/*"
+  "turbopack://[project]/*": "${workspaceFolder}/*",
+  "turbopack:///[project]/*": "${workspaceFolder}/*"
 }</pre></code><h4>sourceMapRenames</h4><p>Whether to use the &quot;names&quot; mapping in sourcemaps. This requires requesting source content, which can be slow with certain debuggers.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
@@ -411,7 +418,8 @@
   "webpack://?:*/*": "${webRoot}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${webRoot}/*",
-  "turbopack://[project]/*": "${workspaceFolder}/*"
+  "turbopack://[project]/*": "${workspaceFolder}/*",
+  "turbopack:///[project]/*": "${workspaceFolder}/*"
 }</pre></code><h4>sourceMapRenames</h4><p>Whether to use the &quot;names&quot; mapping in sourcemaps. This requires requesting source content, which can be slow with certain debuggers.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>targetSelection</h4><p>Whether to attach to all targets that match the URL filter (&quot;automatic&quot;) or ask to pick one (&quot;pick&quot;).</p>

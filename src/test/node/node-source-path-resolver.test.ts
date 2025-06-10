@@ -31,9 +31,9 @@ describe('node source path resolver', () => {
         defaultOptions,
         Logger.null,
       );
-      expect(await r.urlToAbsolutePath({ url: 'file:///src/index.js' })).to.equal(
+      expect(await r.urlToAbsolutePath({ url: 'file:///src/index.js' })).to.equal(fixDriveLetter(
         resolve('/src/index.js'),
-      );
+      ));
     });
 
     it('escapes regex parts segments', async () => {
