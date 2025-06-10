@@ -6,7 +6,6 @@ import { promises as fs } from 'fs';
 import * as gulp from 'gulp';
 import { tmpdir } from 'os';
 import * as path from 'path';
-import playwright from 'playwright';
 import * as stream from 'stream';
 import { ExtensionContext } from 'vscode';
 import { DebugAdapter } from '../adapter/debugAdapter';
@@ -447,6 +446,11 @@ export class TestRoot {
     await this.initialize;
     this._launchUrl = url;
 
+    // playwright does not expose the executable path for the headless shell
+    const exe = require('playwright-core/lib/server').registry.findExecutable(
+      'chromium-headless-shell',
+    );
+
     const tmpLogPath = getLogFileForTest(this._testTitlePath);
     this._root.dap.launch({
       ...chromeLaunchConfigDefaults,
@@ -456,7 +460,7 @@ export class TestRoot {
       rootPath: this._workspaceRoot,
       skipNavigateForTest: true,
       trace: { logFile: tmpLogPath },
-      runtimeExecutable: playwright.chromium.executablePath(),
+      runtimeExecutable: exe.executablePathOrDie(),
       outFiles: [`${this._workspaceRoot}/**/*.js`, '!**/node_modules/**'],
       __workspaceFolder: this._workspaceRoot,
       cleanUp: 'wholeBrowser', // We want the tests to clean up chrome afterwards
