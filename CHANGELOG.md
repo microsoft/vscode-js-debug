@@ -2,6 +2,18 @@
 
 This changelog records changes to stable releases since 1.50.2. "TBA" changes here may be available in the [nightly release](https://github.com/microsoft/vscode-js-debug/#nightly-extension) before they're in stable. Note that the minor version (`v1.X.0`) corresponds to the VS Code version js-debug is shipped in, but the patch version (`v1.50.X`) is not meaningful.
 
+## 1.102 (June 2025)
+
+- fix: subdirectory names to debug script configurations in monorepos ([#2242](https://github.com/microsoft/vscode-js-debug/issues/2242))
+- fix: async stackframe separators not using unique ID ([#2235](https://github.com/microsoft/vscode-js-debug/issues/2235))
+- feat: add killBehavior as a browser launch option ([#2238](https://github.com/microsoft/vscode-js-debug/issues/2238))
+- fix: inherit parent console options and use the right inspector opts ([#2226](https://github.com/microsoft/vscode-js-debug/issues/2226))
+- fix: default url for turbopack ([#2223](https://github.com/microsoft/vscode-js-debug/issues/2223))
+- fix: only add --experimental-networking for node/npm/etc binaries ([#2222](https://github.com/microsoft/vscode-js-debug/issues/2222))
+- fix: set version manually when using deno ([#2219](https://github.com/microsoft/vscode-js-debug/issues/2219))
+- fix: avoid extraneous rename mapping ([#2217](https://github.com/microsoft/vscode-js-debug/issues/2217))
+- fix: wasmworker memory reuse ([#2211](https://github.com/microsoft/vscode-js-debug/issues/2211))
+
 ## 1.100 (April 2025)
 
 - fix: explicitly specify completion ranges ([vscode#243409](https://github.com/microsoft/vscode/issues/243409))

@@ -437,4 +437,3 @@
   "!**/node_modules/**"
 ]</pre></code><h4>webRoot</h4><p>This specifies the workspace absolute path to the webserver root. Used to resolve paths like <code>/app.js</code> to files on disk. Shorthand for a pathMapping for &quot;/&quot;</p>
 <h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code></details>
-
