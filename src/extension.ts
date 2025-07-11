@@ -52,7 +52,13 @@ export function activate(context: vscode.ExtensionContext): IExports {
 
   context.subscriptions.push(
     registerCommand(vscode.commands, Commands.DebugNpmScript, debugNpmScript),
-    registerCommand(vscode.commands, Commands.PickProcess, pickProcess),
+    registerCommand(vscode.commands, Commands.PickProcess, async () => {
+      const pick = await pickProcess();
+      if (!pick) {
+        throw new vscode.CancellationError();
+      }
+      return pick;
+    }),
     registerCommand(vscode.commands, Commands.AttachProcess, attachProcess),
     registerCommand(vscode.commands, Commands.ToggleSkipping, toggleSkippingFile),
   );
