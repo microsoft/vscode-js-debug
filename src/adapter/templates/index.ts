@@ -112,7 +112,7 @@ function templateFunctionStr<Args extends string[]>(
   return {
     expr: (...args: Args) => inner(args, '(()=>{', '})();').out,
     exprArgRanges: (...args: Args) => inner(args, '(()=>{', '})();').argRanges,
-    decl: (...args: Args) => inner(args, 'function(...runtimeArgs){', '};').out,
+    decl: (...args: Args) => inner(args, 'function(...runtimeArgs){', '}').out,
   };
 }
 
