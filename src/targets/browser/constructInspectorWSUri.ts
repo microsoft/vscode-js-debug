@@ -29,7 +29,10 @@ export function constructInspectorWSUri(
 
   // We map keys to functions, so we won't fail with a missing url unless the inspector uri format is actually referencing the url
   const replacements: { [key: string]: () => string } = {
-    'url.hostname': () => getUrl(urlText).hostname,
+    'url.hostname': () => {
+      const hostname = getUrl(urlText).hostname;
+      return hostname.endsWith('.localhost') ? 'localhost' : hostname;
+    },
     'url.port': () => getUrl(urlText).port,
     browserInspectUri: () => encodeURIComponent(browserInspectUri),
     browserInspectUriPath: () => new URL(browserInspectUri).pathname,
