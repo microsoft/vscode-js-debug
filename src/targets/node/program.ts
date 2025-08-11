@@ -4,6 +4,7 @@
 
 import { ChildProcess } from 'child_process';
 import { ILogger } from '../../common/logging';
+import { PidLiveness } from '../../common/pidLiveness';
 import { KillBehavior } from '../../configuration';
 import Dap from '../../dap/api';
 import { IStopMetadata } from '../targets';
@@ -140,7 +141,7 @@ export class TerminalProcess implements IProgram {
       resolve({ code: 0, killed });
     }),
   );
-  private loop?: { timer: NodeJS.Timeout; processId: number };
+  private liveness?: PidLiveness;
 
   constructor(
     private readonly terminalResult: Dap.RunInTerminalResult,
@@ -148,7 +149,11 @@ export class TerminalProcess implements IProgram {
     private readonly killBehavior: KillBehavior,
   ) {
     if (terminalResult.processId) {
-      this.startPollLoop(terminalResult.processId);
+      this.liveness = new PidLiveness(
+        terminalResult.processId,
+        this.onStopped,
+        TerminalProcess.terminationPollInterval,
+      );
     }
   }
 
@@ -158,9 +163,7 @@ export class TerminalProcess implements IProgram {
       return; // to avoid any races
     }
 
-    if (!this.loop) {
-      this.startPollLoop(processId);
-    }
+    this.liveness ??= new PidLiveness(processId, this.onStopped, 1000);
   }
 
   public stop(): Promise<IStopMetadata> {
@@ -171,46 +174,22 @@ export class TerminalProcess implements IProgram {
 
     // If we're already polling some process ID, kill it and accelerate polling
     // so we can confirm it's dead quickly.
-    if (this.loop) {
-      killTree(this.loop.processId, this.logger, this.killBehavior);
-      this.startPollLoop(this.loop.processId, TerminalProcess.killConfirmInterval);
+    if (this.liveness) {
+      killTree(this.liveness.pid, this.logger, this.killBehavior);
+      this.liveness.updateInterval(TerminalProcess.killConfirmInterval);
     } else if (this.terminalResult.shellProcessId) {
       // If we had a shell process ID, well, that's good enough.
       killTree(this.terminalResult.shellProcessId, this.logger, this.killBehavior);
-      this.startPollLoop(this.terminalResult.shellProcessId, TerminalProcess.killConfirmInterval);
+      this.liveness = new PidLiveness(
+        this.terminalResult.shellProcessId,
+        this.onStopped,
+        TerminalProcess.killConfirmInterval,
+      );
     } else {
       // Otherwise, we can't do anything. Pretend like we did.
       this.onStopped(true);
     }
 
     return this.stopped;
-  }
-
-  private startPollLoop(processId: number, interval = TerminalProcess.terminationPollInterval) {
-    if (this.loop) {
-      clearInterval(this.loop.timer);
-    }
-
-    const loop = {
-      processId,
-      timer: setInterval(() => {
-        if (!isProcessAlive(processId)) {
-          clearInterval(loop.timer);
-          this.onStopped(true);
-        }
-      }, interval),
-    };
-
-    this.loop = loop;
-  }
-}
-
-function isProcessAlive(processId: number) {
-  try {
-    // kill with signal=0 just test for whether the proc is alive. It throws if not.
-    process.kill(processId, 0);
-    return true;
-  } catch {
-    return false;
   }
 }
