@@ -90,7 +90,7 @@ export namespace Dap {
     output(params: OutputEventParams): void;
 
     /**
-     * The event indicates that some information about a breakpoint has changed.
+     * The event indicates that some information about a breakpoint has changed. While debug adapters may notify the clients of `changed` breakpoints using this event, clients should continue to use the breakpoint's original properties when updating a source's breakpoints in the `breakpoint` request.
      */
     breakpoint(params: BreakpointEventParams): void;
 
@@ -1300,7 +1300,7 @@ export namespace Dap {
     ): Promise<OutputEventParams>;
 
     /**
-     * The event indicates that some information about a breakpoint has changed.
+     * The event indicates that some information about a breakpoint has changed. While debug adapters may notify the clients of `changed` breakpoints using this event, clients should continue to use the breakpoint's original properties when updating a source's breakpoints in the `breakpoint` request.
      */
     on(request: 'breakpoint', handler: (params: BreakpointEventParams) => void): void;
     off(request: 'breakpoint', handler: (params: BreakpointEventParams) => void): void;
@@ -2919,6 +2919,7 @@ export namespace Dap {
   }
 
   export interface LaunchUnelevatedResult {
+    pid?: number;
   }
 
   export interface LaunchVSCodeParams {

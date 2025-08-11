@@ -25,6 +25,7 @@ import {
   ChildProcessBrowserProcess,
   IBrowserProcess,
   NonTrackedBrowserProcess,
+  PidTrackedBrowserProcess,
 } from './spawn/browserProcess';
 import { retryGetBrowserEndpoint } from './spawn/endpoints';
 import { launchUnelevatedChrome } from './unelevatedChome';
@@ -104,13 +105,15 @@ export async function launch(
     clientCapabilities.supportsLaunchUnelevatedProcessRequest && options.launchUnelevated
   );
   if (launchUnelevated && typeof actualConnection === 'number' && actualConnection !== 0) {
-    await launchUnelevatedChrome(
+    const response = await launchUnelevatedChrome(
       dap,
       executablePath,
       browserArguments.toArray(),
       cancellationToken,
     );
-    browserProcess = new NonTrackedBrowserProcess(logger);
+    browserProcess = response.pid
+      ? new PidTrackedBrowserProcess(response.pid, logger)
+      : new NonTrackedBrowserProcess(logger);
   } else {
     logger.info(LogTag.RuntimeLaunch, `Launching Chrome from ${executablePath}`);
 
