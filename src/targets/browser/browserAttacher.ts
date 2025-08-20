@@ -41,6 +41,7 @@ export class BrowserAttacher<
   readonly onTerminated = this._onTerminatedEmitter.event;
   private _onTargetListChangedEmitter = new EventEmitter<void>();
   readonly onTargetListChanged = this._onTargetListChangedEmitter.event;
+  protected closeWhenTargetsEmpty = true;
 
   constructor(
     @inject(ILogger) protected readonly logger: ILogger,
@@ -157,7 +158,7 @@ export class BrowserAttacher<
     });
     targetManager.onTargetRemoved(() => {
       this._onTargetListChangedEmitter.fire();
-      if (!targetManager.targetList().length) {
+      if (!targetManager.targetList().length && this.closeWhenTargetsEmpty) {
         // graceful exit
         this._onTerminatedEmitter.fire({ killed: true, code: 0 });
         this._connection?.close();
