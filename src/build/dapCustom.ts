@@ -307,8 +307,8 @@ const dapCustom: JSONSchema4 = {
       },
       {
         properties: {
-          rendererDebugPort: {
-            type: 'number',
+          rendererDebugAddr: {
+            type: 'string',
           },
         },
       },

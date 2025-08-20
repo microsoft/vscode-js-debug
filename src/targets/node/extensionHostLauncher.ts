@@ -42,10 +42,10 @@ export class ExtensionHostLauncher extends NodeLauncherBase<IExtensionHostLaunch
       debugRenderer: runData.params.debugWebviews || runData.params.debugWebWorkerHost,
     });
 
-    if (result.rendererDebugPort) {
-      VSCodeRendererAttacher.debugIdToRendererDebugPort.set(
+    if (result.rendererDebugAddr) {
+      VSCodeRendererAttacher.debugIdTorendererDebugAddr.set(
         runData.params.__sessionId,
-        result.rendererDebugPort,
+        result.rendererDebugAddr,
       );
     }
 
