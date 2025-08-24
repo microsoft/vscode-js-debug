@@ -10,11 +10,11 @@ export async function launchUnelevatedChrome(
   chromePath: string,
   chromeArgs: string[],
   cancellationToken: CancellationToken,
-): Promise<void> {
+): Promise<{ pid?: number }> {
   const response = dap.launchUnelevatedRequest({
     process: chromePath,
     args: chromeArgs,
   });
 
-  await timeoutPromise(response, cancellationToken, 'Could not launch browser unelevated');
+  return await timeoutPromise(response, cancellationToken, 'Could not launch browser unelevated');
 }
