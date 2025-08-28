@@ -2,37 +2,58 @@ trigger:
   branches:
     include: ['*']
 
-jobs:
-- job: macOS
-  timeoutInMinutes: 20
-  pool:
-    vmImage: 'macos-latest'
-  steps:
-  - template: common-validation.yml
-  variables:
-    node_version: 16.14.2
+resources:
+  repositories:
+    - repository: 1esPipelines
+      type: git
+      name: 1ESPipelineTemplates/1ESPipelineTemplates
+      ref: refs/tags/release
 
-- job: Linux
-  pool:
-    vmImage: 'ubuntu-latest'
-  steps:
-  - template: common-validation.yml
-  variables:
-    node_version: 16.14.2
+extends:
+  template: v1/1ES.Unofficial.PipelineTemplate.yml@1esPipelines
+  parameters:
+    sdl:
+      sourceAnalysisPool: 1es-windows-2022-x64
+      tsa:
+        enabled: false
+    stages:
+      - stage: Build
+        jobs:
+          - job: macOS
+            timeoutInMinutes: 20
+            pool:
+              name: Azure Pipelines
+              vmImage: 'macOS-latest'
+              os: macOS
+            steps:
+            - template: .ci/common-validation.yml@self
+            variables:
+              node_version: 18
 
-- job: LinuxMinspec
-  pool:
-    vmImage: 'ubuntu-latest'
-  steps:
-  - template: common-validation.yml
-  variables:
-    node_version: 16.14.2
-    only_minspec: true
+          - job: Linux
+            pool:
+              name: '1es-ubuntu-22.04-x64'
+              os: linux
+            steps:
+            - template: .ci/common-validation.yml@self
+            variables:
+              node_version: 18
 
-- job: Windows
-  pool:
-      vmImage: windows-latest
-  steps:
-  - template: common-validation.yml
-  variables:
-    node_version: 16.14.2
+          - job: LinuxMinspec
+            pool:
+              name: '1es-ubuntu-22.04-x64'
+              os: linux
+            steps:
+            - template: .ci/common-validation.yml@self
+            variables:
+              node_version: 18
+              only_minspec: true
+
+          - job: Windows
+            pool:
+              name: windows-latest
+              os: windows
+            steps:
+            - template: .ci/common-validation.yml@self
+            variables:
+              node_version: 18
