@@ -32,7 +32,7 @@ extends:
 
           - job: Linux
             pool:
-              name: '1es-ubuntu-22.04-x64'
+              name: 1es-ubuntu-22.04-x64
               os: linux
             steps:
             - template: .ci/common-validation.yml@self
@@ -41,7 +41,7 @@ extends:
 
           - job: LinuxMinspec
             pool:
-              name: '1es-ubuntu-22.04-x64'
+              name: 1es-ubuntu-22.04-x64
               os: linux
             steps:
             - template: .ci/common-validation.yml@self
@@ -51,7 +51,7 @@ extends:
 
           - job: Windows
             pool:
-              name: windows-latest
+              name: 1es-windows-2022-x64
               os: windows
             steps:
             - template: .ci/common-validation.yml@self
