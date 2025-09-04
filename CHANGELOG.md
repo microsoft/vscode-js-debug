@@ -2,6 +2,13 @@
 
 This changelog records changes to stable releases since 1.50.2. "TBA" changes here may be available in the [nightly release](https://github.com/microsoft/vscode-js-debug/#nightly-extension) before they're in stable. Note that the minor version (`v1.X.0`) corresponds to the VS Code version js-debug is shipped in, but the patch version (`v1.50.X`) is not meaningful.
 
+## 1.104 (August 2025)
+
+- fix: handle localhost hostname in constructInspectorWSUri function ([#2260](https://github.com/microsoft/vscode-js-debug/issues/2260))
+- chore: adopt renderer attachment changes from vscode#262546 ([#2267](https://github.com/microsoft/vscode-js-debug/issues/2267))
+- fix: toString not work in Local Variables panel until all variables defined in scope ([#2255](https://github.com/microsoft/vscode-js-debug/issues/2255))
+- fix: throw a cancellation error if pickProcess is aborted ([vscode#254852](https://github.com/microsoft/vscode/issues/254852))
+
 ## 1.102 (June 2025)
 
 - fix: subdirectory names to debug script configurations in monorepos ([#2242](https://github.com/microsoft/vscode-js-debug/issues/2242))
