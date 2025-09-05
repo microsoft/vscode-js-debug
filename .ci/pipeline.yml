@@ -1,6 +1,10 @@
 trigger:
+  batch: true
   branches:
-    include: ['*']
+    include:
+      - main
+
+pr: [main]
 
 resources:
   repositories:
