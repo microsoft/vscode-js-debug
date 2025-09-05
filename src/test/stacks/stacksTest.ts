@@ -138,8 +138,13 @@ describe('stacks', () => {
       await p.dap.once('stopped');
       await p.logger.logStackTrace(threadId!);
 
-      await p.dap.stepIn({ threadId: threadId! });
-      await p.dap.stepIn({ threadId: threadId! });
+      p.log('\n# step in 1x');
+      p.dap.stepIn({ threadId: threadId! });
+      await p.dap.once('stopped');
+      await p.logger.logStackTrace(threadId!);
+
+      p.log('\n# step in 2x');
+      p.dap.stepIn({ threadId: threadId! });
       await dumpStackAndContinue(p, false);
       p.assertLog();
     });
