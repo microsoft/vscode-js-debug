@@ -677,6 +677,7 @@ export abstract class Breakpoint {
       }
 
       const locations = 'actualLocation' in result ? [result.actualLocation] : result.locations;
+      console.log('set resolved', JSON.stringify(result));
       this._manager._resolvedBreakpoints.set(result.breakpointId, this);
 
       // Note that we add the record after calling breakpointResolved()

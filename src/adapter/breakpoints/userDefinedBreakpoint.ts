@@ -126,6 +126,13 @@ export class UserDefinedBreakpoint extends Breakpoint {
   ) {
     super.updateCdpRefs(mutator);
 
+    console.log(
+      'updated cdp refs for',
+      this.dapId,
+      'different?',
+      this.lastAnnouncedUiLocation !== this.getResolvedUiLocation(),
+    );
+
     if (this.getResolvedUiLocation() !== this.lastAnnouncedUiLocation) {
       this.notifyResolved();
     }
@@ -150,6 +157,7 @@ export class UserDefinedBreakpoint extends Breakpoint {
    */
   private async notifyResolved(): Promise<void> {
     await this.completedSet.promise;
+    console.log('notifying change for', this.dapId);
     await this._manager.notifyBreakpointChange(this, true);
   }
 }

@@ -414,6 +414,7 @@ export class BreakpointManager {
     this._thread = thread;
     this._thread.cdp().Debugger.on('breakpointResolved', event => {
       const breakpoint = this._resolvedBreakpoints.get(event.breakpointId);
+      console.log('resolved breakpoint', JSON.stringify(event), 'found?', !!breakpoint);
       if (breakpoint) {
         breakpoint.updateUiLocations(thread, event.breakpointId, [event.location]);
       }
