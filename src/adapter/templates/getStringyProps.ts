@@ -40,7 +40,14 @@ export const getStringyProps = templateFunction(function(
     return out;
   }
 
-  for (const [key, value] of Object.entries(this)) {
+  for (const key of Object.keys(this)) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let value: any;
+    try {
+      value = this[key];
+    } catch (e) {
+      continue;
+    }
     if (customToString) {
       try {
         const repr = customToString.call(value, defaultPlaceholder);
