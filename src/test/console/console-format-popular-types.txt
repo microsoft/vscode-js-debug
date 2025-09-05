@@ -196,8 +196,8 @@ stdout> (1) [ƒ]
 stdout> > (1) [ƒ]
 
 Evaluating: 'console.log(Object.prototype)'
-stdout> {constructor: ƒ, __defineGetter__: ƒ, __defineSetter__: ƒ, hasOwnProperty: ƒ, __lookupGetter__: ƒ, …}
-stdout> > {constructor: ƒ, __defineGetter__: ƒ, __defineSetter__: ƒ, hasOwnProperty: ƒ, __lookupGetter__: ƒ, …}
+stdout> {__defineGetter__: ƒ, __defineSetter__: ƒ, hasOwnProperty: ƒ, __lookupGetter__: ƒ, __lookupSetter__: ƒ, …}
+stdout> > {__defineGetter__: ƒ, __defineSetter__: ƒ, hasOwnProperty: ƒ, __lookupGetter__: ƒ, __lookupSetter__: ƒ, …}
 
 Evaluating: 'console.log([Object.prototype])'
 stdout> (1) [{…}]
@@ -271,14 +271,14 @@ stdout> (1) [{…}]
 stdout> > (1) [{…}]
 
 Evaluating: 'console.log(domException())'
-stdout> DOMException: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node. {stack: <accessor>, code: 8, name: 'NotFoundError', message: "Failed to execute 'removeChild' on 'Node': T…e to be removed is not a child of this node."}
+stdout> NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node. {stack: '', code: 8, name: 'NotFoundError', message: "Failed to execute 'removeChild' on 'Node': T…e to be removed is not a child of this node."}
 
 stdout>
-> DOMException: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node. {stack: <accessor>, code: 8, name: 'NotFoundError', message: "Failed to execute 'removeChild' on 'Node': T…e to be removed is not a child of this node."}
+> NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node. {stack: '', code: 8, name: 'NotFoundError', message: "Failed to execute 'removeChild' on 'Node': T…e to be removed is not a child of this node."}
 
 Evaluating: 'console.log([domException()])'
-stdout> (1) [DOMException: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of t…]
-stdout> > (1) [DOMException: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of t…]
+stdout> (1) [NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of …]
+stdout> > (1) [NotFoundError: Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of …]
 
 Evaluating: 'console.log(bigArray)'
 stdout> (200) [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, …]

@@ -8,7 +8,7 @@
     > caller: (...)
     length: 1
     name: 'printArr'
-    > prototype: {constructor: ƒ}
+    > prototype: {}
     [[FunctionLocation]]: @ ${workspaceFolder}/web/basic.ts:5
     > [[Prototype]]: ƒ ()
     > [[Scopes]]: Scopes[1]
