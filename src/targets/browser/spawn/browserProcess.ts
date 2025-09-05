@@ -13,6 +13,7 @@ import { TaskCancelledError } from '../../../common/cancellation';
 import { DisposableList } from '../../../common/disposable';
 import { EventEmitter } from '../../../common/events';
 import { ILogger } from '../../../common/logging';
+import { PidLiveness } from '../../../common/pidLiveness';
 import { delay } from '../../../common/promiseUtil';
 import { KillBehavior } from '../../../configuration';
 import { killTree } from '../../node/killTree';
@@ -113,6 +114,42 @@ export class NonTrackedBrowserProcess implements IBrowserProcess {
    */
   public kill() {
     // noop
+  }
+}
+
+/**
+ * Browser process tracked using PID liveness polling (used for unelevated launches).
+ */
+export class PidTrackedBrowserProcess implements IBrowserProcess {
+  public readonly stderr = undefined;
+  public readonly stdout = undefined;
+
+  private readonly exitEmitter = new EventEmitter<number>();
+  public readonly onExit = this.exitEmitter.event;
+
+  private readonly errorEmitter = new EventEmitter<Error>();
+  public readonly onError = this.errorEmitter.event;
+
+  private readonly liveness: PidLiveness;
+
+  constructor(private readonly pid: number, private readonly logger: ILogger) {
+    this.liveness = new PidLiveness(pid, () => this.exitEmitter.fire(0), 1000);
+  }
+
+  public async transport(
+    options: ITransportOptions,
+    cancellationToken: CancellationToken,
+  ): Promise<ITransport> {
+    return inspectWsConnection(this.logger, this, options, cancellationToken);
+  }
+
+  public kill(): void {
+    try {
+      process.kill(this.pid);
+    } catch {
+      // ignore
+    }
+    this.liveness.updateInterval(200);
   }
 }
 

@@ -340,6 +340,12 @@ const dapCustom: JSONSchema4 = {
           },
         },
       },
+    }, {
+      properties: {
+        pid: {
+          type: 'number',
+        },
+      },
     }),
 
     ...makeRequest(
