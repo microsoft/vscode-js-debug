@@ -7,7 +7,7 @@ import { URL } from 'url';
 import { IFsUtils } from '../../common/fsUtils';
 import { ILogger } from '../../common/logging';
 import { nodeInternalsToken } from '../../common/node15Internal';
-import { fixDriveLetterAndSlashes, properResolve } from '../../common/pathUtils';
+import { fixDriveLetter, fixDriveLetterAndSlashes, properResolve } from '../../common/pathUtils';
 import { SourceMap } from '../../common/sourceMaps/sourceMap';
 import {
   getComputedSourceRoot,
@@ -76,7 +76,9 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
     // It's possible the source might be using the `sourceURL`, so apply
     // any source map overrides now (fixes vscode#204784) and before file
     // URIs (vscode-dwarf-debugging-ext#7)
-    url = this.sourceMapOverrides.apply(url);
+    const mapped = this.sourceMapOverrides.apply(url);
+    const wasMapped = mapped !== url;
+    url = mapped;
 
     // Allow debugging of externally loaded Node internals
     // [ by building Node with ./configure --node-builtin-modules-path $(pwd) ]
@@ -90,7 +92,7 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
     }
 
     if (map) {
-      return this.sourceMapSourceToAbsolute(url, map);
+      return this.sourceMapSourceToAbsolute(url, map, wasMapped);
     }
 
     const absolutePath = urlUtils.fileUrlToAbsolutePath(url);
@@ -102,8 +104,7 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
     // attribute. If this is the case, apply a source map override if it
     // applies, otherwise just assume it's relative to the basePath.
     if (urlUtils.isValidUrl(url)) {
-      const mapped = this.sourceMapOverrides.apply(url);
-      url = mapped === url ? new URL(url).pathname.slice(1) : mapped;
+      url = wasMapped ? mapped : new URL(url).pathname.slice(1);
     } // Node internals are given us us as relative path, for example
     // require('cluster') will import a file simply named "cluster". For these
     // paths, prefix them as internal.
@@ -148,9 +149,13 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
     );
   }
 
-  private async sourceMapSourceToAbsolute(url: string, map: SourceMap) {
+  private async sourceMapSourceToAbsolute(url: string, map: SourceMap, wasMapped: boolean) {
     if (!this.shouldResolveSourceMap(map.metadata)) {
       return undefined;
+    }
+
+    if (wasMapped) {
+      return fixDriveLetter(url);
     }
 
     const fullSourceEntry = getFullSourceEntry(map.sourceRoot, url);

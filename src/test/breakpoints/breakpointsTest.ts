@@ -1378,15 +1378,17 @@ describe('breakpoints', () => {
     };
     p.dap.setBreakpoints({ source, breakpoints: [{ line: 3 }] });
     await waitForPause(p, async () => {
-      await p.dap.evaluate({
-        expression: 'document.getElementsByTagName("IFRAME")[0].src += ""',
+      await p.dap.setBreakpoints({ source, breakpoints: [] });
+      p.dap.evaluate({
+        expression: 'document.getElementsByTagName("IFRAME")[0].src += "?cool=true"',
         context: 'repl',
       });
     });
 
-    await waitForPause(p, async () => {
-      await p.dap.setBreakpoints({ source, breakpoints: [] });
-    });
+    await p.dap.once(
+      'loadedSource',
+      e => e.reason === 'new' && !!e.source.name?.includes('inner.js'),
+    );
 
     // re-sets the breakpoints in the new script
     p.dap.setBreakpoints({ source, breakpoints: [{ line: 3 }] });

@@ -7,6 +7,7 @@ import Cdp from '../../cdp/api';
 import { getDeferred } from '../../common/promiseUtil';
 import Dap from '../../dap/api';
 import { BreakpointManager } from '../breakpoints';
+import { IUiLocation } from '../source';
 import { Breakpoint, BreakpointCdpReference, CdpReferenceState } from './breakpointBase';
 import { IBreakpointCondition } from './conditions';
 
@@ -17,6 +18,11 @@ export class UserDefinedBreakpoint extends Breakpoint {
    * notifications about breakpoint changes.
    */
   private readonly completedSet = getDeferred<void>();
+
+  /**
+   * Last UI location this breakpoint announced to the wold.
+   */
+  private lastAnnouncedUiLocation: IUiLocation | undefined;
 
   /**
    * @param hitCondition - Hit condition for this breakpoint. See
@@ -73,7 +79,10 @@ export class UserDefinedBreakpoint extends Breakpoint {
    * resolved, this will be fulfilled with the complete source location.
    */
   public async toDap(): Promise<Dap.Breakpoint> {
-    const location = this.enabled && this.getResolvedUiLocation();
+    const resolvedUiLocation = this.getResolvedUiLocation();
+    this.lastAnnouncedUiLocation = resolvedUiLocation;
+    const location = this.enabled && resolvedUiLocation;
+
     if (location) {
       return {
         id: this.dapId,
@@ -115,10 +124,9 @@ export class UserDefinedBreakpoint extends Breakpoint {
   protected updateCdpRefs(
     mutator: (l: ReadonlyArray<BreakpointCdpReference>) => ReadonlyArray<BreakpointCdpReference>,
   ) {
-    const previousLocation = this.getResolvedUiLocation();
     super.updateCdpRefs(mutator);
 
-    if (this.getResolvedUiLocation() !== previousLocation) {
+    if (this.getResolvedUiLocation() !== this.lastAnnouncedUiLocation) {
       this.notifyResolved();
     }
   }

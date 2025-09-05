@@ -412,8 +412,13 @@ export class BreakpointManager {
    */
   public setThread(thread: Thread) {
     this._thread = thread;
-    this._thread.cdp().Debugger.on('breakpointResolved', event => {
-      const breakpoint = this._resolvedBreakpoints.get(event.breakpointId);
+    this._thread.cdp().Debugger.on('breakpointResolved', async event => {
+      // Sometimes V8 says a breakpoint is unverified and then _immediately_ verifies
+      // it which, due to event ordering, can happen before before the reply to 'set'
+      // is processed. Try to find the breakpoint on the next microtask if that
+      // might have happened.
+      const breakpoint = this._resolvedBreakpoints.get(event.breakpointId)
+        || await delay(0).then(() => this._resolvedBreakpoints.get(event.breakpointId));
       if (breakpoint) {
         breakpoint.updateUiLocations(thread, event.breakpointId, [event.location]);
       }

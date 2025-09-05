@@ -3,7 +3,20 @@
 Window.__awaiter @ ${workspaceFolder}/web/smartStep/async.js:3:12
 Window.main @ ${workspaceFolder}/web/smartStep/async.js:17:12
 <anonymous> @ ${workspaceFolder}/web/smartStep/async.ts:11:1
+
+# step in 1x
 <anonymous> @ ${workspaceFolder}/web/smartStep/async.ts:2:11
+<anonymous> @ ${workspaceFolder}/web/smartStep/async.js:7:71
+Window.__awaiter @ ${workspaceFolder}/web/smartStep/async.js:3:12
+Window.foo @ ${workspaceFolder}/web/smartStep/async.js:11:12
+<anonymous> @ ${workspaceFolder}/web/smartStep/async.ts:8:19
+<anonymous> @ ${workspaceFolder}/web/smartStep/async.js:7:71
+Window.__awaiter @ ${workspaceFolder}/web/smartStep/async.js:3:12
+Window.main @ ${workspaceFolder}/web/smartStep/async.js:17:12
+<anonymous> @ ${workspaceFolder}/web/smartStep/async.ts:11:1
+
+# step in 2x
+<anonymous> @ ${workspaceFolder}/web/smartStep/async.ts:3:11
 <anonymous> @ ${workspaceFolder}/web/smartStep/async.js:7:71
 Window.__awaiter @ ${workspaceFolder}/web/smartStep/async.js:3:12
 Window.foo @ ${workspaceFolder}/web/smartStep/async.js:11:12

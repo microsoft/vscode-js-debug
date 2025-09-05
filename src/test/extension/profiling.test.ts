@@ -126,6 +126,7 @@ describe('profiling', () => {
 
         const handle = await r.runScript(script);
         await handle.load();
+        const stopped = handle.dap.once('stopped');
         handle.log(
           await setBreakpointsAndWaitForVerification(handle, {
             source: { path: script },
@@ -133,7 +134,7 @@ describe('profiling', () => {
           }),
         );
 
-        handle.log(await handle.dap.once('stopped'));
+        handle.log(await stopped);
         const continued = handle.dap.once('continued');
         const output = handle.dap.once('output');
         await handle.dap.startProfile({ type: 'cpu', stopAtBreakpoint: [-1] });
@@ -446,6 +447,7 @@ describe('profiling', () => {
 
         const handle = await r.runScript(script);
         await handle.load();
+        const stopped = handle.dap.once('stopped');
         handle.log(
           await setBreakpointsAndWaitForVerification(handle, {
             source: { path: script },
@@ -453,7 +455,7 @@ describe('profiling', () => {
           }),
         );
 
-        handle.log(await handle.dap.once('stopped'));
+        handle.log(await stopped);
         const continued = handle.dap.once('continued');
         const output = handle.dap.once('output');
         await handle.dap.startProfile({ type: 'heap' });
@@ -467,6 +469,7 @@ describe('profiling', () => {
 
         const handle = await r.runScript(script);
         await handle.load();
+        const stopped = handle.dap.once('stopped');
         handle.log(
           await setBreakpointsAndWaitForVerification(handle, {
             source: { path: script },
@@ -474,7 +477,7 @@ describe('profiling', () => {
           }),
         );
 
-        handle.log(await handle.dap.once('stopped'));
+        handle.log(await stopped);
         const continued = handle.dap.once('continued');
         const output = handle.dap.once('output');
         await handle.dap.startProfile({ type: 'heap', stopAtBreakpoint: [-1] });

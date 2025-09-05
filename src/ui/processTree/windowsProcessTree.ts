@@ -19,10 +19,26 @@ export class WindowsProcessTree implements IProcessTree {
   async lookup<T>(onEntry: (process: IProcess, accumulator: T) => T, initial: T): Promise<T> {
     const win = await getWinUtils();
     for (const proc of win.getProcessInfo()) {
-      const argsStart = proc.commandLine.indexOf('" ');
+      let args = '';
+      let command: string;
+
+      const quoteEnd = proc.commandLine.indexOf('" ');
+      if (quoteEnd === -1) {
+        const space = proc.commandLine.indexOf(' ');
+        if (space === -1) {
+          command = proc.commandLine;
+        } else {
+          command = proc.commandLine.slice(0, space);
+          args = proc.commandLine.slice(space + 1);
+        }
+      } else {
+        command = proc.commandLine.slice(1, quoteEnd);
+        args = proc.commandLine.slice(quoteEnd + 2);
+      }
+
       initial = onEntry({
-        args: argsStart !== -1 ? proc.commandLine.slice(argsStart + 2) : '',
-        command: argsStart !== -1 ? proc.commandLine.slice(1, argsStart + 1) : proc.commandLine,
+        args,
+        command,
         date: proc.creationDate * 1000,
         pid: proc.processId,
         ppid: proc.parentProcessId,
