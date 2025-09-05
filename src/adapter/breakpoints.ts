@@ -419,7 +419,6 @@ export class BreakpointManager {
       // might have happened.
       const breakpoint = this._resolvedBreakpoints.get(event.breakpointId)
         || await delay(0).then(() => this._resolvedBreakpoints.get(event.breakpointId));
-      console.log('resolved breakpoint', JSON.stringify(event), 'found?', !!breakpoint);
       if (breakpoint) {
         breakpoint.updateUiLocations(thread, event.breakpointId, [event.location]);
       }
