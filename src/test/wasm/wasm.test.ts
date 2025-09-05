@@ -74,11 +74,22 @@ describe('webassembly', () => {
 
     itIntegrates('can break immediately', async ({ r }) => {
       const p = await r.launchUrl(`dwarf/fibonacci.html`);
+
+      // Note: we need the extra stop because we depend on the eval running to add the instrumentation for wasm
+      // https://github.com/microsoft/vscode-js-debug/blob/16b601cb24260e1a58c2c09c9456ccb5bbef0013/src/adapter/threads.ts#L939
+
+      await p.dap.setBreakpoints({
+        source: { path: p.workspacePath('web/dwarf/fibonacci.html') },
+        breakpoints: [{ line: 1221 }],
+      });
       await p.dap.setBreakpoints({
         source: { path: p.workspacePath('web/dwarf/fibonacci.c') },
         breakpoints: [{ line: 6 }],
       });
       p.load();
+
+      const prePause = await p.dap.once('stopped');
+      await p.dap.continue({ threadId: prePause.threadId! });
 
       const { threadId } = p.log(await p.dap.once('stopped'));
       await p.logger.logStackTrace(threadId, 2);
