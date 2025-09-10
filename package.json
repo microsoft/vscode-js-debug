@@ -51,8 +51,8 @@
   },
   "dependencies": {
     "@c4312/chromehash": "^0.3.1",
-    "@jridgewell/gen-mapping": "^0.3.3",
-    "@jridgewell/trace-mapping": "^0.3.22",
+    "@jridgewell/gen-mapping": "^0.3.13",
+    "@jridgewell/trace-mapping": "^0.3.31",
     "@vscode/js-debug-browsers": "^1.1.2",
     "@vscode/l10n": "^0.0.18",
     "@vscode/win32-app-container-tokens": "^0.2.0",
