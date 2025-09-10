@@ -14,9 +14,9 @@ import {
   InvalidOriginalMapping,
   OriginalMapping,
   originalPositionFor,
+  SourceNeedle,
   TraceMap,
 } from '@jridgewell/trace-mapping';
-import { SourceNeedle } from '@jridgewell/trace-mapping/dist/types/types';
 import { fixDriveLetterAndSlashes } from '../pathUtils';
 import { completeUrlEscapingRoot, isDataUri } from '../urlUtils';
 
