@@ -3,12 +3,10 @@
  *--------------------------------------------------------*/
 
 import { inject, injectable } from 'inversify';
-import { createConnection, Socket } from 'net';
 import type * as vscodeType from 'vscode';
 import Connection from '../../cdp/connection';
-import { RawPipeTransport } from '../../cdp/rawPipeTransport';
+import { WebSocketTransport } from '../../cdp/webSocketTransport';
 import { DebugType } from '../../common/contributionUtils';
-import { DisposableList } from '../../common/disposable';
 import { ILogger, LogTag } from '../../common/logging';
 import { ISourcePathResolver } from '../../common/sourcePathResolver';
 import { TargetFilter } from '../../common/urlUtils';
@@ -35,7 +33,12 @@ export class VSCodeRendererAttacher extends BrowserAttacher<IRendererAttachParam
    * Map of debug IDs to ports the renderer is listening on,
    * set from the {@see ExtensionHostLauncher}.
    */
-  public static readonly debugIdToRendererDebugPort = new Map<string, number>();
+  public static readonly debugIdTorendererDebugAddr = new Map<
+    /* session ID */ string,
+    /* websocket addr */ string
+  >();
+
+  protected override closeWhenTargetsEmpty = false;
 
   constructor(
     @inject(ILogger) logger: ILogger,
@@ -54,8 +57,8 @@ export class VSCodeRendererAttacher extends BrowserAttacher<IRendererAttachParam
       return { blockSessionTermination: false };
     }
 
-    const rendererPort = VSCodeRendererAttacher.debugIdToRendererDebugPort.get(params.__sessionId);
-    if (!rendererPort) {
+    const rendererAddr = VSCodeRendererAttacher.debugIdTorendererDebugAddr.get(params.__sessionId);
+    if (!rendererAddr) {
       return { blockSessionTermination: false };
     }
 
@@ -63,8 +66,9 @@ export class VSCodeRendererAttacher extends BrowserAttacher<IRendererAttachParam
       name: 'Webview',
       type: DebugType.Chrome,
       request: 'attach',
-      port: rendererPort,
+      address: rendererAddr,
       __workspaceFolder: params.__workspaceFolder,
+      timeout: 0,
       urlFilter: '',
       resolveSourceMapLocations: params.resolveSourceMapLocations,
       ...params.rendererDebugOptions,
@@ -89,21 +93,8 @@ export class VSCodeRendererAttacher extends BrowserAttacher<IRendererAttachParam
     params: IRendererAttachParams,
     cancellationToken: vscodeType.CancellationToken,
   ) {
-    const disposable = new DisposableList();
-    const pipe = await new Promise<Socket>((resolve, reject) => {
-      const p: Socket = createConnection({ port: params.port }, () => resolve(p));
-      p.on('error', reject);
-
-      disposable.push(
-        cancellationToken.onCancellationRequested(() => {
-          p.destroy();
-          reject(new Error('connection timed out'));
-        }),
-      );
-    }).finally(() => disposable.dispose());
-
     return new Connection(
-      new RawPipeTransport(this.logger, pipe),
+      await WebSocketTransport.create(params.address, cancellationToken),
       this.logger,
       telemetryReporter,
     );

@@ -908,6 +908,12 @@ const chromeLaunchConfig: IDebugger<IChromeLaunchConfiguration> = {
       description: refString('browser.cleanUp.description'),
       default: 'wholeBrowser',
     },
+    killBehavior: {
+      type: 'string',
+      enum: [KillBehavior.Forceful, KillBehavior.Polite, KillBehavior.None],
+      default: KillBehavior.Forceful,
+      markdownDescription: refString('browser.killBehavior.description'),
+    },
     browserLaunchLocation: {
       description: refString('browser.browserLaunchLocation.description'),
       default: null,

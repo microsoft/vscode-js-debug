@@ -45,7 +45,8 @@
   "webpack://?:*/*": "${workspaceFolder}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${workspaceFolder}/*",
-  "turbopack://[project]/*": "${workspaceFolder}/*"
+  "turbopack://[project]/*": "${workspaceFolder}/*",
+  "turbopack:///[project]/*": "${workspaceFolder}/*"
 }</pre></code><h4>sourceMapRenames</h4><p>Whether to use the &quot;names&quot; mapping in sourcemaps. This requires requesting source content, which can be slow with certain debuggers.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
@@ -103,7 +104,8 @@
   "webpack://?:*/*": "${workspaceFolder}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${workspaceFolder}/*",
-  "turbopack://[project]/*": "${workspaceFolder}/*"
+  "turbopack://[project]/*": "${workspaceFolder}/*",
+  "turbopack:///[project]/*": "${workspaceFolder}/*"
 }</pre></code><h4>sourceMapRenames</h4><p>Whether to use the &quot;names&quot; mapping in sourcemaps. This requires requesting source content, which can be slow with certain debuggers.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>stopOnEntry</h4><p>Automatically stop program after launch.</p>
@@ -153,7 +155,8 @@
   "webpack://?:*/*": "${workspaceFolder}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${workspaceFolder}/*",
-  "turbopack://[project]/*": "${workspaceFolder}/*"
+  "turbopack://[project]/*": "${workspaceFolder}/*",
+  "turbopack:///[project]/*": "${workspaceFolder}/*"
 }</pre></code><h4>sourceMapRenames</h4><p>Whether to use the &quot;names&quot; mapping in sourcemaps. This requires requesting source content, which can be slow with certain debuggers.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
@@ -205,7 +208,8 @@
   "webpack://?:*/*": "${workspaceFolder}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${workspaceFolder}/*",
-  "turbopack://[project]/*": "${workspaceFolder}/*"
+  "turbopack://[project]/*": "${workspaceFolder}/*",
+  "turbopack:///[project]/*": "${workspaceFolder}/*"
 }</pre></code><h4>sourceMapRenames</h4><p>Whether to use the &quot;names&quot; mapping in sourcemaps. This requires requesting source content, which can be slow with certain debuggers.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>testConfiguration</h4><p>Path to a test configuration file for the <a href="https://code.visualstudio.com/api/working-with-extensions/testing-extension#quick-setup-the-test-cli">test CLI</a>.</p>
@@ -231,7 +235,8 @@
 <h5>Default value:</h4><pre><code>null</pre></code><h4>includeDefaultArgs</h4><p>Whether default browser launch arguments (to disable features that may make debugging harder) will be included in the launch.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>includeLaunchArgs</h4><p>Advanced: whether any default launch/debugging arguments are set on the browser. The debugger will assume the browser will use pipe debugging such as that which is provided with <code>--remote-debugging-pipe</code>.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>inspectUri</h4><p>Format to use to rewrite the inspectUri: It&#39;s a template string that interpolates keys in <code>{curlyBraces}</code>. Available keys are:<br> - <code>url.*</code> is the parsed address of the running application. For instance, <code>{url.port}</code>, <code>{url.hostname}</code><br> - <code>port</code> is the debug port that Chrome is listening on.<br> - <code>browserInspectUri</code> is the inspector URI on the launched browser<br> - <code>browserInspectUriPath</code> is the path part of the inspector URI on the launched browser (e.g.: &quot;/devtools/browser/e9ec0098-306e-472a-8133-5e42488929c2&quot;).<br> - <code>wsProtocol</code> is the hinted websocket protocol. This is set to <code>wss</code> if the original URL is <code>https</code>, or <code>ws</code> otherwise.<br></p>
-<h5>Default value:</h4><pre><code>undefined</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
+<h5>Default value:</h4><pre><code>undefined</pre></code><h4>killBehavior</h4><p>Configures how browser processes are killed when stopping the session with <code>cleanUp: wholeBrowser</code>. Can be:<br><br>- forceful (default): forcefully tears down the process tree. Sends SIGKILL on posix, or <code>taskkill.exe /F</code> on Windows.<br>- polite: gracefully tears down the process tree. It&#39;s possible that misbehaving processes continue to run after shutdown in this way. Sends SIGTERM on posix, or <code>taskkill.exe</code> with no <code>/F</code> (force) flag on Windows.<br>- none: no termination will happen.</p>
+<h5>Default value:</h4><pre><code>"forceful"</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
 <h5>Default value:</h4><pre><code>[
   "${workspaceFolder}/**/*.(m|c|)js",
   "!**/node_modules/**"
@@ -255,7 +260,8 @@
   "webpack://?:*/*": "${webRoot}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${webRoot}/*",
-  "turbopack://[project]/*": "${workspaceFolder}/*"
+  "turbopack://[project]/*": "${workspaceFolder}/*",
+  "turbopack:///[project]/*": "${workspaceFolder}/*"
 }</pre></code><h4>sourceMapRenames</h4><p>Whether to use the &quot;names&quot; mapping in sourcemaps. This requires requesting source content, which can be slow with certain debuggers.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
@@ -304,7 +310,8 @@
   "webpack://?:*/*": "${webRoot}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${webRoot}/*",
-  "turbopack://[project]/*": "${workspaceFolder}/*"
+  "turbopack://[project]/*": "${workspaceFolder}/*",
+  "turbopack:///[project]/*": "${workspaceFolder}/*"
 }</pre></code><h4>sourceMapRenames</h4><p>Whether to use the &quot;names&quot; mapping in sourcemaps. This requires requesting source content, which can be slow with certain debuggers.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>targetSelection</h4><p>Whether to attach to all targets that match the URL filter (&quot;automatic&quot;) or ask to pick one (&quot;pick&quot;).</p>
@@ -337,7 +344,8 @@
 <h5>Default value:</h4><pre><code>null</pre></code><h4>includeDefaultArgs</h4><p>Whether default browser launch arguments (to disable features that may make debugging harder) will be included in the launch.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>includeLaunchArgs</h4><p>Advanced: whether any default launch/debugging arguments are set on the browser. The debugger will assume the browser will use pipe debugging such as that which is provided with <code>--remote-debugging-pipe</code>.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>inspectUri</h4><p>Format to use to rewrite the inspectUri: It&#39;s a template string that interpolates keys in <code>{curlyBraces}</code>. Available keys are:<br> - <code>url.*</code> is the parsed address of the running application. For instance, <code>{url.port}</code>, <code>{url.hostname}</code><br> - <code>port</code> is the debug port that Chrome is listening on.<br> - <code>browserInspectUri</code> is the inspector URI on the launched browser<br> - <code>browserInspectUriPath</code> is the path part of the inspector URI on the launched browser (e.g.: &quot;/devtools/browser/e9ec0098-306e-472a-8133-5e42488929c2&quot;).<br> - <code>wsProtocol</code> is the hinted websocket protocol. This is set to <code>wss</code> if the original URL is <code>https</code>, or <code>ws</code> otherwise.<br></p>
-<h5>Default value:</h4><pre><code>undefined</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
+<h5>Default value:</h4><pre><code>undefined</pre></code><h4>killBehavior</h4><p>Configures how browser processes are killed when stopping the session with <code>cleanUp: wholeBrowser</code>. Can be:<br><br>- forceful (default): forcefully tears down the process tree. Sends SIGKILL on posix, or <code>taskkill.exe /F</code> on Windows.<br>- polite: gracefully tears down the process tree. It&#39;s possible that misbehaving processes continue to run after shutdown in this way. Sends SIGTERM on posix, or <code>taskkill.exe</code> with no <code>/F</code> (force) flag on Windows.<br>- none: no termination will happen.</p>
+<h5>Default value:</h4><pre><code>"forceful"</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
 <h5>Default value:</h4><pre><code>[
   "${workspaceFolder}/**/*.(m|c|)js",
   "!**/node_modules/**"
@@ -361,7 +369,8 @@
   "webpack://?:*/*": "${webRoot}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${webRoot}/*",
-  "turbopack://[project]/*": "${workspaceFolder}/*"
+  "turbopack://[project]/*": "${workspaceFolder}/*",
+  "turbopack:///[project]/*": "${workspaceFolder}/*"
 }</pre></code><h4>sourceMapRenames</h4><p>Whether to use the &quot;names&quot; mapping in sourcemaps. This requires requesting source content, which can be slow with certain debuggers.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
@@ -411,7 +420,8 @@
   "webpack://?:*/*": "${webRoot}/*",
   "webpack:///([a-z]):/(.+)": "$1:/$2",
   "meteor://💻app/*": "${webRoot}/*",
-  "turbopack://[project]/*": "${workspaceFolder}/*"
+  "turbopack://[project]/*": "${workspaceFolder}/*",
+  "turbopack:///[project]/*": "${workspaceFolder}/*"
 }</pre></code><h4>sourceMapRenames</h4><p>Whether to use the &quot;names&quot; mapping in sourcemaps. This requires requesting source content, which can be slow with certain debuggers.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>targetSelection</h4><p>Whether to attach to all targets that match the URL filter (&quot;automatic&quot;) or ask to pick one (&quot;pick&quot;).</p>

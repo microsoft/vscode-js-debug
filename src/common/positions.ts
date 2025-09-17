@@ -150,6 +150,13 @@ export class Range {
     return position.compare(this.begin) >= 0 && position.compare(this.end) <= 0;
   }
 
+  /**
+   * Returns if the range contains the given range, inclusive.
+   */
+  public containsRange(range: Range) {
+    return this.contains(range.begin) && this.contains(range.end);
+  }
+
   /** Returns a human-debuggable representation of the range. */
   public toString() {
     const b1 = this.begin.base0;

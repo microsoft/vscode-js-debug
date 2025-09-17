@@ -2930,7 +2930,7 @@ export namespace Dap {
   }
 
   export interface LaunchVSCodeResult {
-    rendererDebugPort?: number;
+    rendererDebugAddr?: string;
   }
 
   export interface LoadedSourceEventParams {

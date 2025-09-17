@@ -132,7 +132,10 @@ export class NodeBinary {
       this.capabilities.add(Capability.UseInspectPublishUid);
     }
 
-    if (version.gte(new Semver(22, 14, 0)) && version.lt(new Semver(24, 0, 0))) {
+    if (
+      version.gte(new Semver(22, 14, 0)) && version.lt(new Semver(24, 0, 0))
+      && binariesSupportNodeFlags.includes(getNormalizedBinaryName(path))
+    ) {
       this.capabilities.add(Capability.UseExperimentalNetworking);
     }
   }
@@ -158,6 +161,7 @@ export class NodeBinaryOutOfDateError extends ProtocolError {
 }
 
 const nodeOrElectronBinaries = ['node', 'node64', 'electron'];
+const binariesSupportNodeFlags = [...nodeOrElectronBinaries, 'npx', 'npm'];
 
 /**
  * Mapping of electron versions to *effective* node versions. This is not
@@ -299,6 +303,10 @@ export class NodeBinaryProvider implements INodeBinaryProvider {
     // script that boots Node by itself, for instance) try to find Node itself
     // on the path as a fallback.
     const exeName = getNormalizedBinaryName(location);
+    if (exeName === 'deno') {
+      return new NodeBinary(location, new Semver(20, 0, 0)); // approximately
+    }
+
     if (!nodeOrElectronBinaries.includes(exeName)) {
       if (isPackageManager(location)) {
         const packageJson = await this.packageJson.getPath();

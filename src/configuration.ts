@@ -657,6 +657,17 @@ export interface IChromiumLaunchConfiguration extends IChromiumBaseConfiguration
    * Close whole browser or just the tab when cleaning up
    */
   cleanUp: 'wholeBrowser' | 'onlyTab';
+
+  /**
+   * Configures how debug process are killed when stopping the browser. Can be:
+   *  - forceful (default): forcefully tears down the process tree. Sends
+   *    SIGKILL on posix, or `taskkill.exe /F` on Windows.
+   *  - polite: gracefully tears down the process tree. It's possible that
+   *    misbehaving processes continue to run after shutdown in this way. Sends
+   *    SIGTERM on posix, or `taskkill.exe` with no `/F` (force) flag on Windows.
+   *  - none: no termination will happen.
+   */
+  killBehavior: KillBehavior;
 }
 
 /**
@@ -957,6 +968,7 @@ export const chromeLaunchConfigDefaults: IChromeLaunchConfiguration = {
   browserLaunchLocation: 'workspace',
   profileStartup: false,
   cleanUp: 'wholeBrowser',
+  killBehavior: KillBehavior.Forceful,
 };
 
 export const edgeLaunchConfigDefaults: IEdgeLaunchConfiguration = {
@@ -985,6 +997,7 @@ export function defaultSourceMapPathOverrides(webRoot: string): { [key: string]:
     'webpack:///([a-z]):/(.+)': '$1:/$2',
     'meteor://💻app/*': `${webRoot}/*`,
     'turbopack://[project]/*': '${workspaceFolder}/*',
+    'turbopack:///[project]/*': '${workspaceFolder}/*',
   };
 }
 

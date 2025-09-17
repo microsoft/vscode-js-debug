@@ -103,6 +103,10 @@ export class WasmWorkerFactory implements IWasmWorkerFactory {
       getStopId: id => `${cdpId}:${id}`,
       dispose: () => {
         this.cdp.delete(cdpId);
+        if (this.cdp.size > 0) {
+          return Promise.resolve();
+        }
+        this.worker = undefined;
         return worker.dispose();
       },
     };

@@ -239,6 +239,7 @@ export class SessionManager<TSessionImpl extends IDebugSessionLike>
         name: target.name(),
         request: parentSession.debugSession.configuration.request as 'attach' | 'launch',
         __pendingTargetId: target.id(),
+        internalConsoleOptions: parentConfig.internalConsoleOptions,
         // fix for https://github.com/microsoft/vscode/issues/102296
         preRestartTask: parentConfig.preRestartTask ?? parentConfig.postDebugTask,
         postRestartTask: parentConfig.postRestartTask ?? parentConfig.preLaunchTask,

@@ -99,10 +99,16 @@ export class NodeDynamicDebugConfigurationProvider extends BaseConfigurationProv
     }
 
     const packageManager = await getScriptRunner(folder);
+
+    // Check if there are multiple directories to distinguish scripts in monorepos
+    const multiDir = scripts.some(s => s.directory !== scripts[0].directory);
+
     return scripts
       .map<DynamicConfig>(script => ({
         type: getPreferredOrDebugType(DebugType.Terminal),
-        name: l10n.t('Run Script: {0}', script.name),
+        name: multiDir
+          ? l10n.t('Run Script: {0} ({1})', script.name, path.basename(script.directory))
+          : l10n.t('Run Script: {0}', script.name),
         request: 'launch',
         command: `${packageManager} run ${script.name}`,
         cwd: script.directory,
