@@ -21,26 +21,46 @@ export function registerJsdbgCommand(context: vscode.ExtensionContext) {
 
       const command = commandLine.value.trim();
       
-      // Check if the command starts with jsdbg
-      if (command.startsWith('jsdbg ')) {
+      // Check if the command starts with jsdbg (case-sensitive)
+      // Match "jsdbg " or "jsdbg" followed by whitespace
+      const jsdbgMatch = command.match(/^jsdbg\s+(.+)$/);
+      if (jsdbgMatch) {
         // Extract the actual command to debug
-        const actualCommand = command.substring('jsdbg '.length).trim();
+        const actualCommand = jsdbgMatch[1].trim();
         
         if (!actualCommand) {
-          vscode.window.showErrorMessage('Usage: jsdbg <command>');
+          vscode.window.showErrorMessage('Usage: jsdbg <command>\n\nExample: jsdbg node myScript.js');
           return;
         }
 
-        // Get the current working directory from the terminal
-        const cwd = await getTerminalCwd(event.terminal);
+        try {
+          // Get the current working directory from the terminal
+          const cwd = await getTerminalCwd(event.terminal);
 
-        // Create a JavaScript Debug Terminal with the command
-        await vscode.commands.executeCommand(
-          Commands.CreateDebuggerTerminal,
-          actualCommand,
-          cwd ? vscode.workspace.getWorkspaceFolder(vscode.Uri.file(cwd)) : undefined,
-          cwd ? { cwd } : undefined
-        );
+          // Create a JavaScript Debug Terminal with the command
+          await vscode.commands.executeCommand(
+            Commands.CreateDebuggerTerminal,
+            actualCommand,
+            cwd ? vscode.workspace.getWorkspaceFolder(vscode.Uri.file(cwd)) : undefined,
+            cwd ? { cwd } : undefined
+          );
+        } catch (error) {
+          vscode.window.showErrorMessage(
+            `Failed to create debug terminal: ${error instanceof Error ? error.message : String(error)}`
+          );
+        }
+      } else if (command === 'jsdbg') {
+        // Handle the case where jsdbg is run without arguments
+        vscode.window.showInformationMessage(
+          'Usage: jsdbg <command>\n\nExample: jsdbg node myScript.js',
+          'Learn More'
+        ).then(selection => {
+          if (selection === 'Learn More') {
+            vscode.env.openExternal(vscode.Uri.parse(
+              'https://code.visualstudio.com/docs/nodejs/nodejs-debugging'
+            ));
+          }
+        });
       }
     })
   );
