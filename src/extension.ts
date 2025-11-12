@@ -25,6 +25,7 @@ import { debugNpmScript } from './ui/debugNpmScript';
 import { DebugSessionTracker } from './ui/debugSessionTracker';
 import { registerDebugTerminalUI } from './ui/debugTerminalUI';
 import { ExtensionApiFactory } from './ui/extensionApi';
+import { registerJsdbgCommand } from './ui/jsdbgCommand';
 import { attachProcess, pickProcess } from './ui/processPicker';
 import { registerProfilingCommand } from './ui/profiling';
 import { registerRequestCDPProxy } from './ui/requestCDPProxy';
@@ -104,6 +105,7 @@ export function activate(context: vscode.ExtensionContext): IExports {
   registerCompanionBrowserLaunch(context);
   registerCustomBreakpointsUI(context, debugSessionTracker);
   registerDebugTerminalUI(context, services.get(DelegateLauncherFactory), services);
+  registerJsdbgCommand(context);
   registerProfilingCommand(context, services);
   registerAutoAttach(context, services.get(DelegateLauncherFactory), services);
   registerRevealPage(context, debugSessionTracker);
