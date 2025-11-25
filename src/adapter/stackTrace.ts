@@ -324,7 +324,7 @@ async function getEnhancedName(
       objectId: callFrame.this.objectId,
       returnByValue: true,
     });
-    objName = ret?.result.value;
+    objName = ret?.result?.value;
   }
 
   if (!objName && callFrame.this.description) {
