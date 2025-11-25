@@ -548,7 +548,7 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
         return; // shut down
       }
 
-      if (!telemetry || !telemetry.result.value) {
+      if (!telemetry || !telemetry.result || !telemetry.result.value) {
         this.logger.error(LogTag.RuntimeTarget, 'Undefined result getting telemetry');
         return;
       }

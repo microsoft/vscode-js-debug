@@ -174,7 +174,7 @@ function renderObjectPreview(
   format: Dap.ValueFormat | undefined,
 ): string {
   const builder = new BudgetStringBuilder(characterBudget, ' ');
-  if (preview.description !== 'Object') {
+  if (preview.description !== 'Object' && preview.description != null) {
     builder.append(stringUtils.trimEnd(preview.description, builder.budget()));
   }
 
