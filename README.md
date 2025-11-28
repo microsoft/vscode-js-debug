@@ -57,6 +57,16 @@ You can debug any Node.js process you run in the terminal with Auto Attach. If a
 
 Once enabled, you can toggle Auto Attach by clicking the `Auto Attach: On/Off` button in the status bar on the bottom of your screen. You can also create a one-off terminal for debugging via the `Debug: Create JavaScript Debug Terminal` command.
 
+Alternatively, you can use the `jsdbg` command in any terminal (with shell integration enabled) to quickly debug a Node.js command without switching to a JavaScript Debug Terminal:
+
+```bash
+jsdbg node myScript.js
+jsdbg npm start
+jsdbg yarn test
+```
+
+When you run `jsdbg <command>`, a new JavaScript Debug Terminal will be created with your command, allowing you to debug immediately.
+
 ### Profiling Support
 
 You can capture and view performance profiles natively in VS Code, by clicking on the ⚪ button in the Call Stack view, or through the `Debug: Take Performance Profile` command. The profile information collected through VS Code is sourcemap-aware.
