@@ -101,6 +101,29 @@ const dapCustom: JSONSchema4 = {
       required: ['ids', 'xhr'],
     }),
 
+    ...makeRequest(
+      'setFocusEmulationEnabled',
+      'Enables or disables focused page emulation.',
+      {
+        properties: {
+          enabled: {
+            type: 'boolean',
+            description: 'Whether to emulate a focused page. Defaults to toggling the current state.',
+          },
+        },
+        additionalProperties: false,
+      },
+      {
+        properties: {
+          enabled: {
+            type: 'boolean',
+            description: 'Whether focused page emulation is enabled after the request.',
+          },
+        },
+        required: ['enabled'],
+      },
+    ),
+
     ...makeRequest('prettyPrintSource', 'Pretty prints source for debugging.', {
       properties: {
         source: {
