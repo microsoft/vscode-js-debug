@@ -112,6 +112,9 @@ export class DebugAdapter implements IDisposable {
     this.dap.on('prettyPrintSource', params => this._prettyPrintSource(params));
     this.dap.on('locations', params => this._onLocations(params));
     this.dap.on('revealPage', () => this._withThread(thread => thread.revealPage()));
+    this.dap.on('setFocusEmulationEnabled', params =>
+      this._withThread(thread => thread.setFocusEmulationEnabled(params)),
+    );
     this.dap.on(
       'getPerformance',
       () => this._withThread(thread => performanceProvider.retrieve(thread.cdp())),
