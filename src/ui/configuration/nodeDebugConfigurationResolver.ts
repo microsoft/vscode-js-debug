@@ -143,13 +143,18 @@ export class NodeConfigurationResolver extends BaseConfigurationResolver<AnyNode
           config.attachSimplePort = port;
           config.continueOnAttach ??= true;
 
-          const runtimeArgs = [`--inspect-brk=127.0.0.1:${port}`, '--allow-all'];
+          const runtimeArgs = [`--inspect-brk=127.0.0.1:${port}`];
           if (!config.runtimeArgs) {
             config.runtimeArgs = ['run', ...runtimeArgs];
-          } else if (!config.runtimeArgs.includes('run')) {
-            config.runtimeArgs = ['run', ...runtimeArgs, ...config.runtimeArgs];
           } else {
-            config.runtimeArgs = [...config.runtimeArgs, ...runtimeArgs];
+            if (!config.runtimeArgs.includes('--allow-all') && !config.runtimeArgs.includes('-A')) {
+              runtimeArgs.push('--allow-all');
+            }
+            if (!config.runtimeArgs.includes('run')) {
+              config.runtimeArgs = ['run', ...runtimeArgs, ...config.runtimeArgs];
+            } else {
+              config.runtimeArgs = [...config.runtimeArgs, ...runtimeArgs];
+            }
           }
         }
       }

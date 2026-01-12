@@ -487,5 +487,25 @@ describe('NodeDebugConfigurationProvider', () => {
         '--some-arg',
       ]);
     });
+
+    it("doesn't duplicate --allow-all", async () => {
+      const result = (await provider.resolveDebugConfiguration(folder, {
+        type: DebugType.Node,
+        name: '',
+        request: 'launch',
+        program: 'hello.js',
+        runtimeExecutable: 'deno',
+        runtimeArgs: ['--allow-all --some-arg'],
+      })) as INodeLaunchConfiguration;
+
+      const port = result.attachSimplePort!;
+      expect(port).to.be.a('number');
+      expect(result.runtimeArgs).to.deep.equal([
+        'run',
+        `--inspect-brk=127.0.0.1:${port}`,
+        '--allow-all',
+        '--some-arg',
+      ]);
+    });
   });
 });
