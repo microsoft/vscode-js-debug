@@ -1338,6 +1338,11 @@ const commands: ReadonlyArray<{
     category: 'Debug',
   },
   {
+    command: Commands.EmulateFocusedPage,
+    title: refString('browser.emulateFocusedPage'),
+    category: 'Debug',
+  },
+  {
     command: Commands.DebugLink,
     title: refString('debugLink.label'),
     category: 'Debug',
@@ -1446,6 +1451,11 @@ const menus: Menus = {
     {
       command: Commands.RevealPage,
       when: 'false',
+    },
+    {
+      command: Commands.EmulateFocusedPage,
+      title: refString('browser.emulateFocusedPage'),
+      when: forBrowserDebugType('debugType', 'inDebugMode'),
     },
     {
       command: Commands.DebugLink,
@@ -1567,6 +1577,14 @@ const menus: Menus = {
     {
       command: Commands.ToggleCustomBreakpoints,
       when: `view == ${CustomViews.EventListenerBreakpoints}`,
+      group: 'navigation',
+    },
+    {
+      command: Commands.EmulateFocusedPage,
+      when: forBrowserDebugType(
+        'debugType',
+        `view == ${CustomViews.EventListenerBreakpoints} && inDebugMode`,
+      ),
       group: 'navigation',
     },
     {

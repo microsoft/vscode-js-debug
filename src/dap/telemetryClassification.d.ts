@@ -170,6 +170,11 @@ interface IDAPOperationClassification {
     classification: 'CallstackOrException';
     purpose: 'PerformanceAndHealth';
   };
+  'setfocusemulationenabled': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!setfocusemulationenabled.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   'prettyprintsource': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!prettyprintsource.errors': {
     classification: 'CallstackOrException';
