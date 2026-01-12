@@ -145,6 +145,7 @@ export class NodeConfigurationResolver extends BaseConfigurationResolver<AnyNode
 
           const runtimeArgs = [`--inspect-brk=127.0.0.1:${port}`];
           if (!config.runtimeArgs) {
+            runtimeArgs.push('--allow-all');
             config.runtimeArgs = ['run', ...runtimeArgs];
           } else {
             if (!config.runtimeArgs.includes('--allow-all') && !config.runtimeArgs.includes('-A')) {
