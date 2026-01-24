@@ -1,0 +1,5 @@
+> result: Counter(42)
+    count: 42
+    listenerCount: 2
+    > ...: Counter {_count: 42, _listeners: Array(2)}
+    > [[Prototype]]: Object
