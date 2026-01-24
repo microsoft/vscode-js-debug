@@ -27,7 +27,9 @@ import { getArrayProperties } from './templates/getArrayProperties';
 import { getArraySlots } from './templates/getArraySlots';
 import { getNodeChildren } from './templates/getNodeChildren';
 import {
+  getCustomProperties,
   getDescriptionSymbols,
+  getPropertiesSymbol,
   getStringyProps,
   getToStringIfCustom,
 } from './templates/getStringyProps';
@@ -179,6 +181,7 @@ interface IContextSettings {
   customDescriptionGenerator?: string;
   customPropertiesGenerator?: string;
   descriptionSymbols?: Promise<Cdp.Runtime.CallArgument>;
+  propertiesSymbol?: Promise<Cdp.Runtime.CallArgument>;
 }
 
 const wasmScopeNames: { [K in WasmScope]: { name: string; sortOrder: number } } = {
@@ -312,14 +315,31 @@ class VariableContext {
     return await this.settings.descriptionSymbols;
   }
 
+  public async getPropertiesSymbol(objectId: string): Promise<Cdp.Runtime.CallArgument> {
+    this.settings.propertiesSymbol ??= getPropertiesSymbol({
+      cdp: this.cdp,
+      args: [],
+      objectId,
+    }).then(
+      r => ({ objectId: r.objectId }),
+      () => ({ value: undefined }),
+    );
+
+    return await this.settings.propertiesSymbol;
+  }
+
   /**
    * Creates Variables for each property on the RemoteObject.
+   * @param skipSymbolBasedCustomProperties - If true, skips checking for Symbol.for("debug.properties")
    */
   public async createObjectPropertyVars(
     object: Cdp.Runtime.RemoteObject,
     evaluationOptions?: Dap.EvaluationOptions,
+    skipSymbolBasedCustomProperties = false,
   ): Promise<Variable[]> {
     const properties: (Promise<Variable[]> | Variable[])[] = [];
+    let originalObject: Cdp.Runtime.RemoteObject | undefined;
+    let hasCustomProperties = false;
 
     if (this.settings.customPropertiesGenerator) {
       const { result, errorDescription } = await this.evaluateCodeForObject(
@@ -342,6 +362,33 @@ class VariableContext {
       }
     }
 
+    if (!object.objectId) {
+      return [];
+    }
+
+    // Check for Symbol.for("debug.properties") custom property replacement
+    if (!this.settings.customPropertiesGenerator && !skipSymbolBasedCustomProperties) {
+      try {
+        const customPropsResult = await this.cdp.Runtime.callFunctionOn({
+          functionDeclaration: getCustomProperties.decl(),
+          arguments: [await this.getPropertiesSymbol(object.objectId)],
+          objectId: object.objectId,
+          throwOnSideEffect: true,
+        });
+
+        if (customPropsResult && customPropsResult.result.objectId) {
+          // Store the original object for the escape hatch
+          originalObject = object;
+          hasCustomProperties = true;
+          // Replace with the custom properties object
+          object = customPropsResult.result;
+        }
+      } catch {
+        // If anything goes wrong, just use the original object
+      }
+    }
+
+    // Ensure we still have a valid objectId after any transformations
     if (!object.objectId) {
       return [];
     }
@@ -408,6 +455,9 @@ class VariableContext {
     // Push own properties & accessors and symbols
     for (const propertiesCollection of [propertiesMap.values(), propertySymbols.values()]) {
       for (const p of propertiesCollection) {
+        const contextInit = hasCustomProperties
+          ? { presentationHint: { kind: 'virtual' as const } }
+          : undefined;
         properties.push(
           this.createPropertyVar(
             p,
@@ -415,15 +465,19 @@ class VariableContext {
             stringyProps?.hasOwnProperty(p.name)
               ? localizeIndescribable(stringyProps[p.name])
               : undefined,
+            contextInit,
           ),
         );
       }
     }
 
     for (const property of ownProperties.privateProperties ?? []) {
+      const presentationHint = hasCustomProperties
+        ? { kind: 'virtual' as const, visibility: 'private' as const }
+        : { visibility: 'private' as const };
       properties.push(
         this.createPropertyVar(property, object, undefined, {
-          presentationHint: { visibility: 'private' },
+          presentationHint,
           sortOrder: SortOrder.Private,
         }),
       );
@@ -454,6 +508,25 @@ class VariableContext {
       }
     }
 
+    // Add escape hatch property if we used custom properties
+    if (originalObject) {
+      properties.push([
+        this.createVariable(
+          PropertiesGeneratorEscapeHatchVariable,
+          {
+            name: '...',
+            presentationHint: {
+              kind: 'virtual',
+              attributes: ['readOnly'],
+              visibility: 'internal',
+            },
+            sortOrder: SortOrder.Internal,
+          },
+          originalObject,
+        ),
+      ]);
+    }
+
     return flatten(await Promise.all(properties));
   }
 
@@ -481,9 +554,11 @@ class VariableContext {
 
     const ctx: Required<IContextInit> = {
       name: p.name,
-      presentationHint: {},
       sortOrder: SortOrder.Default,
       ...contextInit,
+      presentationHint: {
+        ...contextInit?.presentationHint,
+      },
     };
 
     if (!contextInit) {
@@ -863,6 +938,20 @@ class ObjectVariable extends Variable implements IMemoryReadable {
 
   public override getChildren(_params: Dap.VariablesParamsExtended) {
     return this.context.createObjectPropertyVars(this.remoteObject, _params.evaluationOptions);
+  }
+}
+
+/**
+ * A variable that shows the original object properties without Symbol.for("debug.properties") processing.
+ * Used as the "..." escape hatch to view raw object properties.
+ */
+class PropertiesGeneratorEscapeHatchVariable extends ObjectVariable {
+  public override getChildren(_params: Dap.VariablesParamsExtended) {
+    return this.context.createObjectPropertyVars(
+      this.remoteObject,
+      _params.evaluationOptions,
+      true,
+    );
   }
 }
 
