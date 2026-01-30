@@ -29,7 +29,6 @@ import { getNodeChildren } from './templates/getNodeChildren';
 import {
   getCustomProperties,
   getDescriptionSymbols,
-  getPropertiesSymbol,
   getStringyProps,
   getToStringIfCustom,
 } from './templates/getStringyProps';
@@ -181,7 +180,6 @@ interface IContextSettings {
   customDescriptionGenerator?: string;
   customPropertiesGenerator?: string;
   descriptionSymbols?: Promise<Cdp.Runtime.CallArgument>;
-  propertiesSymbol?: Promise<Cdp.Runtime.CallArgument>;
 }
 
 const wasmScopeNames: { [K in WasmScope]: { name: string; sortOrder: number } } = {
@@ -315,19 +313,6 @@ class VariableContext {
     return await this.settings.descriptionSymbols;
   }
 
-  public async getPropertiesSymbol(objectId: string): Promise<Cdp.Runtime.CallArgument> {
-    this.settings.propertiesSymbol ??= getPropertiesSymbol({
-      cdp: this.cdp,
-      args: [],
-      objectId,
-    }).then(
-      r => ({ objectId: r.objectId }),
-      () => ({ value: undefined }),
-    );
-
-    return await this.settings.propertiesSymbol;
-  }
-
   /**
    * Creates Variables for each property on the RemoteObject.
    * @param skipSymbolBasedCustomProperties - If true, skips checking for Symbol.for("debug.properties")
@@ -366,33 +351,6 @@ class VariableContext {
       return [];
     }
 
-    // Check for Symbol.for("debug.properties") custom property replacement
-    if (!this.settings.customPropertiesGenerator && !skipSymbolBasedCustomProperties) {
-      try {
-        const customPropsResult = await this.cdp.Runtime.callFunctionOn({
-          functionDeclaration: getCustomProperties.decl(),
-          arguments: [await this.getPropertiesSymbol(object.objectId)],
-          objectId: object.objectId,
-          throwOnSideEffect: true,
-        });
-
-        if (customPropsResult && customPropsResult.result.objectId) {
-          // Store the original object for the escape hatch
-          originalObject = object;
-          hasCustomProperties = true;
-          // Replace with the custom properties object
-          object = customPropsResult.result;
-        }
-      } catch {
-        // If anything goes wrong, just use the original object
-      }
-    }
-
-    // Ensure we still have a valid objectId after any transformations
-    if (!object.objectId) {
-      return [];
-    }
-
     if (evaluationOptions) {
       this.cdp.DotnetDebugger.setEvaluationOptions({
         options: evaluationOptions,
@@ -426,6 +384,70 @@ class VariableContext {
         .catch(() => ({} as Record<string, string>)),
     ]);
     if (!accessorsProperties || !ownProperties) return [];
+
+    // Check for Symbol.for("debug.properties") custom property replacement
+    // Only do this if we haven't already applied customPropertiesGenerator and if not explicitly skipped
+    if (!this.settings.customPropertiesGenerator && !skipSymbolBasedCustomProperties) {
+      // Check if the object has Symbol.for("debug.properties") by looking for it in the properties
+      const hasDebugPropertiesSymbol = [...accessorsProperties.result, ...ownProperties.result].some(
+        p => p.symbol?.description === 'Symbol(debug.properties)',
+      );
+
+      if (hasDebugPropertiesSymbol) {
+        try {
+          const customPropsResult = await this.cdp.Runtime.callFunctionOn({
+            functionDeclaration: getCustomProperties.decl(),
+            arguments: [await this.getDescriptionSymbols(object.objectId)],
+            objectId: object.objectId,
+            throwOnSideEffect: true,
+          });
+
+          if (customPropsResult && customPropsResult.result.objectId) {
+            // Store the original object for the escape hatch
+            originalObject = object;
+            hasCustomProperties = true;
+            // Replace with the custom properties object and recursively get its properties
+            object = customPropsResult.result;
+            const newObjectId = object.objectId!; // We know this exists from the check above
+            
+            // Re-fetch properties for the custom properties object
+            const [newAccessorsProperties, newOwnProperties, newStringyProps] = await Promise.all([
+              this.cdp.Runtime.getProperties({
+                objectId: newObjectId,
+                accessorPropertiesOnly: true,
+                ownProperties: false,
+                generatePreview: true,
+              }),
+              this.cdp.Runtime.getProperties({
+                objectId: newObjectId,
+                ownProperties: true,
+                generatePreview: true,
+              }),
+              this.cdp.Runtime.callFunctionOn({
+                functionDeclaration: getStringyProps.decl(
+                  `${customStringReprMaxLength}`,
+                  this.settings.customDescriptionGenerator || 'null',
+                ),
+                arguments: [await this.getDescriptionSymbols(newObjectId)],
+                objectId: newObjectId,
+                throwOnSideEffect: true,
+                returnByValue: true,
+              })
+                .then(r => r?.result.value || {})
+                .catch(() => ({} as Record<string, string>)),
+            ]);
+            
+            if (newAccessorsProperties && newOwnProperties) {
+              Object.assign(accessorsProperties, newAccessorsProperties);
+              Object.assign(ownProperties, newOwnProperties);
+              Object.assign(stringyProps, newStringyProps);
+            }
+          }
+        } catch {
+          // If anything goes wrong, just use the original object
+        }
+      }
+    }
 
     // Merge own properties and all accessors.
     const propertiesMap = new Map<string, AnyPropertyDescriptor>();

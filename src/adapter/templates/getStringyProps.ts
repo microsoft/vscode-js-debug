@@ -22,14 +22,11 @@ const enum DescriptionSymbols {
  * use them inside the description functions.
  */
 export const getDescriptionSymbols = remoteFunction(function() {
-  return [Symbol.for(DescriptionSymbols.Generic), Symbol.for(DescriptionSymbols.Node)];
-});
-
-/**
- * Separate function that initializes the properties symbol for custom property replacement.
- */
-export const getPropertiesSymbol = remoteFunction(function() {
-  return Symbol.for(DescriptionSymbols.Properties);
+  return [
+    Symbol.for(DescriptionSymbols.Generic),
+    Symbol.for(DescriptionSymbols.Node),
+    Symbol.for(DescriptionSymbols.Properties),
+  ];
 });
 
 declare const runtimeArgs: [symbol[]];
@@ -146,10 +143,10 @@ export const getToStringIfCustom = templateFunction(function(
 /**
  * Checks if the object has a custom properties function via Symbol.for("debug.properties")
  * and returns the replacement object if it does. Returns undefined otherwise.
- * The propertiesSymbol is passed via runtimeArgs[0].
+ * The symbols array is passed via runtimeArgs[0], with properties symbol at index 2.
  */
 export const getCustomProperties = templateFunction(function(this: unknown) {
-  const propertiesSymbol: symbol = (runtimeArgs as unknown as [symbol])[0];
+  const propertiesSymbol: symbol = (runtimeArgs as unknown as [symbol[]])[0][2];
 
   if (typeof this !== 'object' || !this) {
     return undefined;
