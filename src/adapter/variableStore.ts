@@ -314,6 +314,37 @@ class VariableContext {
   }
 
   /**
+   * Fetches properties for an object, including accessors, own properties, and stringy props.
+   */
+  private async fetchObjectProperties(objectId: string) {
+    return Promise.all([
+      this.cdp.Runtime.getProperties({
+        objectId,
+        accessorPropertiesOnly: true,
+        ownProperties: false,
+        generatePreview: true,
+      }),
+      this.cdp.Runtime.getProperties({
+        objectId,
+        ownProperties: true,
+        generatePreview: true,
+      }),
+      this.cdp.Runtime.callFunctionOn({
+        functionDeclaration: getStringyProps.decl(
+          `${customStringReprMaxLength}`,
+          this.settings.customDescriptionGenerator || 'null',
+        ),
+        arguments: [await this.getDescriptionSymbols(objectId)],
+        objectId,
+        throwOnSideEffect: true,
+        returnByValue: true,
+      })
+        .then(r => r?.result.value || {})
+        .catch(() => ({} as Record<string, string>)),
+    ]);
+  }
+
+  /**
    * Creates Variables for each property on the RemoteObject.
    * @param skipSymbolBasedCustomProperties - If true, skips checking for Symbol.for("debug.properties")
    */
@@ -358,31 +389,9 @@ class VariableContext {
       });
     }
 
-    const [accessorsProperties, ownProperties, stringyProps] = await Promise.all([
-      this.cdp.Runtime.getProperties({
-        objectId: object.objectId,
-        accessorPropertiesOnly: true,
-        ownProperties: false,
-        generatePreview: true,
-      }),
-      this.cdp.Runtime.getProperties({
-        objectId: object.objectId,
-        ownProperties: true,
-        generatePreview: true,
-      }),
-      this.cdp.Runtime.callFunctionOn({
-        functionDeclaration: getStringyProps.decl(
-          `${customStringReprMaxLength}`,
-          this.settings.customDescriptionGenerator || 'null',
-        ),
-        arguments: [await this.getDescriptionSymbols(object.objectId)],
-        objectId: object.objectId,
-        throwOnSideEffect: true,
-        returnByValue: true,
-      })
-        .then(r => r?.result.value || {})
-        .catch(() => ({} as Record<string, string>)),
-    ]);
+    let [accessorsProperties, ownProperties, stringyProps] = await this.fetchObjectProperties(
+      object.objectId,
+    );
     if (!accessorsProperties || !ownProperties) return [];
 
     // Check for Symbol.for("debug.properties") custom property replacement
@@ -406,42 +415,14 @@ class VariableContext {
             // Store the original object for the escape hatch
             originalObject = object;
             hasCustomProperties = true;
-            // Replace with the custom properties object and recursively get its properties
+            // Replace with the custom properties object and re-fetch its properties
             object = customPropsResult.result;
-            const newObjectId = object.objectId!; // We know this exists from the check above
             
             // Re-fetch properties for the custom properties object
-            const [newAccessorsProperties, newOwnProperties, newStringyProps] = await Promise.all([
-              this.cdp.Runtime.getProperties({
-                objectId: newObjectId,
-                accessorPropertiesOnly: true,
-                ownProperties: false,
-                generatePreview: true,
-              }),
-              this.cdp.Runtime.getProperties({
-                objectId: newObjectId,
-                ownProperties: true,
-                generatePreview: true,
-              }),
-              this.cdp.Runtime.callFunctionOn({
-                functionDeclaration: getStringyProps.decl(
-                  `${customStringReprMaxLength}`,
-                  this.settings.customDescriptionGenerator || 'null',
-                ),
-                arguments: [await this.getDescriptionSymbols(newObjectId)],
-                objectId: newObjectId,
-                throwOnSideEffect: true,
-                returnByValue: true,
-              })
-                .then(r => r?.result.value || {})
-                .catch(() => ({} as Record<string, string>)),
-            ]);
-            
-            if (newAccessorsProperties && newOwnProperties) {
-              Object.assign(accessorsProperties, newAccessorsProperties);
-              Object.assign(ownProperties, newOwnProperties);
-              Object.assign(stringyProps, newStringyProps);
-            }
+            [accessorsProperties, ownProperties, stringyProps] = await this.fetchObjectProperties(
+              object.objectId!,
+            );
+            if (!accessorsProperties || !ownProperties) return [];
           }
         } catch {
           // If anything goes wrong, just use the original object
