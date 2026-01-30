@@ -190,6 +190,7 @@ export class Thread implements IVariableStoreLocationProvider {
   private _expectedPauseReason?: ExpectedPauseReason;
   private _excludedCallers: readonly Dap.ExcludedCaller[] = [];
   private _enabledCustomBreakpoints?: ReadonlySet<string>;
+  private _focusEmulationEnabled = false;
   /** Last parsed WASM script ID. Set immediately before breaking in {@link _breakOnWasmScriptId} */
   private _lastParsedWasmScriptIds?: string[];
   private readonly stateQueue = new StateQueue();
@@ -451,6 +452,20 @@ export class Thread implements IVariableStoreLocationProvider {
   public async revealPage() {
     this._cdp.Page.bringToFront({});
     return {};
+  }
+
+  public async setFocusEmulationEnabled(
+    params: Dap.SetFocusEmulationEnabledParams,
+  ): Promise<Dap.SetFocusEmulationEnabledResult> {
+    const enabled = params.enabled ?? !this._focusEmulationEnabled;
+    const emulation = this._cdp.Emulation;
+    if (!emulation) {
+      return { enabled: this._focusEmulationEnabled };
+    }
+
+    await emulation.setFocusEmulationEnabled({ enabled });
+    this._focusEmulationEnabled = enabled;
+    return { enabled: this._focusEmulationEnabled };
   }
 
   public async completions(

@@ -23,6 +23,7 @@ import { IDebugConfigurationProvider, IDebugConfigurationResolver } from './ui/c
 import { registerCustomBreakpointsUI } from './ui/customBreakpointsUI';
 import { debugNpmScript } from './ui/debugNpmScript';
 import { DebugSessionTracker } from './ui/debugSessionTracker';
+import { registerFocusEmulation } from './ui/focusEmulation';
 import { registerDebugTerminalUI } from './ui/debugTerminalUI';
 import { ExtensionApiFactory } from './ui/extensionApi';
 import { attachProcess, pickProcess } from './ui/processPicker';
@@ -103,6 +104,7 @@ export function activate(context: vscode.ExtensionContext): IExports {
 
   registerCompanionBrowserLaunch(context);
   registerCustomBreakpointsUI(context, debugSessionTracker);
+  registerFocusEmulation(context, debugSessionTracker);
   registerDebugTerminalUI(context, services.get(DelegateLauncherFactory), services);
   registerProfilingCommand(context, services);
   registerAutoAttach(context, services.get(DelegateLauncherFactory), services);

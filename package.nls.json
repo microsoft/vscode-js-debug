@@ -47,6 +47,7 @@
   "chrome.label": "Web App (Chrome)",
   "chrome.launch.description": "Launch Chrome to debug a URL",
   "chrome.launch.label": "Chrome: Launch",
+  "browser.emulateFocusedPage": "Emulate a focused page",
   "commands.callersAdd.label": "Exclude Caller",
   "commands.callersAdd.paletteLabel": "Exclude caller from pausing in the current location",
   "commands.callersGoToCaller.label": "Go to caller location",
