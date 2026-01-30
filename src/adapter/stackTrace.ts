@@ -523,7 +523,7 @@ export class StackFrame implements IStackFrameElement {
         const dap: Dap.Scope = {
           name,
           presentationHint,
-          expensive: scope.type === 'global',
+          expensive: scope.type === 'global' || scope.type === 'module',
           variablesReference: variable.id,
         };
         if (scope.startLocation) {
