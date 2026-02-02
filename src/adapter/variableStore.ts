@@ -398,9 +398,10 @@ class VariableContext {
     // Only do this if we haven't already applied customPropertiesGenerator and if not explicitly skipped
     if (!this.settings.customPropertiesGenerator && !skipSymbolBasedCustomProperties) {
       // Check if the object has Symbol.for("debug.properties") by looking for it in the properties
-      const hasDebugPropertiesSymbol = [...accessorsProperties.result, ...ownProperties.result].some(
-        p => p.symbol?.description === 'Symbol(debug.properties)',
-      );
+      const hasDebugPropertiesSymbol = [...accessorsProperties.result, ...ownProperties.result]
+        .some(
+          p => p.symbol?.description === 'Symbol(debug.properties)',
+        );
 
       if (hasDebugPropertiesSymbol) {
         try {
@@ -417,7 +418,7 @@ class VariableContext {
             hasCustomProperties = true;
             // Replace with the custom properties object and re-fetch its properties
             object = customPropsResult.result;
-            
+
             // Re-fetch properties for the custom properties object
             [accessorsProperties, ownProperties, stringyProps] = await this.fetchObjectProperties(
               object.objectId!,
@@ -429,6 +430,9 @@ class VariableContext {
         }
       }
     }
+
+    // TypeScript doesn't track the check inside the try-catch, so verify again
+    if (!accessorsProperties || !ownProperties) return [];
 
     // Merge own properties and all accessors.
     const propertiesMap = new Map<string, AnyPropertyDescriptor>();
