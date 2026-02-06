@@ -846,6 +846,36 @@ const dapCustom: JSONSchema4 = {
         required: ['source', 'line', 'column'],
       },
     ),
+
+    ...makeRequest(
+      'canEmulate',
+      'Returns whether the debug target supports emulation features (e.g., focus emulation). This is true for browser page targets but not for Node.js.',
+      {},
+      {
+        properties: {
+          supported: {
+            type: 'boolean',
+            description: 'Whether the target supports emulation features.',
+          },
+        },
+        required: ['supported'],
+      },
+    ),
+
+    ...makeRequest(
+      'setFocusEmulation',
+      'Enables or disables focus emulation for the debug target (Chrome DevTools "Emulate a focused page" feature).',
+      {
+        properties: {
+          enabled: {
+            type: 'boolean',
+            description: 'Whether to enable focus emulation.',
+          },
+        },
+        required: ['enabled'],
+      },
+      {},
+    ),
   },
 };
 

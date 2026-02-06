@@ -27,6 +27,7 @@ export const enum CustomViews {
   XHRFetchBreakpoints = 'jsXHRBreakpoints',
   ExcludedCallers = 'jsExcludedCallers',
   Network = 'jsDebugNetworkTree',
+  DebugOptions = 'jsDebugOptions',
 }
 
 export const enum Commands {
@@ -313,6 +314,7 @@ export const enum ContextKey {
   IsProfiling = 'jsDebugIsProfiling',
   IsMapSteppingDisabled = 'jsDebugIsMapSteppingDisabled',
   NetworkAvailable = 'jsDebugNetworkAvailable',
+  DebugOptionsAvailable = 'jsDebugOptionsAvailable',
 }
 
 export interface IContextKeyTypes {
@@ -321,6 +323,7 @@ export interface IContextKeyTypes {
   [ContextKey.IsProfiling]: boolean;
   [ContextKey.IsMapSteppingDisabled]: boolean;
   [ContextKey.NetworkAvailable]: boolean;
+  [ContextKey.DebugOptionsAvailable]: boolean;
 }
 
 export const setContextKey = async <K extends keyof IContextKeyTypes>(

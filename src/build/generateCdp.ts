@@ -126,7 +126,7 @@ async function generate() {
 
     if (!text) return;
     result.push('/**');
-    for (const line of text.split('\n')) result.push(` * ${line}`);
+    for (const line of text.split('\n')) result.push(` * ${line.replace(/\*\//g, '*\\/')}`);
     result.push(' */');
   }
 

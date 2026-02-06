@@ -35,7 +35,6 @@ export namespace Cdp {
     Cast: CastApi;
     Console: ConsoleApi;
     CSS: CSSApi;
-    Database: DatabaseApi;
     Debugger: DebuggerApi;
     DeviceAccess: DeviceAccessApi;
     DeviceOrientation: DeviceOrientationApi;
@@ -76,6 +75,7 @@ export namespace Cdp {
     Schema: SchemaApi;
     Security: SecurityApi;
     ServiceWorker: ServiceWorkerApi;
+    SmartCardEmulation: SmartCardEmulationApi;
     Storage: StorageApi;
     SystemInfo: SystemInfoApi;
     Target: TargetApi;
@@ -544,7 +544,8 @@ export namespace Cdp {
      * - from 'live' to 'root': attributes which apply to nodes in live regions
      * - from 'autocomplete' to 'valuetext': attributes which apply to widgets
      * - from 'checked' to 'selected': states which apply to widgets
-     * - from 'activedescendant' to 'owns' - relationships between elements other than parent/child/sibling.
+     * - from 'activedescendant' to 'owns': relationships between elements other than parent/child/sibling
+     * - from 'activeFullscreenElement' to 'uninteresting': reasons why this noode is hidden
      */
     export type AXPropertyName =
       | 'actions'
@@ -587,7 +588,24 @@ export namespace Cdp {
       | 'flowto'
       | 'labelledby'
       | 'owns'
-      | 'url';
+      | 'url'
+      | 'activeFullscreenElement'
+      | 'activeModalDialog'
+      | 'activeAriaModalDialog'
+      | 'ariaHiddenElement'
+      | 'ariaHiddenSubtree'
+      | 'emptyAlt'
+      | 'emptyText'
+      | 'inertElement'
+      | 'inertSubtree'
+      | 'labelContainer'
+      | 'labelFor'
+      | 'notRendered'
+      | 'notVisible'
+      | 'presentationalRole'
+      | 'probablyPresentational'
+      | 'inactiveCarouselTabContent'
+      | 'uninteresting';
 
     /**
      * A node in the accessibility tree.
@@ -1101,9 +1119,9 @@ export namespace Cdp {
       iterationStart: number;
 
       /**
-       * `AnimationEffect`'s iterations.
+       * `AnimationEffect`'s iterations. Omitted if the value is infinite.
        */
-      iterations: number;
+      iterations?: number;
 
       /**
        * `AnimationEffect`'s iteration duration.
@@ -1359,8 +1377,6 @@ export namespace Cdp {
       | 'ExcludeSameSiteNoneInsecure'
       | 'ExcludeSameSiteLax'
       | 'ExcludeSameSiteStrict'
-      | 'ExcludeInvalidSameParty'
-      | 'ExcludeSamePartyCrossPartyContext'
       | 'ExcludeDomainNonASCII'
       | 'ExcludeThirdPartyCookieBlockedInFirstPartySet'
       | 'ExcludeThirdPartyPhaseout'
@@ -1566,6 +1582,7 @@ export namespace Cdp {
       | 'kInlineViolation'
       | 'kEvalViolation'
       | 'kURLViolation'
+      | 'kSRIViolation'
       | 'kTrustedTypesSinkViolation'
       | 'kTrustedTypesPolicyViolation'
       | 'kWasmEvalViolation';
@@ -1687,8 +1704,10 @@ export namespace Cdp {
       | 'WriteErrorInsufficientResources'
       | 'WriteErrorInvalidMatchField'
       | 'WriteErrorInvalidStructuredHeader'
+      | 'WriteErrorInvalidTTLField'
       | 'WriteErrorNavigationRequest'
       | 'WriteErrorNoMatchField'
+      | 'WriteErrorNonIntegerTTLField'
       | 'WriteErrorNonListMatchDestField'
       | 'WriteErrorNonSecureContext'
       | 'WriteErrorNonStringIdField'
@@ -1699,6 +1718,43 @@ export namespace Cdp {
       | 'WriteErrorShuttingDown'
       | 'WriteErrorTooLongIdField'
       | 'WriteErrorUnsupportedType';
+
+    export type SRIMessageSignatureError =
+      | 'MissingSignatureHeader'
+      | 'MissingSignatureInputHeader'
+      | 'InvalidSignatureHeader'
+      | 'InvalidSignatureInputHeader'
+      | 'SignatureHeaderValueIsNotByteSequence'
+      | 'SignatureHeaderValueIsParameterized'
+      | 'SignatureHeaderValueIsIncorrectLength'
+      | 'SignatureInputHeaderMissingLabel'
+      | 'SignatureInputHeaderValueNotInnerList'
+      | 'SignatureInputHeaderValueMissingComponents'
+      | 'SignatureInputHeaderInvalidComponentType'
+      | 'SignatureInputHeaderInvalidComponentName'
+      | 'SignatureInputHeaderInvalidHeaderComponentParameter'
+      | 'SignatureInputHeaderInvalidDerivedComponentParameter'
+      | 'SignatureInputHeaderKeyIdLength'
+      | 'SignatureInputHeaderInvalidParameter'
+      | 'SignatureInputHeaderMissingRequiredParameters'
+      | 'ValidationFailedSignatureExpired'
+      | 'ValidationFailedInvalidLength'
+      | 'ValidationFailedSignatureMismatch'
+      | 'ValidationFailedIntegrityMismatch';
+
+    export type UnencodedDigestError =
+      | 'MalformedDictionary'
+      | 'UnknownAlgorithm'
+      | 'IncorrectDigestType'
+      | 'IncorrectDigestLength';
+
+    export type ConnectionAllowlistError =
+      | 'InvalidHeader'
+      | 'MoreThanOneList'
+      | 'ItemNotInnerList'
+      | 'InvalidAllowlistItemType'
+      | 'ReportingEndpointNotToken'
+      | 'InvalidUrlPattern';
 
     /**
      * Details for issues around "Attribution Reporting API" usage.
@@ -1749,18 +1805,44 @@ export namespace Cdp {
       request: AffectedRequest;
     }
 
+    export interface SRIMessageSignatureIssueDetails {
+      error: SRIMessageSignatureError;
+
+      signatureBase: string;
+
+      integrityAssertions: string[];
+
+      request: AffectedRequest;
+    }
+
+    export interface UnencodedDigestIssueDetails {
+      error: UnencodedDigestError;
+
+      request: AffectedRequest;
+    }
+
+    export interface ConnectionAllowlistIssueDetails {
+      error: ConnectionAllowlistError;
+
+      request: AffectedRequest;
+    }
+
     export type GenericIssueErrorType =
       | 'FormLabelForNameError'
       | 'FormDuplicateIdForInputError'
       | 'FormInputWithNoLabelError'
       | 'FormAutocompleteAttributeEmptyError'
       | 'FormEmptyIdAndNameAttributesForInputError'
-      | 'FormAriaLabelledByToNonExistingId'
+      | 'FormAriaLabelledByToNonExistingIdError'
       | 'FormInputAssignedAutocompleteValueToIdOrNameAttributeError'
-      | 'FormLabelHasNeitherForNorNestedInput'
+      | 'FormLabelHasNeitherForNorNestedInputError'
       | 'FormLabelForMatchesNonExistingIdError'
       | 'FormInputHasWrongButWellIntendedAutocompleteValueError'
-      | 'ResponseWasBlockedByORB';
+      | 'ResponseWasBlockedByORB'
+      | 'NavigationEntryMarkedSkippable'
+      | 'AutofillAndManualTextPolicyControlledFeaturesInfo'
+      | 'AutofillPolicyControlledFeatureInfo'
+      | 'ManualTextPolicyControlledFeatureInfo';
 
     /**
      * Depending on the concrete errorType, different properties are set.
@@ -1880,7 +1962,10 @@ export namespace Cdp {
       | 'ReplacedByActiveMode'
       | 'InvalidFieldsSpecified'
       | 'RelyingPartyOriginIsOpaque'
-      | 'TypeNotMatching';
+      | 'TypeNotMatching'
+      | 'UiDismissedNoEmbargo'
+      | 'CorsError'
+      | 'SuppressedBySegmentationPlatform';
 
     export interface FederatedAuthUserInfoRequestIssueDetails {
       federatedAuthUserInfoRequestIssueReason: FederatedAuthUserInfoRequestIssueReason;
@@ -1926,20 +2011,37 @@ export namespace Cdp {
       requestId?: Network.RequestId;
     }
 
-    export type SelectElementAccessibilityIssueReason =
+    export type PartitioningBlobURLInfo =
+      | 'BlockedCrossPartitionFetching'
+      | 'EnforceNoopenerForNavigation';
+
+    export interface PartitioningBlobURLIssueDetails {
+      /**
+       * The BlobURL that failed to load.
+       */
+      url: string;
+
+      /**
+       * Additional information about the Partitioning Blob URL issue.
+       */
+      partitioningBlobURLInfo: PartitioningBlobURLInfo;
+    }
+
+    export type ElementAccessibilityIssueReason =
       | 'DisallowedSelectChild'
       | 'DisallowedOptGroupChild'
       | 'NonPhrasingContentOptionChild'
       | 'InteractiveContentOptionChild'
-      | 'InteractiveContentLegendChild';
+      | 'InteractiveContentLegendChild'
+      | 'InteractiveContentSummaryDescendant';
 
     /**
-     * This issue warns about errors in the select element content model.
+     * This issue warns about errors in the select or summary element content model.
      */
-    export interface SelectElementAccessibilityIssueDetails {
+    export interface ElementAccessibilityIssueDetails {
       nodeId: DOM.BackendNodeId;
 
-      selectElementAccessibilityIssueReason: SelectElementAccessibilityIssueReason;
+      elementAccessibilityIssueReason: ElementAccessibilityIssueReason;
 
       hasDisallowedAttributes: boolean;
     }
@@ -1993,6 +2095,95 @@ export namespace Cdp {
       propertyValue?: string;
     }
 
+    export type UserReidentificationIssueType =
+      | 'BlockedFrameNavigation'
+      | 'BlockedSubresource'
+      | 'NoisedCanvasReadback';
+
+    /**
+     * This issue warns about uses of APIs that may be considered misuse to
+     * re-identify users.
+     */
+    export interface UserReidentificationIssueDetails {
+      type: UserReidentificationIssueType;
+
+      /**
+       * Applies to BlockedFrameNavigation and BlockedSubresource issue types.
+       */
+      request?: AffectedRequest;
+
+      /**
+       * Applies to NoisedCanvasReadback issue type.
+       */
+      sourceCodeLocation?: SourceCodeLocation;
+    }
+
+    export type PermissionElementIssueType =
+      | 'InvalidType'
+      | 'FencedFrameDisallowed'
+      | 'CspFrameAncestorsMissing'
+      | 'PermissionsPolicyBlocked'
+      | 'PaddingRightUnsupported'
+      | 'PaddingBottomUnsupported'
+      | 'InsetBoxShadowUnsupported'
+      | 'RequestInProgress'
+      | 'UntrustedEvent'
+      | 'RegistrationFailed'
+      | 'TypeNotSupported'
+      | 'InvalidTypeActivation'
+      | 'SecurityChecksFailed'
+      | 'ActivationDisabled'
+      | 'GeolocationDeprecated'
+      | 'InvalidDisplayStyle'
+      | 'NonOpaqueColor'
+      | 'LowContrast'
+      | 'FontSizeTooSmall'
+      | 'FontSizeTooLarge'
+      | 'InvalidSizeValue';
+
+    /**
+     * This issue warns about improper usage of the <permission> element.
+     */
+    export interface PermissionElementIssueDetails {
+      issueType: PermissionElementIssueType;
+
+      /**
+       * The value of the type attribute.
+       */
+      type?: string;
+
+      /**
+       * The node ID of the <permission> element.
+       */
+      nodeId?: DOM.BackendNodeId;
+
+      /**
+       * True if the issue is a warning, false if it is an error.
+       */
+      isWarning?: boolean;
+
+      /**
+       * Fields for message construction:
+       * Used for messages that reference a specific permission name
+       */
+      permissionName?: string;
+
+      /**
+       * Used for messages about occlusion
+       */
+      occluderNodeInfo?: string;
+
+      /**
+       * Used for messages about occluder's parent
+       */
+      occluderParentNodeInfo?: string;
+
+      /**
+       * Used for messages about activation disabled reason
+       */
+      disableReason?: string;
+    }
+
     /**
      * A unique identifier for the type of issue. Each type may use one of the
      * optional fields in InspectorIssueDetails to convey more specific
@@ -2009,6 +2200,7 @@ export namespace Cdp {
       | 'CorsIssue'
       | 'AttributionReportingIssue'
       | 'QuirksModeIssue'
+      | 'PartitioningBlobURLIssue'
       | 'NavigatorUserAgentIssue'
       | 'GenericIssue'
       | 'DeprecationIssue'
@@ -2020,7 +2212,12 @@ export namespace Cdp {
       | 'FederatedAuthUserInfoRequestIssue'
       | 'PropertyRuleIssue'
       | 'SharedDictionaryIssue'
-      | 'SelectElementAccessibilityIssue';
+      | 'ElementAccessibilityIssue'
+      | 'SRIMessageSignatureIssue'
+      | 'UnencodedDigestIssue'
+      | 'ConnectionAllowlistIssue'
+      | 'UserReidentificationIssue'
+      | 'PermissionElementIssue';
 
     /**
      * This struct holds a list of optional fields with additional information
@@ -2048,6 +2245,8 @@ export namespace Cdp {
 
       quirksModeIssueDetails?: QuirksModeIssueDetails;
 
+      partitioningBlobURLIssueDetails?: PartitioningBlobURLIssueDetails;
+
       /**
        * @deprecated
        */
@@ -2073,7 +2272,17 @@ export namespace Cdp {
 
       sharedDictionaryIssueDetails?: SharedDictionaryIssueDetails;
 
-      selectElementAccessibilityIssueDetails?: SelectElementAccessibilityIssueDetails;
+      elementAccessibilityIssueDetails?: ElementAccessibilityIssueDetails;
+
+      sriMessageSignatureIssueDetails?: SRIMessageSignatureIssueDetails;
+
+      unencodedDigestIssueDetails?: UnencodedDigestIssueDetails;
+
+      connectionAllowlistIssueDetails?: ConnectionAllowlistIssueDetails;
+
+      userReidentificationIssueDetails?: UserReidentificationIssueDetails;
+
+      permissionElementIssueDetails?: PermissionElementIssueDetails;
     }
 
     /**
@@ -2153,9 +2362,14 @@ export namespace Cdp {
       frameId?: Page.FrameId;
 
       /**
-       * Credit card information to fill out the form. Credit card data is not saved.
+       * Credit card information to fill out the form. Credit card data is not saved.  Mutually exclusive with `address`.
        */
-      card: CreditCard;
+      card?: CreditCard;
+
+      /**
+       * Address to fill out the form. Address data is not saved. Mutually exclusive with `card`.
+       */
+      address?: Address;
     }
 
     /**
@@ -2247,6 +2461,8 @@ export namespace Cdp {
     export interface AddressField {
       /**
        * address field name, for example GIVEN_NAME.
+       * The full list of supported field names:
+       * https://source.chromium.org/chromium/chromium/src/+/main:components/autofill/core/browser/field_types.cc;l=38
        */
       name: string;
 
@@ -2535,6 +2751,13 @@ export namespace Cdp {
     ): Promise<BluetoothEmulation.EnableResult | undefined>;
 
     /**
+     * Set the state of the simulated central.
+     */
+    setSimulatedCentralState(
+      params: BluetoothEmulation.SetSimulatedCentralStateParams,
+    ): Promise<BluetoothEmulation.SetSimulatedCentralStateResult | undefined>;
+
+    /**
      * Disable the BluetoothEmulation domain.
      */
     disable(
@@ -2556,6 +2779,118 @@ export namespace Cdp {
     simulateAdvertisement(
       params: BluetoothEmulation.SimulateAdvertisementParams,
     ): Promise<BluetoothEmulation.SimulateAdvertisementResult | undefined>;
+
+    /**
+     * Simulates the response code from the peripheral with |address| for a
+     * GATT operation of |type|. The |code| value follows the HCI Error Codes from
+     * Bluetooth Core Specification Vol 2 Part D 1.3 List Of Error Codes.
+     */
+    simulateGATTOperationResponse(
+      params: BluetoothEmulation.SimulateGATTOperationResponseParams,
+    ): Promise<BluetoothEmulation.SimulateGATTOperationResponseResult | undefined>;
+
+    /**
+     * Simulates the response from the characteristic with |characteristicId| for a
+     * characteristic operation of |type|. The |code| value follows the Error
+     * Codes from Bluetooth Core Specification Vol 3 Part F 3.4.1.1 Error Response.
+     * The |data| is expected to exist when simulating a successful read operation
+     * response.
+     */
+    simulateCharacteristicOperationResponse(
+      params: BluetoothEmulation.SimulateCharacteristicOperationResponseParams,
+    ): Promise<BluetoothEmulation.SimulateCharacteristicOperationResponseResult | undefined>;
+
+    /**
+     * Simulates the response from the descriptor with |descriptorId| for a
+     * descriptor operation of |type|. The |code| value follows the Error
+     * Codes from Bluetooth Core Specification Vol 3 Part F 3.4.1.1 Error Response.
+     * The |data| is expected to exist when simulating a successful read operation
+     * response.
+     */
+    simulateDescriptorOperationResponse(
+      params: BluetoothEmulation.SimulateDescriptorOperationResponseParams,
+    ): Promise<BluetoothEmulation.SimulateDescriptorOperationResponseResult | undefined>;
+
+    /**
+     * Adds a service with |serviceUuid| to the peripheral with |address|.
+     */
+    addService(
+      params: BluetoothEmulation.AddServiceParams,
+    ): Promise<BluetoothEmulation.AddServiceResult | undefined>;
+
+    /**
+     * Removes the service respresented by |serviceId| from the simulated central.
+     */
+    removeService(
+      params: BluetoothEmulation.RemoveServiceParams,
+    ): Promise<BluetoothEmulation.RemoveServiceResult | undefined>;
+
+    /**
+     * Adds a characteristic with |characteristicUuid| and |properties| to the
+     * service represented by |serviceId|.
+     */
+    addCharacteristic(
+      params: BluetoothEmulation.AddCharacteristicParams,
+    ): Promise<BluetoothEmulation.AddCharacteristicResult | undefined>;
+
+    /**
+     * Removes the characteristic respresented by |characteristicId| from the
+     * simulated central.
+     */
+    removeCharacteristic(
+      params: BluetoothEmulation.RemoveCharacteristicParams,
+    ): Promise<BluetoothEmulation.RemoveCharacteristicResult | undefined>;
+
+    /**
+     * Adds a descriptor with |descriptorUuid| to the characteristic respresented
+     * by |characteristicId|.
+     */
+    addDescriptor(
+      params: BluetoothEmulation.AddDescriptorParams,
+    ): Promise<BluetoothEmulation.AddDescriptorResult | undefined>;
+
+    /**
+     * Removes the descriptor with |descriptorId| from the simulated central.
+     */
+    removeDescriptor(
+      params: BluetoothEmulation.RemoveDescriptorParams,
+    ): Promise<BluetoothEmulation.RemoveDescriptorResult | undefined>;
+
+    /**
+     * Simulates a GATT disconnection from the peripheral with |address|.
+     */
+    simulateGATTDisconnection(
+      params: BluetoothEmulation.SimulateGATTDisconnectionParams,
+    ): Promise<BluetoothEmulation.SimulateGATTDisconnectionResult | undefined>;
+
+    /**
+     * Event for when a GATT operation of |type| to the peripheral with |address|
+     * happened.
+     */
+    on(
+      event: 'gattOperationReceived',
+      listener: (event: BluetoothEmulation.GattOperationReceivedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Event for when a characteristic operation of |type| to the characteristic
+     * respresented by |characteristicId| happened. |data| and |writeType| is
+     * expected to exist when |type| is write.
+     */
+    on(
+      event: 'characteristicOperationReceived',
+      listener: (event: BluetoothEmulation.CharacteristicOperationReceivedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Event for when a descriptor operation of |type| to the descriptor
+     * respresented by |descriptorId| happened. |data| is expected to exist when
+     * |type| is write.
+     */
+    on(
+      event: 'descriptorOperationReceived',
+      listener: (event: BluetoothEmulation.DescriptorOperationReceivedEvent) => void,
+    ): IDisposable;
   }
 
   /**
@@ -2570,12 +2905,33 @@ export namespace Cdp {
        * State of the simulated central.
        */
       state: CentralState;
+
+      /**
+       * If the simulated central supports low-energy.
+       */
+      leSupported: boolean;
     }
 
     /**
      * Return value of the 'BluetoothEmulation.enable' method.
      */
     export interface EnableResult {
+    }
+
+    /**
+     * Parameters of the 'BluetoothEmulation.setSimulatedCentralState' method.
+     */
+    export interface SetSimulatedCentralStateParams {
+      /**
+       * State of the simulated central.
+       */
+      state: CentralState;
+    }
+
+    /**
+     * Return value of the 'BluetoothEmulation.setSimulatedCentralState' method.
+     */
+    export interface SetSimulatedCentralStateResult {
     }
 
     /**
@@ -2623,9 +2979,235 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'BluetoothEmulation.simulateGATTOperationResponse' method.
+     */
+    export interface SimulateGATTOperationResponseParams {
+      address: string;
+
+      type: GATTOperationType;
+
+      code: integer;
+    }
+
+    /**
+     * Return value of the 'BluetoothEmulation.simulateGATTOperationResponse' method.
+     */
+    export interface SimulateGATTOperationResponseResult {
+    }
+
+    /**
+     * Parameters of the 'BluetoothEmulation.simulateCharacteristicOperationResponse' method.
+     */
+    export interface SimulateCharacteristicOperationResponseParams {
+      characteristicId: string;
+
+      type: CharacteristicOperationType;
+
+      code: integer;
+
+      data?: string;
+    }
+
+    /**
+     * Return value of the 'BluetoothEmulation.simulateCharacteristicOperationResponse' method.
+     */
+    export interface SimulateCharacteristicOperationResponseResult {
+    }
+
+    /**
+     * Parameters of the 'BluetoothEmulation.simulateDescriptorOperationResponse' method.
+     */
+    export interface SimulateDescriptorOperationResponseParams {
+      descriptorId: string;
+
+      type: DescriptorOperationType;
+
+      code: integer;
+
+      data?: string;
+    }
+
+    /**
+     * Return value of the 'BluetoothEmulation.simulateDescriptorOperationResponse' method.
+     */
+    export interface SimulateDescriptorOperationResponseResult {
+    }
+
+    /**
+     * Parameters of the 'BluetoothEmulation.addService' method.
+     */
+    export interface AddServiceParams {
+      address: string;
+
+      serviceUuid: string;
+    }
+
+    /**
+     * Return value of the 'BluetoothEmulation.addService' method.
+     */
+    export interface AddServiceResult {
+      /**
+       * An identifier that uniquely represents this service.
+       */
+      serviceId: string;
+    }
+
+    /**
+     * Parameters of the 'BluetoothEmulation.removeService' method.
+     */
+    export interface RemoveServiceParams {
+      serviceId: string;
+    }
+
+    /**
+     * Return value of the 'BluetoothEmulation.removeService' method.
+     */
+    export interface RemoveServiceResult {
+    }
+
+    /**
+     * Parameters of the 'BluetoothEmulation.addCharacteristic' method.
+     */
+    export interface AddCharacteristicParams {
+      serviceId: string;
+
+      characteristicUuid: string;
+
+      properties: CharacteristicProperties;
+    }
+
+    /**
+     * Return value of the 'BluetoothEmulation.addCharacteristic' method.
+     */
+    export interface AddCharacteristicResult {
+      /**
+       * An identifier that uniquely represents this characteristic.
+       */
+      characteristicId: string;
+    }
+
+    /**
+     * Parameters of the 'BluetoothEmulation.removeCharacteristic' method.
+     */
+    export interface RemoveCharacteristicParams {
+      characteristicId: string;
+    }
+
+    /**
+     * Return value of the 'BluetoothEmulation.removeCharacteristic' method.
+     */
+    export interface RemoveCharacteristicResult {
+    }
+
+    /**
+     * Parameters of the 'BluetoothEmulation.addDescriptor' method.
+     */
+    export interface AddDescriptorParams {
+      characteristicId: string;
+
+      descriptorUuid: string;
+    }
+
+    /**
+     * Return value of the 'BluetoothEmulation.addDescriptor' method.
+     */
+    export interface AddDescriptorResult {
+      /**
+       * An identifier that uniquely represents this descriptor.
+       */
+      descriptorId: string;
+    }
+
+    /**
+     * Parameters of the 'BluetoothEmulation.removeDescriptor' method.
+     */
+    export interface RemoveDescriptorParams {
+      descriptorId: string;
+    }
+
+    /**
+     * Return value of the 'BluetoothEmulation.removeDescriptor' method.
+     */
+    export interface RemoveDescriptorResult {
+    }
+
+    /**
+     * Parameters of the 'BluetoothEmulation.simulateGATTDisconnection' method.
+     */
+    export interface SimulateGATTDisconnectionParams {
+      address: string;
+    }
+
+    /**
+     * Return value of the 'BluetoothEmulation.simulateGATTDisconnection' method.
+     */
+    export interface SimulateGATTDisconnectionResult {
+    }
+
+    /**
+     * Parameters of the 'BluetoothEmulation.gattOperationReceived' event.
+     */
+    export interface GattOperationReceivedEvent {
+      address: string;
+
+      type: GATTOperationType;
+    }
+
+    /**
+     * Parameters of the 'BluetoothEmulation.characteristicOperationReceived' event.
+     */
+    export interface CharacteristicOperationReceivedEvent {
+      characteristicId: string;
+
+      type: CharacteristicOperationType;
+
+      data?: string;
+
+      writeType?: CharacteristicWriteType;
+    }
+
+    /**
+     * Parameters of the 'BluetoothEmulation.descriptorOperationReceived' event.
+     */
+    export interface DescriptorOperationReceivedEvent {
+      descriptorId: string;
+
+      type: DescriptorOperationType;
+
+      data?: string;
+    }
+
+    /**
      * Indicates the various states of Central.
      */
     export type CentralState = 'absent' | 'powered-off' | 'powered-on';
+
+    /**
+     * Indicates the various types of GATT event.
+     */
+    export type GATTOperationType = 'connection' | 'discovery';
+
+    /**
+     * Indicates the various types of characteristic write.
+     */
+    export type CharacteristicWriteType =
+      | 'write-default-deprecated'
+      | 'write-with-response'
+      | 'write-without-response';
+
+    /**
+     * Indicates the various types of characteristic operation.
+     */
+    export type CharacteristicOperationType =
+      | 'read'
+      | 'write'
+      | 'subscribe-to-notifications'
+      | 'unsubscribe-from-notifications';
+
+    /**
+     * Indicates the various types of descriptor operation.
+     */
+    export type DescriptorOperationType = 'read' | 'write';
 
     /**
      * Stores the manufacturer data
@@ -2679,6 +3261,28 @@ export namespace Cdp {
 
       scanRecord: ScanRecord;
     }
+
+    /**
+     * Describes the properties of a characteristic. This follows Bluetooth Core
+     * Specification BT 4.2 Vol 3 Part G 3.3.1. Characteristic Properties.
+     */
+    export interface CharacteristicProperties {
+      broadcast?: boolean;
+
+      read?: boolean;
+
+      writeWithoutResponse?: boolean;
+
+      write?: boolean;
+
+      notify?: boolean;
+
+      indicate?: boolean;
+
+      authenticatedSignedWrites?: boolean;
+
+      extendedProperties?: boolean;
+    }
   }
 
   /**
@@ -2686,14 +3290,16 @@ export namespace Cdp {
    */
   export interface BrowserApi {
     /**
-     * Set permission settings for given origin.
+     * Set permission settings for given embedding and embedded origins.
      */
     setPermission(
       params: Browser.SetPermissionParams,
     ): Promise<Browser.SetPermissionResult | undefined>;
 
     /**
-     * Grant specific permissions to the given origin and reject all others.
+     * Grant specific permissions to the given origin and reject all others. Deprecated. Use
+     * setPermission instead.
+     * @deprecated
      */
     grantPermissions(
       params: Browser.GrantPermissionsParams,
@@ -2786,6 +3392,13 @@ export namespace Cdp {
     ): Promise<Browser.SetWindowBoundsResult | undefined>;
 
     /**
+     * Set size of the browser contents resizing browser window as necessary.
+     */
+    setContentsSize(
+      params: Browser.SetContentsSizeParams,
+    ): Promise<Browser.SetContentsSizeResult | undefined>;
+
+    /**
      * Set dock tile details, platform-specific.
      */
     setDockTile(params: Browser.SetDockTileParams): Promise<Browser.SetDockTileResult | undefined>;
@@ -2804,6 +3417,16 @@ export namespace Cdp {
     addPrivacySandboxEnrollmentOverride(
       params: Browser.AddPrivacySandboxEnrollmentOverrideParams,
     ): Promise<Browser.AddPrivacySandboxEnrollmentOverrideResult | undefined>;
+
+    /**
+     * Configures encryption keys used with a given privacy sandbox API to talk
+     * to a trusted coordinator.  Since this is intended for test automation only,
+     * coordinatorOrigin must be a .test domain. No existing coordinator
+     * configuration for the origin may exist.
+     */
+    addPrivacySandboxCoordinatorKeyConfig(
+      params: Browser.AddPrivacySandboxCoordinatorKeyConfigParams,
+    ): Promise<Browser.AddPrivacySandboxCoordinatorKeyConfigResult | undefined>;
 
     /**
      * Fired when page is about to start a download.
@@ -2841,9 +3464,16 @@ export namespace Cdp {
       setting: PermissionSetting;
 
       /**
-       * Origin the permission applies to, all origins if not specified.
+       * Embedding origin the permission applies to, all origins if not specified.
        */
       origin?: string;
+
+      /**
+       * Embedded origin the permission applies to. It is ignored unless the embedding origin is
+       * present and valid. If the embedding origin is provided but the embedded origin isn't, the
+       * embedding origin is used as the embedded origin.
+       */
+      embeddedOrigin?: string;
 
       /**
        * Context to override. When omitted, default browser context is used.
@@ -3161,6 +3791,34 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'Browser.setContentsSize' method.
+     */
+    export interface SetContentsSizeParams {
+      /**
+       * Browser window id.
+       */
+      windowId: WindowID;
+
+      /**
+       * The window contents width in DIP. Assumes current width if omitted.
+       * Must be specified if 'height' is omitted.
+       */
+      width?: integer;
+
+      /**
+       * The window contents height in DIP. Assumes current height if omitted.
+       * Must be specified if 'width' is omitted.
+       */
+      height?: integer;
+    }
+
+    /**
+     * Return value of the 'Browser.setContentsSize' method.
+     */
+    export interface SetContentsSizeResult {
+    }
+
+    /**
      * Parameters of the 'Browser.setDockTile' method.
      */
     export interface SetDockTileParams {
@@ -3202,6 +3860,29 @@ export namespace Cdp {
      * Return value of the 'Browser.addPrivacySandboxEnrollmentOverride' method.
      */
     export interface AddPrivacySandboxEnrollmentOverrideResult {
+    }
+
+    /**
+     * Parameters of the 'Browser.addPrivacySandboxCoordinatorKeyConfig' method.
+     */
+    export interface AddPrivacySandboxCoordinatorKeyConfigParams {
+      api: PrivacySandboxAPI;
+
+      coordinatorOrigin: string;
+
+      keyConfig: string;
+
+      /**
+       * BrowserContext to perform the action in. When omitted, default browser
+       * context is used.
+       */
+      browserContextId?: BrowserContextID;
+    }
+
+    /**
+     * Return value of the 'Browser.addPrivacySandboxCoordinatorKeyConfig' method.
+     */
+    export interface AddPrivacySandboxCoordinatorKeyConfigResult {
     }
 
     /**
@@ -3252,6 +3933,13 @@ export namespace Cdp {
        * Download status.
        */
       state: 'inProgress' | 'completed' | 'canceled';
+
+      /**
+       * If download is "completed", provides the path of the downloaded file.
+       * Depending on the platform, it is not guaranteed to be set, nor the file
+       * is guaranteed to exist.
+       */
+      filePath?: string;
     }
 
     export type BrowserContextID = string;
@@ -3310,6 +3998,9 @@ export namespace Cdp {
       | 'idleDetection'
       | 'keyboardLock'
       | 'localFonts'
+      | 'localNetwork'
+      | 'localNetworkAccess'
+      | 'loopbackNetwork'
       | 'midi'
       | 'midiSysex'
       | 'nfc'
@@ -3374,7 +4065,7 @@ export namespace Cdp {
     /**
      * Browser command ids used by executeBrowserCommand.
      */
-    export type BrowserCommandId = 'openTabSearch' | 'closeTabSearch';
+    export type BrowserCommandId = 'openTabSearch' | 'closeTabSearch' | 'openGlic';
 
     /**
      * Chrome histogram bucket.
@@ -3420,6 +4111,8 @@ export namespace Cdp {
        */
       buckets: Bucket[];
     }
+
+    export type PrivacySandboxAPI = 'BiddingAndAuctionServices' | 'TrustedKeyValue';
   }
 
   /**
@@ -4068,6 +4761,13 @@ export namespace Cdp {
      * For example, a value of '1em' is evaluated according to the computed
      * 'font-size' of the element and a value 'calc(1px + 2px)' will be
      * resolved to '3px'.
+     * If the `propertyName` was specified the `values` are resolved as if
+     * they were property's declaration. If a value cannot be parsed according
+     * to the provided property syntax, the value is parsed using combined
+     * syntax as if null `propertyName` was provided. If the value cannot be
+     * resolved even then, return the provided value without any changes.
+     * Note: this function currently does not resolve CSS random() function,
+     * it returns unmodified random() function parts.`
      */
     resolveValues(params: CSS.ResolveValuesParams): Promise<CSS.ResolveValuesResult | undefined>;
 
@@ -4097,6 +4797,13 @@ export namespace Cdp {
     getMatchedStylesForNode(
       params: CSS.GetMatchedStylesForNodeParams,
     ): Promise<CSS.GetMatchedStylesForNodeResult | undefined>;
+
+    /**
+     * Returns the values of the default UA-defined environment variables used in env()
+     */
+    getEnvironmentVariables(
+      params: CSS.GetEnvironmentVariablesParams,
+    ): Promise<CSS.GetEnvironmentVariablesResult | undefined>;
 
     /**
      * Returns all media queries parsed by the rendering engine.
@@ -4315,7 +5022,7 @@ export namespace Cdp {
       /**
        * The css style sheet identifier where a new rule should be inserted.
        */
-      styleSheetId: StyleSheetId;
+      styleSheetId: DOM.StyleSheetId;
 
       /**
        * The text of a new rule.
@@ -4349,7 +5056,7 @@ export namespace Cdp {
      * Parameters of the 'CSS.collectClassNames' method.
      */
     export interface CollectClassNamesParams {
-      styleSheetId: StyleSheetId;
+      styleSheetId: DOM.StyleSheetId;
     }
 
     /**
@@ -4370,6 +5077,14 @@ export namespace Cdp {
        * Identifier of the frame where "via-inspector" stylesheet should be created.
        */
       frameId: Page.FrameId;
+
+      /**
+       * If true, creates a new stylesheet for every call. If false,
+       * returns a stylesheet previously created by a call with force=false
+       * for the frame's document if it exists or creates a new stylesheet
+       * (default: false).
+       */
+      force?: boolean;
     }
 
     /**
@@ -4379,7 +5094,7 @@ export namespace Cdp {
       /**
        * Identifier of the created "via-inspector" stylesheet.
        */
-      styleSheetId: StyleSheetId;
+      styleSheetId: DOM.StyleSheetId;
     }
 
     /**
@@ -4498,6 +5213,12 @@ export namespace Cdp {
        * Computed style for the specified DOM node.
        */
       computedStyle: CSSComputedStyleProperty[];
+
+      /**
+       * A list of non-standard "extra fields" which blink stores alongside each
+       * computed style.
+       */
+      extraFields: ComputedStyleExtraFields;
     }
 
     /**
@@ -4505,8 +5226,7 @@ export namespace Cdp {
      */
     export interface ResolveValuesParams {
       /**
-       * Substitution functions (var()/env()/attr()) and cascade-dependent
-       * keywords (revert/revert-layer) do not work.
+       * Cascade-dependent keywords (revert/revert-layer) do not work.
        */
       values: string[];
 
@@ -4673,14 +5393,32 @@ export namespace Cdp {
       cssPropertyRegistrations?: CSSPropertyRegistration[];
 
       /**
-       * A font-palette-values rule matching this node.
+       * A list of simple @rules matching this node or its pseudo-elements.
        */
-      cssFontPaletteValuesRule?: CSSFontPaletteValuesRule;
+      cssAtRules?: CSSAtRule[];
 
       /**
        * Id of the first parent element that does not have display: contents.
        */
       parentLayoutNodeId?: DOM.NodeId;
+
+      /**
+       * A list of CSS at-function rules referenced by styles of this node.
+       */
+      cssFunctionRules?: CSSFunctionRule[];
+    }
+
+    /**
+     * Parameters of the 'CSS.getEnvironmentVariables' method.
+     */
+    export interface GetEnvironmentVariablesParams {
+    }
+
+    /**
+     * Return value of the 'CSS.getEnvironmentVariables' method.
+     */
+    export interface GetEnvironmentVariablesResult {
+      environmentVariables: any;
     }
 
     /**
@@ -4717,7 +5455,7 @@ export namespace Cdp {
      * Parameters of the 'CSS.getStyleSheetText' method.
      */
     export interface GetStyleSheetTextParams {
-      styleSheetId: StyleSheetId;
+      styleSheetId: DOM.StyleSheetId;
     }
 
     /**
@@ -4748,7 +5486,7 @@ export namespace Cdp {
      * Parameters of the 'CSS.getLocationForSelector' method.
      */
     export interface GetLocationForSelectorParams {
-      styleSheetId: StyleSheetId;
+      styleSheetId: DOM.StyleSheetId;
 
       selectorText: string;
     }
@@ -4826,7 +5564,7 @@ export namespace Cdp {
      * Parameters of the 'CSS.setPropertyRulePropertyName' method.
      */
     export interface SetPropertyRulePropertyNameParams {
-      styleSheetId: StyleSheetId;
+      styleSheetId: DOM.StyleSheetId;
 
       range: SourceRange;
 
@@ -4847,7 +5585,7 @@ export namespace Cdp {
      * Parameters of the 'CSS.setKeyframeKey' method.
      */
     export interface SetKeyframeKeyParams {
-      styleSheetId: StyleSheetId;
+      styleSheetId: DOM.StyleSheetId;
 
       range: SourceRange;
 
@@ -4868,7 +5606,7 @@ export namespace Cdp {
      * Parameters of the 'CSS.setMediaText' method.
      */
     export interface SetMediaTextParams {
-      styleSheetId: StyleSheetId;
+      styleSheetId: DOM.StyleSheetId;
 
       range: SourceRange;
 
@@ -4889,7 +5627,7 @@ export namespace Cdp {
      * Parameters of the 'CSS.setContainerQueryText' method.
      */
     export interface SetContainerQueryTextParams {
-      styleSheetId: StyleSheetId;
+      styleSheetId: DOM.StyleSheetId;
 
       range: SourceRange;
 
@@ -4910,7 +5648,7 @@ export namespace Cdp {
      * Parameters of the 'CSS.setSupportsText' method.
      */
     export interface SetSupportsTextParams {
-      styleSheetId: StyleSheetId;
+      styleSheetId: DOM.StyleSheetId;
 
       range: SourceRange;
 
@@ -4931,7 +5669,7 @@ export namespace Cdp {
      * Parameters of the 'CSS.setScopeText' method.
      */
     export interface SetScopeTextParams {
-      styleSheetId: StyleSheetId;
+      styleSheetId: DOM.StyleSheetId;
 
       range: SourceRange;
 
@@ -4952,7 +5690,7 @@ export namespace Cdp {
      * Parameters of the 'CSS.setRuleSelector' method.
      */
     export interface SetRuleSelectorParams {
-      styleSheetId: StyleSheetId;
+      styleSheetId: DOM.StyleSheetId;
 
       range: SourceRange;
 
@@ -4973,7 +5711,7 @@ export namespace Cdp {
      * Parameters of the 'CSS.setStyleSheetText' method.
      */
     export interface SetStyleSheetTextParams {
-      styleSheetId: StyleSheetId;
+      styleSheetId: DOM.StyleSheetId;
 
       text: string;
     }
@@ -5101,7 +5839,7 @@ export namespace Cdp {
      * Parameters of the 'CSS.styleSheetChanged' event.
      */
     export interface StyleSheetChangedEvent {
-      styleSheetId: StyleSheetId;
+      styleSheetId: DOM.StyleSheetId;
     }
 
     /**
@@ -5111,7 +5849,7 @@ export namespace Cdp {
       /**
        * Identifier of the removed stylesheet.
        */
-      styleSheetId: StyleSheetId;
+      styleSheetId: DOM.StyleSheetId;
     }
 
     /**
@@ -5123,8 +5861,6 @@ export namespace Cdp {
        */
       nodeId: DOM.NodeId;
     }
-
-    export type StyleSheetId = string;
 
     /**
      * Stylesheet type: "injected" for stylesheets injected via extension, "user-agent" for user-agent
@@ -5287,7 +6023,7 @@ export namespace Cdp {
       /**
        * The stylesheet identifier.
        */
-      styleSheetId: StyleSheetId;
+      styleSheetId: DOM.StyleSheetId;
 
       /**
        * Owner frame identifier.
@@ -5390,7 +6126,7 @@ export namespace Cdp {
        * The css style sheet identifier (absent for user agent stylesheet and user-specified
        * stylesheet rules) this rule came from.
        */
-      styleSheetId?: StyleSheetId;
+      styleSheetId?: DOM.StyleSheetId;
 
       /**
        * Rule selector data.
@@ -5411,6 +6147,11 @@ export namespace Cdp {
        * Associated style declaration.
        */
       style: CSSStyle;
+
+      /**
+       * The BackendNodeId of the DOM node that constitutes the origin tree scope of this rule.
+       */
+      originTreeScopeNodeId?: DOM.BackendNodeId;
 
       /**
        * Media list array (for rules involving media queries). The array enumerates media queries
@@ -5475,7 +6216,7 @@ export namespace Cdp {
        * The css style sheet identifier (absent for user agent stylesheet and user-specified
        * stylesheet rules) this rule came from.
        */
-      styleSheetId: StyleSheetId;
+      styleSheetId: DOM.StyleSheetId;
 
       /**
        * Offset of the start of the rule (including selector) from the beginning of the stylesheet.
@@ -5547,6 +6288,15 @@ export namespace Cdp {
       value: string;
     }
 
+    export interface ComputedStyleExtraFields {
+      /**
+       * Returns whether or not this node is being rendered with base appearance,
+       * which happens when it has its appearance property set to base/base-select
+       * or it is in the subtree of an element being rendered with base appearance.
+       */
+      isAppearanceBase: boolean;
+    }
+
     /**
      * CSS style representation.
      */
@@ -5555,7 +6305,7 @@ export namespace Cdp {
        * The css style sheet identifier (absent for user agent stylesheet and user-specified
        * stylesheet rules) this rule came from.
        */
-      styleSheetId?: StyleSheetId;
+      styleSheetId?: DOM.StyleSheetId;
 
       /**
        * CSS properties in the style.
@@ -5660,7 +6410,7 @@ export namespace Cdp {
       /**
        * Identifier of the stylesheet containing this object (if exists).
        */
-      styleSheetId?: StyleSheetId;
+      styleSheetId?: DOM.StyleSheetId;
 
       /**
        * Array of media queries.
@@ -5731,7 +6481,7 @@ export namespace Cdp {
       /**
        * Identifier of the stylesheet containing this object (if exists).
        */
-      styleSheetId?: StyleSheetId;
+      styleSheetId?: DOM.StyleSheetId;
 
       /**
        * Optional name for the container.
@@ -5752,6 +6502,11 @@ export namespace Cdp {
        * true if the query contains scroll-state() queries.
        */
       queriesScrollState?: boolean;
+
+      /**
+       * true if the query contains anchored() queries.
+       */
+      queriesAnchored?: boolean;
     }
 
     /**
@@ -5777,7 +6532,7 @@ export namespace Cdp {
       /**
        * Identifier of the stylesheet containing this object (if exists).
        */
-      styleSheetId?: StyleSheetId;
+      styleSheetId?: DOM.StyleSheetId;
     }
 
     /**
@@ -5798,7 +6553,7 @@ export namespace Cdp {
       /**
        * Identifier of the stylesheet containing this object (if exists).
        */
-      styleSheetId?: StyleSheetId;
+      styleSheetId?: DOM.StyleSheetId;
     }
 
     /**
@@ -5819,7 +6574,7 @@ export namespace Cdp {
       /**
        * Identifier of the stylesheet containing this object (if exists).
        */
-      styleSheetId?: StyleSheetId;
+      styleSheetId?: DOM.StyleSheetId;
     }
 
     /**
@@ -5835,7 +6590,7 @@ export namespace Cdp {
       /**
        * Identifier of the stylesheet containing this object (if exists).
        */
-      styleSheetId?: StyleSheetId;
+      styleSheetId?: DOM.StyleSheetId;
     }
 
     /**
@@ -5978,7 +6733,7 @@ export namespace Cdp {
        * The css style sheet identifier (absent for user agent stylesheet and user-specified
        * stylesheet rules) this rule came from.
        */
-      styleSheetId?: StyleSheetId;
+      styleSheetId?: DOM.StyleSheetId;
 
       /**
        * Parent stylesheet's origin.
@@ -6004,7 +6759,7 @@ export namespace Cdp {
        * The css style sheet identifier (absent for user agent stylesheet and user-specified
        * stylesheet rules) this rule came from.
        */
-      styleSheetId?: StyleSheetId;
+      styleSheetId?: DOM.StyleSheetId;
 
       /**
        * Parent stylesheet's origin.
@@ -6048,24 +6803,41 @@ export namespace Cdp {
     }
 
     /**
-     * CSS font-palette-values rule representation.
+     * CSS generic @rule representation.
      */
-    export interface CSSFontPaletteValuesRule {
+    export interface CSSAtRule {
+      /**
+       * Type of at-rule.
+       */
+      type: 'font-face' | 'font-feature-values' | 'font-palette-values';
+
+      /**
+       * Subsection of font-feature-values, if this is a subsection.
+       */
+      subsection?:
+        | 'swash'
+        | 'annotation'
+        | 'ornaments'
+        | 'stylistic'
+        | 'styleset'
+        | 'character-variant';
+
+      /**
+       * LINT.ThenChange(//third_party/blink/renderer/core/inspector/inspector_style_sheet.cc:FontVariantAlternatesFeatureType,//third_party/blink/renderer/core/inspector/inspector_css_agent.cc:FontVariantAlternatesFeatureType)
+       * Associated name, if applicable.
+       */
+      name?: Value;
+
       /**
        * The css style sheet identifier (absent for user agent stylesheet and user-specified
        * stylesheet rules) this rule came from.
        */
-      styleSheetId?: StyleSheetId;
+      styleSheetId?: DOM.StyleSheetId;
 
       /**
        * Parent stylesheet's origin.
        */
       origin: StyleSheetOrigin;
-
-      /**
-       * Associated font palette name.
-       */
-      fontPaletteName: Value;
 
       /**
        * Associated style declaration.
@@ -6081,7 +6853,7 @@ export namespace Cdp {
        * The css style sheet identifier (absent for user agent stylesheet and user-specified
        * stylesheet rules) this rule came from.
        */
-      styleSheetId?: StyleSheetId;
+      styleSheetId?: DOM.StyleSheetId;
 
       /**
        * Parent stylesheet's origin.
@@ -6100,6 +6872,97 @@ export namespace Cdp {
     }
 
     /**
+     * CSS function argument representation.
+     */
+    export interface CSSFunctionParameter {
+      /**
+       * The parameter name.
+       */
+      name: string;
+
+      /**
+       * The parameter type.
+       */
+      type: string;
+    }
+
+    /**
+     * CSS function conditional block representation.
+     */
+    export interface CSSFunctionConditionNode {
+      /**
+       * Media query for this conditional block. Only one type of condition should be set.
+       */
+      media?: CSSMedia;
+
+      /**
+       * Container query for this conditional block. Only one type of condition should be set.
+       */
+      containerQueries?: CSSContainerQuery;
+
+      /**
+       * @supports CSS at-rule condition. Only one type of condition should be set.
+       */
+      supports?: CSSSupports;
+
+      /**
+       * Block body.
+       */
+      children: CSSFunctionNode[];
+
+      /**
+       * The condition text.
+       */
+      conditionText: string;
+    }
+
+    /**
+     * Section of the body of a CSS function rule.
+     */
+    export interface CSSFunctionNode {
+      /**
+       * A conditional block. If set, style should not be set.
+       */
+      condition?: CSSFunctionConditionNode;
+
+      /**
+       * Values set by this node. If set, condition should not be set.
+       */
+      style?: CSSStyle;
+    }
+
+    /**
+     * CSS function at-rule representation.
+     */
+    export interface CSSFunctionRule {
+      /**
+       * Name of the function.
+       */
+      name: Value;
+
+      /**
+       * The css style sheet identifier (absent for user agent stylesheet and user-specified
+       * stylesheet rules) this rule came from.
+       */
+      styleSheetId?: DOM.StyleSheetId;
+
+      /**
+       * Parent stylesheet's origin.
+       */
+      origin: StyleSheetOrigin;
+
+      /**
+       * List of parameters.
+       */
+      parameters: CSSFunctionParameter[];
+
+      /**
+       * Function body.
+       */
+      children: CSSFunctionNode[];
+    }
+
+    /**
      * CSS keyframe rule representation.
      */
     export interface CSSKeyframeRule {
@@ -6107,7 +6970,7 @@ export namespace Cdp {
        * The css style sheet identifier (absent for user agent stylesheet and user-specified
        * stylesheet rules) this rule came from.
        */
-      styleSheetId?: StyleSheetId;
+      styleSheetId?: DOM.StyleSheetId;
 
       /**
        * Parent stylesheet's origin.
@@ -6132,7 +6995,7 @@ export namespace Cdp {
       /**
        * The css style sheet identifier.
        */
-      styleSheetId: StyleSheetId;
+      styleSheetId: DOM.StyleSheetId;
 
       /**
        * The range of the style text in the enclosing stylesheet.
@@ -6143,144 +7006,6 @@ export namespace Cdp {
        * New style text.
        */
       text: string;
-    }
-  }
-
-  /**
-   * Methods and events of the 'Database' domain.
-   */
-  export interface DatabaseApi {
-    /**
-     * Disables database tracking, prevents database events from being sent to the client.
-     */
-    disable(params: Database.DisableParams): Promise<Database.DisableResult | undefined>;
-
-    /**
-     * Enables database tracking, database events will now be delivered to the client.
-     */
-    enable(params: Database.EnableParams): Promise<Database.EnableResult | undefined>;
-
-    executeSQL(params: Database.ExecuteSQLParams): Promise<Database.ExecuteSQLResult | undefined>;
-
-    getDatabaseTableNames(
-      params: Database.GetDatabaseTableNamesParams,
-    ): Promise<Database.GetDatabaseTableNamesResult | undefined>;
-
-    on(event: 'addDatabase', listener: (event: Database.AddDatabaseEvent) => void): IDisposable;
-  }
-
-  /**
-   * Types of the 'Database' domain.
-   */
-  export namespace Database {
-    /**
-     * Parameters of the 'Database.disable' method.
-     */
-    export interface DisableParams {
-    }
-
-    /**
-     * Return value of the 'Database.disable' method.
-     */
-    export interface DisableResult {
-    }
-
-    /**
-     * Parameters of the 'Database.enable' method.
-     */
-    export interface EnableParams {
-    }
-
-    /**
-     * Return value of the 'Database.enable' method.
-     */
-    export interface EnableResult {
-    }
-
-    /**
-     * Parameters of the 'Database.executeSQL' method.
-     */
-    export interface ExecuteSQLParams {
-      databaseId: DatabaseId;
-
-      query: string;
-    }
-
-    /**
-     * Return value of the 'Database.executeSQL' method.
-     */
-    export interface ExecuteSQLResult {
-      columnNames?: string[];
-
-      values?: any[];
-
-      sqlError?: Error;
-    }
-
-    /**
-     * Parameters of the 'Database.getDatabaseTableNames' method.
-     */
-    export interface GetDatabaseTableNamesParams {
-      databaseId: DatabaseId;
-    }
-
-    /**
-     * Return value of the 'Database.getDatabaseTableNames' method.
-     */
-    export interface GetDatabaseTableNamesResult {
-      tableNames: string[];
-    }
-
-    /**
-     * Parameters of the 'Database.addDatabase' event.
-     */
-    export interface AddDatabaseEvent {
-      database: Database;
-    }
-
-    /**
-     * Unique identifier of Database object.
-     */
-    export type DatabaseId = string;
-
-    /**
-     * Database object.
-     */
-    export interface Database {
-      /**
-       * Database ID.
-       */
-      id: DatabaseId;
-
-      /**
-       * Database domain.
-       */
-      domain: string;
-
-      /**
-       * Database name.
-       */
-      name: string;
-
-      /**
-       * Database version.
-       */
-      version: string;
-    }
-
-    /**
-     * Database error.
-     */
-    export interface Error {
-      /**
-       * Error message.
-       */
-      message: string;
-
-      /**
-       * Error code.
-       */
-      code: integer;
     }
   }
 
@@ -6543,6 +7268,8 @@ export namespace Cdp {
 
     /**
      * Fired when breakpoint is resolved to an actual script and location.
+     * Deprecated in favor of `resolvedBreakpoints` in the `scriptParsed` event.
+     * @deprecated
      */
     on(
       event: 'breakpointResolved',
@@ -7516,7 +8243,7 @@ export namespace Cdp {
       hash: string;
 
       /**
-       * For Wasm modules, the content of the `build_id` custom section.
+       * For Wasm modules, the content of the `build_id` custom section. For JavaScript the `debugId` magic comment.
        */
       buildId: string;
 
@@ -7611,7 +8338,7 @@ export namespace Cdp {
       hash: string;
 
       /**
-       * For Wasm modules, the content of the `build_id` custom section.
+       * For Wasm modules, the content of the `build_id` custom section. For JavaScript the `debugId` magic comment.
        */
       buildId: string;
 
@@ -7669,6 +8396,13 @@ export namespace Cdp {
        * The name the embedder supplied for this script.
        */
       embedderName?: string;
+
+      /**
+       * The list of set breakpoints in this script if calls to `setBreakpointByUrl`
+       * matches this script's URL or hash. Clients that use this list can ignore the
+       * `breakpointResolved` event. They are equivalent.
+       */
+      resolvedBreakpoints?: ResolvedBreakpoint[];
     }
 
     /**
@@ -7880,6 +8614,18 @@ export namespace Cdp {
        * URL of the external symbol source.
        */
       externalURL?: string;
+    }
+
+    export interface ResolvedBreakpoint {
+      /**
+       * Breakpoint unique identifier.
+       */
+      breakpointId: BreakpointId;
+
+      /**
+       * Actual breakpoint location.
+       */
+      location: Location;
     }
   }
 
@@ -8393,9 +9139,9 @@ export namespace Cdp {
     /**
      * Returns the query container of the given node based on container query
      * conditions: containerName, physical and logical axes, and whether it queries
-     * scroll-state. If no axes are provided and queriesScrollState is false, the
-     * style container is returned, which is the direct parent or the closest
-     * element with a matching container-name.
+     * scroll-state or anchored elements. If no axes are provided and
+     * queriesScrollState is false, the style container is returned, which is the
+     * direct parent or the closest element with a matching container-name.
      */
     getContainerForNode(
       params: DOM.GetContainerForNodeParams,
@@ -8418,11 +9164,27 @@ export namespace Cdp {
     ): Promise<DOM.GetAnchorElementResult | undefined>;
 
     /**
+     * When enabling, this API force-opens the popover identified by nodeId
+     * and keeps it open until disabled.
+     */
+    forceShowPopover(
+      params: DOM.ForceShowPopoverParams,
+    ): Promise<DOM.ForceShowPopoverResult | undefined>;
+
+    /**
      * Fired when `Element`'s attribute is modified.
      */
     on(
       event: 'attributeModified',
       listener: (event: DOM.AttributeModifiedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when `Element`'s adoptedStyleSheets are modified.
+     */
+    on(
+      event: 'adoptedStyleSheetsModified',
+      listener: (event: DOM.AdoptedStyleSheetsModifiedEvent) => void,
     ): IDisposable;
 
     /**
@@ -8508,6 +9270,14 @@ export namespace Cdp {
     on(
       event: 'scrollableFlagUpdated',
       listener: (event: DOM.ScrollableFlagUpdatedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when a node's starting styles changes.
+     */
+    on(
+      event: 'affectedByStartingStylesFlagUpdated',
+      listener: (event: DOM.AffectedByStartingStylesFlagUpdatedEvent) => void,
     ): IDisposable;
 
     /**
@@ -8968,6 +9738,11 @@ export namespace Cdp {
        * JavaScript object id of the node wrapper.
        */
       objectId?: Runtime.RemoteObjectId;
+
+      /**
+       * Include all shadow roots. Equals to false if not specified.
+       */
+      includeShadowDOM?: boolean;
     }
 
     /**
@@ -9258,7 +10033,7 @@ export namespace Cdp {
       /**
        * Type of relation to get.
        */
-      relation: 'PopoverTarget';
+      relation: 'PopoverTarget' | 'InterestTarget' | 'CommandFor';
     }
 
     /**
@@ -9686,6 +10461,8 @@ export namespace Cdp {
       logicalAxes?: LogicalAxes;
 
       queriesScrollState?: boolean;
+
+      queriesAnchored?: boolean;
     }
 
     /**
@@ -9747,6 +10524,32 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'DOM.forceShowPopover' method.
+     */
+    export interface ForceShowPopoverParams {
+      /**
+       * Id of the popover HTMLElement
+       */
+      nodeId: NodeId;
+
+      /**
+       * If true, opens the popover and keeps it open. If false, closes the
+       * popover if it was previously force-opened.
+       */
+      enable: boolean;
+    }
+
+    /**
+     * Return value of the 'DOM.forceShowPopover' method.
+     */
+    export interface ForceShowPopoverResult {
+      /**
+       * List of popovers that were closed in order to respect popover stacking order.
+       */
+      nodeIds: NodeId[];
+    }
+
+    /**
      * Parameters of the 'DOM.attributeModified' event.
      */
     export interface AttributeModifiedEvent {
@@ -9764,6 +10567,21 @@ export namespace Cdp {
        * Attribute value.
        */
       value: string;
+    }
+
+    /**
+     * Parameters of the 'DOM.adoptedStyleSheetsModified' event.
+     */
+    export interface AdoptedStyleSheetsModifiedEvent {
+      /**
+       * Id of the node that has changed.
+       */
+      nodeId: NodeId;
+
+      /**
+       * New adoptedStyleSheets array.
+       */
+      adoptedStyleSheets: StyleSheetId[];
     }
 
     /**
@@ -9914,6 +10732,21 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'DOM.affectedByStartingStylesFlagUpdated' event.
+     */
+    export interface AffectedByStartingStylesFlagUpdatedEvent {
+      /**
+       * The id of the node.
+       */
+      nodeId: DOM.NodeId;
+
+      /**
+       * If the node has starting styles.
+       */
+      affectedByStartingStyles: boolean;
+    }
+
+    /**
      * Parameters of the 'DOM.pseudoElementRemoved' event.
      */
     export interface PseudoElementRemovedEvent {
@@ -9985,6 +10818,11 @@ export namespace Cdp {
     export type BackendNodeId = integer;
 
     /**
+     * Unique identifier for a CSS stylesheet.
+     */
+    export type StyleSheetId = string;
+
+    /**
      * Backend node with a friendly name.
      */
     export interface BackendNode {
@@ -10011,6 +10849,7 @@ export namespace Cdp {
       | 'before'
       | 'after'
       | 'picker-icon'
+      | 'interest-hint'
       | 'marker'
       | 'backdrop'
       | 'column'
@@ -10035,12 +10874,15 @@ export namespace Cdp {
       | 'view-transition'
       | 'view-transition-group'
       | 'view-transition-image-pair'
+      | 'view-transition-group-children'
       | 'view-transition-old'
       | 'view-transition-new'
       | 'placeholder'
       | 'file-selector-button'
       | 'details-content'
-      | 'picker';
+      | 'picker'
+      | 'permission-icon'
+      | 'overscroll-area-parent';
 
     /**
      * Shadow root type.
@@ -10228,6 +11070,10 @@ export namespace Cdp {
       assignedSlot?: BackendNode;
 
       isScrollable?: boolean;
+
+      affectedByStartingStyles?: boolean;
+
+      adoptedStyleSheets?: StyleSheetId[];
     }
 
     /**
@@ -11782,6 +12628,14 @@ export namespace Cdp {
     ): Promise<Emulation.SetDefaultBackgroundColorOverrideResult | undefined>;
 
     /**
+     * Overrides the values for env(safe-area-inset-*) and env(safe-area-max-inset-*). Unset values will cause the
+     * respective variables to be undefined, even if previously overridden.
+     */
+    setSafeAreaInsetsOverride(
+      params: Emulation.SetSafeAreaInsetsOverrideParams,
+    ): Promise<Emulation.SetSafeAreaInsetsOverrideResult | undefined>;
+
+    /**
      * Overrides the values of device screen dimensions (window.screen.width, window.screen.height,
      * window.innerWidth, window.innerHeight, and "device-width"/"device-height"-related CSS media
      * query results).
@@ -11807,6 +12661,24 @@ export namespace Cdp {
     clearDevicePostureOverride(
       params: Emulation.ClearDevicePostureOverrideParams,
     ): Promise<Emulation.ClearDevicePostureOverrideResult | undefined>;
+
+    /**
+     * Start using the given display features to pupulate the Viewport Segments API.
+     * This override can also be set in setDeviceMetricsOverride().
+     */
+    setDisplayFeaturesOverride(
+      params: Emulation.SetDisplayFeaturesOverrideParams,
+    ): Promise<Emulation.SetDisplayFeaturesOverrideResult | undefined>;
+
+    /**
+     * Clears the display features override set with either setDeviceMetricsOverride()
+     * or setDisplayFeaturesOverride() and starts using display features from the
+     * platform again.
+     * Does nothing if no override is set.
+     */
+    clearDisplayFeaturesOverride(
+      params: Emulation.ClearDisplayFeaturesOverrideParams,
+    ): Promise<Emulation.ClearDisplayFeaturesOverrideResult | undefined>;
 
     setScrollbarsHidden(
       params: Emulation.SetScrollbarsHiddenParams,
@@ -11835,8 +12707,15 @@ export namespace Cdp {
     ): Promise<Emulation.SetEmulatedVisionDeficiencyResult | undefined>;
 
     /**
-     * Overrides the Geolocation Position or Error. Omitting any of the parameters emulates position
-     * unavailable.
+     * Emulates the given OS text scale.
+     */
+    setEmulatedOSTextScale(
+      params: Emulation.SetEmulatedOSTextScaleParams,
+    ): Promise<Emulation.SetEmulatedOSTextScaleResult | undefined>;
+
+    /**
+     * Overrides the Geolocation Position or Error. Omitting latitude, longitude or
+     * accuracy emulates position unavailable.
      */
     setGeolocationOverride(
       params: Emulation.SetGeolocationOverrideParams,
@@ -11876,6 +12755,7 @@ export namespace Cdp {
     ): Promise<Emulation.SetPressureSourceOverrideEnabledResult | undefined>;
 
     /**
+     * TODO: OBSOLETE: To remove when setPressureDataOverride is merged.
      * Provides a given pressure state that will be processed and eventually be
      * delivered to PressureObserver users. |source| must have been previously
      * overridden by setPressureSourceOverrideEnabled.
@@ -11883,6 +12763,15 @@ export namespace Cdp {
     setPressureStateOverride(
       params: Emulation.SetPressureStateOverrideParams,
     ): Promise<Emulation.SetPressureStateOverrideResult | undefined>;
+
+    /**
+     * Provides a given pressure data set that will be processed and eventually be
+     * delivered to PressureObserver users. |source| must have been previously
+     * overridden by setPressureSourceOverrideEnabled.
+     */
+    setPressureDataOverride(
+      params: Emulation.SetPressureDataOverrideParams,
+    ): Promise<Emulation.SetPressureDataOverrideResult | undefined>;
 
     /**
      * Overrides the Idle state.
@@ -11963,6 +12852,13 @@ export namespace Cdp {
       params: Emulation.SetDisabledImageTypesParams,
     ): Promise<Emulation.SetDisabledImageTypesResult | undefined>;
 
+    /**
+     * Override the value of navigator.connection.saveData
+     */
+    setDataSaverOverride(
+      params: Emulation.SetDataSaverOverrideParams,
+    ): Promise<Emulation.SetDataSaverOverrideResult | undefined>;
+
     setHardwareConcurrencyOverride(
       params: Emulation.SetHardwareConcurrencyOverrideParams,
     ): Promise<Emulation.SetHardwareConcurrencyOverrideResult | undefined>;
@@ -11981,6 +12877,33 @@ export namespace Cdp {
     setAutomationOverride(
       params: Emulation.SetAutomationOverrideParams,
     ): Promise<Emulation.SetAutomationOverrideResult | undefined>;
+
+    /**
+     * Allows overriding the difference between the small and large viewport sizes, which determine the
+     * value of the `svh` and `lvh` unit, respectively. Only supported for top-level frames.
+     */
+    setSmallViewportHeightDifferenceOverride(
+      params: Emulation.SetSmallViewportHeightDifferenceOverrideParams,
+    ): Promise<Emulation.SetSmallViewportHeightDifferenceOverrideResult | undefined>;
+
+    /**
+     * Returns device's screen configuration.
+     */
+    getScreenInfos(
+      params: Emulation.GetScreenInfosParams,
+    ): Promise<Emulation.GetScreenInfosResult | undefined>;
+
+    /**
+     * Add a new screen to the device. Only supported in headless mode.
+     */
+    addScreen(params: Emulation.AddScreenParams): Promise<Emulation.AddScreenResult | undefined>;
+
+    /**
+     * Remove screen from the device. Only supported in headless mode.
+     */
+    removeScreen(
+      params: Emulation.RemoveScreenParams,
+    ): Promise<Emulation.RemoveScreenResult | undefined>;
 
     /**
      * Notification sent after the virtual time budget for the current VirtualTimePolicy has run out.
@@ -12114,6 +13037,19 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'Emulation.setSafeAreaInsetsOverride' method.
+     */
+    export interface SetSafeAreaInsetsOverrideParams {
+      insets: SafeAreaInsets;
+    }
+
+    /**
+     * Return value of the 'Emulation.setSafeAreaInsetsOverride' method.
+     */
+    export interface SetSafeAreaInsetsOverrideResult {
+    }
+
+    /**
      * Parameters of the 'Emulation.setDeviceMetricsOverride' method.
      */
     export interface SetDeviceMetricsOverrideParams {
@@ -12182,6 +13118,8 @@ export namespace Cdp {
       /**
        * If set, the display feature of a multi-segment screen. If not set, multi-segment support
        * is turned-off.
+       * Deprecated, use Emulation.setDisplayFeaturesOverride.
+       * @deprecated
        */
       displayFeature?: DisplayFeature;
 
@@ -12223,6 +13161,31 @@ export namespace Cdp {
      * Return value of the 'Emulation.clearDevicePostureOverride' method.
      */
     export interface ClearDevicePostureOverrideResult {
+    }
+
+    /**
+     * Parameters of the 'Emulation.setDisplayFeaturesOverride' method.
+     */
+    export interface SetDisplayFeaturesOverrideParams {
+      features: DisplayFeature[];
+    }
+
+    /**
+     * Return value of the 'Emulation.setDisplayFeaturesOverride' method.
+     */
+    export interface SetDisplayFeaturesOverrideResult {
+    }
+
+    /**
+     * Parameters of the 'Emulation.clearDisplayFeaturesOverride' method.
+     */
+    export interface ClearDisplayFeaturesOverrideParams {
+    }
+
+    /**
+     * Return value of the 'Emulation.clearDisplayFeaturesOverride' method.
+     */
+    export interface ClearDisplayFeaturesOverrideResult {
     }
 
     /**
@@ -12324,6 +13287,19 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'Emulation.setEmulatedOSTextScale' method.
+     */
+    export interface SetEmulatedOSTextScaleParams {
+      scale?: number;
+    }
+
+    /**
+     * Return value of the 'Emulation.setEmulatedOSTextScale' method.
+     */
+    export interface SetEmulatedOSTextScaleResult {
+    }
+
+    /**
      * Parameters of the 'Emulation.setGeolocationOverride' method.
      */
     export interface SetGeolocationOverrideParams {
@@ -12341,6 +13317,26 @@ export namespace Cdp {
        * Mock accuracy
        */
       accuracy?: number;
+
+      /**
+       * Mock altitude
+       */
+      altitude?: number;
+
+      /**
+       * Mock altitudeAccuracy
+       */
+      altitudeAccuracy?: number;
+
+      /**
+       * Mock heading
+       */
+      heading?: number;
+
+      /**
+       * Mock speed
+       */
+      speed?: number;
     }
 
     /**
@@ -12425,6 +13421,23 @@ export namespace Cdp {
      * Return value of the 'Emulation.setPressureStateOverride' method.
      */
     export interface SetPressureStateOverrideResult {
+    }
+
+    /**
+     * Parameters of the 'Emulation.setPressureDataOverride' method.
+     */
+    export interface SetPressureDataOverrideParams {
+      source: PressureSource;
+
+      state: PressureState;
+
+      ownContributionEstimate?: number;
+    }
+
+    /**
+     * Return value of the 'Emulation.setPressureDataOverride' method.
+     */
+    export interface SetPressureDataOverrideResult {
     }
 
     /**
@@ -12636,6 +13649,22 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'Emulation.setDataSaverOverride' method.
+     */
+    export interface SetDataSaverOverrideParams {
+      /**
+       * Override value. Omitting the parameter disables the override.
+       */
+      dataSaverEnabled?: boolean;
+    }
+
+    /**
+     * Return value of the 'Emulation.setDataSaverOverride' method.
+     */
+    export interface SetDataSaverOverrideResult {
+    }
+
+    /**
      * Parameters of the 'Emulation.setHardwareConcurrencyOverride' method.
      */
     export interface SetHardwareConcurrencyOverrideParams {
@@ -12699,9 +13728,156 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'Emulation.setSmallViewportHeightDifferenceOverride' method.
+     */
+    export interface SetSmallViewportHeightDifferenceOverrideParams {
+      /**
+       * This will cause an element of size 100svh to be `difference` pixels smaller than an element
+       * of size 100lvh.
+       */
+      difference: integer;
+    }
+
+    /**
+     * Return value of the 'Emulation.setSmallViewportHeightDifferenceOverride' method.
+     */
+    export interface SetSmallViewportHeightDifferenceOverrideResult {
+    }
+
+    /**
+     * Parameters of the 'Emulation.getScreenInfos' method.
+     */
+    export interface GetScreenInfosParams {
+    }
+
+    /**
+     * Return value of the 'Emulation.getScreenInfos' method.
+     */
+    export interface GetScreenInfosResult {
+      screenInfos: ScreenInfo[];
+    }
+
+    /**
+     * Parameters of the 'Emulation.addScreen' method.
+     */
+    export interface AddScreenParams {
+      /**
+       * Offset of the left edge of the screen in pixels.
+       */
+      left: integer;
+
+      /**
+       * Offset of the top edge of the screen in pixels.
+       */
+      top: integer;
+
+      /**
+       * The width of the screen in pixels.
+       */
+      width: integer;
+
+      /**
+       * The height of the screen in pixels.
+       */
+      height: integer;
+
+      /**
+       * Specifies the screen's work area. Default is entire screen.
+       */
+      workAreaInsets?: WorkAreaInsets;
+
+      /**
+       * Specifies the screen's device pixel ratio. Default is 1.
+       */
+      devicePixelRatio?: number;
+
+      /**
+       * Specifies the screen's rotation angle. Available values are 0, 90, 180 and 270. Default is 0.
+       */
+      rotation?: integer;
+
+      /**
+       * Specifies the screen's color depth in bits. Default is 24.
+       */
+      colorDepth?: integer;
+
+      /**
+       * Specifies the descriptive label for the screen. Default is none.
+       */
+      label?: string;
+
+      /**
+       * Indicates whether the screen is internal to the device or external, attached to the device. Default is false.
+       */
+      isInternal?: boolean;
+    }
+
+    /**
+     * Return value of the 'Emulation.addScreen' method.
+     */
+    export interface AddScreenResult {
+      screenInfo: ScreenInfo;
+    }
+
+    /**
+     * Parameters of the 'Emulation.removeScreen' method.
+     */
+    export interface RemoveScreenParams {
+      screenId: ScreenId;
+    }
+
+    /**
+     * Return value of the 'Emulation.removeScreen' method.
+     */
+    export interface RemoveScreenResult {
+    }
+
+    /**
      * Parameters of the 'Emulation.virtualTimeBudgetExpired' event.
      */
     export interface VirtualTimeBudgetExpiredEvent {
+    }
+
+    export interface SafeAreaInsets {
+      /**
+       * Overrides safe-area-inset-top.
+       */
+      top?: integer;
+
+      /**
+       * Overrides safe-area-max-inset-top.
+       */
+      topMax?: integer;
+
+      /**
+       * Overrides safe-area-inset-left.
+       */
+      left?: integer;
+
+      /**
+       * Overrides safe-area-max-inset-left.
+       */
+      leftMax?: integer;
+
+      /**
+       * Overrides safe-area-inset-bottom.
+       */
+      bottom?: integer;
+
+      /**
+       * Overrides safe-area-max-inset-bottom.
+       */
+      bottomMax?: integer;
+
+      /**
+       * Overrides safe-area-inset-right.
+       */
+      right?: integer;
+
+      /**
+       * Overrides safe-area-max-inset-right.
+       */
+      rightMax?: integer;
     }
 
     /**
@@ -12802,6 +13978,12 @@ export namespace Cdp {
       bitness?: string;
 
       wow64?: boolean;
+
+      /**
+       * Used to specify User Agent form-factor values.
+       * See https://wicg.github.io/ua-client-hints/#sec-ch-ua-form-factors
+       */
+      formFactors?: string[];
     }
 
     /**
@@ -12862,6 +14044,116 @@ export namespace Cdp {
 
     export interface PressureMetadata {
       available?: boolean;
+    }
+
+    export interface WorkAreaInsets {
+      /**
+       * Work area top inset in pixels. Default is 0;
+       */
+      top?: integer;
+
+      /**
+       * Work area left inset in pixels. Default is 0;
+       */
+      left?: integer;
+
+      /**
+       * Work area bottom inset in pixels. Default is 0;
+       */
+      bottom?: integer;
+
+      /**
+       * Work area right inset in pixels. Default is 0;
+       */
+      right?: integer;
+    }
+
+    export type ScreenId = string;
+
+    /**
+     * Screen information similar to the one returned by window.getScreenDetails() method,
+     * see https://w3c.github.io/window-management/#screendetailed.
+     */
+    export interface ScreenInfo {
+      /**
+       * Offset of the left edge of the screen.
+       */
+      left: integer;
+
+      /**
+       * Offset of the top edge of the screen.
+       */
+      top: integer;
+
+      /**
+       * Width of the screen.
+       */
+      width: integer;
+
+      /**
+       * Height of the screen.
+       */
+      height: integer;
+
+      /**
+       * Offset of the left edge of the available screen area.
+       */
+      availLeft: integer;
+
+      /**
+       * Offset of the top edge of the available screen area.
+       */
+      availTop: integer;
+
+      /**
+       * Width of the available screen area.
+       */
+      availWidth: integer;
+
+      /**
+       * Height of the available screen area.
+       */
+      availHeight: integer;
+
+      /**
+       * Specifies the screen's device pixel ratio.
+       */
+      devicePixelRatio: number;
+
+      /**
+       * Specifies the screen's orientation.
+       */
+      orientation: ScreenOrientation;
+
+      /**
+       * Specifies the screen's color depth in bits.
+       */
+      colorDepth: integer;
+
+      /**
+       * Indicates whether the device has multiple screens.
+       */
+      isExtended: boolean;
+
+      /**
+       * Indicates whether the screen is internal to the device or external, attached to the device.
+       */
+      isInternal: boolean;
+
+      /**
+       * Indicates whether the screen is set as the the operating system primary screen.
+       */
+      isPrimary: boolean;
+
+      /**
+       * Specifies the descriptive label for the screen.
+       */
+      label: string;
+
+      /**
+       * Specifies the unique identifier of the screen.
+       */
+      id: ScreenId;
     }
 
     /**
@@ -12950,6 +14242,15 @@ export namespace Cdp {
    */
   export interface ExtensionsApi {
     /**
+     * Runs an extension default action.
+     * Available if the client is connected using the --remote-debugging-pipe
+     * flag and the --enable-unsafe-extension-debugging flag is set.
+     */
+    triggerAction(
+      params: Extensions.TriggerActionParams,
+    ): Promise<Extensions.TriggerActionResult | undefined>;
+
+    /**
      * Installs an unpacked extension from the filesystem similar to
      * --load-extension CLI flags. Returns extension ID once the extension
      * has been installed. Available if the client is connected using the
@@ -12959,6 +14260,13 @@ export namespace Cdp {
     loadUnpacked(
       params: Extensions.LoadUnpackedParams,
     ): Promise<Extensions.LoadUnpackedResult | undefined>;
+
+    /**
+     * Uninstalls an unpacked extension (others not supported) from the profile.
+     * Available if the client is connected using the --remote-debugging-pipe flag
+     * and the --enable-unsafe-extension-debugging.
+     */
+    uninstall(params: Extensions.UninstallParams): Promise<Extensions.UninstallResult | undefined>;
 
     /**
      * Gets data from extension storage in the given `storageArea`. If `keys` is
@@ -12996,6 +14304,27 @@ export namespace Cdp {
    */
   export namespace Extensions {
     /**
+     * Parameters of the 'Extensions.triggerAction' method.
+     */
+    export interface TriggerActionParams {
+      /**
+       * Extension id.
+       */
+      id: string;
+
+      /**
+       * A tab target ID to trigger the default extension action on.
+       */
+      targetId: string;
+    }
+
+    /**
+     * Return value of the 'Extensions.triggerAction' method.
+     */
+    export interface TriggerActionResult {
+    }
+
+    /**
      * Parameters of the 'Extensions.loadUnpacked' method.
      */
     export interface LoadUnpackedParams {
@@ -13003,6 +14332,11 @@ export namespace Cdp {
        * Absolute file path.
        */
       path: string;
+
+      /**
+       * Enable the extension in incognito
+       */
+      enableInIncognito?: boolean;
     }
 
     /**
@@ -13013,6 +14347,22 @@ export namespace Cdp {
        * Extension id.
        */
       id: string;
+    }
+
+    /**
+     * Parameters of the 'Extensions.uninstall' method.
+     */
+    export interface UninstallParams {
+      /**
+       * Extension id.
+       */
+      id: string;
+    }
+
+    /**
+     * Return value of the 'Extensions.uninstall' method.
+     */
+    export interface UninstallResult {
     }
 
     /**
@@ -14292,6 +15642,11 @@ export namespace Cdp {
       samplingInterval?: number;
 
       /**
+       * Maximum stack depth. The default value is 128.
+       */
+      stackDepth?: number;
+
+      /**
        * By default, the sampling heap profiler reports only objects which are
        * still alive when the profile is returned via getSamplingProfile or
        * stopSampling, which is useful for determining what functions contribute
@@ -14749,9 +16104,9 @@ export namespace Cdp {
       objectStoreName: string;
 
       /**
-       * Index name, empty string for object store data requests.
+       * Index name. If not specified, it performs an object store data request.
        */
-      indexName: string;
+      indexName?: string;
 
       /**
        * Number of records to skip.
@@ -15879,6 +17234,14 @@ export namespace Cdp {
       event: 'targetReloadedAfterCrash',
       listener: (event: Inspector.TargetReloadedAfterCrashEvent) => void,
     ): IDisposable;
+
+    /**
+     * Fired on worker targets when main worker script and any imported scripts have been evaluated.
+     */
+    on(
+      event: 'workerScriptLoaded',
+      listener: (event: Inspector.WorkerScriptLoadedEvent) => void,
+    ): IDisposable;
   }
 
   /**
@@ -15929,6 +17292,12 @@ export namespace Cdp {
      * Parameters of the 'Inspector.targetReloadedAfterCrash' event.
      */
     export interface TargetReloadedAfterCrashEvent {
+    }
+
+    /**
+     * Parameters of the 'Inspector.workerScriptLoaded' event.
+     */
+    export interface WorkerScriptLoadedEvent {
     }
   }
 
@@ -16788,10 +18157,10 @@ export namespace Cdp {
 
     /**
      * Called whenever a player is created, or when a new agent joins and receives
-     * a list of active players. If an agent is restored, it will receive the full
-     * list of player ids and all events again.
+     * a list of active players. If an agent is restored, it will receive one
+     * event for each active player.
      */
-    on(event: 'playersCreated', listener: (event: Media.PlayersCreatedEvent) => void): IDisposable;
+    on(event: 'playerCreated', listener: (event: Media.PlayerCreatedEvent) => void): IDisposable;
   }
 
   /**
@@ -16859,10 +18228,10 @@ export namespace Cdp {
     }
 
     /**
-     * Parameters of the 'Media.playersCreated' event.
+     * Parameters of the 'Media.playerCreated' event.
      */
-    export interface PlayersCreatedEvent {
-      players: PlayerId[];
+    export interface PlayerCreatedEvent {
+      player: Player;
     }
 
     /**
@@ -16948,6 +18317,12 @@ export namespace Cdp {
        * Extra data attached to an error, such as an HRESULT, Video Codec, etc.
        */
       data: any;
+    }
+
+    export interface Player {
+      playerId: PlayerId;
+
+      domNodeId?: DOM.BackendNodeId;
     }
   }
 
@@ -17358,16 +18733,43 @@ export namespace Cdp {
     disable(params: Network.DisableParams): Promise<Network.DisableResult | undefined>;
 
     /**
-     * Activates emulation of network conditions.
+     * Activates emulation of network conditions. This command is deprecated in favor of the emulateNetworkConditionsByRule
+     * and overrideNetworkState commands, which can be used together to the same effect.
+     * @deprecated
      */
     emulateNetworkConditions(
       params: Network.EmulateNetworkConditionsParams,
     ): Promise<Network.EmulateNetworkConditionsResult | undefined>;
 
     /**
+     * Activates emulation of network conditions for individual requests using URL match patterns. Unlike the deprecated
+     * Network.emulateNetworkConditions this method does not affect `navigator` state. Use Network.overrideNetworkState to
+     * explicitly modify `navigator` behavior.
+     */
+    emulateNetworkConditionsByRule(
+      params: Network.EmulateNetworkConditionsByRuleParams,
+    ): Promise<Network.EmulateNetworkConditionsByRuleResult | undefined>;
+
+    /**
+     * Override the state of navigator.onLine and navigator.connection.
+     */
+    overrideNetworkState(
+      params: Network.OverrideNetworkStateParams,
+    ): Promise<Network.OverrideNetworkStateResult | undefined>;
+
+    /**
      * Enables network tracking, network events will now be delivered to the client.
      */
     enable(params: Network.EnableParams): Promise<Network.EnableResult | undefined>;
+
+    /**
+     * Configures storing response bodies outside of renderer, so that these survive
+     * a cross-process navigation.
+     * If maxTotalBufferSize is not set, durable messages are disabled.
+     */
+    configureDurableMessages(
+      params: Network.ConfigureDurableMessagesParams,
+    ): Promise<Network.ConfigureDurableMessagesResult | undefined>;
 
     /**
      * Returns all browser cookies. Depending on the backend support, will return detailed cookie
@@ -17522,6 +18924,20 @@ export namespace Cdp {
     ): Promise<Network.EnableReportingApiResult | undefined>;
 
     /**
+     * Sets up tracking device bound sessions and fetching of initial set of sessions.
+     */
+    enableDeviceBoundSessions(
+      params: Network.EnableDeviceBoundSessionsParams,
+    ): Promise<Network.EnableDeviceBoundSessionsResult | undefined>;
+
+    /**
+     * Fetches the schemeful site for a specific origin.
+     */
+    fetchSchemefulSite(
+      params: Network.FetchSchemefulSiteParams,
+    ): Promise<Network.FetchSchemefulSiteResult | undefined>;
+
+    /**
      * Fetches the resource and returns the content.
      */
     loadNetworkResource(
@@ -17530,7 +18946,7 @@ export namespace Cdp {
 
     /**
      * Sets Controls for third-party cookie access
-     * Page reload is required before the new cookie bahavior will be observed
+     * Page reload is required before the new cookie behavior will be observed
      */
     setCookieControls(
       params: Network.SetCookieControlsParams,
@@ -17694,6 +19110,112 @@ export namespace Cdp {
     ): IDisposable;
 
     /**
+     * Fired upon direct_socket.TCPSocket creation.
+     */
+    on(
+      event: 'directTCPSocketCreated',
+      listener: (event: Network.DirectTCPSocketCreatedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when direct_socket.TCPSocket connection is opened.
+     */
+    on(
+      event: 'directTCPSocketOpened',
+      listener: (event: Network.DirectTCPSocketOpenedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when direct_socket.TCPSocket is aborted.
+     */
+    on(
+      event: 'directTCPSocketAborted',
+      listener: (event: Network.DirectTCPSocketAbortedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when direct_socket.TCPSocket is closed.
+     */
+    on(
+      event: 'directTCPSocketClosed',
+      listener: (event: Network.DirectTCPSocketClosedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when data is sent to tcp direct socket stream.
+     */
+    on(
+      event: 'directTCPSocketChunkSent',
+      listener: (event: Network.DirectTCPSocketChunkSentEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when data is received from tcp direct socket stream.
+     */
+    on(
+      event: 'directTCPSocketChunkReceived',
+      listener: (event: Network.DirectTCPSocketChunkReceivedEvent) => void,
+    ): IDisposable;
+
+    on(
+      event: 'directUDPSocketJoinedMulticastGroup',
+      listener: (event: Network.DirectUDPSocketJoinedMulticastGroupEvent) => void,
+    ): IDisposable;
+
+    on(
+      event: 'directUDPSocketLeftMulticastGroup',
+      listener: (event: Network.DirectUDPSocketLeftMulticastGroupEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired upon direct_socket.UDPSocket creation.
+     */
+    on(
+      event: 'directUDPSocketCreated',
+      listener: (event: Network.DirectUDPSocketCreatedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when direct_socket.UDPSocket connection is opened.
+     */
+    on(
+      event: 'directUDPSocketOpened',
+      listener: (event: Network.DirectUDPSocketOpenedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when direct_socket.UDPSocket is aborted.
+     */
+    on(
+      event: 'directUDPSocketAborted',
+      listener: (event: Network.DirectUDPSocketAbortedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when direct_socket.UDPSocket is closed.
+     */
+    on(
+      event: 'directUDPSocketClosed',
+      listener: (event: Network.DirectUDPSocketClosedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when message is sent to udp direct socket stream.
+     */
+    on(
+      event: 'directUDPSocketChunkSent',
+      listener: (event: Network.DirectUDPSocketChunkSentEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when message is received from udp direct socket stream.
+     */
+    on(
+      event: 'directUDPSocketChunkReceived',
+      listener: (event: Network.DirectUDPSocketChunkReceivedEvent) => void,
+    ): IDisposable;
+
+    /**
      * Fired when additional information about a requestWillBeSent event is available from the
      * network stack. Not every requestWillBeSent event will have an additional
      * requestWillBeSentExtraInfo fired for it, and there is no guarantee whether requestWillBeSent
@@ -17741,40 +19263,6 @@ export namespace Cdp {
     on(event: 'policyUpdated', listener: (event: Network.PolicyUpdatedEvent) => void): IDisposable;
 
     /**
-     * Fired once when parsing the .wbn file has succeeded.
-     * The event contains the information about the web bundle contents.
-     */
-    on(
-      event: 'subresourceWebBundleMetadataReceived',
-      listener: (event: Network.SubresourceWebBundleMetadataReceivedEvent) => void,
-    ): IDisposable;
-
-    /**
-     * Fired once when parsing the .wbn file has failed.
-     */
-    on(
-      event: 'subresourceWebBundleMetadataError',
-      listener: (event: Network.SubresourceWebBundleMetadataErrorEvent) => void,
-    ): IDisposable;
-
-    /**
-     * Fired when handling requests for resources within a .wbn file.
-     * Note: this will only be fired for resources that are requested by the webpage.
-     */
-    on(
-      event: 'subresourceWebBundleInnerResponseParsed',
-      listener: (event: Network.SubresourceWebBundleInnerResponseParsedEvent) => void,
-    ): IDisposable;
-
-    /**
-     * Fired when request for resources within a .wbn file failed.
-     */
-    on(
-      event: 'subresourceWebBundleInnerResponseError',
-      listener: (event: Network.SubresourceWebBundleInnerResponseErrorEvent) => void,
-    ): IDisposable;
-
-    /**
      * Is sent whenever a new report is added.
      * And after 'enableReportingApi' for all existing reports.
      */
@@ -17791,6 +19279,22 @@ export namespace Cdp {
     on(
       event: 'reportingApiEndpointsChangedForOrigin',
       listener: (event: Network.ReportingApiEndpointsChangedForOriginEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Triggered when the initial set of device bound sessions is added.
+     */
+    on(
+      event: 'deviceBoundSessionsAdded',
+      listener: (event: Network.DeviceBoundSessionsAddedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Triggered when a device bound session event occurs.
+     */
+    on(
+      event: 'deviceBoundSessionEventOccurred',
+      listener: (event: Network.DeviceBoundSessionEventOccurredEvent) => void,
     ): IDisposable;
   }
 
@@ -18054,6 +19558,70 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'Network.emulateNetworkConditionsByRule' method.
+     */
+    export interface EmulateNetworkConditionsByRuleParams {
+      /**
+       * True to emulate internet disconnection.
+       */
+      offline: boolean;
+
+      /**
+       * Configure conditions for matching requests. If multiple entries match a request, the first entry wins.  Global
+       * conditions can be configured by leaving the urlPattern for the conditions empty. These global conditions are
+       * also applied for throttling of p2p connections.
+       */
+      matchedNetworkConditions: NetworkConditions[];
+    }
+
+    /**
+     * Return value of the 'Network.emulateNetworkConditionsByRule' method.
+     */
+    export interface EmulateNetworkConditionsByRuleResult {
+      /**
+       * An id for each entry in matchedNetworkConditions. The id will be included in the requestWillBeSentExtraInfo for
+       * requests affected by a rule.
+       */
+      ruleIds: string[];
+    }
+
+    /**
+     * Parameters of the 'Network.overrideNetworkState' method.
+     */
+    export interface OverrideNetworkStateParams {
+      /**
+       * True to emulate internet disconnection.
+       */
+      offline: boolean;
+
+      /**
+       * Minimum latency from request sent to response headers received (ms).
+       */
+      latency: number;
+
+      /**
+       * Maximal aggregated download throughput (bytes/sec). -1 disables download throttling.
+       */
+      downloadThroughput: number;
+
+      /**
+       * Maximal aggregated upload throughput (bytes/sec).  -1 disables upload throttling.
+       */
+      uploadThroughput: number;
+
+      /**
+       * Connection type if known.
+       */
+      connectionType?: ConnectionType;
+    }
+
+    /**
+     * Return value of the 'Network.overrideNetworkState' method.
+     */
+    export interface OverrideNetworkStateResult {
+    }
+
+    /**
      * Parameters of the 'Network.enable' method.
      */
     export interface EnableParams {
@@ -18071,12 +19639,47 @@ export namespace Cdp {
        * Longest post body size (in bytes) that would be included in requestWillBeSent notification
        */
       maxPostDataSize?: integer;
+
+      /**
+       * Whether DirectSocket chunk send/receive events should be reported.
+       */
+      reportDirectSocketTraffic?: boolean;
+
+      /**
+       * Enable storing response bodies outside of renderer, so that these survive
+       * a cross-process navigation. Requires maxTotalBufferSize to be set.
+       * Currently defaults to false. This field is being deprecated in favor of the dedicated
+       * configureDurableMessages command, due to the possibility of deadlocks when awaiting
+       * Network.enable before issuing Runtime.runIfWaitingForDebugger.
+       */
+      enableDurableMessages?: boolean;
     }
 
     /**
      * Return value of the 'Network.enable' method.
      */
     export interface EnableResult {
+    }
+
+    /**
+     * Parameters of the 'Network.configureDurableMessages' method.
+     */
+    export interface ConfigureDurableMessagesParams {
+      /**
+       * Buffer size in bytes to use when preserving network payloads (XHRs, etc).
+       */
+      maxTotalBufferSize?: integer;
+
+      /**
+       * Per-resource buffer size in bytes to use when preserving network payloads (XHRs, etc).
+       */
+      maxResourceBufferSize?: integer;
+    }
+
+    /**
+     * Return value of the 'Network.configureDurableMessages' method.
+     */
+    export interface ConfigureDurableMessagesResult {
     }
 
     /**
@@ -18177,6 +19780,11 @@ export namespace Cdp {
        * Request body string, omitting files from multipart requests
        */
       postData: string;
+
+      /**
+       * True, if content was sent as base64.
+       */
+      base64Encoded: boolean;
     }
 
     /**
@@ -18274,9 +19882,16 @@ export namespace Cdp {
      */
     export interface SetBlockedURLsParams {
       /**
-       * URL patterns to block. Wildcards ('*') are allowed.
+       * Patterns to match in the order in which they are given. These patterns
+       * also take precedence over any wildcard patterns defined in `urls`.
        */
-      urls: string[];
+      urlPatterns?: BlockPattern[];
+
+      /**
+       * URL patterns to block. Wildcards ('*') are allowed.
+       * @deprecated
+       */
+      urls?: string[];
     }
 
     /**
@@ -18371,11 +19986,6 @@ export namespace Cdp {
        * Cookie Priority type.
        */
       priority?: CookiePriority;
-
-      /**
-       * True if cookie is SameParty.
-       */
-      sameParty?: boolean;
 
       /**
        * Cookie source scheme type.
@@ -18553,6 +20163,42 @@ export namespace Cdp {
      * Return value of the 'Network.enableReportingApi' method.
      */
     export interface EnableReportingApiResult {
+    }
+
+    /**
+     * Parameters of the 'Network.enableDeviceBoundSessions' method.
+     */
+    export interface EnableDeviceBoundSessionsParams {
+      /**
+       * Whether to enable or disable events.
+       */
+      enable: boolean;
+    }
+
+    /**
+     * Return value of the 'Network.enableDeviceBoundSessions' method.
+     */
+    export interface EnableDeviceBoundSessionsResult {
+    }
+
+    /**
+     * Parameters of the 'Network.fetchSchemefulSite' method.
+     */
+    export interface FetchSchemefulSiteParams {
+      /**
+       * The URL origin.
+       */
+      origin: string;
+    }
+
+    /**
+     * Return value of the 'Network.fetchSchemefulSite' method.
+     */
+    export interface FetchSchemefulSiteResult {
+      /**
+       * The corresponding schemeful site.
+       */
+      schemefulSite: string;
     }
 
     /**
@@ -18874,6 +20520,11 @@ export namespace Cdp {
        * Whether the request is initiated by a user gesture. Defaults to false.
        */
       hasUserGesture?: boolean;
+
+      /**
+       * The render blocking behavior of the request.
+       */
+      renderBlockingBehavior?: RenderBlockingBehavior;
     }
 
     /**
@@ -19148,6 +20799,187 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'Network.directTCPSocketCreated' event.
+     */
+    export interface DirectTCPSocketCreatedEvent {
+      identifier: RequestId;
+
+      remoteAddr: string;
+
+      /**
+       * Unsigned int 16.
+       */
+      remotePort: integer;
+
+      options: DirectTCPSocketOptions;
+
+      timestamp: MonotonicTime;
+
+      initiator?: Initiator;
+    }
+
+    /**
+     * Parameters of the 'Network.directTCPSocketOpened' event.
+     */
+    export interface DirectTCPSocketOpenedEvent {
+      identifier: RequestId;
+
+      remoteAddr: string;
+
+      /**
+       * Expected to be unsigned integer.
+       */
+      remotePort: integer;
+
+      timestamp: MonotonicTime;
+
+      localAddr?: string;
+
+      /**
+       * Expected to be unsigned integer.
+       */
+      localPort?: integer;
+    }
+
+    /**
+     * Parameters of the 'Network.directTCPSocketAborted' event.
+     */
+    export interface DirectTCPSocketAbortedEvent {
+      identifier: RequestId;
+
+      errorMessage: string;
+
+      timestamp: MonotonicTime;
+    }
+
+    /**
+     * Parameters of the 'Network.directTCPSocketClosed' event.
+     */
+    export interface DirectTCPSocketClosedEvent {
+      identifier: RequestId;
+
+      timestamp: MonotonicTime;
+    }
+
+    /**
+     * Parameters of the 'Network.directTCPSocketChunkSent' event.
+     */
+    export interface DirectTCPSocketChunkSentEvent {
+      identifier: RequestId;
+
+      data: string;
+
+      timestamp: MonotonicTime;
+    }
+
+    /**
+     * Parameters of the 'Network.directTCPSocketChunkReceived' event.
+     */
+    export interface DirectTCPSocketChunkReceivedEvent {
+      identifier: RequestId;
+
+      data: string;
+
+      timestamp: MonotonicTime;
+    }
+
+    /**
+     * Parameters of the 'Network.directUDPSocketJoinedMulticastGroup' event.
+     */
+    export interface DirectUDPSocketJoinedMulticastGroupEvent {
+      identifier: RequestId;
+
+      IPAddress: string;
+    }
+
+    /**
+     * Parameters of the 'Network.directUDPSocketLeftMulticastGroup' event.
+     */
+    export interface DirectUDPSocketLeftMulticastGroupEvent {
+      identifier: RequestId;
+
+      IPAddress: string;
+    }
+
+    /**
+     * Parameters of the 'Network.directUDPSocketCreated' event.
+     */
+    export interface DirectUDPSocketCreatedEvent {
+      identifier: RequestId;
+
+      options: DirectUDPSocketOptions;
+
+      timestamp: MonotonicTime;
+
+      initiator?: Initiator;
+    }
+
+    /**
+     * Parameters of the 'Network.directUDPSocketOpened' event.
+     */
+    export interface DirectUDPSocketOpenedEvent {
+      identifier: RequestId;
+
+      localAddr: string;
+
+      /**
+       * Expected to be unsigned integer.
+       */
+      localPort: integer;
+
+      timestamp: MonotonicTime;
+
+      remoteAddr?: string;
+
+      /**
+       * Expected to be unsigned integer.
+       */
+      remotePort?: integer;
+    }
+
+    /**
+     * Parameters of the 'Network.directUDPSocketAborted' event.
+     */
+    export interface DirectUDPSocketAbortedEvent {
+      identifier: RequestId;
+
+      errorMessage: string;
+
+      timestamp: MonotonicTime;
+    }
+
+    /**
+     * Parameters of the 'Network.directUDPSocketClosed' event.
+     */
+    export interface DirectUDPSocketClosedEvent {
+      identifier: RequestId;
+
+      timestamp: MonotonicTime;
+    }
+
+    /**
+     * Parameters of the 'Network.directUDPSocketChunkSent' event.
+     */
+    export interface DirectUDPSocketChunkSentEvent {
+      identifier: RequestId;
+
+      message: DirectUDPMessage;
+
+      timestamp: MonotonicTime;
+    }
+
+    /**
+     * Parameters of the 'Network.directUDPSocketChunkReceived' event.
+     */
+    export interface DirectUDPSocketChunkReceivedEvent {
+      identifier: RequestId;
+
+      message: DirectUDPMessage;
+
+      timestamp: MonotonicTime;
+    }
+
+    /**
      * Parameters of the 'Network.requestWillBeSentExtraInfo' event.
      */
     export interface RequestWillBeSentExtraInfoEvent {
@@ -19173,6 +21005,11 @@ export namespace Cdp {
       connectTiming: ConnectTiming;
 
       /**
+       * How the request site's device bound sessions were used during this request.
+       */
+      deviceBoundSessionUsages?: DeviceBoundSessionWithUsage[];
+
+      /**
        * The client security state set for the request.
        */
       clientSecurityState?: ClientSecurityState;
@@ -19181,6 +21018,12 @@ export namespace Cdp {
        * Whether the site has partitioned cookies stored in a partition different than the current one.
        */
       siteHasCookieInOtherPartition?: boolean;
+
+      /**
+       * The network conditions id if this request was affected by network conditions configured via
+       * emulateNetworkConditionsByRule.
+       */
+      appliedNetworkConditionsId?: string;
     }
 
     /**
@@ -19314,85 +21157,6 @@ export namespace Cdp {
     }
 
     /**
-     * Parameters of the 'Network.subresourceWebBundleMetadataReceived' event.
-     */
-    export interface SubresourceWebBundleMetadataReceivedEvent {
-      /**
-       * Request identifier. Used to match this information to another event.
-       */
-      requestId: RequestId;
-
-      /**
-       * A list of URLs of resources in the subresource Web Bundle.
-       */
-      urls: string[];
-    }
-
-    /**
-     * Parameters of the 'Network.subresourceWebBundleMetadataError' event.
-     */
-    export interface SubresourceWebBundleMetadataErrorEvent {
-      /**
-       * Request identifier. Used to match this information to another event.
-       */
-      requestId: RequestId;
-
-      /**
-       * Error message
-       */
-      errorMessage: string;
-    }
-
-    /**
-     * Parameters of the 'Network.subresourceWebBundleInnerResponseParsed' event.
-     */
-    export interface SubresourceWebBundleInnerResponseParsedEvent {
-      /**
-       * Request identifier of the subresource request
-       */
-      innerRequestId: RequestId;
-
-      /**
-       * URL of the subresource resource.
-       */
-      innerRequestURL: string;
-
-      /**
-       * Bundle request identifier. Used to match this information to another event.
-       * This made be absent in case when the instrumentation was enabled only
-       * after webbundle was parsed.
-       */
-      bundleRequestId?: RequestId;
-    }
-
-    /**
-     * Parameters of the 'Network.subresourceWebBundleInnerResponseError' event.
-     */
-    export interface SubresourceWebBundleInnerResponseErrorEvent {
-      /**
-       * Request identifier of the subresource request
-       */
-      innerRequestId: RequestId;
-
-      /**
-       * URL of the subresource resource.
-       */
-      innerRequestURL: string;
-
-      /**
-       * Error message
-       */
-      errorMessage: string;
-
-      /**
-       * Bundle request identifier. Used to match this information to another event.
-       * This made be absent in case when the instrumentation was enabled only
-       * after webbundle was parsed.
-       */
-      bundleRequestId?: RequestId;
-    }
-
-    /**
      * Parameters of the 'Network.reportingApiReportAdded' event.
      */
     export interface ReportingApiReportAddedEvent {
@@ -19419,6 +21183,53 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'Network.deviceBoundSessionsAdded' event.
+     */
+    export interface DeviceBoundSessionsAddedEvent {
+      /**
+       * The device bound sessions.
+       */
+      sessions: DeviceBoundSession[];
+    }
+
+    /**
+     * Parameters of the 'Network.deviceBoundSessionEventOccurred' event.
+     */
+    export interface DeviceBoundSessionEventOccurredEvent {
+      /**
+       * A unique identifier for this session event.
+       */
+      eventId: DeviceBoundSessionEventId;
+
+      /**
+       * The site this session event is associated with.
+       */
+      site: string;
+
+      /**
+       * Whether this event was considered successful.
+       */
+      succeeded: boolean;
+
+      /**
+       * The session ID this event is associated with. May not be populated for
+       * failed events.
+       */
+      sessionId?: string;
+
+      /**
+       * The below are the different session event type details. Exactly one is populated.
+       */
+      creationEventDetails?: CreationEventDetails;
+
+      refreshEventDetails?: RefreshEventDetails;
+
+      terminationEventDetails?: TerminationEventDetails;
+
+      challengeEventDetails?: ChallengeEventDetails;
+    }
+
+    /**
      * Resource type as it was perceived by the rendering engine.
      */
     export type ResourceType =
@@ -19439,6 +21250,7 @@ export namespace Cdp {
       | 'Ping'
       | 'CSPViolationReport'
       | 'Preflight'
+      | 'FedCM'
       | 'Other';
 
     /**
@@ -19644,6 +21456,16 @@ export namespace Cdp {
     export type ResourcePriority = 'VeryLow' | 'Low' | 'Medium' | 'High' | 'VeryHigh';
 
     /**
+     * The render blocking behavior of a resource request.
+     */
+    export type RenderBlockingBehavior =
+      | 'Blocking'
+      | 'InBodyParserBlocking'
+      | 'NonBlocking'
+      | 'NonBlockingDynamic'
+      | 'PotentiallyBlocking';
+
+    /**
      * Post data entry for HTTP request
      */
     export interface PostDataEntry {
@@ -19730,6 +21552,11 @@ export namespace Cdp {
        * request corresponding to the main frame.
        */
       isSameSite?: boolean;
+
+      /**
+       * True when the resource request is ad-related.
+       */
+      isAdRelated?: boolean;
     }
 
     /**
@@ -19874,6 +21701,7 @@ export namespace Cdp {
       | 'mixed-content'
       | 'origin'
       | 'inspector'
+      | 'integrity'
       | 'subresource-filter'
       | 'content-type'
       | 'coep-frame-resource-needs-coep-header'
@@ -19908,8 +21736,6 @@ export namespace Cdp {
       | 'PreflightInvalidAllowCredentials'
       | 'PreflightMissingAllowExternal'
       | 'PreflightInvalidAllowExternal'
-      | 'PreflightMissingAllowPrivateNetwork'
-      | 'PreflightInvalidAllowPrivateNetwork'
       | 'InvalidAllowMethodsPreflightResponse'
       | 'InvalidAllowHeadersPreflightResponse'
       | 'MethodDisallowedByPreflightResponse'
@@ -19917,12 +21743,8 @@ export namespace Cdp {
       | 'RedirectContainsCredentials'
       | 'InsecurePrivateNetwork'
       | 'InvalidPrivateNetworkAccess'
-      | 'UnexpectedPrivateNetworkAccess'
       | 'NoCorsRedirectModeNotFollow'
-      | 'PreflightMissingPrivateNetworkAccessId'
-      | 'PreflightMissingPrivateNetworkAccessName'
-      | 'PrivateNetworkAccessPermissionUnavailable'
-      | 'PrivateNetworkAccessPermissionDenied';
+      | 'LocalNetworkAccessPermissionDenied';
 
     export interface CorsErrorStatus {
       corsError: CorsError;
@@ -19982,7 +21804,8 @@ export namespace Cdp {
       | 'network'
       | 'cache'
       | 'fetch-event'
-      | 'race-network-and-fetch-handler';
+      | 'race-network-and-fetch-handler'
+      | 'race-network-and-cache';
 
     export interface ServiceWorkerRouterInfo {
       /**
@@ -20247,7 +22070,7 @@ export namespace Cdp {
       /**
        * Type of this initiator.
        */
-      type: 'parser' | 'script' | 'preload' | 'SignedExchange' | 'preflight' | 'other';
+      type: 'parser' | 'script' | 'preload' | 'SignedExchange' | 'preflight' | 'FedCM' | 'other';
 
       /**
        * Initiator JavaScript stack trace, set for Script only.
@@ -20321,6 +22144,9 @@ export namespace Cdp {
 
       /**
        * Cookie expiration date as the number of seconds since the UNIX epoch.
+       * The value is set to -1 if the expiry date is not set.
+       * The value can be null for values that cannot be represented in
+       * JSON (±Inf).
        */
       expires: number;
 
@@ -20353,12 +22179,6 @@ export namespace Cdp {
        * Cookie Priority
        */
       priority: CookiePriority;
-
-      /**
-       * True if cookie is SameParty.
-       * @deprecated
-       */
-      sameParty: boolean;
 
       /**
        * Cookie source scheme type.
@@ -20404,8 +22224,6 @@ export namespace Cdp {
       | 'SchemefulSameSiteStrict'
       | 'SchemefulSameSiteLax'
       | 'SchemefulSameSiteUnspecifiedTreatedAsLax'
-      | 'SamePartyFromCrossPartyContext'
-      | 'SamePartyConflictsWithOtherAttributes'
       | 'NameValuePairExceedsMaxSize'
       | 'DisallowedCharacter'
       | 'NoCookieContent';
@@ -20428,10 +22246,10 @@ export namespace Cdp {
       | 'SchemefulSameSiteStrict'
       | 'SchemefulSameSiteLax'
       | 'SchemefulSameSiteUnspecifiedTreatedAsLax'
-      | 'SamePartyFromCrossPartyContext'
       | 'NameValuePairExceedsMaxSize'
       | 'PortMismatch'
-      | 'SchemeMismatch';
+      | 'SchemeMismatch'
+      | 'AnonymousContext';
 
     /**
      * Types of reasons why a cookie should have been blocked by 3PCD but is exempted for the request.
@@ -20446,7 +22264,8 @@ export namespace Cdp {
       | 'EnterprisePolicy'
       | 'StorageAccess'
       | 'TopLevelStorageAccess'
-      | 'Scheme';
+      | 'Scheme'
+      | 'SameSiteNoneCookiesInSandbox';
 
     /**
      * A cookie which was not stored from a response with the corresponding reason.
@@ -20568,11 +22387,6 @@ export namespace Cdp {
        * Cookie Priority.
        */
       priority?: CookiePriority;
-
-      /**
-       * True if cookie is SameParty.
-       */
-      sameParty?: boolean;
 
       /**
        * Cookie source scheme type.
@@ -20791,6 +22605,12 @@ export namespace Cdp {
       outerResponse: Response;
 
       /**
+       * Whether network response for the signed exchange was accompanied by
+       * extra headers.
+       */
+      hasExtraInfo: boolean;
+
+      /**
        * Information about the signed exchange header.
        */
       header?: SignedExchangeHeader;
@@ -20811,14 +22631,150 @@ export namespace Cdp {
      */
     export type ContentEncoding = 'deflate' | 'gzip' | 'br' | 'zstd';
 
-    export type PrivateNetworkRequestPolicy =
+    export interface NetworkConditions {
+      /**
+       * Only matching requests will be affected by these conditions. Patterns use the URLPattern constructor string
+       * syntax (https://urlpattern.spec.whatwg.org/) and must be absolute. If the pattern is empty, all requests are
+       * matched (including p2p connections).
+       */
+      urlPattern: string;
+
+      /**
+       * Minimum latency from request sent to response headers received (ms).
+       */
+      latency: number;
+
+      /**
+       * Maximal aggregated download throughput (bytes/sec). -1 disables download throttling.
+       */
+      downloadThroughput: number;
+
+      /**
+       * Maximal aggregated upload throughput (bytes/sec).  -1 disables upload throttling.
+       */
+      uploadThroughput: number;
+
+      /**
+       * Connection type if known.
+       */
+      connectionType?: ConnectionType;
+
+      /**
+       * WebRTC packet loss (percent, 0-100). 0 disables packet loss emulation, 100 drops all the packets.
+       */
+      packetLoss?: number;
+
+      /**
+       * WebRTC packet queue length (packet). 0 removes any queue length limitations.
+       */
+      packetQueueLength?: integer;
+
+      /**
+       * WebRTC packetReordering feature.
+       */
+      packetReordering?: boolean;
+    }
+
+    export interface BlockPattern {
+      /**
+       * URL pattern to match. Patterns use the URLPattern constructor string syntax
+       * (https://urlpattern.spec.whatwg.org/) and must be absolute. Example: `*://*:*\/*.css`.
+       */
+      urlPattern: string;
+
+      /**
+       * Whether or not to block the pattern. If false, a matching request will not be blocked even if it matches a later
+       * `BlockPattern`.
+       */
+      block: boolean;
+    }
+
+    export type DirectSocketDnsQueryType = 'ipv4' | 'ipv6';
+
+    export interface DirectTCPSocketOptions {
+      /**
+       * TCP_NODELAY option
+       */
+      noDelay: boolean;
+
+      /**
+       * Expected to be unsigned integer.
+       */
+      keepAliveDelay?: number;
+
+      /**
+       * Expected to be unsigned integer.
+       */
+      sendBufferSize?: number;
+
+      /**
+       * Expected to be unsigned integer.
+       */
+      receiveBufferSize?: number;
+
+      dnsQueryType?: DirectSocketDnsQueryType;
+    }
+
+    export interface DirectUDPSocketOptions {
+      remoteAddr?: string;
+
+      /**
+       * Unsigned int 16.
+       */
+      remotePort?: integer;
+
+      localAddr?: string;
+
+      /**
+       * Unsigned int 16.
+       */
+      localPort?: integer;
+
+      dnsQueryType?: DirectSocketDnsQueryType;
+
+      /**
+       * Expected to be unsigned integer.
+       */
+      sendBufferSize?: number;
+
+      /**
+       * Expected to be unsigned integer.
+       */
+      receiveBufferSize?: number;
+
+      multicastLoopback?: boolean;
+
+      /**
+       * Unsigned int 8.
+       */
+      multicastTimeToLive?: integer;
+
+      multicastAllowAddressSharing?: boolean;
+    }
+
+    export interface DirectUDPMessage {
+      data: string;
+
+      /**
+       * Null for connected mode.
+       */
+      remoteAddr?: string;
+
+      /**
+       * Null for connected mode.
+       * Expected to be unsigned integer.
+       */
+      remotePort?: integer;
+    }
+
+    export type LocalNetworkAccessRequestPolicy =
       | 'Allow'
       | 'BlockFromInsecureToMorePrivate'
       | 'WarnFromInsecureToMorePrivate'
-      | 'PreflightBlock'
-      | 'PreflightWarn';
+      | 'PermissionBlock'
+      | 'PermissionWarn';
 
-    export type IPAddressSpace = 'Local' | 'Private' | 'Public' | 'Unknown';
+    export type IPAddressSpace = 'Loopback' | 'Local' | 'Public' | 'Unknown';
 
     export interface ConnectTiming {
       /**
@@ -20834,7 +22790,7 @@ export namespace Cdp {
 
       initiatorIPAddressSpace: IPAddressSpace;
 
-      privateNetworkRequestPolicy: PrivateNetworkRequestPolicy;
+      localNetworkAccessRequestPolicy: LocalNetworkAccessRequestPolicy;
     }
 
     export type CrossOriginOpenerPolicyValue =
@@ -20944,6 +22900,319 @@ export namespace Cdp {
        * Name of the endpoint group.
        */
       groupName: string;
+    }
+
+    /**
+     * Unique identifier for a device bound session.
+     */
+    export interface DeviceBoundSessionKey {
+      /**
+       * The site the session is set up for.
+       */
+      site: string;
+
+      /**
+       * The id of the session.
+       */
+      id: string;
+    }
+
+    /**
+     * How a device bound session was used during a request.
+     */
+    export interface DeviceBoundSessionWithUsage {
+      /**
+       * The key for the session.
+       */
+      sessionKey: DeviceBoundSessionKey;
+
+      /**
+       * How the session was used (or not used).
+       */
+      usage:
+        | 'NotInScope'
+        | 'InScopeRefreshNotYetNeeded'
+        | 'InScopeRefreshNotAllowed'
+        | 'ProactiveRefreshNotPossible'
+        | 'ProactiveRefreshAttempted'
+        | 'Deferred';
+    }
+
+    /**
+     * A device bound session's cookie craving.
+     */
+    export interface DeviceBoundSessionCookieCraving {
+      /**
+       * The name of the craving.
+       */
+      name: string;
+
+      /**
+       * The domain of the craving.
+       */
+      domain: string;
+
+      /**
+       * The path of the craving.
+       */
+      path: string;
+
+      /**
+       * The `Secure` attribute of the craving attributes.
+       */
+      secure: boolean;
+
+      /**
+       * The `HttpOnly` attribute of the craving attributes.
+       */
+      httpOnly: boolean;
+
+      /**
+       * The `SameSite` attribute of the craving attributes.
+       */
+      sameSite?: CookieSameSite;
+    }
+
+    /**
+     * A device bound session's inclusion URL rule.
+     */
+    export interface DeviceBoundSessionUrlRule {
+      /**
+       * See comments on `net::device_bound_sessions::SessionInclusionRules::UrlRule::rule_type`.
+       */
+      ruleType: 'Exclude' | 'Include';
+
+      /**
+       * See comments on `net::device_bound_sessions::SessionInclusionRules::UrlRule::host_pattern`.
+       */
+      hostPattern: string;
+
+      /**
+       * See comments on `net::device_bound_sessions::SessionInclusionRules::UrlRule::path_prefix`.
+       */
+      pathPrefix: string;
+    }
+
+    /**
+     * A device bound session's inclusion rules.
+     */
+    export interface DeviceBoundSessionInclusionRules {
+      /**
+       * See comments on `net::device_bound_sessions::SessionInclusionRules::origin_`.
+       */
+      origin: string;
+
+      /**
+       * Whether the whole site is included. See comments on
+       * `net::device_bound_sessions::SessionInclusionRules::include_site_` for more
+       * details; this boolean is true if that value is populated.
+       */
+      includeSite: boolean;
+
+      /**
+       * See comments on `net::device_bound_sessions::SessionInclusionRules::url_rules_`.
+       */
+      urlRules: DeviceBoundSessionUrlRule[];
+    }
+
+    /**
+     * A device bound session.
+     */
+    export interface DeviceBoundSession {
+      /**
+       * The site and session ID of the session.
+       */
+      key: DeviceBoundSessionKey;
+
+      /**
+       * See comments on `net::device_bound_sessions::Session::refresh_url_`.
+       */
+      refreshUrl: string;
+
+      /**
+       * See comments on `net::device_bound_sessions::Session::inclusion_rules_`.
+       */
+      inclusionRules: DeviceBoundSessionInclusionRules;
+
+      /**
+       * See comments on `net::device_bound_sessions::Session::cookie_cravings_`.
+       */
+      cookieCravings: DeviceBoundSessionCookieCraving[];
+
+      /**
+       * See comments on `net::device_bound_sessions::Session::expiry_date_`.
+       */
+      expiryDate: Network.TimeSinceEpoch;
+
+      /**
+       * See comments on `net::device_bound_sessions::Session::cached_challenge__`.
+       */
+      cachedChallenge?: string;
+
+      /**
+       * See comments on `net::device_bound_sessions::Session::allowed_refresh_initiators_`.
+       */
+      allowedRefreshInitiators: string[];
+    }
+
+    /**
+     * A unique identifier for a device bound session event.
+     */
+    export type DeviceBoundSessionEventId = string;
+
+    /**
+     * A fetch result for a device bound session creation or refresh.
+     */
+    export type DeviceBoundSessionFetchResult =
+      | 'Success'
+      | 'KeyError'
+      | 'SigningError'
+      | 'ServerRequestedTermination'
+      | 'InvalidSessionId'
+      | 'InvalidChallenge'
+      | 'TooManyChallenges'
+      | 'InvalidFetcherUrl'
+      | 'InvalidRefreshUrl'
+      | 'TransientHttpError'
+      | 'ScopeOriginSameSiteMismatch'
+      | 'RefreshUrlSameSiteMismatch'
+      | 'MismatchedSessionId'
+      | 'MissingScope'
+      | 'NoCredentials'
+      | 'SubdomainRegistrationWellKnownUnavailable'
+      | 'SubdomainRegistrationUnauthorized'
+      | 'SubdomainRegistrationWellKnownMalformed'
+      | 'SessionProviderWellKnownUnavailable'
+      | 'RelyingPartyWellKnownUnavailable'
+      | 'FederatedKeyThumbprintMismatch'
+      | 'InvalidFederatedSessionUrl'
+      | 'InvalidFederatedKey'
+      | 'TooManyRelyingOriginLabels'
+      | 'BoundCookieSetForbidden'
+      | 'NetError'
+      | 'ProxyError'
+      | 'EmptySessionConfig'
+      | 'InvalidCredentialsConfig'
+      | 'InvalidCredentialsType'
+      | 'InvalidCredentialsEmptyName'
+      | 'InvalidCredentialsCookie'
+      | 'PersistentHttpError'
+      | 'RegistrationAttemptedChallenge'
+      | 'InvalidScopeOrigin'
+      | 'ScopeOriginContainsPath'
+      | 'RefreshInitiatorNotString'
+      | 'RefreshInitiatorInvalidHostPattern'
+      | 'InvalidScopeSpecification'
+      | 'MissingScopeSpecificationType'
+      | 'EmptyScopeSpecificationDomain'
+      | 'EmptyScopeSpecificationPath'
+      | 'InvalidScopeSpecificationType'
+      | 'InvalidScopeIncludeSite'
+      | 'MissingScopeIncludeSite'
+      | 'FederatedNotAuthorizedByProvider'
+      | 'FederatedNotAuthorizedByRelyingParty'
+      | 'SessionProviderWellKnownMalformed'
+      | 'SessionProviderWellKnownHasProviderOrigin'
+      | 'RelyingPartyWellKnownMalformed'
+      | 'RelyingPartyWellKnownHasRelyingOrigins'
+      | 'InvalidFederatedSessionProviderSessionMissing'
+      | 'InvalidFederatedSessionWrongProviderOrigin'
+      | 'InvalidCredentialsCookieCreationTime'
+      | 'InvalidCredentialsCookieName'
+      | 'InvalidCredentialsCookieParsing'
+      | 'InvalidCredentialsCookieUnpermittedAttribute'
+      | 'InvalidCredentialsCookieInvalidDomain'
+      | 'InvalidCredentialsCookiePrefix'
+      | 'InvalidScopeRulePath'
+      | 'InvalidScopeRuleHostPattern'
+      | 'ScopeRuleOriginScopedHostPatternMismatch'
+      | 'ScopeRuleSiteScopedHostPatternMismatch'
+      | 'SigningQuotaExceeded'
+      | 'InvalidConfigJson'
+      | 'InvalidFederatedSessionProviderFailedToRestoreKey'
+      | 'FailedToUnwrapKey'
+      | 'SessionDeletedDuringRefresh';
+
+    /**
+     * Session event details specific to creation.
+     */
+    export interface CreationEventDetails {
+      /**
+       * The result of the fetch attempt.
+       */
+      fetchResult: DeviceBoundSessionFetchResult;
+
+      /**
+       * The session if there was a newly created session. This is populated for
+       * all successful creation events.
+       */
+      newSession?: DeviceBoundSession;
+    }
+
+    /**
+     * Session event details specific to refresh.
+     */
+    export interface RefreshEventDetails {
+      /**
+       * The result of a refresh.
+       */
+      refreshResult:
+        | 'Refreshed'
+        | 'InitializedService'
+        | 'Unreachable'
+        | 'ServerError'
+        | 'RefreshQuotaExceeded'
+        | 'FatalError'
+        | 'SigningQuotaExceeded';
+
+      /**
+       * If there was a fetch attempt, the result of that.
+       */
+      fetchResult?: DeviceBoundSessionFetchResult;
+
+      /**
+       * The session display if there was a newly created session. This is populated
+       * for any refresh event that modifies the session config.
+       */
+      newSession?: DeviceBoundSession;
+
+      /**
+       * See comments on `net::device_bound_sessions::RefreshEventResult::was_fully_proactive_refresh`.
+       */
+      wasFullyProactiveRefresh: boolean;
+    }
+
+    /**
+     * Session event details specific to termination.
+     */
+    export interface TerminationEventDetails {
+      /**
+       * The reason for a session being deleted.
+       */
+      deletionReason:
+        | 'Expired'
+        | 'FailedToRestoreKey'
+        | 'FailedToUnwrapKey'
+        | 'StoragePartitionCleared'
+        | 'ClearBrowsingData'
+        | 'ServerRequested'
+        | 'InvalidSessionParams'
+        | 'RefreshFatalError';
+    }
+
+    /**
+     * Session event details specific to challenges.
+     */
+    export interface ChallengeEventDetails {
+      /**
+       * The result of a challenge.
+       */
+      challengeResult: 'Success' | 'NoSessionId' | 'NoSessionMatch' | 'CantSetBoundCookie';
+
+      /**
+       * The challenge set.
+       */
+      challenge: string;
     }
 
     /**
@@ -21382,6 +23651,9 @@ export namespace Cdp {
 
     /**
      * Highlights given rectangle. Coordinates are absolute with respect to the main frame viewport.
+     * Issue: the method does not handle device pixel ratio (DPR) correctly.
+     * The coordinates currently have to be adjusted by the client
+     * if DPR is not 1 (see crbug.com/437807128).
      */
     highlightRect(
       params: Overlay.HighlightRectParams,
@@ -21446,6 +23718,10 @@ export namespace Cdp {
     setShowContainerQueryOverlays(
       params: Overlay.SetShowContainerQueryOverlaysParams,
     ): Promise<Overlay.SetShowContainerQueryOverlaysResult | undefined>;
+
+    setShowInspectedElementAnchor(
+      params: Overlay.SetShowInspectedElementAnchorParams,
+    ): Promise<Overlay.SetShowInspectedElementAnchorResult | undefined>;
 
     /**
      * Requests that backend shows paint rectangles
@@ -21535,6 +23811,22 @@ export namespace Cdp {
     on(
       event: 'screenshotRequested',
       listener: (event: Overlay.ScreenshotRequestedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when user asks to show the Inspect panel.
+     */
+    on(
+      event: 'inspectPanelShowRequested',
+      listener: (event: Overlay.InspectPanelShowRequestedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when user asks to restore the Inspected Element floating window.
+     */
+    on(
+      event: 'inspectedElementWindowRestored',
+      listener: (event: Overlay.InspectedElementWindowRestoredEvent) => void,
     ): IDisposable;
 
     /**
@@ -21977,6 +24269,22 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'Overlay.setShowInspectedElementAnchor' method.
+     */
+    export interface SetShowInspectedElementAnchorParams {
+      /**
+       * Node identifier for which to show an anchor for.
+       */
+      inspectedElementAnchorConfig: InspectedElementAnchorConfig;
+    }
+
+    /**
+     * Return value of the 'Overlay.setShowInspectedElementAnchor' method.
+     */
+    export interface SetShowInspectedElementAnchorResult {
+    }
+
+    /**
      * Parameters of the 'Overlay.setShowPaintRects' method.
      */
     export interface SetShowPaintRectsParams {
@@ -22142,6 +24450,26 @@ export namespace Cdp {
        * Viewport to capture, in device independent pixels (dip).
        */
       viewport: Page.Viewport;
+    }
+
+    /**
+     * Parameters of the 'Overlay.inspectPanelShowRequested' event.
+     */
+    export interface InspectPanelShowRequestedEvent {
+      /**
+       * Id of the node to show in the panel.
+       */
+      backendNodeId: DOM.BackendNodeId;
+    }
+
+    /**
+     * Parameters of the 'Overlay.inspectedElementWindowRestored' event.
+     */
+    export interface InspectedElementWindowRestoredEvent {
+      /**
+       * Id of the node to restore the floating window for.
+       */
+      backendNodeId: DOM.BackendNodeId;
     }
 
     /**
@@ -22629,8 +24957,19 @@ export namespace Cdp {
       | 'searchForNode'
       | 'searchForUAShadowDOM'
       | 'captureAreaScreenshot'
-      | 'showDistances'
       | 'none';
+
+    export interface InspectedElementAnchorConfig {
+      /**
+       * Identifier of the node to highlight.
+       */
+      nodeId?: DOM.NodeId;
+
+      /**
+       * Identifier of the backend node to highlight.
+       */
+      backendNodeId?: DOM.BackendNodeId;
+    }
   }
 
   /**
@@ -22748,7 +25087,9 @@ export namespace Cdp {
      */
     getAppId(params: Page.GetAppIdParams): Promise<Page.GetAppIdResult | undefined>;
 
-    getAdScriptId(params: Page.GetAdScriptIdParams): Promise<Page.GetAdScriptIdResult | undefined>;
+    getAdScriptAncestry(
+      params: Page.GetAdScriptAncestryParams,
+    ): Promise<Page.GetAdScriptAncestryResult | undefined>;
 
     /**
      * Returns present frame tree structure.
@@ -23060,6 +25401,14 @@ export namespace Cdp {
       params: Page.SetPrerenderingAllowedParams,
     ): Promise<Page.SetPrerenderingAllowedResult | undefined>;
 
+    /**
+     * Get the annotated page content for the main frame.
+     * This is an experimental command that is subject to change.
+     */
+    getAnnotatedPageContent(
+      params: Page.GetAnnotatedPageContentParams,
+    ): Promise<Page.GetAnnotatedPageContentResult | undefined>;
+
     on(
       event: 'domContentEventFired',
       listener: (event: Page.DomContentEventFiredEvent) => void,
@@ -23112,6 +25461,20 @@ export namespace Cdp {
     on(event: 'documentOpened', listener: (event: Page.DocumentOpenedEvent) => void): IDisposable;
 
     on(event: 'frameResized', listener: (event: Page.FrameResizedEvent) => void): IDisposable;
+
+    /**
+     * Fired when a navigation starts. This event is fired for both
+     * renderer-initiated and browser-initiated navigations. For renderer-initiated
+     * navigations, the event is fired after `frameRequestedNavigation`.
+     * Navigation may still be cancelled after the event is issued. Multiple events
+     * can be fired for a single navigation, for example, when a same-document
+     * navigation becomes a cross-document navigation (such as in the case of a
+     * frameset).
+     */
+    on(
+      event: 'frameStartedNavigating',
+      listener: (event: Page.FrameStartedNavigatingEvent) => void,
+    ): IDisposable;
 
     /**
      * Fired when a renderer-initiated navigation is requested.
@@ -23248,8 +25611,7 @@ export namespace Cdp {
     on(event: 'windowOpen', listener: (event: Page.WindowOpenEvent) => void): IDisposable;
 
     /**
-     * Issued for every compilation cache generated. Is only available
-     * if Page.setGenerateCompilationCache is enabled.
+     * Issued for every compilation cache generated.
      */
     on(
       event: 'compilationCacheProduced',
@@ -23495,6 +25857,11 @@ export namespace Cdp {
      * Parameters of the 'Page.enable' method.
      */
     export interface EnableParams {
+      /**
+       * If true, the `Page.fileChooserOpened` event will be emitted regardless of the state set by
+       * `Page.setInterceptFileChooserDialog` command (default: false).
+       */
+      enableFileChooserOpenedEvent?: boolean;
     }
 
     /**
@@ -23583,21 +25950,24 @@ export namespace Cdp {
     }
 
     /**
-     * Parameters of the 'Page.getAdScriptId' method.
+     * Parameters of the 'Page.getAdScriptAncestry' method.
      */
-    export interface GetAdScriptIdParams {
+    export interface GetAdScriptAncestryParams {
       frameId: FrameId;
     }
 
     /**
-     * Return value of the 'Page.getAdScriptId' method.
+     * Return value of the 'Page.getAdScriptAncestry' method.
      */
-    export interface GetAdScriptIdResult {
+    export interface GetAdScriptAncestryResult {
       /**
-       * Identifies the bottom-most script which caused the frame to be labelled
-       * as an ad. Only sent if frame is labelled as an ad and id is available.
+       * The ancestry chain of ad script identifiers leading to this frame's
+       * creation, along with the root script's filterlist rule. The ancestry
+       * chain is ordered from the most immediate script (in the frame creation
+       * stack) to more distant ancestors (that created the immediately preceding
+       * script). Only sent if frame is labelled as an ad and ids are available.
        */
-      adScriptId?: AdScriptId;
+      adScriptAncestry?: AdScriptAncestry;
     }
 
     /**
@@ -23810,6 +26180,11 @@ export namespace Cdp {
        * User friendly error message, present if and only if navigation has failed.
        */
       errorText?: string;
+
+      /**
+       * Whether the navigation resulted in a download.
+       */
+      isDownload?: boolean;
     }
 
     /**
@@ -24508,7 +26883,7 @@ export namespace Cdp {
      * Parameters of the 'Page.setSPCTransactionMode' method.
      */
     export interface SetSPCTransactionModeParams {
-      mode: AutoResponseMode;
+      mode: 'none' | 'autoAccept' | 'autoChooseToAuthAnotherWay' | 'autoReject' | 'autoOptOut';
     }
 
     /**
@@ -24521,7 +26896,7 @@ export namespace Cdp {
      * Parameters of the 'Page.setRPHRegistrationMode' method.
      */
     export interface SetRPHRegistrationModeParams {
-      mode: AutoResponseMode;
+      mode: 'none' | 'autoAccept' | 'autoReject';
     }
 
     /**
@@ -24568,6 +26943,13 @@ export namespace Cdp {
      */
     export interface SetInterceptFileChooserDialogParams {
       enabled: boolean;
+
+      /**
+       * If true, cancels the dialog by emitting relevant events (if any)
+       * in addition to not showing it if the interception is enabled
+       * (default: false).
+       */
+      cancel?: boolean;
     }
 
     /**
@@ -24587,6 +26969,28 @@ export namespace Cdp {
      * Return value of the 'Page.setPrerenderingAllowed' method.
      */
     export interface SetPrerenderingAllowedResult {
+    }
+
+    /**
+     * Parameters of the 'Page.getAnnotatedPageContent' method.
+     */
+    export interface GetAnnotatedPageContentParams {
+      /**
+       * Whether to include actionable information. Defaults to true.
+       */
+      includeActionableInformation?: boolean;
+    }
+
+    /**
+     * Return value of the 'Page.getAnnotatedPageContent' method.
+     */
+    export interface GetAnnotatedPageContentResult {
+      /**
+       * The annotated page content as a base64 encoded protobuf.
+       * The format is defined by the `AnnotatedPageContent` message in
+       * components/optimization_guide/proto/features/common_quality_data.proto (Encoded as a base64 string when passed over JSON)
+       */
+      content: string;
     }
 
     /**
@@ -24694,6 +27098,39 @@ export namespace Cdp {
      * Parameters of the 'Page.frameResized' event.
      */
     export interface FrameResizedEvent {
+    }
+
+    /**
+     * Parameters of the 'Page.frameStartedNavigating' event.
+     */
+    export interface FrameStartedNavigatingEvent {
+      /**
+       * ID of the frame that is being navigated.
+       */
+      frameId: FrameId;
+
+      /**
+       * The URL the navigation started with. The final URL can be different.
+       */
+      url: string;
+
+      /**
+       * Loader identifier. Even though it is present in case of same-document
+       * navigation, the previously committed loaderId would not change unless
+       * the navigation changes from a same-document to a cross-document
+       * navigation.
+       */
+      loaderId: Network.LoaderId;
+
+      navigationType:
+        | 'reload'
+        | 'reloadBypassingCache'
+        | 'restore'
+        | 'restoreWithPost'
+        | 'historySameDocument'
+        | 'historyDifferentDocument'
+        | 'sameDocument'
+        | 'differentDocument';
     }
 
     /**
@@ -24834,6 +27271,11 @@ export namespace Cdp {
      */
     export interface JavascriptDialogClosedEvent {
       /**
+       * Frame id.
+       */
+      frameId: FrameId;
+
+      /**
        * Whether dialog was confirmed.
        */
       result: boolean;
@@ -24852,6 +27294,11 @@ export namespace Cdp {
        * Frame url.
        */
       url: string;
+
+      /**
+       * Frame id.
+       */
+      frameId: FrameId;
 
       /**
        * Message that will be displayed by the dialog.
@@ -25036,20 +27483,42 @@ export namespace Cdp {
     }
 
     /**
-     * Identifies the bottom-most script which caused the frame to be labelled
-     * as an ad.
+     * Identifies the script which caused a script or frame to be labelled as an
+     * ad.
      */
     export interface AdScriptId {
       /**
-       * Script Id of the bottom-most script which caused the frame to be labelled
-       * as an ad.
+       * Script Id of the script which caused a script or frame to be labelled as
+       * an ad.
        */
       scriptId: Runtime.ScriptId;
 
       /**
-       * Id of adScriptId's debugger.
+       * Id of scriptId's debugger.
        */
       debuggerId: Runtime.UniqueDebuggerId;
+    }
+
+    /**
+     * Encapsulates the script ancestry and the root script filterlist rule that
+     * caused the frame to be labelled as an ad. Only created when `ancestryChain`
+     * is not empty.
+     */
+    export interface AdScriptAncestry {
+      /**
+       * A chain of `AdScriptId`s representing the ancestry of an ad script that
+       * led to the creation of a frame. The chain is ordered from the script
+       * itself (lower level) up to its root ancestor that was flagged by
+       * filterlist.
+       */
+      ancestryChain: AdScriptId[];
+
+      /**
+       * The filterlist rule that caused the root (last) script in
+       * `ancestryChain` to be ad-tagged. Only populated if the rule is
+       * available.
+       */
+      rootScriptFilterlistRule?: string;
     }
 
     /**
@@ -25077,13 +27546,16 @@ export namespace Cdp {
 
     /**
      * All Permissions Policy features. This enum should match the one defined
-     * in third_party/blink/renderer/core/permissions_policy/permissions_policy_features.json5.
+     * in services/network/public/cpp/permissions_policy/permissions_policy_features.json5.
+     * LINT.IfChange(PermissionsPolicyFeature)
      */
     export type PermissionsPolicyFeature =
       | 'accelerometer'
       | 'all-screens-capture'
       | 'ambient-light-sensor'
+      | 'aria-notify'
       | 'attribution-reporting'
+      | 'autofill'
       | 'autoplay'
       | 'bluetooth'
       | 'browsing-topics'
@@ -25101,6 +27573,7 @@ export namespace Cdp {
       | 'ch-ua'
       | 'ch-ua-arch'
       | 'ch-ua-bitness'
+      | 'ch-ua-high-entropy-values'
       | 'ch-ua-platform'
       | 'ch-ua-model'
       | 'ch-ua-mobile'
@@ -25119,8 +27592,11 @@ export namespace Cdp {
       | 'cross-origin-isolated'
       | 'deferred-fetch'
       | 'deferred-fetch-minimal'
+      | 'device-attributes'
+      | 'digital-credentials-create'
       | 'digital-credentials-get'
       | 'direct-sockets'
+      | 'direct-sockets-multicast'
       | 'direct-sockets-private'
       | 'display-capture'
       | 'document-domain'
@@ -25140,31 +27616,40 @@ export namespace Cdp {
       | 'interest-cohort'
       | 'join-ad-interest-group'
       | 'keyboard-map'
+      | 'language-detector'
+      | 'language-model'
       | 'local-fonts'
+      | 'local-network'
+      | 'local-network-access'
+      | 'loopback-network'
       | 'magnetometer'
+      | 'manual-text'
       | 'media-playback-while-not-visible'
       | 'microphone'
       | 'midi'
+      | 'on-device-speech-recognition'
       | 'otp-credentials'
       | 'payment'
       | 'picture-in-picture'
-      | 'popins'
       | 'private-aggregation'
       | 'private-state-token-issuance'
       | 'private-state-token-redemption'
       | 'publickey-credentials-create'
       | 'publickey-credentials-get'
+      | 'record-ad-auction-events'
+      | 'rewriter'
       | 'run-ad-auction'
       | 'screen-wake-lock'
       | 'serial'
-      | 'shared-autofill'
       | 'shared-storage'
       | 'shared-storage-select-url'
       | 'smart-card'
       | 'speaker-selection'
       | 'storage-access'
       | 'sub-apps'
+      | 'summarizer'
       | 'sync-xhr'
+      | 'translator'
       | 'unload'
       | 'usb'
       | 'usb-unrestricted'
@@ -25173,6 +27658,7 @@ export namespace Cdp {
       | 'web-printing'
       | 'web-share'
       | 'window-management'
+      | 'writer'
       | 'xr-spatial-tracking';
 
     /**
@@ -25262,6 +27748,18 @@ export namespace Cdp {
     }
 
     /**
+     * Additional information about the frame document's security origin.
+     */
+    export interface SecurityOriginDetails {
+      /**
+       * Indicates whether the frame document's security origin is one
+       * of the local hostnames (e.g. "localhost") or IP addresses (IPv4
+       * 127.0.0.0/8 or IPv6 ::1).
+       */
+      isLocalhost: boolean;
+    }
+
+    /**
      * Information about the Frame on the page.
      */
     export interface Frame {
@@ -25307,6 +27805,11 @@ export namespace Cdp {
        * Frame document's security origin.
        */
       securityOrigin: string;
+
+      /**
+       * Additional details about the frame document's security origin.
+       */
+      securityOriginDetails?: SecurityOriginDetails;
 
       /**
        * Frame document's mimeType as determined by the browser.
@@ -25959,11 +28462,6 @@ export namespace Cdp {
     }
 
     /**
-     * Enum of possible auto-response for permission / prompt dialogs.
-     */
-    export type AutoResponseMode = 'none' | 'autoAccept' | 'autoReject' | 'autoOptOut';
-
-    /**
      * The type of a frameNavigated event.
      */
     export type NavigationType = 'Navigation' | 'BackForwardCacheRestore';
@@ -26052,8 +28550,12 @@ export namespace Cdp {
       | 'BroadcastChannel'
       | 'WebXR'
       | 'SharedWorker'
+      | 'SharedWorkerMessage'
+      | 'SharedWorkerWithNoActiveClient'
       | 'WebLocks'
+      | 'WebLocksContention'
       | 'WebHID'
+      | 'WebBluetooth'
       | 'WebShare'
       | 'RequestedStorageAccessGrant'
       | 'WebNfc'
@@ -26076,9 +28578,9 @@ export namespace Cdp {
       | 'IndexedDBEvent'
       | 'Dummy'
       | 'JsNetworkRequestReceivedCacheControlNoStoreResource'
-      | 'WebRTCSticky'
-      | 'WebTransportSticky'
-      | 'WebSocketSticky'
+      | 'WebRTCUsedWithCCNS'
+      | 'WebTransportUsedWithCCNS'
+      | 'WebSocketUsedWithCCNS'
       | 'SmartCard'
       | 'LiveMediaStreamTrack'
       | 'UnloadHandler'
@@ -26110,7 +28612,10 @@ export namespace Cdp {
       | 'EmbedderExtensionMessagingForOpenPort'
       | 'EmbedderExtensionSentMessageToCachedFrame'
       | 'RequestedByWebViewClient'
-      | 'PostMessageByWebViewClient';
+      | 'PostMessageByWebViewClient'
+      | 'CacheControlNoStoreDeviceBoundSessionTerminated'
+      | 'CacheLimitPrunedOnModerateMemoryPressure'
+      | 'CacheLimitPrunedOnCriticalMemoryPressure';
 
     /**
      * Types of not restored reasons for back-forward cache.
@@ -26667,16 +29172,25 @@ export namespace Cdp {
        * @deprecated
        */
       errorMessage?: string;
+
+      /**
+       * For more details, see:
+       * https://github.com/WICG/nav-speculation/blob/main/speculation-rules-tags.md
+       */
+      tag?: string;
     }
 
-    export type RuleSetErrorType = 'SourceIsNotJsonObject' | 'InvalidRulesSkipped';
+    export type RuleSetErrorType =
+      | 'SourceIsNotJsonObject'
+      | 'InvalidRulesSkipped'
+      | 'InvalidRulesetLevelTag';
 
     /**
      * The type of preloading attempted. It corresponds to
      * mojom::SpeculationAction (although PrefetchWithSubresources is omitted as it
      * isn't being used by clients).
      */
-    export type SpeculationAction = 'Prefetch' | 'Prerender';
+    export type SpeculationAction = 'Prefetch' | 'Prerender' | 'PrerenderUntilScript';
 
     /**
      * Corresponds to mojom::SpeculationTargetHint.
@@ -26738,7 +29252,6 @@ export namespace Cdp {
       | 'InvalidSchemeRedirect'
       | 'InvalidSchemeNavigation'
       | 'NavigationRequestBlockedByCsp'
-      | 'MainFrameNavigation'
       | 'MojoBinderPolicy'
       | 'RendererProcessCrashed'
       | 'RendererProcessKilled'
@@ -26804,7 +29317,9 @@ export namespace Cdp {
       | 'SlowNetwork'
       | 'OtherPrerenderedPageActivated'
       | 'V8OptimizerDisabled'
-      | 'PrerenderFailedDuringPrefetch';
+      | 'PrerenderFailedDuringPrefetch'
+      | 'BrowsingDataRemoved'
+      | 'PrerenderHostReused';
 
     /**
      * Preloading status values, see also PreloadingTriggeringOutcome. This
@@ -26829,6 +29344,7 @@ export namespace Cdp {
       | 'PrefetchFailedMIMENotSupported'
       | 'PrefetchFailedNetError'
       | 'PrefetchFailedNon2XX'
+      | 'PrefetchEvictedAfterBrowsingDataRemoved'
       | 'PrefetchEvictedAfterCandidateRemoved'
       | 'PrefetchEvictedForNewerPrefetch'
       | 'PrefetchHeldback'
@@ -26844,6 +29360,9 @@ export namespace Cdp {
       | 'PrefetchNotEligibleSchemeIsNotHttps'
       | 'PrefetchNotEligibleUserHasCookies'
       | 'PrefetchNotEligibleUserHasServiceWorker'
+      | 'PrefetchNotEligibleUserHasServiceWorkerNoFetchHandler'
+      | 'PrefetchNotEligibleRedirectFromServiceWorker'
+      | 'PrefetchNotEligibleRedirectToServiceWorker'
       | 'PrefetchNotEligibleBatterySaverEnabled'
       | 'PrefetchNotEligiblePreloadingDisabled'
       | 'PrefetchNotFinishedInTime'
@@ -27303,15 +29822,31 @@ export namespace Cdp {
     getOsAppState(params: PWA.GetOsAppStateParams): Promise<PWA.GetOsAppStateResult | undefined>;
 
     /**
-     * Installs the given manifest identity, optionally using the given install_url
-     * or IWA bundle location.
+     * Installs the given manifest identity, optionally using the given installUrlOrBundleUrl
      *
-     * TODO(crbug.com/337872319) Support IWA to meet the following specific
-     * requirement.
-     * IWA-specific install description: If the manifest_id is isolated-app://,
-     * install_url_or_bundle_url is required, and can be either an http(s) URL or
-     * file:// URL pointing to a signed web bundle (.swbn). The .swbn file's
-     * signing key must correspond to manifest_id. If Chrome is not in IWA dev
+     * IWA-specific install description:
+     * manifestId corresponds to isolated-app:// + web_package::SignedWebBundleId
+     *
+     * File installation mode:
+     * The installUrlOrBundleUrl can be either file:// or http(s):// pointing
+     * to a signed web bundle (.swbn). In this case SignedWebBundleId must correspond to
+     * The .swbn file's signing key.
+     *
+     * Dev proxy installation mode:
+     * installUrlOrBundleUrl must be http(s):// that serves dev mode IWA.
+     * web_package::SignedWebBundleId must be of type dev proxy.
+     *
+     * The advantage of dev proxy mode is that all changes to IWA
+     * automatically will be reflected in the running app without
+     * reinstallation.
+     *
+     * To generate bundle id for proxy mode:
+     * 1. Generate 32 random bytes.
+     * 2. Add a specific suffix at the end following the documentation
+     *    https://github.com/WICG/isolated-web-apps/blob/main/Scheme.md#suffix
+     * 3. Encode the entire sequence using Base32 without padding.
+     *
+     * If Chrome is not in IWA dev
      * mode, the installation will fail, regardless of the state of the allowlist.
      */
     install(params: PWA.InstallParams): Promise<PWA.InstallResult | undefined>;
@@ -28122,14 +30657,24 @@ export namespace Cdp {
      */
     export interface GetHeapUsageResult {
       /**
-       * Used heap size in bytes.
+       * Used JavaScript heap size in bytes.
        */
       usedSize: number;
 
       /**
-       * Allocated heap size in bytes.
+       * Allocated JavaScript heap size in bytes.
        */
       totalSize: number;
+
+      /**
+       * Used size in bytes in the embedder's garbage-collected heap.
+       */
+      embedderHeapUsedSize: number;
+
+      /**
+       * Size in bytes of backing storage for array buffers and external strings.
+       */
+      backingStorageSize: number;
     }
 
     /**
@@ -28719,7 +31264,8 @@ export namespace Cdp {
         | 'arraybuffer'
         | 'dataview'
         | 'webassemblymemory'
-        | 'wasmvalue';
+        | 'wasmvalue'
+        | 'trustedtype';
 
       /**
        * Object class (constructor) name. Specified for `object` type values only.
@@ -28814,7 +31360,8 @@ export namespace Cdp {
         | 'arraybuffer'
         | 'dataview'
         | 'webassemblymemory'
-        | 'wasmvalue';
+        | 'wasmvalue'
+        | 'trustedtype';
 
       /**
        * String representation of the object.
@@ -28889,7 +31436,8 @@ export namespace Cdp {
         | 'arraybuffer'
         | 'dataview'
         | 'webassemblymemory'
-        | 'wasmvalue';
+        | 'wasmvalue'
+        | 'trustedtype';
     }
 
     export interface EntryPreview {
@@ -29728,10 +32276,6 @@ export namespace Cdp {
 
     enable(params: ServiceWorker.EnableParams): Promise<ServiceWorker.EnableResult | undefined>;
 
-    inspectWorker(
-      params: ServiceWorker.InspectWorkerParams,
-    ): Promise<ServiceWorker.InspectWorkerResult | undefined>;
-
     setForceUpdateOnPageLoad(
       params: ServiceWorker.SetForceUpdateOnPageLoadParams,
     ): Promise<ServiceWorker.SetForceUpdateOnPageLoadResult | undefined>;
@@ -29855,19 +32399,6 @@ export namespace Cdp {
      * Return value of the 'ServiceWorker.enable' method.
      */
     export interface EnableResult {
-    }
-
-    /**
-     * Parameters of the 'ServiceWorker.inspectWorker' method.
-     */
-    export interface InspectWorkerParams {
-      versionId: string;
-    }
-
-    /**
-     * Return value of the 'ServiceWorker.inspectWorker' method.
-     */
-    export interface InspectWorkerResult {
     }
 
     /**
@@ -30055,15 +32586,804 @@ export namespace Cdp {
   }
 
   /**
+   * Methods and events of the 'SmartCardEmulation' domain.
+   */
+  export interface SmartCardEmulationApi {
+    /**
+     * Enables the |SmartCardEmulation| domain.
+     */
+    enable(
+      params: SmartCardEmulation.EnableParams,
+    ): Promise<SmartCardEmulation.EnableResult | undefined>;
+
+    /**
+     * Disables the |SmartCardEmulation| domain.
+     */
+    disable(
+      params: SmartCardEmulation.DisableParams,
+    ): Promise<SmartCardEmulation.DisableResult | undefined>;
+
+    /**
+     * Reports the successful result of a |SCardEstablishContext| call.
+     *
+     * This maps to:
+     * PC/SC Lite: https://pcsclite.apdu.fr/api/group__API.html#gaa1b8970169fd4883a6dc4a8f43f19b67
+     * Microsoft: https://learn.microsoft.com/en-us/windows/win32/api/winscard/nf-winscard-scardestablishcontext
+     */
+    reportEstablishContextResult(
+      params: SmartCardEmulation.ReportEstablishContextResultParams,
+    ): Promise<SmartCardEmulation.ReportEstablishContextResultResult | undefined>;
+
+    /**
+     * Reports the successful result of a |SCardReleaseContext| call.
+     *
+     * This maps to:
+     * PC/SC Lite: https://pcsclite.apdu.fr/api/group__API.html#ga6aabcba7744c5c9419fdd6404f73a934
+     * Microsoft: https://learn.microsoft.com/en-us/windows/win32/api/winscard/nf-winscard-scardreleasecontext
+     */
+    reportReleaseContextResult(
+      params: SmartCardEmulation.ReportReleaseContextResultParams,
+    ): Promise<SmartCardEmulation.ReportReleaseContextResultResult | undefined>;
+
+    /**
+     * Reports the successful result of a |SCardListReaders| call.
+     *
+     * This maps to:
+     * PC/SC Lite: https://pcsclite.apdu.fr/api/group__API.html#ga93b07815789b3cf2629d439ecf20f0d9
+     * Microsoft: https://learn.microsoft.com/en-us/windows/win32/api/winscard/nf-winscard-scardlistreadersa
+     */
+    reportListReadersResult(
+      params: SmartCardEmulation.ReportListReadersResultParams,
+    ): Promise<SmartCardEmulation.ReportListReadersResultResult | undefined>;
+
+    /**
+     * Reports the successful result of a |SCardGetStatusChange| call.
+     *
+     * This maps to:
+     * PC/SC Lite: https://pcsclite.apdu.fr/api/group__API.html#ga33247d5d1257d59e55647c3bb717db24
+     * Microsoft: https://learn.microsoft.com/en-us/windows/win32/api/winscard/nf-winscard-scardgetstatuschangea
+     */
+    reportGetStatusChangeResult(
+      params: SmartCardEmulation.ReportGetStatusChangeResultParams,
+    ): Promise<SmartCardEmulation.ReportGetStatusChangeResultResult | undefined>;
+
+    /**
+     * Reports the result of a |SCardBeginTransaction| call.
+     * On success, this creates a new transaction object.
+     *
+     * This maps to:
+     * PC/SC Lite: https://pcsclite.apdu.fr/api/group__API.html#gaddb835dce01a0da1d6ca02d33ee7d861
+     * Microsoft: https://learn.microsoft.com/en-us/windows/win32/api/winscard/nf-winscard-scardbegintransaction
+     */
+    reportBeginTransactionResult(
+      params: SmartCardEmulation.ReportBeginTransactionResultParams,
+    ): Promise<SmartCardEmulation.ReportBeginTransactionResultResult | undefined>;
+
+    /**
+     * Reports the successful result of a call that returns only a result code.
+     * Used for: |SCardCancel|, |SCardDisconnect|, |SCardSetAttrib|, |SCardEndTransaction|.
+     *
+     * This maps to:
+     * 1. SCardCancel
+     *    PC/SC Lite: https://pcsclite.apdu.fr/api/group__API.html#gaacbbc0c6d6c0cbbeb4f4debf6fbeeee6
+     *    Microsoft: https://learn.microsoft.com/en-us/windows/win32/api/winscard/nf-winscard-scardcancel
+     *
+     * 2. SCardDisconnect
+     *    PC/SC Lite: https://pcsclite.apdu.fr/api/group__API.html#ga4be198045c73ec0deb79e66c0ca1738a
+     *    Microsoft: https://learn.microsoft.com/en-us/windows/win32/api/winscard/nf-winscard-scarddisconnect
+     *
+     * 3. SCardSetAttrib
+     *    PC/SC Lite: https://pcsclite.apdu.fr/api/group__API.html#ga060f0038a4ddfd5dd2b8fadf3c3a2e4f
+     *    Microsoft: https://learn.microsoft.com/en-us/windows/win32/api/winscard/nf-winscard-scardsetattrib
+     *
+     * 4. SCardEndTransaction
+     *    PC/SC Lite: https://pcsclite.apdu.fr/api/group__API.html#gae8742473b404363e5c587f570d7e2f3b
+     *    Microsoft: https://learn.microsoft.com/en-us/windows/win32/api/winscard/nf-winscard-scardendtransaction
+     */
+    reportPlainResult(
+      params: SmartCardEmulation.ReportPlainResultParams,
+    ): Promise<SmartCardEmulation.ReportPlainResultResult | undefined>;
+
+    /**
+     * Reports the successful result of a |SCardConnect| call.
+     *
+     * This maps to:
+     * PC/SC Lite: https://pcsclite.apdu.fr/api/group__API.html#ga4e515829752e0a8dbc4d630696a8d6a5
+     * Microsoft: https://learn.microsoft.com/en-us/windows/win32/api/winscard/nf-winscard-scardconnecta
+     */
+    reportConnectResult(
+      params: SmartCardEmulation.ReportConnectResultParams,
+    ): Promise<SmartCardEmulation.ReportConnectResultResult | undefined>;
+
+    /**
+     * Reports the successful result of a call that sends back data on success.
+     * Used for |SCardTransmit|, |SCardControl|, and |SCardGetAttrib|.
+     *
+     * This maps to:
+     * 1. SCardTransmit
+     *    PC/SC Lite: https://pcsclite.apdu.fr/api/group__API.html#ga9a2d77242a271310269065e64633ab99
+     *    Microsoft: https://learn.microsoft.com/en-us/windows/win32/api/winscard/nf-winscard-scardtransmit
+     *
+     * 2. SCardControl
+     *    PC/SC Lite: https://pcsclite.apdu.fr/api/group__API.html#gac3454d4657110fd7f753b2d3d8f4e32f
+     *    Microsoft: https://learn.microsoft.com/en-us/windows/win32/api/winscard/nf-winscard-scardcontrol
+     *
+     * 3. SCardGetAttrib
+     *    PC/SC Lite: https://pcsclite.apdu.fr/api/group__API.html#gaacfec51917255b7a25b94c5104961602
+     *    Microsoft: https://learn.microsoft.com/en-us/windows/win32/api/winscard/nf-winscard-scardgetattrib
+     */
+    reportDataResult(
+      params: SmartCardEmulation.ReportDataResultParams,
+    ): Promise<SmartCardEmulation.ReportDataResultResult | undefined>;
+
+    /**
+     * Reports the successful result of a |SCardStatus| call.
+     *
+     * This maps to:
+     * PC/SC Lite: https://pcsclite.apdu.fr/api/group__API.html#gae49c3c894ad7ac12a5b896bde70d0382
+     * Microsoft: https://learn.microsoft.com/en-us/windows/win32/api/winscard/nf-winscard-scardstatusa
+     */
+    reportStatusResult(
+      params: SmartCardEmulation.ReportStatusResultParams,
+    ): Promise<SmartCardEmulation.ReportStatusResultResult | undefined>;
+
+    /**
+     * Reports an error result for the given request.
+     */
+    reportError(
+      params: SmartCardEmulation.ReportErrorParams,
+    ): Promise<SmartCardEmulation.ReportErrorResult | undefined>;
+
+    /**
+     * Fired when |SCardEstablishContext| is called.
+     *
+     * This maps to:
+     * PC/SC Lite: https://pcsclite.apdu.fr/api/group__API.html#gaa1b8970169fd4883a6dc4a8f43f19b67
+     * Microsoft: https://learn.microsoft.com/en-us/windows/win32/api/winscard/nf-winscard-scardestablishcontext
+     */
+    on(
+      event: 'establishContextRequested',
+      listener: (event: SmartCardEmulation.EstablishContextRequestedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when |SCardReleaseContext| is called.
+     *
+     * This maps to:
+     * PC/SC Lite: https://pcsclite.apdu.fr/api/group__API.html#ga6aabcba7744c5c9419fdd6404f73a934
+     * Microsoft: https://learn.microsoft.com/en-us/windows/win32/api/winscard/nf-winscard-scardreleasecontext
+     */
+    on(
+      event: 'releaseContextRequested',
+      listener: (event: SmartCardEmulation.ReleaseContextRequestedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when |SCardListReaders| is called.
+     *
+     * This maps to:
+     * PC/SC Lite: https://pcsclite.apdu.fr/api/group__API.html#ga93b07815789b3cf2629d439ecf20f0d9
+     * Microsoft: https://learn.microsoft.com/en-us/windows/win32/api/winscard/nf-winscard-scardlistreadersa
+     */
+    on(
+      event: 'listReadersRequested',
+      listener: (event: SmartCardEmulation.ListReadersRequestedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when |SCardGetStatusChange| is called. Timeout is specified in milliseconds.
+     *
+     * This maps to:
+     * PC/SC Lite: https://pcsclite.apdu.fr/api/group__API.html#ga33247d5d1257d59e55647c3bb717db24
+     * Microsoft: https://learn.microsoft.com/en-us/windows/win32/api/winscard/nf-winscard-scardgetstatuschangea
+     */
+    on(
+      event: 'getStatusChangeRequested',
+      listener: (event: SmartCardEmulation.GetStatusChangeRequestedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when |SCardCancel| is called.
+     *
+     * This maps to:
+     * PC/SC Lite: https://pcsclite.apdu.fr/api/group__API.html#gaacbbc0c6d6c0cbbeb4f4debf6fbeeee6
+     * Microsoft: https://learn.microsoft.com/en-us/windows/win32/api/winscard/nf-winscard-scardcancel
+     */
+    on(
+      event: 'cancelRequested',
+      listener: (event: SmartCardEmulation.CancelRequestedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when |SCardConnect| is called.
+     *
+     * This maps to:
+     * PC/SC Lite: https://pcsclite.apdu.fr/api/group__API.html#ga4e515829752e0a8dbc4d630696a8d6a5
+     * Microsoft: https://learn.microsoft.com/en-us/windows/win32/api/winscard/nf-winscard-scardconnecta
+     */
+    on(
+      event: 'connectRequested',
+      listener: (event: SmartCardEmulation.ConnectRequestedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when |SCardDisconnect| is called.
+     *
+     * This maps to:
+     * PC/SC Lite: https://pcsclite.apdu.fr/api/group__API.html#ga4be198045c73ec0deb79e66c0ca1738a
+     * Microsoft: https://learn.microsoft.com/en-us/windows/win32/api/winscard/nf-winscard-scarddisconnect
+     */
+    on(
+      event: 'disconnectRequested',
+      listener: (event: SmartCardEmulation.DisconnectRequestedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when |SCardTransmit| is called.
+     *
+     * This maps to:
+     * PC/SC Lite: https://pcsclite.apdu.fr/api/group__API.html#ga9a2d77242a271310269065e64633ab99
+     * Microsoft: https://learn.microsoft.com/en-us/windows/win32/api/winscard/nf-winscard-scardtransmit
+     */
+    on(
+      event: 'transmitRequested',
+      listener: (event: SmartCardEmulation.TransmitRequestedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when |SCardControl| is called.
+     *
+     * This maps to:
+     * PC/SC Lite: https://pcsclite.apdu.fr/api/group__API.html#gac3454d4657110fd7f753b2d3d8f4e32f
+     * Microsoft: https://learn.microsoft.com/en-us/windows/win32/api/winscard/nf-winscard-scardcontrol
+     */
+    on(
+      event: 'controlRequested',
+      listener: (event: SmartCardEmulation.ControlRequestedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when |SCardGetAttrib| is called.
+     *
+     * This maps to:
+     * PC/SC Lite: https://pcsclite.apdu.fr/api/group__API.html#gaacfec51917255b7a25b94c5104961602
+     * Microsoft: https://learn.microsoft.com/en-us/windows/win32/api/winscard/nf-winscard-scardgetattrib
+     */
+    on(
+      event: 'getAttribRequested',
+      listener: (event: SmartCardEmulation.GetAttribRequestedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when |SCardSetAttrib| is called.
+     *
+     * This maps to:
+     * PC/SC Lite: https://pcsclite.apdu.fr/api/group__API.html#ga060f0038a4ddfd5dd2b8fadf3c3a2e4f
+     * Microsoft: https://learn.microsoft.com/en-us/windows/win32/api/winscard/nf-winscard-scardsetattrib
+     */
+    on(
+      event: 'setAttribRequested',
+      listener: (event: SmartCardEmulation.SetAttribRequestedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when |SCardStatus| is called.
+     *
+     * This maps to:
+     * PC/SC Lite: https://pcsclite.apdu.fr/api/group__API.html#gae49c3c894ad7ac12a5b896bde70d0382
+     * Microsoft: https://learn.microsoft.com/en-us/windows/win32/api/winscard/nf-winscard-scardstatusa
+     */
+    on(
+      event: 'statusRequested',
+      listener: (event: SmartCardEmulation.StatusRequestedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when |SCardBeginTransaction| is called.
+     *
+     * This maps to:
+     * PC/SC Lite: https://pcsclite.apdu.fr/api/group__API.html#gaddb835dce01a0da1d6ca02d33ee7d861
+     * Microsoft: https://learn.microsoft.com/en-us/windows/win32/api/winscard/nf-winscard-scardbegintransaction
+     */
+    on(
+      event: 'beginTransactionRequested',
+      listener: (event: SmartCardEmulation.BeginTransactionRequestedEvent) => void,
+    ): IDisposable;
+
+    /**
+     * Fired when |SCardEndTransaction| is called.
+     *
+     * This maps to:
+     * PC/SC Lite: https://pcsclite.apdu.fr/api/group__API.html#gae8742473b404363e5c587f570d7e2f3b
+     * Microsoft: https://learn.microsoft.com/en-us/windows/win32/api/winscard/nf-winscard-scardendtransaction
+     */
+    on(
+      event: 'endTransactionRequested',
+      listener: (event: SmartCardEmulation.EndTransactionRequestedEvent) => void,
+    ): IDisposable;
+  }
+
+  /**
+   * Types of the 'SmartCardEmulation' domain.
+   */
+  export namespace SmartCardEmulation {
+    /**
+     * Parameters of the 'SmartCardEmulation.enable' method.
+     */
+    export interface EnableParams {
+    }
+
+    /**
+     * Return value of the 'SmartCardEmulation.enable' method.
+     */
+    export interface EnableResult {
+    }
+
+    /**
+     * Parameters of the 'SmartCardEmulation.disable' method.
+     */
+    export interface DisableParams {
+    }
+
+    /**
+     * Return value of the 'SmartCardEmulation.disable' method.
+     */
+    export interface DisableResult {
+    }
+
+    /**
+     * Parameters of the 'SmartCardEmulation.reportEstablishContextResult' method.
+     */
+    export interface ReportEstablishContextResultParams {
+      requestId: string;
+
+      contextId: integer;
+    }
+
+    /**
+     * Return value of the 'SmartCardEmulation.reportEstablishContextResult' method.
+     */
+    export interface ReportEstablishContextResultResult {
+    }
+
+    /**
+     * Parameters of the 'SmartCardEmulation.reportReleaseContextResult' method.
+     */
+    export interface ReportReleaseContextResultParams {
+      requestId: string;
+    }
+
+    /**
+     * Return value of the 'SmartCardEmulation.reportReleaseContextResult' method.
+     */
+    export interface ReportReleaseContextResultResult {
+    }
+
+    /**
+     * Parameters of the 'SmartCardEmulation.reportListReadersResult' method.
+     */
+    export interface ReportListReadersResultParams {
+      requestId: string;
+
+      readers: string[];
+    }
+
+    /**
+     * Return value of the 'SmartCardEmulation.reportListReadersResult' method.
+     */
+    export interface ReportListReadersResultResult {
+    }
+
+    /**
+     * Parameters of the 'SmartCardEmulation.reportGetStatusChangeResult' method.
+     */
+    export interface ReportGetStatusChangeResultParams {
+      requestId: string;
+
+      readerStates: ReaderStateOut[];
+    }
+
+    /**
+     * Return value of the 'SmartCardEmulation.reportGetStatusChangeResult' method.
+     */
+    export interface ReportGetStatusChangeResultResult {
+    }
+
+    /**
+     * Parameters of the 'SmartCardEmulation.reportBeginTransactionResult' method.
+     */
+    export interface ReportBeginTransactionResultParams {
+      requestId: string;
+
+      handle: integer;
+    }
+
+    /**
+     * Return value of the 'SmartCardEmulation.reportBeginTransactionResult' method.
+     */
+    export interface ReportBeginTransactionResultResult {
+    }
+
+    /**
+     * Parameters of the 'SmartCardEmulation.reportPlainResult' method.
+     */
+    export interface ReportPlainResultParams {
+      requestId: string;
+    }
+
+    /**
+     * Return value of the 'SmartCardEmulation.reportPlainResult' method.
+     */
+    export interface ReportPlainResultResult {
+    }
+
+    /**
+     * Parameters of the 'SmartCardEmulation.reportConnectResult' method.
+     */
+    export interface ReportConnectResultParams {
+      requestId: string;
+
+      handle: integer;
+
+      activeProtocol?: Protocol;
+    }
+
+    /**
+     * Return value of the 'SmartCardEmulation.reportConnectResult' method.
+     */
+    export interface ReportConnectResultResult {
+    }
+
+    /**
+     * Parameters of the 'SmartCardEmulation.reportDataResult' method.
+     */
+    export interface ReportDataResultParams {
+      requestId: string;
+
+      data: string;
+    }
+
+    /**
+     * Return value of the 'SmartCardEmulation.reportDataResult' method.
+     */
+    export interface ReportDataResultResult {
+    }
+
+    /**
+     * Parameters of the 'SmartCardEmulation.reportStatusResult' method.
+     */
+    export interface ReportStatusResultParams {
+      requestId: string;
+
+      readerName: string;
+
+      state: ConnectionState;
+
+      atr: string;
+
+      protocol?: Protocol;
+    }
+
+    /**
+     * Return value of the 'SmartCardEmulation.reportStatusResult' method.
+     */
+    export interface ReportStatusResultResult {
+    }
+
+    /**
+     * Parameters of the 'SmartCardEmulation.reportError' method.
+     */
+    export interface ReportErrorParams {
+      requestId: string;
+
+      resultCode: ResultCode;
+    }
+
+    /**
+     * Return value of the 'SmartCardEmulation.reportError' method.
+     */
+    export interface ReportErrorResult {
+    }
+
+    /**
+     * Parameters of the 'SmartCardEmulation.establishContextRequested' event.
+     */
+    export interface EstablishContextRequestedEvent {
+      requestId: string;
+    }
+
+    /**
+     * Parameters of the 'SmartCardEmulation.releaseContextRequested' event.
+     */
+    export interface ReleaseContextRequestedEvent {
+      requestId: string;
+
+      contextId: integer;
+    }
+
+    /**
+     * Parameters of the 'SmartCardEmulation.listReadersRequested' event.
+     */
+    export interface ListReadersRequestedEvent {
+      requestId: string;
+
+      contextId: integer;
+    }
+
+    /**
+     * Parameters of the 'SmartCardEmulation.getStatusChangeRequested' event.
+     */
+    export interface GetStatusChangeRequestedEvent {
+      requestId: string;
+
+      contextId: integer;
+
+      readerStates: ReaderStateIn[];
+
+      /**
+       * in milliseconds, if absent, it means "infinite"
+       */
+      timeout?: integer;
+    }
+
+    /**
+     * Parameters of the 'SmartCardEmulation.cancelRequested' event.
+     */
+    export interface CancelRequestedEvent {
+      requestId: string;
+
+      contextId: integer;
+    }
+
+    /**
+     * Parameters of the 'SmartCardEmulation.connectRequested' event.
+     */
+    export interface ConnectRequestedEvent {
+      requestId: string;
+
+      contextId: integer;
+
+      reader: string;
+
+      shareMode: ShareMode;
+
+      preferredProtocols: ProtocolSet;
+    }
+
+    /**
+     * Parameters of the 'SmartCardEmulation.disconnectRequested' event.
+     */
+    export interface DisconnectRequestedEvent {
+      requestId: string;
+
+      handle: integer;
+
+      disposition: Disposition;
+    }
+
+    /**
+     * Parameters of the 'SmartCardEmulation.transmitRequested' event.
+     */
+    export interface TransmitRequestedEvent {
+      requestId: string;
+
+      handle: integer;
+
+      data: string;
+
+      protocol?: Protocol;
+    }
+
+    /**
+     * Parameters of the 'SmartCardEmulation.controlRequested' event.
+     */
+    export interface ControlRequestedEvent {
+      requestId: string;
+
+      handle: integer;
+
+      controlCode: integer;
+
+      data: string;
+    }
+
+    /**
+     * Parameters of the 'SmartCardEmulation.getAttribRequested' event.
+     */
+    export interface GetAttribRequestedEvent {
+      requestId: string;
+
+      handle: integer;
+
+      attribId: integer;
+    }
+
+    /**
+     * Parameters of the 'SmartCardEmulation.setAttribRequested' event.
+     */
+    export interface SetAttribRequestedEvent {
+      requestId: string;
+
+      handle: integer;
+
+      attribId: integer;
+
+      data: string;
+    }
+
+    /**
+     * Parameters of the 'SmartCardEmulation.statusRequested' event.
+     */
+    export interface StatusRequestedEvent {
+      requestId: string;
+
+      handle: integer;
+    }
+
+    /**
+     * Parameters of the 'SmartCardEmulation.beginTransactionRequested' event.
+     */
+    export interface BeginTransactionRequestedEvent {
+      requestId: string;
+
+      handle: integer;
+    }
+
+    /**
+     * Parameters of the 'SmartCardEmulation.endTransactionRequested' event.
+     */
+    export interface EndTransactionRequestedEvent {
+      requestId: string;
+
+      handle: integer;
+
+      disposition: Disposition;
+    }
+
+    /**
+     * Indicates the PC/SC error code.
+     *
+     * This maps to:
+     * PC/SC Lite: https://pcsclite.apdu.fr/api/group__ErrorCodes.html
+     * Microsoft: https://learn.microsoft.com/en-us/windows/win32/secauthn/authentication-return-values
+     */
+    export type ResultCode =
+      | 'success'
+      | 'removed-card'
+      | 'reset-card'
+      | 'unpowered-card'
+      | 'unresponsive-card'
+      | 'unsupported-card'
+      | 'reader-unavailable'
+      | 'sharing-violation'
+      | 'not-transacted'
+      | 'no-smartcard'
+      | 'proto-mismatch'
+      | 'system-cancelled'
+      | 'not-ready'
+      | 'cancelled'
+      | 'insufficient-buffer'
+      | 'invalid-handle'
+      | 'invalid-parameter'
+      | 'invalid-value'
+      | 'no-memory'
+      | 'timeout'
+      | 'unknown-reader'
+      | 'unsupported-feature'
+      | 'no-readers-available'
+      | 'service-stopped'
+      | 'no-service'
+      | 'comm-error'
+      | 'internal-error'
+      | 'server-too-busy'
+      | 'unexpected'
+      | 'shutdown'
+      | 'unknown-card'
+      | 'unknown';
+
+    /**
+     * Maps to the |SCARD_SHARE_*| values.
+     */
+    export type ShareMode = 'shared' | 'exclusive' | 'direct';
+
+    /**
+     * Indicates what the reader should do with the card.
+     */
+    export type Disposition = 'leave-card' | 'reset-card' | 'unpower-card' | 'eject-card';
+
+    /**
+     * Maps to |SCARD_*| connection state values.
+     */
+    export type ConnectionState =
+      | 'absent'
+      | 'present'
+      | 'swallowed'
+      | 'powered'
+      | 'negotiable'
+      | 'specific';
+
+    /**
+     * Maps to the |SCARD_STATE_*| flags.
+     */
+    export interface ReaderStateFlags {
+      unaware?: boolean;
+
+      ignore?: boolean;
+
+      changed?: boolean;
+
+      unknown?: boolean;
+
+      unavailable?: boolean;
+
+      empty?: boolean;
+
+      present?: boolean;
+
+      exclusive?: boolean;
+
+      inuse?: boolean;
+
+      mute?: boolean;
+
+      unpowered?: boolean;
+    }
+
+    /**
+     * Maps to the |SCARD_PROTOCOL_*| flags.
+     */
+    export interface ProtocolSet {
+      t0?: boolean;
+
+      t1?: boolean;
+
+      raw?: boolean;
+    }
+
+    /**
+     * Maps to the |SCARD_PROTOCOL_*| values.
+     */
+    export type Protocol = 't0' | 't1' | 'raw';
+
+    export interface ReaderStateIn {
+      reader: string;
+
+      currentState: ReaderStateFlags;
+
+      currentInsertionCount: integer;
+    }
+
+    export interface ReaderStateOut {
+      reader: string;
+
+      eventState: ReaderStateFlags;
+
+      eventCount: integer;
+
+      atr: string;
+    }
+  }
+
+  /**
    * Methods and events of the 'Storage' domain.
    */
   export interface StorageApi {
     /**
      * Returns a storage key given a frame id.
+     * Deprecated. Please use Storage.getStorageKey instead.
+     * @deprecated
      */
     getStorageKeyForFrame(
       params: Storage.GetStorageKeyForFrameParams,
     ): Promise<Storage.GetStorageKeyForFrameResult | undefined>;
+
+    /**
+     * Returns storage key for the given frame. If no frame ID is provided,
+     * the storage key of the target executing this command is returned.
+     */
+    getStorageKey(
+      params: Storage.GetStorageKeyParams,
+    ): Promise<Storage.GetStorageKeyResult | undefined>;
 
     /**
      * Clears storage for origin.
@@ -30305,6 +33625,19 @@ export namespace Cdp {
     ): Promise<Storage.GetRelatedWebsiteSetsResult | undefined>;
 
     /**
+     * Returns the list of URLs from a page and its embedded resources that match
+     * existing grace period URL pattern rules.
+     * https://developers.google.com/privacy-sandbox/cookies/temporary-exceptions/grace-period
+     */
+    getAffectedUrlsForThirdPartyCookieMetadata(
+      params: Storage.GetAffectedUrlsForThirdPartyCookieMetadataParams,
+    ): Promise<Storage.GetAffectedUrlsForThirdPartyCookieMetadataResult | undefined>;
+
+    setProtectedAudienceKAnonymity(
+      params: Storage.SetProtectedAudienceKAnonymityParams,
+    ): Promise<Storage.SetProtectedAudienceKAnonymityResult | undefined>;
+
+    /**
      * A cache's contents have been modified.
      */
     on(
@@ -30374,6 +33707,15 @@ export namespace Cdp {
       listener: (event: Storage.SharedStorageAccessedEvent) => void,
     ): IDisposable;
 
+    /**
+     * A shared storage run or selectURL operation finished its execution.
+     * The following parameters are included in all events.
+     */
+    on(
+      event: 'sharedStorageWorkletOperationExecutionFinished',
+      listener: (event: Storage.SharedStorageWorkletOperationExecutionFinishedEvent) => void,
+    ): IDisposable;
+
     on(
       event: 'storageBucketCreatedOrUpdated',
       listener: (event: Storage.StorageBucketCreatedOrUpdatedEvent) => void,
@@ -30393,6 +33735,16 @@ export namespace Cdp {
       event: 'attributionReportingTriggerRegistered',
       listener: (event: Storage.AttributionReportingTriggerRegisteredEvent) => void,
     ): IDisposable;
+
+    on(
+      event: 'attributionReportingReportSent',
+      listener: (event: Storage.AttributionReportingReportSentEvent) => void,
+    ): IDisposable;
+
+    on(
+      event: 'attributionReportingVerboseDebugReportSent',
+      listener: (event: Storage.AttributionReportingVerboseDebugReportSentEvent) => void,
+    ): IDisposable;
   }
 
   /**
@@ -30410,6 +33762,20 @@ export namespace Cdp {
      * Return value of the 'Storage.getStorageKeyForFrame' method.
      */
     export interface GetStorageKeyForFrameResult {
+      storageKey: SerializedStorageKey;
+    }
+
+    /**
+     * Parameters of the 'Storage.getStorageKey' method.
+     */
+    export interface GetStorageKeyParams {
+      frameId?: Page.FrameId;
+    }
+
+    /**
+     * Return value of the 'Storage.getStorageKey' method.
+     */
+    export interface GetStorageKeyResult {
       storageKey: SerializedStorageKey;
     }
 
@@ -30985,6 +34351,49 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'Storage.getAffectedUrlsForThirdPartyCookieMetadata' method.
+     */
+    export interface GetAffectedUrlsForThirdPartyCookieMetadataParams {
+      /**
+       * The URL of the page currently being visited.
+       */
+      firstPartyUrl: string;
+
+      /**
+       * The list of embedded resource URLs from the page.
+       */
+      thirdPartyUrls: string[];
+    }
+
+    /**
+     * Return value of the 'Storage.getAffectedUrlsForThirdPartyCookieMetadata' method.
+     */
+    export interface GetAffectedUrlsForThirdPartyCookieMetadataResult {
+      /**
+       * Array of matching URLs. If there is a primary pattern match for the first-
+       * party URL, only the first-party URL is returned in the array.
+       */
+      matchedUrls: string[];
+    }
+
+    /**
+     * Parameters of the 'Storage.setProtectedAudienceKAnonymity' method.
+     */
+    export interface SetProtectedAudienceKAnonymityParams {
+      owner: string;
+
+      name: string;
+
+      hashes: string[];
+    }
+
+    /**
+     * Return value of the 'Storage.setProtectedAudienceKAnonymity' method.
+     */
+    export interface SetProtectedAudienceKAnonymityResult {
+    }
+
+    /**
      * Parameters of the 'Storage.cacheStorageContentUpdated' event.
      */
     export interface CacheStorageContentUpdatedEvent {
@@ -31157,9 +34566,14 @@ export namespace Cdp {
       accessTime: Network.TimeSinceEpoch;
 
       /**
+       * Enum value indicating the access scope.
+       */
+      scope: SharedStorageAccessScope;
+
+      /**
        * Enum value indicating the Shared Storage API method invoked.
        */
-      type: SharedStorageAccessType;
+      method: SharedStorageAccessMethod;
 
       /**
        * DevTools Frame Token for the primary frame tree's root.
@@ -31167,15 +34581,62 @@ export namespace Cdp {
       mainFrameId: Page.FrameId;
 
       /**
-       * Serialized origin for the context that invoked the Shared Storage API.
+       * Serialization of the origin owning the Shared Storage data.
        */
       ownerOrigin: string;
+
+      /**
+       * Serialization of the site owning the Shared Storage data.
+       */
+      ownerSite: string;
 
       /**
        * The sub-parameters wrapped by `params` are all optional and their
        * presence/absence depends on `type`.
        */
       params: SharedStorageAccessParams;
+    }
+
+    /**
+     * Parameters of the 'Storage.sharedStorageWorkletOperationExecutionFinished' event.
+     */
+    export interface SharedStorageWorkletOperationExecutionFinishedEvent {
+      /**
+       * Time that the operation finished.
+       */
+      finishedTime: Network.TimeSinceEpoch;
+
+      /**
+       * Time, in microseconds, from start of shared storage JS API call until
+       * end of operation execution in the worklet.
+       */
+      executionTime: integer;
+
+      /**
+       * Enum value indicating the Shared Storage API method invoked.
+       */
+      method: SharedStorageAccessMethod;
+
+      /**
+       * ID of the operation call.
+       */
+      operationId: string;
+
+      /**
+       * Hex representation of the DevTools token used as the TargetID for the
+       * associated shared storage worklet.
+       */
+      workletTargetId: Target.TargetID;
+
+      /**
+       * DevTools Frame Token for the primary frame tree's root.
+       */
+      mainFrameId: Page.FrameId;
+
+      /**
+       * Serialization of the origin owning the Shared Storage data.
+       */
+      ownerOrigin: string;
     }
 
     /**
@@ -31210,6 +34671,41 @@ export namespace Cdp {
       eventLevel: AttributionReportingEventLevelResult;
 
       aggregatable: AttributionReportingAggregatableResult;
+    }
+
+    /**
+     * Parameters of the 'Storage.attributionReportingReportSent' event.
+     */
+    export interface AttributionReportingReportSentEvent {
+      url: string;
+
+      body: any;
+
+      result: AttributionReportingReportResult;
+
+      /**
+       * If result is `sent`, populated with net/HTTP status.
+       */
+      netError?: integer;
+
+      netErrorName?: string;
+
+      httpStatusCode?: integer;
+    }
+
+    /**
+     * Parameters of the 'Storage.attributionReportingVerboseDebugReportSent' event.
+     */
+    export interface AttributionReportingVerboseDebugReportSentEvent {
+      url: string;
+
+      body?: any[];
+
+      netError?: integer;
+
+      netErrorName?: string;
+
+      httpStatusCode?: integer;
     }
 
     export type SerializedStorageKey = string;
@@ -31294,30 +34790,33 @@ export namespace Cdp {
       | 'sellerTrustedSignals';
 
     /**
-     * Enum of shared storage access types.
+     * Enum of shared storage access scopes.
      */
-    export type SharedStorageAccessType =
-      | 'documentAddModule'
-      | 'documentSelectURL'
-      | 'documentRun'
-      | 'documentSet'
-      | 'documentAppend'
-      | 'documentDelete'
-      | 'documentClear'
-      | 'documentGet'
-      | 'workletSet'
-      | 'workletAppend'
-      | 'workletDelete'
-      | 'workletClear'
-      | 'workletGet'
-      | 'workletKeys'
-      | 'workletEntries'
-      | 'workletLength'
-      | 'workletRemainingBudget'
-      | 'headerSet'
-      | 'headerAppend'
-      | 'headerDelete'
-      | 'headerClear';
+    export type SharedStorageAccessScope =
+      | 'window'
+      | 'sharedStorageWorklet'
+      | 'protectedAudienceWorklet'
+      | 'header';
+
+    /**
+     * Enum of shared storage access methods.
+     */
+    export type SharedStorageAccessMethod =
+      | 'addModule'
+      | 'createWorklet'
+      | 'selectURL'
+      | 'run'
+      | 'batchUpdate'
+      | 'set'
+      | 'append'
+      | 'delete'
+      | 'clear'
+      | 'get'
+      | 'keys'
+      | 'values'
+      | 'entries'
+      | 'length'
+      | 'remainingBudget';
 
     /**
      * Struct for a single key-value pair in an origin's shared storage.
@@ -31355,6 +34854,32 @@ export namespace Cdp {
     }
 
     /**
+     * Represents a dictionary object passed in as privateAggregationConfig to
+     * run or selectURL.
+     */
+    export interface SharedStoragePrivateAggregationConfig {
+      /**
+       * The chosen aggregation service deployment.
+       */
+      aggregationCoordinatorOrigin?: string;
+
+      /**
+       * The context ID provided.
+       */
+      contextId?: string;
+
+      /**
+       * Configures the maximum size allowed for filtering IDs.
+       */
+      filteringIdMaxBytes: integer;
+
+      /**
+       * The limit on the number of contributions in the final report.
+       */
+      maxContributions?: integer;
+    }
+
+    /**
      * Pair of reporting metadata details for a candidate URL for `selectURL()`.
      */
     export interface SharedStorageReportingMetadata {
@@ -31385,63 +34910,118 @@ export namespace Cdp {
     export interface SharedStorageAccessParams {
       /**
        * Spec of the module script URL.
-       * Present only for SharedStorageAccessType.documentAddModule.
+       * Present only for SharedStorageAccessMethods: addModule and
+       * createWorklet.
        */
       scriptSourceUrl?: string;
 
       /**
+       * String denoting "context-origin", "script-origin", or a custom
+       * origin to be used as the worklet's data origin.
+       * Present only for SharedStorageAccessMethod: createWorklet.
+       */
+      dataOrigin?: string;
+
+      /**
        * Name of the registered operation to be run.
-       * Present only for SharedStorageAccessType.documentRun and
-       * SharedStorageAccessType.documentSelectURL.
+       * Present only for SharedStorageAccessMethods: run and selectURL.
        */
       operationName?: string;
 
       /**
+       * ID of the operation call.
+       * Present only for SharedStorageAccessMethods: run and selectURL.
+       */
+      operationId?: string;
+
+      /**
+       * Whether or not to keep the worket alive for future run or selectURL
+       * calls.
+       * Present only for SharedStorageAccessMethods: run and selectURL.
+       */
+      keepAlive?: boolean;
+
+      /**
+       * Configures the private aggregation options.
+       * Present only for SharedStorageAccessMethods: run and selectURL.
+       */
+      privateAggregationConfig?: SharedStoragePrivateAggregationConfig;
+
+      /**
        * The operation's serialized data in bytes (converted to a string).
-       * Present only for SharedStorageAccessType.documentRun and
-       * SharedStorageAccessType.documentSelectURL.
+       * Present only for SharedStorageAccessMethods: run and selectURL.
+       * TODO(crbug.com/401011862): Consider updating this parameter to binary.
        */
       serializedData?: string;
 
       /**
        * Array of candidate URLs' specs, along with any associated metadata.
-       * Present only for SharedStorageAccessType.documentSelectURL.
+       * Present only for SharedStorageAccessMethod: selectURL.
        */
       urlsWithMetadata?: SharedStorageUrlWithMetadata[];
 
       /**
+       * Spec of the URN:UUID generated for a selectURL call.
+       * Present only for SharedStorageAccessMethod: selectURL.
+       */
+      urnUuid?: string;
+
+      /**
        * Key for a specific entry in an origin's shared storage.
-       * Present only for SharedStorageAccessType.documentSet,
-       * SharedStorageAccessType.documentAppend,
-       * SharedStorageAccessType.documentDelete,
-       * SharedStorageAccessType.workletSet,
-       * SharedStorageAccessType.workletAppend,
-       * SharedStorageAccessType.workletDelete,
-       * SharedStorageAccessType.workletGet,
-       * SharedStorageAccessType.headerSet,
-       * SharedStorageAccessType.headerAppend, and
-       * SharedStorageAccessType.headerDelete.
+       * Present only for SharedStorageAccessMethods: set, append, delete, and
+       * get.
        */
       key?: string;
 
       /**
        * Value for a specific entry in an origin's shared storage.
-       * Present only for SharedStorageAccessType.documentSet,
-       * SharedStorageAccessType.documentAppend,
-       * SharedStorageAccessType.workletSet,
-       * SharedStorageAccessType.workletAppend,
-       * SharedStorageAccessType.headerSet, and
-       * SharedStorageAccessType.headerAppend.
+       * Present only for SharedStorageAccessMethods: set and append.
        */
       value?: string;
 
       /**
        * Whether or not to set an entry for a key if that key is already present.
-       * Present only for SharedStorageAccessType.documentSet,
-       * SharedStorageAccessType.workletSet, and
-       * SharedStorageAccessType.headerSet.
+       * Present only for SharedStorageAccessMethod: set.
        */
       ignoreIfPresent?: boolean;
+
+      /**
+       * A number denoting the (0-based) order of the worklet's
+       * creation relative to all other shared storage worklets created by
+       * documents using the current storage partition.
+       * Present only for SharedStorageAccessMethods: addModule, createWorklet.
+       */
+      workletOrdinal?: integer;
+
+      /**
+       * Hex representation of the DevTools token used as the TargetID for the
+       * associated shared storage worklet.
+       * Present only for SharedStorageAccessMethods: addModule, createWorklet,
+       * run, selectURL, and any other SharedStorageAccessMethod when the
+       * SharedStorageAccessScope is sharedStorageWorklet.
+       */
+      workletTargetId?: Target.TargetID;
+
+      /**
+       * Name of the lock to be acquired, if present.
+       * Optionally present only for SharedStorageAccessMethods: batchUpdate,
+       * set, append, delete, and clear.
+       */
+      withLock?: string;
+
+      /**
+       * If the method has been called as part of a batchUpdate, then this
+       * number identifies the batch to which it belongs.
+       * Optionally present only for SharedStorageAccessMethods:
+       * batchUpdate (required), set, append, delete, and clear.
+       */
+      batchUpdateId?: string;
+
+      /**
+       * Number of modifier methods sent in batch.
+       * Present only for SharedStorageAccessMethod: batchUpdate.
+       */
+      batchSize?: integer;
     }
 
     export type StorageBucketsDurability = 'relaxed' | 'strict';
@@ -31519,16 +35099,6 @@ export namespace Cdp {
       ends: integer[];
     }
 
-    export interface AttributionReportingTriggerSpec {
-      /**
-       * number instead of integer because not all uint32 can be represented by
-       * int
-       */
-      triggerData: number[];
-
-      eventReportWindows: AttributionReportingEventReportWindows;
-    }
-
     export type AttributionReportingTriggerDataMatching = 'exact' | 'modulus';
 
     export interface AttributionReportingAggregatableDebugReportingData {
@@ -31569,6 +35139,12 @@ export namespace Cdp {
       maxEventStates: number;
     }
 
+    export interface AttributionReportingNamedBudgetDef {
+      name: string;
+
+      budget: integer;
+    }
+
     export interface AttributionReportingSourceRegistration {
       time: Network.TimeSinceEpoch;
 
@@ -31577,7 +35153,13 @@ export namespace Cdp {
        */
       expiry: integer;
 
-      triggerSpecs: AttributionReportingTriggerSpec[];
+      /**
+       * number instead of integer because not all uint32 can be represented by
+       * int
+       */
+      triggerData: number[];
+
+      eventReportWindows: AttributionReportingEventReportWindows;
 
       /**
        * duration in seconds
@@ -31611,6 +35193,12 @@ export namespace Cdp {
       scopesData?: AttributionScopesData;
 
       maxEventLevelReports: integer;
+
+      namedBudgets: AttributionReportingNamedBudgetDef[];
+
+      debugReporting: boolean;
+
+      eventLevelEpsilon: number;
     }
 
     export type AttributionReportingSourceRegistrationResult =
@@ -31675,6 +35263,12 @@ export namespace Cdp {
       filters: AttributionReportingFilterPair;
     }
 
+    export interface AttributionReportingNamedBudgetCandidate {
+      name?: string;
+
+      filters: AttributionReportingFilterPair;
+    }
+
     export interface AttributionReportingTriggerRegistration {
       filters: AttributionReportingFilterPair;
 
@@ -31701,6 +35295,8 @@ export namespace Cdp {
       aggregatableDebugReportingConfig: AttributionReportingAggregatableDebugReportingConfig;
 
       scopes: string[];
+
+      namedBudgets: AttributionReportingNamedBudgetCandidate[];
     }
 
     export type AttributionReportingEventLevelResult =
@@ -31740,6 +35336,12 @@ export namespace Cdp {
       | 'deduplicated'
       | 'reportWindowPassed'
       | 'excessiveReports';
+
+    export type AttributionReportingReportResult =
+      | 'sent'
+      | 'prohibited'
+      | 'failedToAssemble'
+      | 'expired';
 
     /**
      * A single Related Website Set object.
@@ -31971,32 +35573,6 @@ export namespace Cdp {
     export type ImageType = 'jpeg' | 'webp' | 'unknown';
 
     /**
-     * Describes a supported image decoding profile with its associated minimum and
-     * maximum resolutions and subsampling.
-     */
-    export interface ImageDecodeAcceleratorCapability {
-      /**
-       * Image coded, e.g. Jpeg.
-       */
-      imageType: ImageType;
-
-      /**
-       * Maximum supported dimensions of the image in pixels.
-       */
-      maxDimensions: Size;
-
-      /**
-       * Minimum supported dimensions of the image in pixels.
-       */
-      minDimensions: Size;
-
-      /**
-       * Optional array of supported subsampling formats, e.g. 4:2:0, if known.
-       */
-      subsamplings: SubsamplingFormat[];
-    }
-
-    /**
      * Provides information about the GPU(s) on the system.
      */
     export interface GPUInfo {
@@ -32029,11 +35605,6 @@ export namespace Cdp {
        * Supported accelerated video encoding capabilities.
        */
       videoEncoding: VideoEncodeAcceleratorCapability[];
-
-      /**
-       * Supported accelerated image decoding capabilities.
-       */
-      imageDecoding: ImageDecodeAcceleratorCapability[];
     }
 
     /**
@@ -32160,11 +35731,14 @@ export namespace Cdp {
     ): Promise<Target.SendMessageToTargetResult | undefined>;
 
     /**
-     * Controls whether to automatically attach to new targets which are considered to be related to
-     * this one. When turned on, attaches to all existing related targets as well. When turned off,
+     * Controls whether to automatically attach to new targets which are considered
+     * to be directly related to this one (for example, iframes or workers).
+     * When turned on, attaches to all existing related targets as well. When turned off,
      * automatically detaches from all currently attached targets.
      * This also clears all targets added by `autoAttachRelated` from the list of targets to watch
      * for creation of related targets.
+     * You might want to call this recursively for auto-attached targets to attach
+     * to all available targets.
      */
     setAutoAttach(
       params: Target.SetAutoAttachParams,
@@ -32196,6 +35770,19 @@ export namespace Cdp {
     setRemoteLocations(
       params: Target.SetRemoteLocationsParams,
     ): Promise<Target.SetRemoteLocationsResult | undefined>;
+
+    /**
+     * Gets the targetId of the DevTools page target opened for the given target
+     * (if any).
+     */
+    getDevToolsTarget(
+      params: Target.GetDevToolsTargetParams,
+    ): Promise<Target.GetDevToolsTargetResult | undefined>;
+
+    /**
+     * Opens a DevTools window for the target.
+     */
+    openDevTools(params: Target.OpenDevToolsParams): Promise<Target.OpenDevToolsResult | undefined>;
 
     /**
      * Issued when attached to target because of auto-attach or `attachToTarget` command.
@@ -32336,6 +35923,11 @@ export namespace Cdp {
        * Binding name, 'cdp' if not specified.
        */
       bindingName?: string;
+
+      /**
+       * If true, inherits the current root session's permissions (default: false).
+       */
+      inheritPermissions?: boolean;
     }
 
     /**
@@ -32394,6 +35986,11 @@ export namespace Cdp {
        * An array of browser context ids.
        */
       browserContextIds: Browser.BrowserContextID[];
+
+      /**
+       * The id of the default browser context if available.
+       */
+      defaultBrowserContextId?: Browser.BrowserContextID;
     }
 
     /**
@@ -32406,24 +36003,30 @@ export namespace Cdp {
       url: string;
 
       /**
-       * Frame left origin in DIP (headless chrome only).
+       * Frame left origin in DIP (requires newWindow to be true or headless shell).
        */
       left?: integer;
 
       /**
-       * Frame top origin in DIP (headless chrome only).
+       * Frame top origin in DIP (requires newWindow to be true or headless shell).
        */
       top?: integer;
 
       /**
-       * Frame width in DIP (headless chrome only).
+       * Frame width in DIP (requires newWindow to be true or headless shell).
        */
       width?: integer;
 
       /**
-       * Frame height in DIP (headless chrome only).
+       * Frame height in DIP (requires newWindow to be true or headless shell).
        */
       height?: integer;
+
+      /**
+       * Frame window state (requires newWindow to be true or headless shell).
+       * Default is normal.
+       */
+      windowState?: WindowState;
 
       /**
        * The browser context to create the page in.
@@ -32431,19 +36034,19 @@ export namespace Cdp {
       browserContextId?: Browser.BrowserContextID;
 
       /**
-       * Whether BeginFrames for this target will be controlled via DevTools (headless chrome only,
+       * Whether BeginFrames for this target will be controlled via DevTools (headless shell only,
        * not supported on MacOS yet, false by default).
        */
       enableBeginFrameControl?: boolean;
 
       /**
-       * Whether to create a new Window or Tab (chrome-only, false by default).
+       * Whether to create a new Window or Tab (false by default, not supported by headless shell).
        */
       newWindow?: boolean;
 
       /**
-       * Whether to create the target in background or foreground (chrome-only,
-       * false by default).
+       * Whether to create the target in background or foreground (false by default, not supported
+       * by headless shell).
        */
       background?: boolean;
 
@@ -32451,6 +36054,24 @@ export namespace Cdp {
        * Whether to create the target of type "tab".
        */
       forTab?: boolean;
+
+      /**
+       * Whether to create a hidden target. The hidden target is observable via protocol, but not
+       * present in the tab UI strip. Cannot be created with `forTab: true`, `newWindow: true` or
+       * `background: false`. The life-time of the tab is limited to the life-time of the session.
+       */
+      hidden?: boolean;
+
+      /**
+       * If specified, the option is used to determine if the new target should
+       * be focused or not. By default, the focus behavior depends on the
+       * value of the background field. For example, background=false and focus=false
+       * will result in the target tab being opened but the browser window remain
+       * unchanged (if it was in the background, it will remain in the background)
+       * and background=false with focus=undefined will result in the window being focused.
+       * Using background: true and focus: true is not supported and will result in an error.
+       */
+      focus?: boolean;
     }
 
     /**
@@ -32655,6 +36276,53 @@ export namespace Cdp {
     }
 
     /**
+     * Parameters of the 'Target.getDevToolsTarget' method.
+     */
+    export interface GetDevToolsTargetParams {
+      /**
+       * Page or tab target ID.
+       */
+      targetId: TargetID;
+    }
+
+    /**
+     * Return value of the 'Target.getDevToolsTarget' method.
+     */
+    export interface GetDevToolsTargetResult {
+      /**
+       * The targetId of DevTools page target if exists.
+       */
+      targetId?: TargetID;
+    }
+
+    /**
+     * Parameters of the 'Target.openDevTools' method.
+     */
+    export interface OpenDevToolsParams {
+      /**
+       * This can be the page or tab target ID.
+       */
+      targetId: TargetID;
+
+      /**
+       * The id of the panel we want DevTools to open initially. Currently
+       * supported panels are elements, console, network, sources, resources
+       * and performance.
+       */
+      panelId?: string;
+    }
+
+    /**
+     * Return value of the 'Target.openDevTools' method.
+     */
+    export interface OpenDevToolsResult {
+      /**
+       * The targetId of DevTools page target.
+       */
+      targetId: TargetID;
+    }
+
+    /**
      * Parameters of the 'Target.attachedToTarget' event.
      */
     export interface AttachedToTargetEvent {
@@ -32779,6 +36447,11 @@ export namespace Cdp {
        */
       openerFrameId?: Page.FrameId;
 
+      /**
+       * Id of the parent frame, only present for the "iframe" targets.
+       */
+      parentFrameId?: Page.FrameId;
+
       browserContextId?: Browser.BrowserContextID;
 
       /**
@@ -32818,6 +36491,11 @@ export namespace Cdp {
 
       port: integer;
     }
+
+    /**
+     * The state of the target window.
+     */
+    export type WindowState = 'normal' | 'minimized' | 'maximized' | 'fullscreen';
   }
 
   /**
@@ -32909,6 +36587,13 @@ export namespace Cdp {
     ): Promise<Tracing.GetCategoriesResult | undefined>;
 
     /**
+     * Return a descriptor for all available tracing categories.
+     */
+    getTrackEventDescriptor(
+      params: Tracing.GetTrackEventDescriptorParams,
+    ): Promise<Tracing.GetTrackEventDescriptorResult | undefined>;
+
+    /**
      * Record a clock sync marker in the trace.
      */
     recordClockSyncMarker(
@@ -32975,6 +36660,22 @@ export namespace Cdp {
        * A list of supported tracing categories.
        */
       categories: string[];
+    }
+
+    /**
+     * Parameters of the 'Tracing.getTrackEventDescriptor' method.
+     */
+    export interface GetTrackEventDescriptorParams {
+    }
+
+    /**
+     * Return value of the 'Tracing.getTrackEventDescriptor' method.
+     */
+    export interface GetTrackEventDescriptorResult {
+      /**
+       * Base64-encoded serialized perfetto.protos.TrackEventDescriptor protobuf message. (Encoded as a base64 string when passed over JSON)
+       */
+      descriptor: string;
     }
 
     /**
@@ -33147,7 +36848,7 @@ export namespace Cdp {
 
     export interface TraceConfig {
       /**
-       * Controls how the trace buffer stores data.
+       * Controls how the trace buffer stores data. The default is `recordUntilFull`.
        */
       recordMode?:
         | 'recordUntilFull'

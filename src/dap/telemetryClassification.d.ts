@@ -287,4 +287,11 @@ interface IDAPOperationClassification {
     classification: 'CallstackOrException';
     purpose: 'PerformanceAndHealth';
   };
+  'canemulate': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!canemulate.errors': { classification: 'CallstackOrException'; purpose: 'PerformanceAndHealth' };
+  'setfocusemulation': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!setfocusemulation.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
 }

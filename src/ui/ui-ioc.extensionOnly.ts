@@ -31,6 +31,7 @@ import { DwarfModuleProvider } from './dwarfModuleProviderImpl';
 import { EdgeDevToolOpener } from './edgeDevToolOpener';
 import { ExcludedCallersUI } from './excludedCallersUI';
 import { ExtensionApiFactory } from './extensionApi';
+import { JsDebugOptionsUI } from './jsDebugOptionsUI';
 import { LaunchJsonCompletions } from './launchJsonCompletions';
 import { ILinkedBreakpointLocation } from './linkedBreakpointLocation';
 import { LinkedBreakpointLocationUI } from './linkedBreakpointLocationUI';
@@ -75,6 +76,7 @@ export const registerUiComponents = (container: Container) => {
   container.bind(IExtensionContribution).to(PrettyPrintUI).inSingletonScope();
   container.bind(IExtensionContribution).to(SourceSteppingUI).inSingletonScope();
   container.bind(IExtensionContribution).to(NetworkTree).inSingletonScope();
+  container.bind(IExtensionContribution).to(JsDebugOptionsUI).inSingletonScope();
   container.bind(IExtensionContribution).to(LaunchJsonCompletions).inSingletonScope().onActivation(
     trackDispose,
   );

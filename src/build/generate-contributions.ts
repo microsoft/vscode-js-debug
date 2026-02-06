@@ -1727,6 +1727,11 @@ const views = {
       name: 'Network',
       when: ContextKey.NetworkAvailable,
     },
+    {
+      id: CustomViews.DebugOptions,
+      name: 'JS Debug Options',
+      when: ContextKey.DebugOptionsAvailable,
+    },
   ],
 };
 
