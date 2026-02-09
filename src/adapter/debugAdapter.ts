@@ -51,6 +51,7 @@ export class DebugAdapter implements IDisposable {
   private _disposables = new DisposableList();
   private _customBreakpoints: string[] = [];
   private _xhrBreakpoints: string[] = [];
+  private _emulationSupported: boolean | undefined;
   private _thread: Thread | undefined;
   private _threadDeferred = getDeferred<Thread>();
   private _configurationDoneDeferred: IDeferred<void>;
@@ -127,6 +128,8 @@ export class DebugAdapter implements IDisposable {
     this.dap.on('setSymbolOptions', params => this._setSymbolOptions(params));
     this.dap.on('networkCall', params => this._doNetworkCall(params));
     this.dap.on('enableNetworking', params => this._withThread(t => t.enableNetworking(params)));
+    this.dap.on('canEmulate', () => this._canEmulate());
+    this.dap.on('setFocusEmulation', params => this._setFocusEmulation(params));
     this.dap.on(
       'getPreferredUILocation',
       params => this._getPreferredUILocation(params),
@@ -182,6 +185,27 @@ export class DebugAdapter implements IDisposable {
     >;
 
     return networkDomain[method](params);
+  }
+
+  private async _canEmulate(): Promise<Dap.CanEmulateResult> {
+    const thread = await this._threadDeferred.promise;
+    const cdp = thread.cdp();
+
+    // Check if Emulation domain is available (not present in Node.js targets)
+    if (this._emulationSupported === undefined) {
+      const domainsResult = await cdp.Schema.getDomains({});
+      this._emulationSupported = domainsResult?.domains.some(d => d.name === 'Emulation') ?? false;
+    }
+
+    return { supported: this._emulationSupported };
+  }
+
+  private async _setFocusEmulation(
+    params: Dap.SetFocusEmulationParams,
+  ): Promise<Dap.SetFocusEmulationResult> {
+    const thread = await this._threadDeferred.promise;
+    await thread.cdp().Emulation.setFocusEmulationEnabled({ enabled: params.enabled });
+    return {};
   }
 
   private _setDebuggerProperty(

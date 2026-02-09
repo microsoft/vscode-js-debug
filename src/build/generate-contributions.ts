@@ -1714,7 +1714,7 @@ const views = {
   debug: [
     {
       id: CustomViews.EventListenerBreakpoints,
-      name: 'Event Listener Breakpoints',
+      name: 'Browser Options',
       when: forBrowserDebugType('debugType'),
     },
     {

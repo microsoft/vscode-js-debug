@@ -1201,6 +1201,30 @@ export namespace Dap {
     getPreferredUILocationRequest(
       params: GetPreferredUILocationParams,
     ): Promise<GetPreferredUILocationResult>;
+
+    /**
+     * Returns whether the debug target supports emulation features (e.g., focus emulation). This is true for browser page targets but not for Node.js.
+     */
+    on(
+      request: 'canEmulate',
+      handler: (params: CanEmulateParams) => Promise<CanEmulateResult | Error>,
+    ): () => void;
+    /**
+     * Returns whether the debug target supports emulation features (e.g., focus emulation). This is true for browser page targets but not for Node.js.
+     */
+    canEmulateRequest(params: CanEmulateParams): Promise<CanEmulateResult>;
+
+    /**
+     * Enables or disables focus emulation for the debug target (Chrome DevTools "Emulate a focused page" feature).
+     */
+    on(
+      request: 'setFocusEmulation',
+      handler: (params: SetFocusEmulationParams) => Promise<SetFocusEmulationResult | Error>,
+    ): () => void;
+    /**
+     * Enables or disables focus emulation for the debug target (Chrome DevTools "Emulate a focused page" feature).
+     */
+    setFocusEmulationRequest(params: SetFocusEmulationParams): Promise<SetFocusEmulationResult>;
   }
 
   export interface TestApi {
@@ -1988,6 +2012,16 @@ export namespace Dap {
     getPreferredUILocation(
       params: GetPreferredUILocationParams,
     ): Promise<GetPreferredUILocationResult>;
+
+    /**
+     * Returns whether the debug target supports emulation features (e.g., focus emulation). This is true for browser page targets but not for Node.js.
+     */
+    canEmulate(params: CanEmulateParams): Promise<CanEmulateResult>;
+
+    /**
+     * Enables or disables focus emulation for the debug target (Chrome DevTools "Emulate a focused page" feature).
+     */
+    setFocusEmulation(params: SetFocusEmulationParams): Promise<SetFocusEmulationResult>;
   }
 
   export interface AttachParams {
@@ -2046,6 +2080,16 @@ export namespace Dap {
      * Sorted set of possible breakpoint locations.
      */
     breakpoints: (BreakpointLocation)[];
+  }
+
+  export interface CanEmulateParams {
+  }
+
+  export interface CanEmulateResult {
+    /**
+     * Whether the target supports emulation features.
+     */
+    supported: boolean;
   }
 
   export interface CancelParams {
@@ -2685,7 +2729,7 @@ export namespace Dap {
     supportsCompletionsRequest?: boolean;
 
     /**
-     * The set of characters that should trigger completion in a REPL. If not specified, the UI should assume the `.` character.
+     * The set of characters that should automatically trigger a completion request in a REPL. If not specified, the client should assume the `.` character. The client may trigger additional completion requests on characters such as ones that make up common identifiers, or as otherwise requested by a user.
      */
     completionTriggerCharacters?: (string)[];
 
@@ -3286,7 +3330,7 @@ export namespace Dap {
     message?: string;
 
     /**
-     * Progress percentage to display (value range: 0 to 100). If omitted no percentage is shown.
+     * Progress percentage to display. If omitted no percentage is shown.
      */
     percentage?: number;
   }
@@ -3303,7 +3347,7 @@ export namespace Dap {
     message?: string;
 
     /**
-     * Progress percentage to display (value range: 0 to 100). If omitted no percentage is shown.
+     * Progress percentage to display. If omitted no percentage is shown.
      */
     percentage?: number;
   }
@@ -3445,7 +3489,7 @@ export namespace Dap {
     title?: string;
 
     /**
-     * Working directory for the command. For non-empty, valid paths this typically results in execution of a change directory command.
+     * Working directory for the command. For non-empty, valid paths this typically results in execution of a change directory command. If `pathFormat` is set to `uri` in the `InitializeRequestArguments`, this must be a file URI.
      */
     cwd: string;
 
@@ -3467,12 +3511,12 @@ export namespace Dap {
 
   export interface RunInTerminalResult {
     /**
-     * The process ID. The value should be less than or equal to 2147483647 (2^31-1).
+     * The process ID.
      */
     processId?: integer;
 
     /**
-     * The process ID of the terminal shell. The value should be less than or equal to 2147483647 (2^31-1).
+     * The process ID of the terminal shell.
      */
     shellProcessId?: integer;
   }
@@ -3673,6 +3717,16 @@ export namespace Dap {
     valueLocationReference?: integer;
   }
 
+  export interface SetFocusEmulationParams {
+    /**
+     * Whether to enable focus emulation.
+     */
+    enabled: boolean;
+  }
+
+  export interface SetFocusEmulationResult {
+  }
+
   export interface SetFunctionBreakpointsParams {
     /**
      * The function names of the breakpoints.
@@ -3849,6 +3903,11 @@ export namespace Dap {
      * Arguments passed to the new debug session. The arguments must only contain properties understood by the `launch` or `attach` requests of the debug adapter and they must not contain any client-specific properties (e.g. `type`) or client-specific features (e.g. substitutable 'variables').
      */
     configuration: object;
+
+    /**
+     * Hints whether output of the child sessions should be presented separately or merged with that of the parent session's.
+     */
+    outputPresentation?: string;
 
     /**
      * Indicates whether the new debug session should be started with a `launch` or `attach` request.
@@ -4119,13 +4178,13 @@ export namespace Dap {
     filter?: string;
 
     /**
-     * The index of the first variable to return; if omitted children start at 0.
+     * The index of the first variable to return; if omitted children start at 0. If the value of `start` exceeeds the number of available variables, the debug adapter should return an empty array.
      * The attribute is only honored by a debug adapter if the corresponding capability `supportsVariablePaging` is true.
      */
     start?: integer;
 
     /**
-     * The number of variables to return. If count is missing or 0, all variables are returned.
+     * The number of variables to return. If count is missing or 0, all variables are returned. If fewer than `count` variables are returned, the client should assume no further variables are available.
      * The attribute is only honored by a debug adapter if the corresponding capability `supportsVariablePaging` is true.
      */
     count?: integer;
@@ -5290,7 +5349,7 @@ export namespace Dap {
     supportsCompletionsRequest?: boolean;
 
     /**
-     * The set of characters that should trigger completion in a REPL. If not specified, the UI should assume the `.` character.
+     * The set of characters that should automatically trigger a completion request in a REPL. If not specified, the client should assume the `.` character. The client may trigger additional completion requests on characters such as ones that make up common identifiers, or as otherwise requested by a user.
      */
     completionTriggerCharacters?: (string)[];
 
@@ -5479,8 +5538,8 @@ export namespace Dap {
     name?: string;
 
     /**
-     * The path of the source to be shown in the UI.
-     * It is only used to locate and load the content of the source if no `sourceReference` is specified (or its value is 0).
+     * The path of the source to be shown in the UI. This may be a URI if `pathFormat` is set to `uri` in the `InitializeRequestArguments`.
+     * It is used to locate and load the content of the source if no `sourceReference` is specified (or its value is 0). If `sourceReference` is specified, then `path` is a presentational property and clients should not assume the path exists on disk, nor that the path or URI format is the same as that of the client's operating system.
      */
     path?: string;
 

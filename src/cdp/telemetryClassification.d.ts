@@ -94,6 +94,30 @@ interface ICDPOperationClassification {
   };
 
   // Domain: BluetoothEmulation
+  'bluetoothemulation.gattoperationreceived': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!bluetoothemulation.gattoperationreceived.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'bluetoothemulation.characteristicoperationreceived': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!bluetoothemulation.characteristicoperationreceived.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'bluetoothemulation.descriptoroperationreceived': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!bluetoothemulation.descriptoroperationreceived.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
 
   // Domain: Browser
   'browser.downloadwillbegin': {
@@ -166,13 +190,6 @@ interface ICDPOperationClassification {
     purpose: 'PerformanceAndHealth';
   };
 
-  // Domain: Database
-  'database.adddatabase': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!database.adddatabase.errors': {
-    classification: 'CallstackOrException';
-    purpose: 'PerformanceAndHealth';
-  };
-
   // Domain: Debugger
   'debugger.breakpointresolved': {
     classification: 'SystemMetaData';
@@ -221,6 +238,14 @@ interface ICDPOperationClassification {
   // Domain: DOM
   'dom.attributemodified': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!dom.attributemodified.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'dom.adoptedstylesheetsmodified': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!dom.adoptedstylesheetsmodified.errors': {
     classification: 'CallstackOrException';
     purpose: 'PerformanceAndHealth';
   };
@@ -294,6 +319,14 @@ interface ICDPOperationClassification {
     purpose: 'PerformanceAndHealth';
   };
   '!dom.scrollableflagupdated.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'dom.affectedbystartingstylesflagupdated': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!dom.affectedbystartingstylesflagupdated.errors': {
     classification: 'CallstackOrException';
     purpose: 'PerformanceAndHealth';
   };
@@ -478,6 +511,14 @@ interface ICDPOperationClassification {
     classification: 'CallstackOrException';
     purpose: 'PerformanceAndHealth';
   };
+  'inspector.workerscriptloaded': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!inspector.workerscriptloaded.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
 
   // Domain: IO
 
@@ -532,8 +573,8 @@ interface ICDPOperationClassification {
     classification: 'CallstackOrException';
     purpose: 'PerformanceAndHealth';
   };
-  'media.playerscreated': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
-  '!media.playerscreated.errors': {
+  'media.playercreated': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
+  '!media.playercreated.errors': {
     classification: 'CallstackOrException';
     purpose: 'PerformanceAndHealth';
   };
@@ -683,6 +724,118 @@ interface ICDPOperationClassification {
     classification: 'CallstackOrException';
     purpose: 'PerformanceAndHealth';
   };
+  'network.directtcpsocketcreated': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!network.directtcpsocketcreated.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'network.directtcpsocketopened': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!network.directtcpsocketopened.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'network.directtcpsocketaborted': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!network.directtcpsocketaborted.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'network.directtcpsocketclosed': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!network.directtcpsocketclosed.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'network.directtcpsocketchunksent': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!network.directtcpsocketchunksent.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'network.directtcpsocketchunkreceived': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!network.directtcpsocketchunkreceived.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'network.directudpsocketjoinedmulticastgroup': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!network.directudpsocketjoinedmulticastgroup.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'network.directudpsocketleftmulticastgroup': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!network.directudpsocketleftmulticastgroup.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'network.directudpsocketcreated': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!network.directudpsocketcreated.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'network.directudpsocketopened': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!network.directudpsocketopened.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'network.directudpsocketaborted': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!network.directudpsocketaborted.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'network.directudpsocketclosed': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!network.directudpsocketclosed.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'network.directudpsocketchunksent': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!network.directudpsocketchunksent.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'network.directudpsocketchunkreceived': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!network.directudpsocketchunkreceived.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   'network.requestwillbesentextrainfo': {
     classification: 'SystemMetaData';
     purpose: 'PerformanceAndHealth';
@@ -720,38 +873,6 @@ interface ICDPOperationClassification {
     classification: 'CallstackOrException';
     purpose: 'PerformanceAndHealth';
   };
-  'network.subresourcewebbundlemetadatareceived': {
-    classification: 'SystemMetaData';
-    purpose: 'PerformanceAndHealth';
-  };
-  '!network.subresourcewebbundlemetadatareceived.errors': {
-    classification: 'CallstackOrException';
-    purpose: 'PerformanceAndHealth';
-  };
-  'network.subresourcewebbundlemetadataerror': {
-    classification: 'SystemMetaData';
-    purpose: 'PerformanceAndHealth';
-  };
-  '!network.subresourcewebbundlemetadataerror.errors': {
-    classification: 'CallstackOrException';
-    purpose: 'PerformanceAndHealth';
-  };
-  'network.subresourcewebbundleinnerresponseparsed': {
-    classification: 'SystemMetaData';
-    purpose: 'PerformanceAndHealth';
-  };
-  '!network.subresourcewebbundleinnerresponseparsed.errors': {
-    classification: 'CallstackOrException';
-    purpose: 'PerformanceAndHealth';
-  };
-  'network.subresourcewebbundleinnerresponseerror': {
-    classification: 'SystemMetaData';
-    purpose: 'PerformanceAndHealth';
-  };
-  '!network.subresourcewebbundleinnerresponseerror.errors': {
-    classification: 'CallstackOrException';
-    purpose: 'PerformanceAndHealth';
-  };
   'network.reportingapireportadded': {
     classification: 'SystemMetaData';
     purpose: 'PerformanceAndHealth';
@@ -773,6 +894,22 @@ interface ICDPOperationClassification {
     purpose: 'PerformanceAndHealth';
   };
   '!network.reportingapiendpointschangedfororigin.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'network.deviceboundsessionsadded': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!network.deviceboundsessionsadded.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'network.deviceboundsessioneventoccurred': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!network.deviceboundsessioneventoccurred.errors': {
     classification: 'CallstackOrException';
     purpose: 'PerformanceAndHealth';
   };
@@ -856,6 +993,22 @@ interface ICDPOperationClassification {
     classification: 'CallstackOrException';
     purpose: 'PerformanceAndHealth';
   };
+  'overlay.inspectpanelshowrequested': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!overlay.inspectpanelshowrequested.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'overlay.inspectedelementwindowrestored': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!overlay.inspectedelementwindowrestored.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   'overlay.inspectmodecanceled': {
     classification: 'SystemMetaData';
     purpose: 'PerformanceAndHealth';
@@ -917,6 +1070,14 @@ interface ICDPOperationClassification {
   };
   'page.frameresized': { classification: 'SystemMetaData'; purpose: 'PerformanceAndHealth' };
   '!page.frameresized.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'page.framestartednavigating': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!page.framestartednavigating.errors': {
     classification: 'CallstackOrException';
     purpose: 'PerformanceAndHealth';
   };
@@ -1229,6 +1390,120 @@ interface ICDPOperationClassification {
     purpose: 'PerformanceAndHealth';
   };
 
+  // Domain: SmartCardEmulation
+  'smartcardemulation.establishcontextrequested': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!smartcardemulation.establishcontextrequested.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'smartcardemulation.releasecontextrequested': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!smartcardemulation.releasecontextrequested.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'smartcardemulation.listreadersrequested': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!smartcardemulation.listreadersrequested.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'smartcardemulation.getstatuschangerequested': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!smartcardemulation.getstatuschangerequested.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'smartcardemulation.cancelrequested': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!smartcardemulation.cancelrequested.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'smartcardemulation.connectrequested': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!smartcardemulation.connectrequested.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'smartcardemulation.disconnectrequested': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!smartcardemulation.disconnectrequested.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'smartcardemulation.transmitrequested': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!smartcardemulation.transmitrequested.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'smartcardemulation.controlrequested': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!smartcardemulation.controlrequested.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'smartcardemulation.getattribrequested': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!smartcardemulation.getattribrequested.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'smartcardemulation.setattribrequested': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!smartcardemulation.setattribrequested.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'smartcardemulation.statusrequested': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!smartcardemulation.statusrequested.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'smartcardemulation.begintransactionrequested': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!smartcardemulation.begintransactionrequested.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'smartcardemulation.endtransactionrequested': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!smartcardemulation.endtransactionrequested.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+
   // Domain: Storage
   'storage.cachestoragecontentupdated': {
     classification: 'SystemMetaData';
@@ -1294,6 +1569,14 @@ interface ICDPOperationClassification {
     classification: 'CallstackOrException';
     purpose: 'PerformanceAndHealth';
   };
+  'storage.sharedstorageworkletoperationexecutionfinished': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!storage.sharedstorageworkletoperationexecutionfinished.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
   'storage.storagebucketcreatedorupdated': {
     classification: 'SystemMetaData';
     purpose: 'PerformanceAndHealth';
@@ -1323,6 +1606,22 @@ interface ICDPOperationClassification {
     purpose: 'PerformanceAndHealth';
   };
   '!storage.attributionreportingtriggerregistered.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'storage.attributionreportingreportsent': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!storage.attributionreportingreportsent.errors': {
+    classification: 'CallstackOrException';
+    purpose: 'PerformanceAndHealth';
+  };
+  'storage.attributionreportingverbosedebugreportsent': {
+    classification: 'SystemMetaData';
+    purpose: 'PerformanceAndHealth';
+  };
+  '!storage.attributionreportingverbosedebugreportsent.errors': {
     classification: 'CallstackOrException';
     purpose: 'PerformanceAndHealth';
   };

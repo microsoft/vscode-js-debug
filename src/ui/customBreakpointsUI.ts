@@ -7,9 +7,11 @@ import { l10n } from 'vscode';
 import { customBreakpoints, ICustomBreakpoint, IXHRBreakpoint } from '../adapter/customBreakpoints';
 import { Commands, CustomViews } from '../common/contributionUtils';
 import { EventEmitter } from '../common/events';
+import Dap from '../dap/api';
 import { DebugSessionTracker } from './debugSessionTracker';
 
 const xhrBreakpointsCategory = () => l10n.t('XHR/Fetch URLs');
+const focusEmulationStorageKey = 'jsDebug.focusEmulation.enabled';
 
 class XHRBreakpoint extends vscode.TreeItem {
   public get checked() {
@@ -68,16 +70,46 @@ class Category extends vscode.TreeItem {
   }
 }
 
-type TreeItem = Breakpoint | Category | XHRBreakpoint;
+class BreakpointsRoot extends vscode.TreeItem {
+  public get checked() {
+    return this.checkboxState === vscode.TreeItemCheckboxState.Checked;
+  }
 
-class BreakpointsDataProvider implements vscode.TreeDataProvider<TreeItem> {
-  private _onDidChangeTreeData = new EventEmitter<Breakpoint | undefined>();
+  constructor() {
+    super(l10n.t('Browser Breakpoints'), vscode.TreeItemCollapsibleState.Collapsed);
+    this.checkboxState = vscode.TreeItemCheckboxState.Unchecked;
+    this.id = 'browserBreakpoints';
+  }
+}
+
+class FocusEmulationOption extends vscode.TreeItem {
+  constructor(enabled: boolean) {
+    super(l10n.t('Emulate a focused page'), vscode.TreeItemCollapsibleState.None);
+    this.checkboxState = enabled
+      ? vscode.TreeItemCheckboxState.Checked
+      : vscode.TreeItemCheckboxState.Unchecked;
+    this.tooltip = l10n.t(
+      'When enabled, the debugged page will behave as if it has focus',
+    );
+    this.id = 'focusEmulation';
+  }
+}
+
+type BreakpointItem = BreakpointsRoot | Breakpoint | Category | XHRBreakpoint;
+type BrowserOptionItem = BreakpointItem | FocusEmulationOption;
+
+class BrowserOptionsDataProvider implements vscode.TreeDataProvider<BrowserOptionItem> {
+  private _onDidChangeTreeData = new EventEmitter<BrowserOptionItem | undefined>();
   readonly onDidChangeTreeData = this._onDidChangeTreeData.event;
 
   private _debugSessionTracker: DebugSessionTracker;
 
+  private readonly _breakpointsRoot = new BreakpointsRoot();
   private readonly categories = new Map<string, Category>();
   xhrBreakpoints: XHRBreakpoint[] = [];
+
+  private readonly _emulationSessions = new Set<string>();
+  private _focusEmulationEnabled = false;
 
   /** Gets all breakpoint categories */
   public get allCategories() {
@@ -89,7 +121,9 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<TreeItem> {
     return [...this.allCategories].flatMap(c => c.children);
   }
 
-  constructor(debugSessionTracker: DebugSessionTracker) {
+  constructor(debugSessionTracker: DebugSessionTracker, focusEmulationEnabled: boolean) {
+    this._focusEmulationEnabled = focusEmulationEnabled;
+
     for (const breakpoint of [...customBreakpoints().values()]) {
       let category = this.categories.get(breakpoint.group);
       if (!category) {
@@ -113,25 +147,39 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<TreeItem> {
       }
 
       const toEnable = this.allBreakpoints.filter(b => b.checked).map(b => b.id);
-      if (toEnable.length === 0) {
-        return;
+      if (toEnable.length > 0) {
+        session.customRequest('setCustomBreakpoints', {
+          xhr: this.xhrBreakpoints.filter(b => b.checkboxState).map(b => b.id),
+          ids: toEnable,
+        });
       }
 
-      session.customRequest('setCustomBreakpoints', {
-        xhr: this.xhrBreakpoints.filter(b => b.checkboxState).map(b => b.id),
-        ids: toEnable,
-      });
+      this._checkEmulationSupport(session);
+    });
+
+    debugSessionTracker.onSessionEnded(session => {
+      if (this._emulationSessions.delete(session.id)) {
+        this._onDidChangeTreeData.fire(undefined);
+      }
     });
   }
 
   /** @inheritdoc */
-  getTreeItem(item: TreeItem): vscode.TreeItem {
+  getTreeItem(item: BrowserOptionItem): vscode.TreeItem {
     return item;
   }
 
   /** @inheritdoc */
-  getChildren(item?: TreeItem): vscode.ProviderResult<TreeItem[]> {
+  getChildren(item?: BrowserOptionItem): vscode.ProviderResult<BrowserOptionItem[]> {
     if (!item) {
+      const items: BrowserOptionItem[] = [this._breakpointsRoot];
+      if (this._emulationSessions.size > 0) {
+        items.unshift(new FocusEmulationOption(this._focusEmulationEnabled));
+      }
+      return items;
+    }
+
+    if (item instanceof BreakpointsRoot) {
       return [...this.categories.values()].sort((a, b) => a.label.localeCompare(b.label));
     }
 
@@ -149,8 +197,10 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<TreeItem> {
   }
 
   /** @inheritdoc */
-  getParent(item: TreeItem): vscode.ProviderResult<TreeItem> {
-    if (item instanceof Breakpoint) {
+  getParent(item: BrowserOptionItem): vscode.ProviderResult<BrowserOptionItem> {
+    if (item instanceof Category) {
+      return this._breakpointsRoot;
+    } else if (item instanceof Breakpoint) {
       return this.categories.get(item.group);
     } else if (item instanceof XHRBreakpoint) {
       return this.categories.get(xhrBreakpointsCategory());
@@ -159,8 +209,15 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<TreeItem> {
     return undefined;
   }
 
+  public setFocusEmulation(enabled: boolean): void {
+    this._focusEmulationEnabled = enabled;
+    this._onFocusEmulationChanged?.(enabled);
+    this._applyFocusEmulationToAllSessions();
+    this._onDidChangeTreeData.fire(undefined);
+  }
+
   /** Updates the enablement state of the breakpoints/categories */
-  public setEnabled(breakpoints: [TreeItem, boolean][]) {
+  public setBreakpointsEnabled(breakpoints: [BreakpointItem, boolean][]) {
     for (const [breakpoint, enabled] of breakpoints) {
       const state = enabled
         ? vscode.TreeItemCheckboxState.Checked
@@ -168,12 +225,24 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<TreeItem> {
 
       breakpoint.checkboxState = state;
 
-      if (breakpoint instanceof Category) {
+      if (breakpoint instanceof BreakpointsRoot) {
+        for (const category of this.categories.values()) {
+          category.checkboxState = state;
+          for (const child of category.children) {
+            child.checkboxState = state;
+          }
+        }
+        for (const xhr of this.xhrBreakpoints) {
+          xhr.checkboxState = state;
+        }
+        this.syncXHRCategoryState();
+      } else if (breakpoint instanceof Category) {
         for (const child of this.getChildren(breakpoint) as XHRBreakpoint[]) {
           if (child.checkboxState !== state) {
             child.checkboxState = state;
           }
         }
+        this._syncBreakpointsRootState();
       } else if (breakpoint instanceof Breakpoint || breakpoint instanceof XHRBreakpoint) {
         const parent = this.getParent(breakpoint) as Category;
         if (!enabled && parent.checked) {
@@ -186,6 +255,7 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<TreeItem> {
         ) {
           parent.checkboxState = state;
         }
+        this._syncBreakpointsRootState();
       }
     }
 
@@ -236,13 +306,50 @@ class BreakpointsDataProvider implements vscode.TreeDataProvider<TreeItem> {
       ? vscode.TreeItemCheckboxState.Checked
       : vscode.TreeItemCheckboxState.Unchecked;
   }
+
+  private _syncBreakpointsRootState(): void {
+    const allChecked = [...this.categories.values()].every(c => c.checked);
+    this._breakpointsRoot.checkboxState = allChecked
+      ? vscode.TreeItemCheckboxState.Checked
+      : vscode.TreeItemCheckboxState.Unchecked;
+  }
+
+  _onFocusEmulationChanged?: (enabled: boolean) => void;
+
+  private async _checkEmulationSupport(session: vscode.DebugSession): Promise<void> {
+    try {
+      const result: Dap.CanEmulateResult = await session.customRequest('canEmulate', {});
+      if (result.supported) {
+        this._emulationSessions.add(session.id);
+        this._onDidChangeTreeData.fire(undefined);
+
+        if (this._focusEmulationEnabled) {
+          session.customRequest('setFocusEmulation', { enabled: true });
+        }
+      }
+    } catch {
+      // Session doesn't support emulation
+    }
+  }
+
+  private _applyFocusEmulationToAllSessions(): void {
+    for (const sessionId of this._emulationSessions) {
+      const session = this._debugSessionTracker.getById(sessionId);
+      if (session) {
+        session.customRequest('setFocusEmulation', { enabled: this._focusEmulationEnabled });
+      }
+    }
+  }
 }
 
 export function registerCustomBreakpointsUI(
   context: vscode.ExtensionContext,
   debugSessionTracker: DebugSessionTracker,
 ) {
-  const provider = new BreakpointsDataProvider(debugSessionTracker);
+  const focusEmulationEnabled = context.workspaceState.get(focusEmulationStorageKey, false);
+  const provider = new BrowserOptionsDataProvider(debugSessionTracker, focusEmulationEnabled);
+  provider._onFocusEmulationChanged = enabled =>
+    context.workspaceState.update(focusEmulationStorageKey, enabled);
 
   const view = vscode.window.createTreeView(CustomViews.EventListenerBreakpoints, {
     treeDataProvider: provider,
@@ -252,9 +359,18 @@ export function registerCustomBreakpointsUI(
 
   context.subscriptions.push(
     view.onDidChangeCheckboxState(async e => {
-      provider.setEnabled(
-        e.items.map(([i, state]) => [i, state === vscode.TreeItemCheckboxState.Checked]),
-      );
+      const breakpointChanges: [BreakpointItem, boolean][] = [];
+      for (const [item, state] of e.items) {
+        const enabled = state === vscode.TreeItemCheckboxState.Checked;
+        if (item instanceof FocusEmulationOption) {
+          provider.setFocusEmulation(enabled);
+        } else {
+          breakpointChanges.push([item as BreakpointItem, enabled]);
+        }
+      }
+      if (breakpointChanges.length) {
+        provider.setBreakpointsEnabled(breakpointChanges);
+      }
     }),
   );
 
@@ -287,13 +403,13 @@ export function registerCustomBreakpointsUI(
       }
 
       const pickedSet = new Set(picked.map(i => i.id));
-      provider.setEnabled(provider.allBreakpoints.map(i => [i, pickedSet.has(i.id)]));
+      provider.setBreakpointsEnabled(provider.allBreakpoints.map(i => [i, pickedSet.has(i.id)]));
     }),
   );
 
   context.subscriptions.push(
     vscode.commands.registerCommand(Commands.RemoveAllCustomBreakpoints, () => {
-      provider.setEnabled(
+      provider.setBreakpointsEnabled(
         [...provider.allBreakpoints, ...provider.xhrBreakpoints].map(bp => [bp, false]),
       );
     }),
