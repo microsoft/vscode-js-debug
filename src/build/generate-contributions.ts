@@ -1714,7 +1714,7 @@ const views = {
   debug: [
     {
       id: CustomViews.EventListenerBreakpoints,
-      name: 'Event Listener Breakpoints',
+      name: 'Browser Options',
       when: forBrowserDebugType('debugType'),
     },
     {
@@ -1726,11 +1726,6 @@ const views = {
       id: CustomViews.Network,
       name: 'Network',
       when: ContextKey.NetworkAvailable,
-    },
-    {
-      id: CustomViews.DebugOptions,
-      name: 'JS Debug Options',
-      when: ContextKey.DebugOptionsAvailable,
     },
   ],
 };
