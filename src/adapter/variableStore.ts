@@ -27,6 +27,7 @@ import { getArrayProperties } from './templates/getArrayProperties';
 import { getArraySlots } from './templates/getArraySlots';
 import { getNodeChildren } from './templates/getNodeChildren';
 import {
+  getCustomProperties,
   getDescriptionSymbols,
   getStringyProps,
   getToStringIfCustom,
@@ -313,13 +314,48 @@ class VariableContext {
   }
 
   /**
+   * Fetches properties for an object, including accessors, own properties, and stringy props.
+   */
+  private async fetchObjectProperties(objectId: string) {
+    return Promise.all([
+      this.cdp.Runtime.getProperties({
+        objectId,
+        accessorPropertiesOnly: true,
+        ownProperties: false,
+        generatePreview: true,
+      }),
+      this.cdp.Runtime.getProperties({
+        objectId,
+        ownProperties: true,
+        generatePreview: true,
+      }),
+      this.cdp.Runtime.callFunctionOn({
+        functionDeclaration: getStringyProps.decl(
+          `${customStringReprMaxLength}`,
+          this.settings.customDescriptionGenerator || 'null',
+        ),
+        arguments: [await this.getDescriptionSymbols(objectId)],
+        objectId,
+        throwOnSideEffect: true,
+        returnByValue: true,
+      })
+        .then(r => r?.result.value || {})
+        .catch(() => ({} as Record<string, string>)),
+    ]);
+  }
+
+  /**
    * Creates Variables for each property on the RemoteObject.
+   * @param skipSymbolBasedCustomProperties - If true, skips checking for Symbol.for("debug.properties")
    */
   public async createObjectPropertyVars(
     object: Cdp.Runtime.RemoteObject,
     evaluationOptions?: Dap.EvaluationOptions,
+    skipSymbolBasedCustomProperties = false,
   ): Promise<Variable[]> {
     const properties: (Promise<Variable[]> | Variable[])[] = [];
+    let originalObject: Cdp.Runtime.RemoteObject | undefined;
+    let hasCustomProperties = false;
 
     if (this.settings.customPropertiesGenerator) {
       const { result, errorDescription } = await this.evaluateCodeForObject(
@@ -353,31 +389,49 @@ class VariableContext {
       });
     }
 
-    const [accessorsProperties, ownProperties, stringyProps] = await Promise.all([
-      this.cdp.Runtime.getProperties({
-        objectId: object.objectId,
-        accessorPropertiesOnly: true,
-        ownProperties: false,
-        generatePreview: true,
-      }),
-      this.cdp.Runtime.getProperties({
-        objectId: object.objectId,
-        ownProperties: true,
-        generatePreview: true,
-      }),
-      this.cdp.Runtime.callFunctionOn({
-        functionDeclaration: getStringyProps.decl(
-          `${customStringReprMaxLength}`,
-          this.settings.customDescriptionGenerator || 'null',
-        ),
-        arguments: [await this.getDescriptionSymbols(object.objectId)],
-        objectId: object.objectId,
-        throwOnSideEffect: true,
-        returnByValue: true,
-      })
-        .then(r => r?.result.value || {})
-        .catch(() => ({} as Record<string, string>)),
-    ]);
+    let [accessorsProperties, ownProperties, stringyProps] = await this.fetchObjectProperties(
+      object.objectId,
+    );
+    if (!accessorsProperties || !ownProperties) return [];
+
+    // Check for Symbol.for("debug.properties") custom property replacement
+    // Only do this if we haven't already applied customPropertiesGenerator and if not explicitly skipped
+    if (!this.settings.customPropertiesGenerator && !skipSymbolBasedCustomProperties) {
+      // Check if the object has Symbol.for("debug.properties") by looking for it in the properties
+      const hasDebugPropertiesSymbol = [...accessorsProperties.result, ...ownProperties.result]
+        .some(
+          p => p.symbol?.description === 'Symbol(debug.properties)',
+        );
+
+      if (hasDebugPropertiesSymbol) {
+        try {
+          const customPropsResult = await this.cdp.Runtime.callFunctionOn({
+            functionDeclaration: getCustomProperties.decl(),
+            arguments: [await this.getDescriptionSymbols(object.objectId)],
+            objectId: object.objectId,
+            throwOnSideEffect: true,
+          });
+
+          if (customPropsResult && customPropsResult.result.objectId) {
+            // Store the original object for the escape hatch
+            originalObject = object;
+            hasCustomProperties = true;
+            // Replace with the custom properties object and re-fetch its properties
+            object = customPropsResult.result;
+
+            // Re-fetch properties for the custom properties object
+            [accessorsProperties, ownProperties, stringyProps] = await this.fetchObjectProperties(
+              object.objectId!,
+            );
+            if (!accessorsProperties || !ownProperties) return [];
+          }
+        } catch {
+          // If anything goes wrong, just use the original object
+        }
+      }
+    }
+
+    // TypeScript doesn't track the check inside the try-catch, so verify again
     if (!accessorsProperties || !ownProperties) return [];
 
     // Merge own properties and all accessors.
@@ -408,6 +462,9 @@ class VariableContext {
     // Push own properties & accessors and symbols
     for (const propertiesCollection of [propertiesMap.values(), propertySymbols.values()]) {
       for (const p of propertiesCollection) {
+        const contextInit = hasCustomProperties
+          ? { presentationHint: { kind: 'virtual' as const } }
+          : undefined;
         properties.push(
           this.createPropertyVar(
             p,
@@ -415,15 +472,19 @@ class VariableContext {
             stringyProps?.hasOwnProperty(p.name)
               ? localizeIndescribable(stringyProps[p.name])
               : undefined,
+            contextInit,
           ),
         );
       }
     }
 
     for (const property of ownProperties.privateProperties ?? []) {
+      const presentationHint = hasCustomProperties
+        ? { kind: 'virtual' as const, visibility: 'private' as const }
+        : { visibility: 'private' as const };
       properties.push(
         this.createPropertyVar(property, object, undefined, {
-          presentationHint: { visibility: 'private' },
+          presentationHint,
           sortOrder: SortOrder.Private,
         }),
       );
@@ -454,6 +515,25 @@ class VariableContext {
       }
     }
 
+    // Add escape hatch property if we used custom properties
+    if (originalObject) {
+      properties.push([
+        this.createVariable(
+          PropertiesGeneratorEscapeHatchVariable,
+          {
+            name: '...',
+            presentationHint: {
+              kind: 'virtual',
+              attributes: ['readOnly'],
+              visibility: 'internal',
+            },
+            sortOrder: SortOrder.Internal,
+          },
+          originalObject,
+        ),
+      ]);
+    }
+
     return flatten(await Promise.all(properties));
   }
 
@@ -481,9 +561,11 @@ class VariableContext {
 
     const ctx: Required<IContextInit> = {
       name: p.name,
-      presentationHint: {},
       sortOrder: SortOrder.Default,
       ...contextInit,
+      presentationHint: {
+        ...contextInit?.presentationHint,
+      },
     };
 
     if (!contextInit) {
@@ -863,6 +945,20 @@ class ObjectVariable extends Variable implements IMemoryReadable {
 
   public override getChildren(_params: Dap.VariablesParamsExtended) {
     return this.context.createObjectPropertyVars(this.remoteObject, _params.evaluationOptions);
+  }
+}
+
+/**
+ * A variable that shows the original object properties without Symbol.for("debug.properties") processing.
+ * Used as the "..." escape hatch to view raw object properties.
+ */
+class PropertiesGeneratorEscapeHatchVariable extends ObjectVariable {
+  public override getChildren(_params: Dap.VariablesParamsExtended) {
+    return this.context.createObjectPropertyVars(
+      this.remoteObject,
+      _params.evaluationOptions,
+      true,
+    );
   }
 }
 

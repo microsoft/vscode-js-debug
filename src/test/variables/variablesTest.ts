@@ -206,6 +206,96 @@ describe('variables', () => {
       new Bar();`);
       p.assertLog();
     });
+
+    describe('Symbol.for("debug.properties")', () => {
+      itIntegrates('replaces properties with custom object', async ({ r }) => {
+        const p = await r.launchAndLoad('blank');
+        await p.logger.evaluateAndLog(`
+          class Observable {
+            constructor(value) {
+              this._value = value;
+              this._observers = new Set(['observer1', 'observer2', 'observer3']);
+              this._scheduler = { name: 'scheduler', details: 'complex object' };
+              this._isDisposed = false;
+            }
+
+            [Symbol.for('debug.properties')]() {
+              return {
+                value: this._value,
+                subscriberCount: this._observers.size
+              };
+            }
+          }
+          new Observable('test value');
+        `);
+        p.assertLog();
+      });
+
+      itIntegrates('shows escape hatch for original object', async ({ r }) => {
+        const p = await r.launchAndLoad('blank');
+        await p.logger.evaluateAndLog(
+          `
+          class MyClass {
+            constructor() {
+              this.internal1 = 'hidden1';
+              this.internal2 = 'hidden2';
+              this.internal3 = 'hidden3';
+            }
+
+            [Symbol.for('debug.properties')]() {
+              return { public: 'visible' };
+            }
+          }
+          new MyClass();
+        `,
+          { logInternalInfo: true },
+        );
+        p.assertLog();
+      });
+
+      itIntegrates('works with Symbol.for("debug.description") together', async ({ r }) => {
+        const p = await r.launchAndLoad('blank');
+        await p.logger.evaluateAndLog(`
+          class Counter {
+            constructor() {
+              this._count = 42;
+              this._listeners = ['listener1', 'listener2'];
+            }
+
+            [Symbol.for('debug.description')]() {
+              return \`Counter(\${this._count})\`;
+            }
+
+            [Symbol.for('debug.properties')]() {
+              return {
+                count: this._count,
+                listenerCount: this._listeners.length
+              };
+            }
+          }
+          new Counter();
+        `);
+        p.assertLog();
+      });
+
+      itIntegrates('handles errors gracefully', async ({ r }) => {
+        const p = await r.launchAndLoad('blank');
+        await p.logger.evaluateAndLog(`
+          class BrokenClass {
+            constructor() {
+              this.prop1 = 'value1';
+              this.prop2 = 'value2';
+            }
+
+            [Symbol.for('debug.properties')]() {
+              throw new Error('Something went wrong');
+            }
+          }
+          new BrokenClass();
+        `);
+        p.assertLog();
+      });
+    });
   });
 
   describe('web', () => {

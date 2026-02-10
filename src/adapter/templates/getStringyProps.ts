@@ -9,6 +9,8 @@ const enum DescriptionSymbols {
   Generic = 'debug.description',
   // Node.js-specific symbol that is used for some Node types https://nodejs.org/api/util.html#utilinspectcustom
   Node = 'nodejs.util.inspect.custom',
+  // Symbol for custom property replacement
+  Properties = 'debug.properties',
 
   // Depth for `nodejs.util.inspect.custom`
   Depth = 2,
@@ -20,7 +22,11 @@ const enum DescriptionSymbols {
  * use them inside the description functions.
  */
 export const getDescriptionSymbols = remoteFunction(function() {
-  return [Symbol.for(DescriptionSymbols.Generic), Symbol.for(DescriptionSymbols.Node)];
+  return [
+    Symbol.for(DescriptionSymbols.Generic),
+    Symbol.for(DescriptionSymbols.Node),
+    Symbol.for(DescriptionSymbols.Properties),
+  ];
 });
 
 declare const runtimeArgs: [symbol[]];
@@ -132,4 +138,34 @@ export const getToStringIfCustom = templateFunction(function(
       return str.length >= maxLength ? str.slice(0, maxLength) + '…' : str;
     }
   }
+});
+
+/**
+ * Checks if the object has a custom properties function via Symbol.for("debug.properties")
+ * and returns the replacement object if it does. Returns undefined otherwise.
+ * The symbols array is passed via runtimeArgs[0], with properties symbol at index 2.
+ */
+export const getCustomProperties = templateFunction(function(this: unknown) {
+  const propertiesSymbol: symbol = (runtimeArgs as unknown as [symbol[]])[0][2];
+
+  if (typeof this !== 'object' || !this) {
+    return undefined;
+  }
+
+  // Check if the object has the debug.properties symbol
+  if (typeof (this as Record<symbol, () => unknown>)[propertiesSymbol] !== 'function') {
+    return undefined;
+  }
+
+  try {
+    const result = (this as Record<symbol, () => unknown>)[propertiesSymbol]();
+    // Only return if we got a valid object back
+    if (typeof result === 'object' && result !== null) {
+      return result;
+    }
+  } catch {
+    // If the function throws, we'll just return undefined and use default properties
+  }
+
+  return undefined;
 });

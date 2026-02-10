@@ -1,0 +1,4 @@
+> result: MyClass {internal1: 'hidden1', internal2: 'hidden2', internal3: 'hidden3'}  // type=MyClass
+    public: 'visible'  // type=string
+    > ...: MyClass {internal1: 'hidden1', internal2: 'hidden2', internal3: 'hidden3'}  // type=MyClass
+    > [[Prototype]]: Object  // type=Object

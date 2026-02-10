@@ -1,0 +1,5 @@
+> result: Observable {_value: 'test value', _observers: Set(3), _scheduler: {…}, _isDisposed: false}
+    subscriberCount: 3
+    value: 'test value'
+    > ...: Observable {_value: 'test value', _observers: Set(3), _scheduler: {…}, _isDisposed: false}
+    > [[Prototype]]: Object
