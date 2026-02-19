@@ -4,7 +4,7 @@
 
 import { remoteFunction, templateFunction } from '.';
 
-const enum DescriptionSymbols {
+export const enum DescriptionSymbols {
   // Our generic symbol
   Generic = 'debug.description',
   // Node.js-specific symbol that is used for some Node types https://nodejs.org/api/util.html#utilinspectcustom
@@ -40,6 +40,7 @@ export const getStringyProps = templateFunction(function(
   maxLength: number,
   customToString: (defaultRepr: string) => unknown,
 ) {
+  let customProps = false;
   const out: Record<string, string> = {};
   const defaultPlaceholder = '<<default preview>>';
   if (typeof this !== 'object' || !this) {
@@ -69,7 +70,7 @@ export const getStringyProps = templateFunction(function(
 
     if (typeof value === 'object' && value) {
       let str: string | undefined;
-      for (const sym of runtimeArgs[0]) {
+      for (const sym of runtimeArgs[0].slice(0, 2)) {
         if (typeof value[sym] !== 'function') {
           continue;
         }
@@ -91,7 +92,14 @@ export const getStringyProps = templateFunction(function(
     }
   }
 
-  return out;
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    customProps = typeof (this as any)[runtimeArgs[0][2]] === 'function';
+  } catch {
+    // ignored
+  }
+
+  return { out, customProps };
 });
 
 export const getToStringIfCustom = templateFunction(function(

@@ -480,7 +480,8 @@ describe('variables', () => {
           let b = [1, 2, 3, 4];
           b.prop = '';
           let c = { $a: 1, _b: 2, c: 3, 'd d': 4, [42]: 5,
-            e: { nested: [{ obj: true }]}, [Symbol('wut')]: 'wut' };
+            e: { nested: [{ obj: true }]}, [Symbol('wut')]: 'wut',
+            [Symbol.for('debug.properties')]: () => ({ a: 1, 2: 3, 'c c': 4 }) };
           debugger;
         })();
       `,
@@ -499,6 +500,9 @@ describe('variables', () => {
       };
 
       await walkVariables(p.dap, v, (variable, depth) => {
+        if (depth > 10) {
+          return false;
+        }
         p.log('  '.repeat(depth) + variable.evaluateName);
         return (
           !variable.name.startsWith('__')
