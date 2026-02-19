@@ -27,6 +27,8 @@ import { getArrayProperties } from './templates/getArrayProperties';
 import { getArraySlots } from './templates/getArraySlots';
 import { getNodeChildren } from './templates/getNodeChildren';
 import {
+  DescriptionSymbols,
+  getCustomProperties,
   getDescriptionSymbols,
   getStringyProps,
   getToStringIfCustom,
@@ -173,6 +175,8 @@ interface IContextInit {
   presentationHint?: Dap.VariablePresentationHint;
   /** How this variable should be sorted in results, in ascending numeric order. */
   sortOrder?: number;
+  /** Indicates if this variable represents a custom property from debug.properties. */
+  isCustomProperty?: boolean;
 }
 
 interface IContextSettings {
@@ -194,6 +198,10 @@ class VariableContext {
   public readonly presentationHint?: Dap.VariablePresentationHint;
   /** Sort order set from the parent. */
   public readonly sortOrder: number;
+  /**
+   * Indicates if this variable represents a custom property from debug.properties.
+   */
+  public readonly isCustomProperty?: boolean;
 
   public get customDescriptionGenerator() {
     return this.settings.customDescriptionGenerator;
@@ -212,6 +220,7 @@ class VariableContext {
     this.name = ctx.name;
     this.presentationHint = ctx.presentationHint;
     this.sortOrder = ctx.sortOrder || SortOrder.Default;
+    this.isCustomProperty = ctx.isCustomProperty;
   }
 
   /**
@@ -313,13 +322,47 @@ class VariableContext {
   }
 
   /**
+   * Fetches properties for an object, including accessors, own properties, and stringy props.
+   */
+  private async fetchObjectProperties(objectId: string) {
+    return Promise.all([
+      this.cdp.Runtime.getProperties({
+        objectId,
+        accessorPropertiesOnly: true,
+        ownProperties: false,
+        generatePreview: true,
+      }),
+      this.cdp.Runtime.getProperties({
+        objectId,
+        ownProperties: true,
+        generatePreview: true,
+      }),
+      this.cdp.Runtime.callFunctionOn({
+        functionDeclaration: getStringyProps.decl(
+          `${customStringReprMaxLength}`,
+          this.settings.customDescriptionGenerator || 'null',
+        ),
+        arguments: [await this.getDescriptionSymbols(objectId)],
+        objectId,
+        throwOnSideEffect: true,
+        returnByValue: true,
+      })
+        .then(r => r?.result.value || {})
+        .catch(() => ({} as Record<string, string>)),
+    ]);
+  }
+
+  /**
    * Creates Variables for each property on the RemoteObject.
+   * @param skipSymbolBasedCustomProperties - If true, skips checking for Symbol.for("debug.properties")
    */
   public async createObjectPropertyVars(
     object: Cdp.Runtime.RemoteObject,
     evaluationOptions?: Dap.EvaluationOptions,
+    skipSymbolBasedCustomProperties = false,
   ): Promise<Variable[]> {
     const properties: (Promise<Variable[]> | Variable[])[] = [];
+    let originalObject: Cdp.Runtime.RemoteObject | undefined;
 
     if (this.settings.customPropertiesGenerator) {
       const { result, errorDescription } = await this.evaluateCodeForObject(
@@ -353,31 +396,42 @@ class VariableContext {
       });
     }
 
-    const [accessorsProperties, ownProperties, stringyProps] = await Promise.all([
-      this.cdp.Runtime.getProperties({
-        objectId: object.objectId,
-        accessorPropertiesOnly: true,
-        ownProperties: false,
-        generatePreview: true,
-      }),
-      this.cdp.Runtime.getProperties({
-        objectId: object.objectId,
-        ownProperties: true,
-        generatePreview: true,
-      }),
-      this.cdp.Runtime.callFunctionOn({
-        functionDeclaration: getStringyProps.decl(
-          `${customStringReprMaxLength}`,
-          this.settings.customDescriptionGenerator || 'null',
-        ),
-        arguments: [await this.getDescriptionSymbols(object.objectId)],
-        objectId: object.objectId,
-        throwOnSideEffect: true,
-        returnByValue: true,
-      })
-        .then(r => r?.result.value || {})
-        .catch(() => ({} as Record<string, string>)),
-    ]);
+    let [accessorsProperties, ownProperties, stringyProps] = await this.fetchObjectProperties(
+      object.objectId,
+    );
+    if (!accessorsProperties || !ownProperties) return [];
+
+    if (
+      !this.settings.customPropertiesGenerator && stringyProps.customProps
+      && !skipSymbolBasedCustomProperties
+    ) {
+      try {
+        const customPropsResult = await this.cdp.Runtime.callFunctionOn({
+          functionDeclaration: getCustomProperties.decl(),
+          arguments: [await this.getDescriptionSymbols(object.objectId)],
+          objectId: object.objectId,
+          throwOnSideEffect: true,
+        });
+
+        if (customPropsResult && customPropsResult.result.objectId) {
+          // Store the original object for the escape hatch
+          originalObject = object;
+
+          // Replace with the custom properties object and re-fetch its properties
+          object = customPropsResult.result;
+
+          // Re-fetch properties for the custom properties object
+          [accessorsProperties, ownProperties, stringyProps] = await this.fetchObjectProperties(
+            object.objectId!,
+          );
+          if (!accessorsProperties || !ownProperties) return [];
+        }
+      } catch {
+        // If anything goes wrong, just use the original object
+      }
+    }
+
+    // TypeScript doesn't track the check inside the try-catch, so verify again
     if (!accessorsProperties || !ownProperties) return [];
 
     // Merge own properties and all accessors.
@@ -408,24 +462,43 @@ class VariableContext {
     // Push own properties & accessors and symbols
     for (const propertiesCollection of [propertiesMap.values(), propertySymbols.values()]) {
       for (const p of propertiesCollection) {
+        if ('symbol' in p && p.symbol?.description === `Symbol(${DescriptionSymbols.Properties})`) {
+          continue;
+        }
+
+        const contextInit = originalObject
+          ? {
+            presentationHint: { kind: 'virtual' as const },
+            isCustomProperty: !!originalObject,
+          }
+          : undefined;
         properties.push(
           this.createPropertyVar(
             p,
             object,
-            stringyProps?.hasOwnProperty(p.name)
-              ? localizeIndescribable(stringyProps[p.name])
+            stringyProps.out?.hasOwnProperty(p.name)
+              ? localizeIndescribable(stringyProps.out[p.name])
               : undefined,
+            contextInit,
           ),
         );
       }
     }
 
     for (const property of ownProperties.privateProperties ?? []) {
-      properties.push(
-        this.createPropertyVar(property, object, undefined, {
-          presentationHint: { visibility: 'private' },
+      const contextInit = originalObject
+        ? {
+          presentationHint: { kind: 'virtual' as const, visibility: 'private' as const },
           sortOrder: SortOrder.Private,
-        }),
+          isCustomProperty: !!originalObject,
+        }
+        : {
+          presentationHint: { visibility: 'private' as const },
+          sortOrder: SortOrder.Private,
+          isCustomProperty: !!originalObject,
+        };
+      properties.push(
+        this.createPropertyVar(property, object, undefined, contextInit),
       );
     }
 
@@ -452,6 +525,25 @@ class VariableContext {
       if (variable) {
         properties.push([variable]);
       }
+    }
+
+    // Add escape hatch property if we used custom properties
+    if (originalObject) {
+      properties.push([
+        this.createVariable(
+          PropertiesGeneratorEscapeHatchVariable,
+          {
+            name: '...',
+            presentationHint: {
+              kind: 'virtual',
+              attributes: ['readOnly'],
+              visibility: 'internal',
+            },
+            sortOrder: SortOrder.Internal,
+          },
+          originalObject,
+        ),
+      ]);
     }
 
     return flatten(await Promise.all(properties));
@@ -481,9 +573,12 @@ class VariableContext {
 
     const ctx: Required<IContextInit> = {
       name: p.name,
-      presentationHint: {},
       sortOrder: SortOrder.Default,
+      isCustomProperty: false,
       ...contextInit,
+      presentationHint: {
+        ...contextInit?.presentationHint,
+      },
     };
 
     if (!contextInit) {
@@ -572,13 +667,26 @@ class Variable implements IVariable {
    * Gets the accessor though which this object can be read.
    */
   public get accessor(): string {
-    const { parent, name } = this.context;
+    const { parent, name, isCustomProperty } = this.context;
     if (parent instanceof AccessorVariable) {
       return parent.accessor;
     }
 
     if (!(parent instanceof Variable)) {
       return this.context.name;
+    }
+
+    if (isCustomProperty) {
+      const prefix = `${parent.accessor}[Symbol.for(${
+        JSON.stringify(DescriptionSymbols.Properties)
+      })]()`;
+      if (isNumberOrNumeric(name)) {
+        return `${prefix}[${name}]`;
+      }
+      if (identifierRe.test(name)) {
+        return `${prefix}.${name}`;
+      }
+      return `${prefix}[${JSON.stringify(name)}]`;
     }
 
     // Maps and sets:
@@ -863,6 +971,33 @@ class ObjectVariable extends Variable implements IMemoryReadable {
 
   public override getChildren(_params: Dap.VariablesParamsExtended) {
     return this.context.createObjectPropertyVars(this.remoteObject, _params.evaluationOptions);
+  }
+}
+
+/**
+ * A variable that shows the original object properties without Symbol.for("debug.properties") processing.
+ * Used as the "..." escape hatch to view raw object properties.
+ */
+class PropertiesGeneratorEscapeHatchVariable extends ObjectVariable {
+  /**
+   * Override accessor to return the parent's accessor (the original object).
+   * This ensures children of the escape hatch use the correct accessor path
+   * (e.g., `c._b` instead of `c["..."]._b`).
+   */
+  public override get accessor(): string {
+    const { parent } = this.context;
+    if (parent instanceof Variable) {
+      return parent.accessor;
+    }
+    return super.accessor;
+  }
+
+  public override getChildren(_params: Dap.VariablesParamsExtended) {
+    return this.context.createObjectPropertyVars(
+      this.remoteObject,
+      _params.evaluationOptions,
+      true,
+    );
   }
 }
 
