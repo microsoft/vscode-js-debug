@@ -8,6 +8,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## 1.105 (September 2025)
 
+- feat: add `jsdbg` command for debugging Node.js from any terminal
 - fix: slow sourcemap parsing for minified code ([#2265](https://github.com/microsoft/vscode-js-debug/issues/2265))
 - fix: assorted race conditions on dwarf and breakpoint initialization
 
