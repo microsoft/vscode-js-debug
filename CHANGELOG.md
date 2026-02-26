@@ -4,7 +4,15 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Unreleased
 
+Nothing, yet
+
+## 1.110 (February 2026)
+
 - feat: add `Symbol.for("debug.properties")` for custom property replacement in debugger ([vscode#102181](https://github.com/microsoft/vscode/issues/102181))
+- feat: add focus emulation support ([#2316](https://github.com/microsoft/vscode-js-debug/pull/2316))
+- fix: label module scopes as expensive ([#2312](https://github.com/microsoft/vscode-js-debug/issues/2312))
+- fix: don't duplicate --allow-all for deno debug configuration ([#2308](https://github.com/microsoft/vscode-js-debug/issues/2308))
+- fix: dereferences of undefined at various places ([#2297](https://github.com/microsoft/vscode-js-debug/issues/2297))
 
 ## 1.105 (September 2025)
 
