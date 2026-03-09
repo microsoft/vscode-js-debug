@@ -176,7 +176,9 @@ export async function launch(
     return {
       process: browserProcess,
       // can only reconnect to debug ports, not pipe connections:
-      canReconnect: typeof actualConnection === 'number',
+      // Cannot reconnect for unelevated (non-tracked) processes since we can't
+      // detect when the browser exits to stop retrying
+      canReconnect: typeof actualConnection === 'number' && !launchUnelevated,
       createConnection: async cancellationToken => {
         const transport = await browserProcess.transport(
           {
