@@ -36,7 +36,8 @@ export const getNodeLaunchArgs = (config: INodeLaunchConfiguration): string[] =>
     program = path.isAbsolute(maybeRel) ? maybeRel : `.${path.sep}${maybeRel}`;
   }
 
+  const args = asArray(config.args).filter(a => a !== '');
   return program
-    ? [...config.runtimeArgs, program, ...asArray(config.args)]
-    : [...config.runtimeArgs, ...asArray(config.args)];
+    ? [...config.runtimeArgs, program, ...args]
+    : [...config.runtimeArgs, ...args];
 };
