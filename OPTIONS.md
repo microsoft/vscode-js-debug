@@ -437,3 +437,93 @@
   "!**/node_modules/**"
 ]</pre></code><h4>webRoot</h4><p>This specifies the workspace absolute path to the webserver root. Used to resolve paths like <code>/app.js</code> to files on disk. Shorthand for a pathMapping for &quot;/&quot;</p>
 <h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code></details>
+
+### code-browser: launch
+
+<details><h4>cascadeTerminateToConfigurations</h4><p>A list of debug sessions which, when this debug session is terminated, will also be stopped.</p>
+<h5>Default value:</h4><pre><code>[]</pre></code><h4>customDescriptionGenerator</h4><p>Customize the textual description the debugger shows for objects (local variables, etc...). Samples:<br>      1. this.toString() // will call toString to print all objects<br>      2. this.customDescription ? this.customDescription() : defaultValue // Use customDescription method if available, if not return defaultValue<br>      3. function (def) { return this.customDescription ? this.customDescription() : def } // Use customDescription method if available, if not return defaultValue<br>      </p>
+<h5>Default value:</h4><pre><code>undefined</pre></code><h4>customPropertiesGenerator</h4><p>Customize the properties shown for an object in the debugger (local variables, etc...). Samples:<br>    1. { ...this, extraProperty: &#39;12345&#39; } // Add an extraProperty 12345 to all objects<br>    2. this.customProperties ? this.customProperties() : this // Use customProperties method if available, if not use the properties in this (the default properties)<br>    3. function () { return this.customProperties ? this.customProperties() : this } // Use customDescription method if available, if not return the default properties<br><br>    Deprecated: This is a temporary implementation of this feature until we have time to implement it in the way described here: <a href="https://github.com/microsoft/vscode/issues/102181">https://github.com/microsoft/vscode/issues/102181</a></p>
+<h5>Default value:</h4><pre><code>undefined</pre></code><h4>disableNetworkCache</h4><p>Controls whether to skip the network cache for each request</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>enableContentValidation</h4><p>Toggles whether we verify the contents of files on disk match the ones loaded in the runtime. This is useful in a variety of scenarios and required in some, but can cause issues if you have server-side transformation of scripts, for example.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>enableDWARF</h4><p>Toggles whether the debugger will try to read DWARF debug symbols from WebAssembly, which can be resource intensive. Requires the <code>ms-vscode.wasm-dwarf-debugging</code> extension to function.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>inspectUri</h4><p>Format to use to rewrite the inspectUri: It&#39;s a template string that interpolates keys in <code>{curlyBraces}</code>. Available keys are:<br> - <code>url.*</code> is the parsed address of the running application. For instance, <code>{url.port}</code>, <code>{url.hostname}</code><br> - <code>port</code> is the debug port that Chrome is listening on.<br> - <code>browserInspectUri</code> is the inspector URI on the launched browser<br> - <code>browserInspectUriPath</code> is the path part of the inspector URI on the launched browser (e.g.: &quot;/devtools/browser/e9ec0098-306e-472a-8133-5e42488929c2&quot;).<br> - <code>wsProtocol</code> is the hinted websocket protocol. This is set to <code>wss</code> if the original URL is <code>https</code>, or <code>ws</code> otherwise.<br></p>
+<h5>Default value:</h4><pre><code>undefined</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
+<h5>Default value:</h4><pre><code>[
+  "${workspaceFolder}/**/*.(m|c|)js",
+  "!**/node_modules/**"
+]</pre></code><h4>outputCapture</h4><p>From where to capture output messages: the default debug API if set to <code>console</code>, or stdout/stderr streams if set to <code>std</code>.</p>
+<h5>Default value:</h4><pre><code>"console"</pre></code><h4>pathMapping</h4><p>A mapping of URLs/paths to local folders, to resolve scripts in the Browser to scripts on disk</p>
+<h5>Default value:</h4><pre><code>{}</pre></code><h4>pauseForSourceMap</h4><p>Whether to wait for source maps to load for each incoming script. This has a performance overhead, and might be safely disabled when running off of disk, so long as <code>rootPath</code> is not disabled.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>perScriptSourcemaps</h4><p>Whether scripts are loaded individually with unique sourcemaps containing the basename of the source file. This can be set to optimize sourcemap handling when dealing with lots of small scripts. If set to &quot;auto&quot;, we&#39;ll detect known cases where this is appropriate.</p>
+<h5>Default value:</h4><pre><code>"auto"</pre></code><h4>resolveSourceMapLocations</h4><p>A list of minimatch patterns for locations (folders and URLs) in which source maps can be used to resolve local files. This can be used to avoid incorrectly breaking in external source mapped code. Patterns can be prefixed with &quot;!&quot; to exclude them. May be set to an empty array or null to avoid restriction.</p>
+<h5>Default value:</h4><pre><code>null</pre></code><h4>showAsyncStacks</h4><p>Show the async calls that led to the current call stack.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>skipFiles</h4><p>An array of file or folder names, or path globs, to skip when debugging. Star patterns and negations are allowed, for example, <code>[&quot;**/node_modules/**&quot;, &quot;!**/node_modules/my-module/**&quot;]</code></p>
+<h5>Default value:</h4><pre><code>[]</pre></code><h4>smartStep</h4><p>Automatically step through generated code that cannot be mapped back to the original source.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMapPathOverrides</h4><p>A set of mappings for rewriting the locations of source files from what the sourcemap says, to their locations on disk.</p>
+<h5>Default value:</h4><pre><code>{
+  "webpack:///./~/*": "${webRoot}/node_modules/*",
+  "webpack:////*": "/*",
+  "webpack://@?:*/?:*/*": "${webRoot}/*",
+  "webpack://?:*/*": "${webRoot}/*",
+  "webpack:///([a-z]):/(.+)": "$1:/$2",
+  "meteor://💻app/*": "${webRoot}/*",
+  "turbopack://[project]/*": "${workspaceFolder}/*",
+  "turbopack:///[project]/*": "${workspaceFolder}/*"
+}</pre></code><h4>sourceMapRenames</h4><p>Whether to use the &quot;names&quot; mapping in sourcemaps. This requires requesting source content, which can be slow with certain debuggers.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
+<h5>Default value:</h4><pre><code>10000</pre></code><h4>timeouts</h4><p>Timeouts for several debugger operations.</p>
+<h5>Default value:</h4><pre><code>{}</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
+<h5>Default value:</h4><pre><code>false</pre></code><h4>url</h4><p>Will search for a tab with this exact url and attach to it, if found</p>
+<h5>Default value:</h4><pre><code>"http://localhost:8080"</pre></code><h4>urlFilter</h4><p>Will search for a page with this url and attach to it, if found. Can have * wildcards.</p>
+<h5>Default value:</h4><pre><code>""</pre></code><h4>vueComponentPaths</h4><p>A list of file glob patterns to find <code>*.vue</code> components. By default, searches the entire workspace. This needs to be specified due to extra lookups that Vue&#39;s sourcemaps require in Vue CLI 4. You can disable this special handling by setting this to an empty array.</p>
+<h5>Default value:</h4><pre><code>[
+  "${workspaceFolder}/**/*.vue",
+  "!**/node_modules/**"
+]</pre></code><h4>webRoot</h4><p>This specifies the workspace absolute path to the webserver root. Used to resolve paths like <code>/app.js</code> to files on disk. Shorthand for a pathMapping for &quot;/&quot;</p>
+<h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code></details>
+
+### code-browser: attach
+
+<details><h4>cascadeTerminateToConfigurations</h4><p>A list of debug sessions which, when this debug session is terminated, will also be stopped.</p>
+<h5>Default value:</h4><pre><code>[]</pre></code><h4>customDescriptionGenerator</h4><p>Customize the textual description the debugger shows for objects (local variables, etc...). Samples:<br>      1. this.toString() // will call toString to print all objects<br>      2. this.customDescription ? this.customDescription() : defaultValue // Use customDescription method if available, if not return defaultValue<br>      3. function (def) { return this.customDescription ? this.customDescription() : def } // Use customDescription method if available, if not return defaultValue<br>      </p>
+<h5>Default value:</h4><pre><code>undefined</pre></code><h4>customPropertiesGenerator</h4><p>Customize the properties shown for an object in the debugger (local variables, etc...). Samples:<br>    1. { ...this, extraProperty: &#39;12345&#39; } // Add an extraProperty 12345 to all objects<br>    2. this.customProperties ? this.customProperties() : this // Use customProperties method if available, if not use the properties in this (the default properties)<br>    3. function () { return this.customProperties ? this.customProperties() : this } // Use customDescription method if available, if not return the default properties<br><br>    Deprecated: This is a temporary implementation of this feature until we have time to implement it in the way described here: <a href="https://github.com/microsoft/vscode/issues/102181">https://github.com/microsoft/vscode/issues/102181</a></p>
+<h5>Default value:</h4><pre><code>undefined</pre></code><h4>disableNetworkCache</h4><p>Controls whether to skip the network cache for each request</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>enableContentValidation</h4><p>Toggles whether we verify the contents of files on disk match the ones loaded in the runtime. This is useful in a variety of scenarios and required in some, but can cause issues if you have server-side transformation of scripts, for example.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>enableDWARF</h4><p>Toggles whether the debugger will try to read DWARF debug symbols from WebAssembly, which can be resource intensive. Requires the <code>ms-vscode.wasm-dwarf-debugging</code> extension to function.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>inspectUri</h4><p>Format to use to rewrite the inspectUri: It&#39;s a template string that interpolates keys in <code>{curlyBraces}</code>. Available keys are:<br> - <code>url.*</code> is the parsed address of the running application. For instance, <code>{url.port}</code>, <code>{url.hostname}</code><br> - <code>port</code> is the debug port that Chrome is listening on.<br> - <code>browserInspectUri</code> is the inspector URI on the launched browser<br> - <code>browserInspectUriPath</code> is the path part of the inspector URI on the launched browser (e.g.: &quot;/devtools/browser/e9ec0098-306e-472a-8133-5e42488929c2&quot;).<br> - <code>wsProtocol</code> is the hinted websocket protocol. This is set to <code>wss</code> if the original URL is <code>https</code>, or <code>ws</code> otherwise.<br></p>
+<h5>Default value:</h4><pre><code>undefined</pre></code><h4>outFiles</h4><p>If source maps are enabled, these glob patterns specify the generated JavaScript files. If a pattern starts with <code>!</code> the files are excluded. If not specified, the generated code is expected in the same directory as its source.</p>
+<h5>Default value:</h4><pre><code>[
+  "${workspaceFolder}/**/*.(m|c|)js",
+  "!**/node_modules/**"
+]</pre></code><h4>outputCapture</h4><p>From where to capture output messages: the default debug API if set to <code>console</code>, or stdout/stderr streams if set to <code>std</code>.</p>
+<h5>Default value:</h4><pre><code>"console"</pre></code><h4>pathMapping</h4><p>A mapping of URLs/paths to local folders, to resolve scripts in the Browser to scripts on disk</p>
+<h5>Default value:</h4><pre><code>{}</pre></code><h4>pauseForSourceMap</h4><p>Whether to wait for source maps to load for each incoming script. This has a performance overhead, and might be safely disabled when running off of disk, so long as <code>rootPath</code> is not disabled.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>perScriptSourcemaps</h4><p>Whether scripts are loaded individually with unique sourcemaps containing the basename of the source file. This can be set to optimize sourcemap handling when dealing with lots of small scripts. If set to &quot;auto&quot;, we&#39;ll detect known cases where this is appropriate.</p>
+<h5>Default value:</h4><pre><code>"auto"</pre></code><h4>resolveSourceMapLocations</h4><p>A list of minimatch patterns for locations (folders and URLs) in which source maps can be used to resolve local files. This can be used to avoid incorrectly breaking in external source mapped code. Patterns can be prefixed with &quot;!&quot; to exclude them. May be set to an empty array or null to avoid restriction.</p>
+<h5>Default value:</h4><pre><code>null</pre></code><h4>showAsyncStacks</h4><p>Show the async calls that led to the current call stack.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>skipFiles</h4><p>An array of file or folder names, or path globs, to skip when debugging. Star patterns and negations are allowed, for example, <code>[&quot;**/node_modules/**&quot;, &quot;!**/node_modules/my-module/**&quot;]</code></p>
+<h5>Default value:</h4><pre><code>[]</pre></code><h4>smartStep</h4><p>Automatically step through generated code that cannot be mapped back to the original source.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMapPathOverrides</h4><p>A set of mappings for rewriting the locations of source files from what the sourcemap says, to their locations on disk.</p>
+<h5>Default value:</h4><pre><code>{
+  "webpack:///./~/*": "${webRoot}/node_modules/*",
+  "webpack:////*": "/*",
+  "webpack://@?:*/?:*/*": "${webRoot}/*",
+  "webpack://?:*/*": "${webRoot}/*",
+  "webpack:///([a-z]):/(.+)": "$1:/$2",
+  "meteor://💻app/*": "${webRoot}/*",
+  "turbopack://[project]/*": "${workspaceFolder}/*",
+  "turbopack:///[project]/*": "${workspaceFolder}/*"
+}</pre></code><h4>sourceMapRenames</h4><p>Whether to use the &quot;names&quot; mapping in sourcemaps. This requires requesting source content, which can be slow with certain debuggers.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>sourceMaps</h4><p>Use JavaScript source maps (if they exist).</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>timeout</h4><p>Retry for this number of milliseconds to connect to Node.js. Default is 10000 ms.</p>
+<h5>Default value:</h4><pre><code>10000</pre></code><h4>timeouts</h4><p>Timeouts for several debugger operations.</p>
+<h5>Default value:</h4><pre><code>{}</pre></code><h4>trace</h4><p>Configures what diagnostic output is produced.</p>
+<h5>Default value:</h4><pre><code>false</pre></code><h4>url</h4><p>Will search for a tab with this exact url and attach to it, if found</p>
+<h5>Default value:</h4><pre><code>null</pre></code><h4>urlFilter</h4><p>Will search for a page with this url and attach to it, if found. Can have * wildcards.</p>
+<h5>Default value:</h4><pre><code>""</pre></code><h4>vueComponentPaths</h4><p>A list of file glob patterns to find <code>*.vue</code> components. By default, searches the entire workspace. This needs to be specified due to extra lookups that Vue&#39;s sourcemaps require in Vue CLI 4. You can disable this special handling by setting this to an empty array.</p>
+<h5>Default value:</h4><pre><code>[
+  "${workspaceFolder}/**/*.vue",
+  "!**/node_modules/**"
+]</pre></code><h4>webRoot</h4><p>This specifies the workspace absolute path to the webserver root. Used to resolve paths like <code>/app.js</code> to files on disk. Shorthand for a pathMapping for &quot;/&quot;</p>
+<h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code></details>

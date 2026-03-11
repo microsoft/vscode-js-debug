@@ -7,6 +7,7 @@ import {
   ChromeDebugConfigurationProvider,
   ChromeDebugConfigurationResolver,
 } from './chromeDebugConfigurationProvider';
+import { CodeBrowserDebugConfigurationResolver } from './codeBrowserDebugConfigurationProvider';
 import {
   EdgeDebugConfigurationProvider,
   EdgeDebugConfigurationResolver,
@@ -22,6 +23,7 @@ import { TerminalDebugConfigurationResolver } from './terminalDebugConfiguration
 export const allConfigurationResolvers = [
   ChromeDebugConfigurationResolver,
   EdgeDebugConfigurationResolver,
+  CodeBrowserDebugConfigurationResolver,
   ExtensionHostConfigurationResolver,
   NodeConfigurationResolver,
   TerminalDebugConfigurationResolver,

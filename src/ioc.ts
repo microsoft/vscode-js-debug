@@ -94,6 +94,8 @@ import {
 } from './ioc-extras';
 import { BrowserAttacher } from './targets/browser/browserAttacher';
 import { ChromeLauncher } from './targets/browser/chromeLauncher';
+import { CodeBrowserAttacher } from './targets/browser/codeBrowserAttacher';
+import { CodeBrowserLauncher } from './targets/browser/codeBrowserLauncher';
 import { EdgeLauncher } from './targets/browser/edgeLauncher';
 import { RemoteBrowserAttacher } from './targets/browser/remoteBrowserAttacher';
 import { RemoteBrowserHelper } from './targets/browser/remoteBrowserHelper';
@@ -283,6 +285,8 @@ export const createTopLevelSessionContainer = (parent: Container) => {
     .onActivation(trackDispose);
 
   container.bind(ILauncher).to(BrowserAttacher).onActivation(trackDispose);
+  container.bind(ILauncher).to(CodeBrowserLauncher).onActivation(trackDispose);
+  container.bind(ILauncher).to(CodeBrowserAttacher).onActivation(trackDispose);
   container
     .bind(ILauncher)
     .toDynamicValue(() =>

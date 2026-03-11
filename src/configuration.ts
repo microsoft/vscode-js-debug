@@ -760,6 +760,23 @@ export interface IEdgeAttachConfiguration extends IChromiumAttachConfiguration {
 }
 
 /**
+ * Configuration to launch a VS Code integrated browser.
+ */
+export interface ICodeBrowserLaunchConfiguration extends IChromiumBaseConfiguration {
+  type: DebugType.CodeBrowser;
+  request: 'launch';
+  url: string;
+}
+
+/**
+ * Configuration to attach to VS Code integrated browsers.
+ */
+export interface ICodeBrowserAttachConfiguration extends IChromiumBaseConfiguration {
+  type: DebugType.CodeBrowser;
+  request: 'attach';
+}
+
+/**
  * Attach request used internally to inject a pre-built target into the lifecycle.
  */
 export interface ITerminalDelegateConfiguration extends INodeBaseConfiguration {
@@ -777,10 +794,16 @@ export type AnyNodeConfiguration =
   | ITerminalDelegateConfiguration;
 export type AnyChromeConfiguration = IChromeAttachConfiguration | IChromeLaunchConfiguration;
 export type AnyEdgeConfiguration = IEdgeAttachConfiguration | IEdgeLaunchConfiguration;
+export type AnyCodeBrowserConfiguration =
+  | ICodeBrowserAttachConfiguration
+  | ICodeBrowserLaunchConfiguration;
 export type AnyChromiumLaunchConfiguration = IEdgeLaunchConfiguration | IChromeLaunchConfiguration;
 export type AnyChromiumAttachConfiguration = IEdgeAttachConfiguration | IChromeAttachConfiguration;
 export type AnyChromiumConfiguration = AnyEdgeConfiguration | AnyChromeConfiguration;
-export type AnyLaunchConfiguration = AnyChromiumConfiguration | AnyNodeConfiguration;
+export type AnyLaunchConfiguration =
+  | AnyChromiumConfiguration
+  | AnyNodeConfiguration
+  | AnyCodeBrowserConfiguration;
 export type AnyTerminalConfiguration =
   | ITerminalDelegateConfiguration
   | ITerminalLaunchConfiguration;
@@ -809,13 +832,15 @@ export type ResolvingNodeConfiguration =
   | ResolvingNodeLaunchConfiguration;
 export type ResolvingChromeConfiguration = ResolvingConfiguration<AnyChromeConfiguration>;
 export type ResolvingEdgeConfiguration = ResolvingConfiguration<AnyEdgeConfiguration>;
+export type ResolvingCodeBrowserConfiguration = ResolvingConfiguration<AnyCodeBrowserConfiguration>;
 export type AnyResolvingConfiguration =
   | ResolvingExtensionHostConfiguration
   | ResolvingChromeConfiguration
   | ResolvingNodeAttachConfiguration
   | ResolvingNodeLaunchConfiguration
   | ResolvingTerminalConfiguration
-  | ResolvingEdgeConfiguration;
+  | ResolvingEdgeConfiguration
+  | ResolvingCodeBrowserConfiguration;
 
 export const AnyLaunchConfiguration = Symbol('AnyLaunchConfiguration');
 
@@ -977,6 +1002,32 @@ export const edgeLaunchConfigDefaults: IEdgeLaunchConfiguration = {
   useWebView: false,
 };
 
+const codeBrowserBaseDefaults: IChromiumBaseConfiguration = {
+  ...baseDefaults,
+  disableNetworkCache: true,
+  pathMapping: {},
+  url: null,
+  urlFilter: '',
+  sourceMapPathOverrides: defaultSourceMapPathOverrides('${webRoot}'),
+  webRoot: '${workspaceFolder}',
+  server: null,
+  vueComponentPaths: ['${workspaceFolder}/**/*.vue', '!**/node_modules/**'],
+  perScriptSourcemaps: 'auto',
+};
+
+export const codeBrowserAttachConfigDefaults: ICodeBrowserAttachConfiguration = {
+  ...codeBrowserBaseDefaults,
+  type: DebugType.CodeBrowser,
+  request: 'attach',
+};
+
+export const codeBrowserLaunchConfigDefaults: ICodeBrowserLaunchConfiguration = {
+  ...codeBrowserBaseDefaults,
+  type: DebugType.CodeBrowser,
+  request: 'launch',
+  url: 'http://localhost:8080',
+};
+
 export const nodeAttachConfigDefaults: INodeAttachConfiguration = {
   ...nodeBaseDefaults,
   type: DebugType.Node,
@@ -1047,6 +1098,14 @@ export function applyEdgeDefaults(
     : { ...edgeLaunchConfigDefaults, browserLaunchLocation: browserLocation, ...config };
 }
 
+export function applyCodeBrowserDefaults(
+  config: ResolvingCodeBrowserConfiguration,
+): AnyCodeBrowserConfiguration {
+  return config.request === 'attach'
+    ? { ...codeBrowserAttachConfigDefaults, ...config }
+    : { ...codeBrowserLaunchConfigDefaults, ...config };
+}
+
 export function applyExtensionHostDefaults(
   config: ResolvingExtensionHostConfiguration,
 ): IExtensionHostLaunchConfiguration {
@@ -1088,6 +1147,9 @@ export function applyDefaults(
       break;
     case DebugType.Terminal:
       configWithDefaults = applyTerminalDefaults(config);
+      break;
+    case DebugType.CodeBrowser:
+      configWithDefaults = applyCodeBrowserDefaults(config);
       break;
     default:
       throw assertNever(config, 'Unknown config: {value}');
