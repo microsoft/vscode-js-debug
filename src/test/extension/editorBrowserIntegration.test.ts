@@ -62,7 +62,7 @@ describe('integrated browser debugging', function() {
     const sessionStarted = waitForChildSession();
 
     await vscode.debug.startDebugging(undefined, {
-      type: DebugType.CodeBrowser,
+      type: DebugType.EditorBrowser,
       request: 'launch',
       name: 'Launch Test',
       url: serverUrl,
@@ -119,7 +119,7 @@ describe('integrated browser debugging', function() {
       const sessionStarted = waitForChildSession();
 
       await vscode.debug.startDebugging(undefined, {
-        type: DebugType.CodeBrowser,
+        type: DebugType.EditorBrowser,
         request: 'attach',
         name: 'Attach Test',
       });

@@ -4,10 +4,10 @@
 
 import { URL } from 'url';
 import { absolutePathToFileUrlWithDetection } from '../../common/urlUtils';
-import { AnyChromiumConfiguration, AnyCodeBrowserConfiguration } from '../../configuration';
+import { AnyChromiumConfiguration, AnyEditorBrowserConfiguration } from '../../configuration';
 
 export function baseURL(
-  params: AnyChromiumConfiguration | AnyCodeBrowserConfiguration,
+  params: AnyChromiumConfiguration | AnyEditorBrowserConfiguration,
 ): string | undefined {
   if ('file' in params && params.file) {
     return absolutePathToFileUrlWithDetection(params.file);

@@ -7,15 +7,15 @@ import * as vscode from 'vscode';
 import { DebugType } from '../../common/contributionUtils';
 import { upcastPartial } from '../../common/objUtils';
 import {
-  codeBrowserAttachConfigDefaults,
-  codeBrowserLaunchConfigDefaults,
+  editorBrowserAttachConfigDefaults,
+  editorBrowserLaunchConfigDefaults,
 } from '../../configuration';
-import { CodeBrowserDebugConfigurationResolver } from '../../ui/configuration/codeBrowserDebugConfigurationProvider';
+import { EditorBrowserDebugConfigurationResolver } from '../../ui/configuration/editorBrowserDebugConfigurationProvider';
 import { testFixturesDir } from '../test';
 import { TestMemento } from '../testMemento';
 
-describe('CodeBrowserDebugConfigurationProvider', () => {
-  let provider: CodeBrowserDebugConfigurationResolver;
+describe('EditorBrowserDebugConfigurationProvider', () => {
+  let provider: EditorBrowserDebugConfigurationResolver;
   const folder: vscode.WorkspaceFolder = {
     uri: vscode.Uri.file(testFixturesDir),
     name: 'test-dir',
@@ -23,7 +23,7 @@ describe('CodeBrowserDebugConfigurationProvider', () => {
   };
 
   beforeEach(() => {
-    provider = new CodeBrowserDebugConfigurationResolver(
+    provider = new EditorBrowserDebugConfigurationResolver(
       upcastPartial<vscode.ExtensionContext>({
         logPath: testFixturesDir,
         workspaceState: new TestMemento(),
@@ -43,24 +43,24 @@ describe('CodeBrowserDebugConfigurationProvider', () => {
 
     it('applies launch defaults', async () => {
       const result = await provider.resolveDebugConfiguration(folder, {
-        type: DebugType.CodeBrowser,
+        type: DebugType.EditorBrowser,
         name: 'test',
         request: 'launch',
         url: 'http://localhost:3000',
       });
 
       expect(result).to.containSubset({
-        type: DebugType.CodeBrowser,
+        type: DebugType.EditorBrowser,
         request: 'launch',
         url: 'http://localhost:3000',
-        webRoot: codeBrowserLaunchConfigDefaults.webRoot,
-        disableNetworkCache: codeBrowserLaunchConfigDefaults.disableNetworkCache,
+        webRoot: editorBrowserLaunchConfigDefaults.webRoot,
+        disableNetworkCache: editorBrowserLaunchConfigDefaults.disableNetworkCache,
       });
     });
 
     it('user config overrides defaults', async () => {
       const result = await provider.resolveDebugConfiguration(folder, {
-        type: DebugType.CodeBrowser,
+        type: DebugType.EditorBrowser,
         name: 'test',
         request: 'launch',
         url: 'http://localhost:9000',
@@ -77,29 +77,29 @@ describe('CodeBrowserDebugConfigurationProvider', () => {
   describe('attach config', () => {
     it('applies attach defaults', async () => {
       const result = await provider.resolveDebugConfiguration(folder, {
-        type: DebugType.CodeBrowser,
+        type: DebugType.EditorBrowser,
         name: 'test',
         request: 'attach',
       });
 
       expect(result).to.containSubset({
-        type: DebugType.CodeBrowser,
+        type: DebugType.EditorBrowser,
         request: 'attach',
-        webRoot: codeBrowserAttachConfigDefaults.webRoot,
-        disableNetworkCache: codeBrowserAttachConfigDefaults.disableNetworkCache,
+        webRoot: editorBrowserAttachConfigDefaults.webRoot,
+        disableNetworkCache: editorBrowserAttachConfigDefaults.disableNetworkCache,
       });
     });
 
     it('user config overrides attach defaults', async () => {
       const result = await provider.resolveDebugConfiguration(folder, {
-        type: DebugType.CodeBrowser,
+        type: DebugType.EditorBrowser,
         name: 'test',
         request: 'attach',
         webRoot: '/my/root',
       });
 
       expect(result).to.containSubset({
-        type: DebugType.CodeBrowser,
+        type: DebugType.EditorBrowser,
         request: 'attach',
         webRoot: '/my/root',
       });

@@ -6,10 +6,10 @@ import { injectable } from 'inversify';
 import * as vscode from 'vscode';
 import { DebugType } from '../../common/contributionUtils';
 import {
-  AnyCodeBrowserConfiguration,
-  codeBrowserAttachConfigDefaults,
-  codeBrowserLaunchConfigDefaults,
-  ResolvingCodeBrowserConfiguration,
+  AnyEditorBrowserConfiguration,
+  editorBrowserAttachConfigDefaults,
+  editorBrowserLaunchConfigDefaults,
+  ResolvingEditorBrowserConfiguration,
 } from '../../configuration';
 import { BaseConfigurationResolver } from './baseConfigurationResolver';
 
@@ -18,14 +18,14 @@ import { BaseConfigurationResolver } from './baseConfigurationResolver';
  * Only available on desktop.
  */
 @injectable()
-export class CodeBrowserDebugConfigurationResolver
-  extends BaseConfigurationResolver<AnyCodeBrowserConfiguration>
+export class EditorBrowserDebugConfigurationResolver
+  extends BaseConfigurationResolver<AnyEditorBrowserConfiguration>
   implements vscode.DebugConfigurationProvider
 {
   protected async resolveDebugConfigurationAsync(
     _folder: vscode.WorkspaceFolder | undefined,
-    config: ResolvingCodeBrowserConfiguration,
-  ): Promise<AnyCodeBrowserConfiguration | null | undefined> {
+    config: ResolvingEditorBrowserConfiguration,
+  ): Promise<AnyEditorBrowserConfiguration | null | undefined> {
     if (vscode.env.uiKind === vscode.UIKind.Web) {
       vscode.window.showErrorMessage(
         'Integrated Browser debugging is only available on VS Code Desktop.',
@@ -38,15 +38,15 @@ export class CodeBrowserDebugConfigurationResolver
     }
 
     return config.request === 'attach'
-      ? { ...codeBrowserAttachConfigDefaults, ...config }
-      : { ...codeBrowserLaunchConfigDefaults, ...config };
+      ? { ...editorBrowserAttachConfigDefaults, ...config }
+      : { ...editorBrowserLaunchConfigDefaults, ...config };
   }
 
   protected getType() {
-    return DebugType.CodeBrowser as const;
+    return DebugType.EditorBrowser as const;
   }
 
-  protected getSuggestedWorkspaceFolders(config: AnyCodeBrowserConfiguration) {
+  protected getSuggestedWorkspaceFolders(config: AnyEditorBrowserConfiguration) {
     return [config.rootPath, config.webRoot];
   }
 }

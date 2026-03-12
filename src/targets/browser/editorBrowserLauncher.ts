@@ -13,17 +13,17 @@ import { ISourcePathResolver } from '../../common/sourcePathResolver';
 import {
   AnyChromiumConfiguration,
   AnyLaunchConfiguration,
-  ICodeBrowserLaunchConfiguration,
+  IEditorBrowserLaunchConfiguration,
 } from '../../configuration';
 import { browserLaunchFailed } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
 import { VSCodeApi } from '../../ioc-extras';
 import { ILaunchContext, ILauncher, ILaunchResult, IStopMetadata, ITarget } from '../targets';
 import { BrowserTargetManager } from './browserTargetManager';
-import { CodeBrowserSessionTransport } from './codeBrowserSessionTransport';
+import { EditorBrowserSessionTransport } from './editorBrowserSessionTransport';
 
 @injectable()
-export class CodeBrowserLauncher implements ILauncher {
+export class EditorBrowserLauncher implements ILauncher {
   private _targetManager: BrowserTargetManager | undefined;
   private _onTerminatedEmitter = new EventEmitter<IStopMetadata>();
   readonly onTerminated = this._onTerminatedEmitter.event;
@@ -47,7 +47,7 @@ export class CodeBrowserLauncher implements ILauncher {
     params: AnyLaunchConfiguration,
     context: ILaunchContext,
   ): Promise<ILaunchResult> {
-    if (params.type !== DebugType.CodeBrowser || params.request !== 'launch') {
+    if (params.type !== DebugType.EditorBrowser || params.request !== 'launch') {
       return { blockSessionTermination: false };
     }
 
@@ -65,7 +65,7 @@ export class CodeBrowserLauncher implements ILauncher {
       );
     }
 
-    const launchParams = params as ICodeBrowserLaunchConfiguration;
+    const launchParams = params as IEditorBrowserLaunchConfiguration;
     const url = launchParams.url;
     if (!url) {
       throw new ProtocolError(
@@ -78,7 +78,7 @@ export class CodeBrowserLauncher implements ILauncher {
     const tab = await vscodeWindow.openBrowserTab(url);
     const session = await tab.startCDPSession();
 
-    const transport = new CodeBrowserSessionTransport(session);
+    const transport = new EditorBrowserSessionTransport(session);
     const connection = new Connection(transport, this.logger, context.telemetryReporter);
 
     connection.onDisconnected(() => {

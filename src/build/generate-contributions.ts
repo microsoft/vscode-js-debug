@@ -25,19 +25,19 @@ import {
   breakpointLanguages,
   chromeAttachConfigDefaults,
   chromeLaunchConfigDefaults,
-  codeBrowserAttachConfigDefaults,
-  codeBrowserLaunchConfigDefaults,
   edgeAttachConfigDefaults,
   edgeLaunchConfigDefaults,
+  editorBrowserAttachConfigDefaults,
+  editorBrowserLaunchConfigDefaults,
   extensionHostConfigDefaults,
   IBaseConfiguration,
   IChromeAttachConfiguration,
   IChromeLaunchConfiguration,
   IChromiumBaseConfiguration,
-  ICodeBrowserAttachConfiguration,
-  ICodeBrowserLaunchConfiguration,
   IEdgeAttachConfiguration,
   IEdgeLaunchConfiguration,
+  IEditorBrowserAttachConfiguration,
+  IEditorBrowserLaunchConfiguration,
   IExtensionHostLaunchConfiguration,
   IMandatedConfiguration,
   INodeAttachConfiguration,
@@ -108,7 +108,7 @@ const forAnyDebugType = (contextKey: string, andExpr?: string) =>
 
 const forBrowserDebugType = (contextKey: string, andExpr?: string) =>
   forSomeContextKeys(
-    [DebugType.Chrome, DebugType.Edge, DebugType.CodeBrowser],
+    [DebugType.Chrome, DebugType.Edge, DebugType.EditorBrowser],
     contextKey,
     andExpr,
   );
@@ -1104,18 +1104,18 @@ const edgeAttachConfig: IDebugger<IEdgeAttachConfiguration> = {
   defaults: edgeAttachConfigDefaults,
 };
 
-const codeBrowserLaunchConfig: IDebugger<ICodeBrowserLaunchConfiguration> = {
-  type: DebugType.CodeBrowser,
+const editorBrowserLaunchConfig: IDebugger<IEditorBrowserLaunchConfiguration> = {
+  type: DebugType.EditorBrowser,
   request: 'launch',
-  label: refString('codeBrowser.label'),
+  label: refString('editorBrowser.label'),
   languages: browserLanguages,
   when: '!isWeb',
   configurationSnippets: [
     {
-      label: refString('codeBrowser.launch.label'),
-      description: refString('codeBrowser.launch.description'),
+      label: refString('editorBrowser.launch.label'),
+      description: refString('editorBrowser.launch.description'),
       body: {
-        type: DebugType.CodeBrowser,
+        type: DebugType.EditorBrowser,
         request: 'launch',
         name: 'Launch Integrated Browser',
         url: 'http://localhost:8080',
@@ -1133,21 +1133,21 @@ const codeBrowserLaunchConfig: IDebugger<ICodeBrowserLaunchConfiguration> = {
     },
   },
   required: ['url'],
-  defaults: codeBrowserLaunchConfigDefaults,
+  defaults: editorBrowserLaunchConfigDefaults,
 };
 
-const codeBrowserAttachConfig: IDebugger<ICodeBrowserAttachConfiguration> = {
-  type: DebugType.CodeBrowser,
+const editorBrowserAttachConfig: IDebugger<IEditorBrowserAttachConfiguration> = {
+  type: DebugType.EditorBrowser,
   request: 'attach',
-  label: refString('codeBrowser.label'),
+  label: refString('editorBrowser.label'),
   languages: browserLanguages,
   when: '!isWeb',
   configurationSnippets: [
     {
-      label: refString('codeBrowser.attach.label'),
-      description: refString('codeBrowser.attach.description'),
+      label: refString('editorBrowser.attach.label'),
+      description: refString('editorBrowser.attach.description'),
       body: {
-        type: DebugType.CodeBrowser,
+        type: DebugType.EditorBrowser,
         request: 'attach',
         name: 'Attach to Integrated Browser',
         webRoot: '^"${2:\\${workspaceFolder\\}}"',
@@ -1157,7 +1157,7 @@ const codeBrowserAttachConfig: IDebugger<ICodeBrowserAttachConfiguration> = {
   configurationAttributes: {
     ...chromiumBaseConfigurationAttributes,
   },
-  defaults: codeBrowserAttachConfigDefaults,
+  defaults: editorBrowserAttachConfigDefaults,
 };
 
 export const debuggers = [
@@ -1169,8 +1169,8 @@ export const debuggers = [
   chromeAttachConfig,
   edgeLaunchConfig,
   edgeAttachConfig,
-  codeBrowserLaunchConfig,
-  codeBrowserAttachConfig,
+  editorBrowserLaunchConfig,
+  editorBrowserAttachConfig,
 ];
 
 function buildDebuggers() {

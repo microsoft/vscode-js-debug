@@ -10,7 +10,7 @@ import { HrTime } from '../../common/hrnow';
 /**
  * A CDP transport that wraps a VS Code BrowserCDPSession.
  */
-export class CodeBrowserSessionTransport implements ITransport {
+export class EditorBrowserSessionTransport implements ITransport {
   private readonly messageEmitter = new EventEmitter<[string, HrTime]>();
   private readonly endEmitter = new EventEmitter<void>();
 

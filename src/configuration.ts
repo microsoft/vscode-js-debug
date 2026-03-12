@@ -762,8 +762,8 @@ export interface IEdgeAttachConfiguration extends IChromiumAttachConfiguration {
 /**
  * Configuration to launch a VS Code integrated browser.
  */
-export interface ICodeBrowserLaunchConfiguration extends IChromiumBaseConfiguration {
-  type: DebugType.CodeBrowser;
+export interface IEditorBrowserLaunchConfiguration extends IChromiumBaseConfiguration {
+  type: DebugType.EditorBrowser;
   request: 'launch';
   url: string;
 }
@@ -771,8 +771,8 @@ export interface ICodeBrowserLaunchConfiguration extends IChromiumBaseConfigurat
 /**
  * Configuration to attach to VS Code integrated browsers.
  */
-export interface ICodeBrowserAttachConfiguration extends IChromiumBaseConfiguration {
-  type: DebugType.CodeBrowser;
+export interface IEditorBrowserAttachConfiguration extends IChromiumBaseConfiguration {
+  type: DebugType.EditorBrowser;
   request: 'attach';
 }
 
@@ -794,16 +794,16 @@ export type AnyNodeConfiguration =
   | ITerminalDelegateConfiguration;
 export type AnyChromeConfiguration = IChromeAttachConfiguration | IChromeLaunchConfiguration;
 export type AnyEdgeConfiguration = IEdgeAttachConfiguration | IEdgeLaunchConfiguration;
-export type AnyCodeBrowserConfiguration =
-  | ICodeBrowserAttachConfiguration
-  | ICodeBrowserLaunchConfiguration;
+export type AnyEditorBrowserConfiguration =
+  | IEditorBrowserAttachConfiguration
+  | IEditorBrowserLaunchConfiguration;
 export type AnyChromiumLaunchConfiguration = IEdgeLaunchConfiguration | IChromeLaunchConfiguration;
 export type AnyChromiumAttachConfiguration = IEdgeAttachConfiguration | IChromeAttachConfiguration;
 export type AnyChromiumConfiguration = AnyEdgeConfiguration | AnyChromeConfiguration;
 export type AnyLaunchConfiguration =
   | AnyChromiumConfiguration
   | AnyNodeConfiguration
-  | AnyCodeBrowserConfiguration;
+  | AnyEditorBrowserConfiguration;
 export type AnyTerminalConfiguration =
   | ITerminalDelegateConfiguration
   | ITerminalLaunchConfiguration;
@@ -832,7 +832,9 @@ export type ResolvingNodeConfiguration =
   | ResolvingNodeLaunchConfiguration;
 export type ResolvingChromeConfiguration = ResolvingConfiguration<AnyChromeConfiguration>;
 export type ResolvingEdgeConfiguration = ResolvingConfiguration<AnyEdgeConfiguration>;
-export type ResolvingCodeBrowserConfiguration = ResolvingConfiguration<AnyCodeBrowserConfiguration>;
+export type ResolvingEditorBrowserConfiguration = ResolvingConfiguration<
+  AnyEditorBrowserConfiguration
+>;
 export type AnyResolvingConfiguration =
   | ResolvingExtensionHostConfiguration
   | ResolvingChromeConfiguration
@@ -840,7 +842,7 @@ export type AnyResolvingConfiguration =
   | ResolvingNodeLaunchConfiguration
   | ResolvingTerminalConfiguration
   | ResolvingEdgeConfiguration
-  | ResolvingCodeBrowserConfiguration;
+  | ResolvingEditorBrowserConfiguration;
 
 export const AnyLaunchConfiguration = Symbol('AnyLaunchConfiguration');
 
@@ -1002,7 +1004,7 @@ export const edgeLaunchConfigDefaults: IEdgeLaunchConfiguration = {
   useWebView: false,
 };
 
-const codeBrowserBaseDefaults: IChromiumBaseConfiguration = {
+const editorBrowserBaseDefaults: IChromiumBaseConfiguration = {
   ...baseDefaults,
   disableNetworkCache: true,
   pathMapping: {},
@@ -1015,15 +1017,15 @@ const codeBrowserBaseDefaults: IChromiumBaseConfiguration = {
   perScriptSourcemaps: 'auto',
 };
 
-export const codeBrowserAttachConfigDefaults: ICodeBrowserAttachConfiguration = {
-  ...codeBrowserBaseDefaults,
-  type: DebugType.CodeBrowser,
+export const editorBrowserAttachConfigDefaults: IEditorBrowserAttachConfiguration = {
+  ...editorBrowserBaseDefaults,
+  type: DebugType.EditorBrowser,
   request: 'attach',
 };
 
-export const codeBrowserLaunchConfigDefaults: ICodeBrowserLaunchConfiguration = {
-  ...codeBrowserBaseDefaults,
-  type: DebugType.CodeBrowser,
+export const editorBrowserLaunchConfigDefaults: IEditorBrowserLaunchConfiguration = {
+  ...editorBrowserBaseDefaults,
+  type: DebugType.EditorBrowser,
   request: 'launch',
   url: 'http://localhost:8080',
 };
@@ -1098,12 +1100,12 @@ export function applyEdgeDefaults(
     : { ...edgeLaunchConfigDefaults, browserLaunchLocation: browserLocation, ...config };
 }
 
-export function applyCodeBrowserDefaults(
-  config: ResolvingCodeBrowserConfiguration,
-): AnyCodeBrowserConfiguration {
+export function applyEditorBrowserDefaults(
+  config: ResolvingEditorBrowserConfiguration,
+): AnyEditorBrowserConfiguration {
   return config.request === 'attach'
-    ? { ...codeBrowserAttachConfigDefaults, ...config }
-    : { ...codeBrowserLaunchConfigDefaults, ...config };
+    ? { ...editorBrowserAttachConfigDefaults, ...config }
+    : { ...editorBrowserLaunchConfigDefaults, ...config };
 }
 
 export function applyExtensionHostDefaults(
@@ -1148,8 +1150,8 @@ export function applyDefaults(
     case DebugType.Terminal:
       configWithDefaults = applyTerminalDefaults(config);
       break;
-    case DebugType.CodeBrowser:
-      configWithDefaults = applyCodeBrowserDefaults(config);
+    case DebugType.EditorBrowser:
+      configWithDefaults = applyEditorBrowserDefaults(config);
       break;
     default:
       throw assertNever(config, 'Unknown config: {value}');

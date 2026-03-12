@@ -16,10 +16,10 @@ import { ProtocolError } from '../../dap/protocolError';
 import { VSCodeApi } from '../../ioc-extras';
 import { ILaunchContext, ILauncher, ILaunchResult, IStopMetadata, ITarget } from '../targets';
 import { BrowserTargetManager } from './browserTargetManager';
-import { CodeBrowserSessionTransport } from './codeBrowserSessionTransport';
+import { EditorBrowserSessionTransport } from './editorBrowserSessionTransport';
 
 @injectable()
-export class CodeBrowserAttacher implements ILauncher {
+export class EditorBrowserAttacher implements ILauncher {
   private _targetManager: BrowserTargetManager | undefined;
   private _onTerminatedEmitter = new EventEmitter<IStopMetadata>();
   readonly onTerminated = this._onTerminatedEmitter.event;
@@ -43,7 +43,7 @@ export class CodeBrowserAttacher implements ILauncher {
     params: AnyLaunchConfiguration,
     context: ILaunchContext,
   ): Promise<ILaunchResult> {
-    if (params.type !== DebugType.CodeBrowser || params.request !== 'attach') {
+    if (params.type !== DebugType.EditorBrowser || params.request !== 'attach') {
       return { blockSessionTermination: false };
     }
 
@@ -176,7 +176,7 @@ export class CodeBrowserAttacher implements ILauncher {
 
     const session = await tab.startCDPSession();
 
-    const transport = new CodeBrowserSessionTransport(session);
+    const transport = new EditorBrowserSessionTransport(session);
     const connection = new Connection(transport, this.logger, context.telemetryReporter);
 
     connection.onDisconnected(() => {

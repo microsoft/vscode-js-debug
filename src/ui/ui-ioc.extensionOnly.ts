@@ -12,6 +12,8 @@ import {
   trackDispose,
   VSCodeApi,
 } from '../ioc-extras';
+import { EditorBrowserAttacher } from '../targets/browser/editorBrowserAttacher';
+import { EditorBrowserLauncher } from '../targets/browser/editorBrowserLauncher';
 import { TerminalNodeLauncher } from '../targets/node/terminalNodeLauncher';
 import { ILauncher } from '../targets/targets';
 import { IExperimentationService } from '../telemetry/experimentationService';
@@ -110,6 +112,8 @@ export const registerUiComponents = (container: Container) => {
 
 export const registerTopLevelSessionComponents = (container: Container) => {
   container.bind(ILauncher).to(TerminalNodeLauncher).onActivation(trackDispose);
+  container.bind(ILauncher).to(EditorBrowserLauncher).onActivation(trackDispose);
+  container.bind(ILauncher).to(EditorBrowserAttacher).onActivation(trackDispose);
 
   // request options:
   container.bind(IRequestOptionsProvider).to(SettingRequestOptionsProvider).inSingletonScope();

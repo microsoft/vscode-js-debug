@@ -82,7 +82,7 @@ export const enum DebugType {
   Node = 'pwa-node',
   Chrome = 'pwa-chrome',
   Edge = 'pwa-msedge',
-  CodeBrowser = 'pwa-code-browser',
+  EditorBrowser = 'pwa-editor-browser',
 }
 
 export const preferredDebugTypes: ReadonlyMap<DebugType, string> = new Map([
@@ -90,7 +90,7 @@ export const preferredDebugTypes: ReadonlyMap<DebugType, string> = new Map([
   [DebugType.Chrome, 'chrome'],
   [DebugType.ExtensionHost, 'extensionHost'],
   [DebugType.Edge, 'msedge'],
-  [DebugType.CodeBrowser, 'code-browser'],
+  [DebugType.EditorBrowser, 'editor-browser'],
 ]);
 
 export const getPreferredOrDebugType = <T extends DebugType>(t: T) =>
@@ -103,7 +103,7 @@ const debugTypes: { [K in DebugType]: null } = {
   [DebugType.Node]: null,
   [DebugType.Chrome]: null,
   [DebugType.Edge]: null,
-  [DebugType.CodeBrowser]: null,
+  [DebugType.EditorBrowser]: null,
 };
 
 const commandsObj: { [K in Commands]: null } = {

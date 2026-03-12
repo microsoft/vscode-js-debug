@@ -438,7 +438,7 @@
 ]</pre></code><h4>webRoot</h4><p>This specifies the workspace absolute path to the webserver root. Used to resolve paths like <code>/app.js</code> to files on disk. Shorthand for a pathMapping for &quot;/&quot;</p>
 <h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code></details>
 
-### code-browser: launch
+### editor-browser: launch
 
 <details><h4>cascadeTerminateToConfigurations</h4><p>A list of debug sessions which, when this debug session is terminated, will also be stopped.</p>
 <h5>Default value:</h4><pre><code>[]</pre></code><h4>customDescriptionGenerator</h4><p>Customize the textual description the debugger shows for objects (local variables, etc...). Samples:<br>      1. this.toString() // will call toString to print all objects<br>      2. this.customDescription ? this.customDescription() : defaultValue // Use customDescription method if available, if not return defaultValue<br>      3. function (def) { return this.customDescription ? this.customDescription() : def } // Use customDescription method if available, if not return defaultValue<br>      </p>
@@ -483,7 +483,7 @@
 ]</pre></code><h4>webRoot</h4><p>This specifies the workspace absolute path to the webserver root. Used to resolve paths like <code>/app.js</code> to files on disk. Shorthand for a pathMapping for &quot;/&quot;</p>
 <h5>Default value:</h4><pre><code>"${workspaceFolder}"</pre></code></details>
 
-### code-browser: attach
+### editor-browser: attach
 
 <details><h4>cascadeTerminateToConfigurations</h4><p>A list of debug sessions which, when this debug session is terminated, will also be stopped.</p>
 <h5>Default value:</h4><pre><code>[]</pre></code><h4>customDescriptionGenerator</h4><p>Customize the textual description the debugger shows for objects (local variables, etc...). Samples:<br>      1. this.toString() // will call toString to print all objects<br>      2. this.customDescription ? this.customDescription() : defaultValue // Use customDescription method if available, if not return defaultValue<br>      3. function (def) { return this.customDescription ? this.customDescription() : def } // Use customDescription method if available, if not return defaultValue<br>      </p>
