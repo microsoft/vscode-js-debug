@@ -10,7 +10,12 @@ import { DebugType } from '../../common/contributionUtils';
 import { EventEmitter } from '../../common/events';
 import { ILogger } from '../../common/logging';
 import { ISourcePathResolver } from '../../common/sourcePathResolver';
-import { AnyChromiumConfiguration, AnyLaunchConfiguration } from '../../configuration';
+import { createTargetFilter } from '../../common/urlUtils';
+import {
+  AnyChromiumConfiguration,
+  AnyLaunchConfiguration,
+  IEditorBrowserAttachConfiguration,
+} from '../../configuration';
 import { browserAttachFailed } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
 import { VSCodeApi } from '../../ioc-extras';
@@ -61,15 +66,27 @@ export class EditorBrowserAttacher implements ILauncher {
       );
     }
 
+    const attachParams = params as IEditorBrowserAttachConfiguration;
+    const urlFilter = attachParams.urlFilter;
+
+    if (urlFilter) {
+      const matchesUrl = createTargetFilter(urlFilter);
+      const matchingTabs = browserTabs.filter(tab => matchesUrl(tab.url));
+      if (matchingTabs.length === 1) {
+        return this.attachToTab(matchingTabs[0], params, context);
+      }
+    }
+
     type BrowserPickItem = vscodeType.QuickPickItem & {
       tab?: vscodeType.BrowserTab;
       openNew?: true;
     };
 
     const buildItems = (): BrowserPickItem[] => {
+      const matchesUrl = urlFilter ? createTargetFilter(urlFilter) : undefined;
       const activeBrowserTab = vscodeWindow.activeBrowserTab;
       const items: BrowserPickItem[] = [];
-      if (activeBrowserTab) {
+      if (activeBrowserTab && (!matchesUrl || matchesUrl(activeBrowserTab.url))) {
         items.push({ label: l10n.t('Active'), kind: vscode.QuickPickItemKind.Separator });
         items.push({
           label: activeBrowserTab.title,
@@ -79,7 +96,8 @@ export class EditorBrowserAttacher implements ILauncher {
         });
       }
 
-      const otherTabs = (vscodeWindow.browserTabs ?? []).filter(tab => tab !== activeBrowserTab);
+      const otherTabs = (vscodeWindow.browserTabs ?? [])
+        .filter(tab => tab !== activeBrowserTab && (!matchesUrl || matchesUrl(tab.url)));
       if (otherTabs.length > 0) {
         items.push({ label: l10n.t('Other'), kind: vscode.QuickPickItemKind.Separator });
         for (const tab of otherTabs) {
@@ -174,6 +192,14 @@ export class EditorBrowserAttacher implements ILauncher {
       tab = selected.tab!;
     }
 
+    return this.attachToTab(tab, params, context);
+  }
+
+  private async attachToTab(
+    tab: vscodeType.BrowserTab,
+    params: AnyLaunchConfiguration,
+    context: ILaunchContext,
+  ): Promise<ILaunchResult> {
     const session = await tab.startCDPSession();
 
     const transport = new EditorBrowserSessionTransport(session);
