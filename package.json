@@ -155,7 +155,8 @@
   "enabledApiProposals": [
     "portsAttributes",
     "workspaceTrust",
-    "tunnels"
+    "tunnels",
+    "browser"
   ],
   "extensionKind": [
     "workspace"

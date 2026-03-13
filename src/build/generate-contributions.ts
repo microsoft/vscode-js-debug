@@ -27,6 +27,8 @@ import {
   chromeLaunchConfigDefaults,
   edgeAttachConfigDefaults,
   edgeLaunchConfigDefaults,
+  editorBrowserAttachConfigDefaults,
+  editorBrowserLaunchConfigDefaults,
   extensionHostConfigDefaults,
   IBaseConfiguration,
   IChromeAttachConfiguration,
@@ -34,6 +36,8 @@ import {
   IChromiumBaseConfiguration,
   IEdgeAttachConfiguration,
   IEdgeLaunchConfiguration,
+  IEditorBrowserAttachConfiguration,
+  IEditorBrowserLaunchConfiguration,
   IExtensionHostLaunchConfiguration,
   IMandatedConfiguration,
   INodeAttachConfiguration,
@@ -103,7 +107,11 @@ const forAnyDebugType = (contextKey: string, andExpr?: string) =>
   forSomeContextKeys(allDebugTypes, contextKey, andExpr);
 
 const forBrowserDebugType = (contextKey: string, andExpr?: string) =>
-  forSomeContextKeys([DebugType.Chrome, DebugType.Edge], contextKey, andExpr);
+  forSomeContextKeys(
+    [DebugType.Chrome, DebugType.Edge, DebugType.EditorBrowser],
+    contextKey,
+    andExpr,
+  );
 
 const forNodeDebugType = (contextKey: string, andExpr?: string) =>
   forSomeContextKeys([DebugType.Node, DebugType.ExtensionHost, 'node'], contextKey, andExpr);
@@ -137,6 +145,7 @@ interface IDebugger<T extends AnyLaunchConfiguration> {
   configurationAttributes: ConfigurationAttributes<T>;
   defaults: T;
   strings?: { unverifiedBreakpoints?: string };
+  when?: string;
 }
 
 const commonLanguages = ['javascript', 'typescript', 'javascriptreact', 'typescriptreact'];
@@ -1095,6 +1104,62 @@ const edgeAttachConfig: IDebugger<IEdgeAttachConfiguration> = {
   defaults: edgeAttachConfigDefaults,
 };
 
+const editorBrowserLaunchConfig: IDebugger<IEditorBrowserLaunchConfiguration> = {
+  type: DebugType.EditorBrowser,
+  request: 'launch',
+  label: refString('editorBrowser.label'),
+  languages: browserLanguages,
+  when: '!isWeb',
+  configurationSnippets: [
+    {
+      label: refString('editorBrowser.launch.label'),
+      description: refString('editorBrowser.launch.description'),
+      body: {
+        type: DebugType.EditorBrowser,
+        request: 'launch',
+        name: 'Launch Integrated Browser',
+        url: 'http://localhost:8080',
+        webRoot: '^"${2:\\${workspaceFolder\\}}"',
+      },
+    },
+  ],
+  configurationAttributes: {
+    ...chromiumBaseConfigurationAttributes,
+    url: {
+      type: 'string',
+      description: refString('browser.url.description'),
+      default: 'http://localhost:8080',
+      tags: [Tag.Setup],
+    },
+  },
+  required: ['url'],
+  defaults: editorBrowserLaunchConfigDefaults,
+};
+
+const editorBrowserAttachConfig: IDebugger<IEditorBrowserAttachConfiguration> = {
+  type: DebugType.EditorBrowser,
+  request: 'attach',
+  label: refString('editorBrowser.label'),
+  languages: browserLanguages,
+  when: '!isWeb',
+  configurationSnippets: [
+    {
+      label: refString('editorBrowser.attach.label'),
+      description: refString('editorBrowser.attach.description'),
+      body: {
+        type: DebugType.EditorBrowser,
+        request: 'attach',
+        name: 'Attach to Integrated Browser',
+        webRoot: '^"${2:\\${workspaceFolder\\}}"',
+      },
+    },
+  ],
+  configurationAttributes: {
+    ...chromiumBaseConfigurationAttributes,
+  },
+  defaults: editorBrowserAttachConfigDefaults,
+};
+
 export const debuggers = [
   nodeAttachConfig,
   nodeLaunchConfig,
@@ -1104,6 +1169,8 @@ export const debuggers = [
   chromeAttachConfig,
   edgeLaunchConfig,
   edgeAttachConfig,
+  editorBrowserLaunchConfig,
+  editorBrowserAttachConfig,
 ];
 
 function buildDebuggers() {
