@@ -17,6 +17,7 @@ parameters:
 extends:
   template: azure-pipelines/extension/pre-release.yml@templates
   parameters:
+    publishExtension: ${{ parameters.publishExtension }}
     usePreReleaseChannel: false
     vscePackageArgs: --no-dependencies
     cgIgnoreDirectories: 'testdata,demos,.vscode-test,src/test,testWorkspace'
