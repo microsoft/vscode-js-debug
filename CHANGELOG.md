@@ -6,6 +6,12 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 Nothing, yet
 
+## 1.112 (March 2026)
+
+- feat: support debugging integrated browser ([#2329](https://github.com/microsoft/vscode-js-debug/pull/2329))
+- fix: filter empty string args to prevent node from hanging ([#2328](https://github.com/microsoft/vscode-js-debug/issues/2328))
+- fix: debug session not terminating when browser closed from elevated VS ([#2327](https://github.com/microsoft/vscode-js-debug/issues/2327))
+
 ## 1.110 (February 2026)
 
 - feat: add `Symbol.for("debug.properties")` for custom property replacement in debugger ([vscode#102181](https://github.com/microsoft/vscode/issues/102181))
