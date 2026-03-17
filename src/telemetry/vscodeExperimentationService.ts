@@ -52,10 +52,7 @@ export class VSCodeExperimentationService implements IJsDebugExpService, IDispos
   }
 
   dispose(): void {
-    // See microsoft/tas-client#74
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const polling = (this.service as any)?.pollingService;
-    polling?.StopPolling();
+    this.service?.dispose();
   }
 
   /**
