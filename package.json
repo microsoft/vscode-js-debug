@@ -149,7 +149,7 @@
     "ts-node": "^10.9.2",
     "tsx": "^4.20.3",
     "typescript": "^5.5.2",
-    "vsce": "^2.7.0"
+    "@vscode/vsce": "^3.7.1"
   },
   "main": "./src/extension.js",
   "enabledApiProposals": [
@@ -160,5 +160,8 @@
   ],
   "extensionKind": [
     "workspace"
-  ]
+  ],
+  "overrides": {
+    "serialize-javascript": ">=7.0.5"
+  }
 }
