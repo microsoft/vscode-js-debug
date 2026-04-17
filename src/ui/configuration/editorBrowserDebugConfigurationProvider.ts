@@ -2,15 +2,20 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import * as l10n from '@vscode/l10n';
 import { injectable } from 'inversify';
+import { basename } from 'path';
 import * as vscode from 'vscode';
 import { DebugType } from '../../common/contributionUtils';
 import {
   AnyEditorBrowserConfiguration,
   editorBrowserAttachConfigDefaults,
   editorBrowserLaunchConfigDefaults,
+  IEditorBrowserLaunchConfiguration,
+  ResolvingConfiguration,
   ResolvingEditorBrowserConfiguration,
 } from '../../configuration';
+import { BaseConfigurationProvider } from './baseConfigurationProvider';
 import { BaseConfigurationResolver } from './baseConfigurationResolver';
 
 /**
@@ -48,5 +53,49 @@ export class EditorBrowserDebugConfigurationResolver
 
   protected getSuggestedWorkspaceFolders(config: AnyEditorBrowserConfiguration) {
     return [config.rootPath, config.webRoot];
+  }
+}
+
+@injectable()
+export class EditorBrowserDebugConfigurationProvider
+  extends BaseConfigurationProvider<IEditorBrowserLaunchConfiguration>
+{
+  protected getType() {
+    return DebugType.EditorBrowser as const;
+  }
+
+  protected getTriggerKind() {
+    return vscode.DebugConfigurationProviderTriggerKind.Initial;
+  }
+
+  protected provide(): ResolvingConfiguration<IEditorBrowserLaunchConfiguration> {
+    return this.createLaunchConfigFromContext() || this.getDefaultLaunch();
+  }
+
+  public createLaunchConfigFromContext():
+    | ResolvingConfiguration<IEditorBrowserLaunchConfiguration>
+    | undefined
+  {
+    const editor = vscode.window.activeTextEditor;
+    if (editor && editor.document.languageId === 'html') {
+      return {
+        type: this.getType(),
+        request: 'launch',
+        name: `Open ${basename(editor.document.uri.fsPath)}`,
+        url: editor.document.uri.toString(),
+      } as ResolvingConfiguration<IEditorBrowserLaunchConfiguration>;
+    }
+
+    return undefined;
+  }
+
+  private getDefaultLaunch(): ResolvingConfiguration<IEditorBrowserLaunchConfiguration> {
+    return {
+      type: this.getType(),
+      request: 'launch',
+      name: l10n.t('Launch Integrated Browser against localhost'),
+      url: 'http://localhost:8080',
+      webRoot: '${workspaceFolder}',
+    } as ResolvingConfiguration<IEditorBrowserLaunchConfiguration>;
   }
 }
