@@ -1328,6 +1328,11 @@ const configurationSchema: ConfigurationAttributes<IConfigurationTypes> = {
     default: true,
     description: refString('configuration.enableNetworkView'),
   },
+  [Configuration.ResolveDebugEntrypoint]: {
+    type: 'boolean',
+    default: true,
+    markdownDescription: refString('configuration.resolveDebugEntrypoint'),
+  },
 };
 
 const commands: ReadonlyArray<{
