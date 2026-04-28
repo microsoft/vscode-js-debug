@@ -11,7 +11,10 @@ import {
   EdgeDebugConfigurationProvider,
   EdgeDebugConfigurationResolver,
 } from './edgeDebugConfigurationProvider';
-import { EditorBrowserDebugConfigurationResolver } from './editorBrowserDebugConfigurationProvider';
+import {
+  EditorBrowserDebugConfigurationProvider,
+  EditorBrowserDebugConfigurationResolver,
+} from './editorBrowserDebugConfigurationProvider';
 import { ExtensionHostConfigurationResolver } from './extensionHostConfigurationResolver';
 import {
   NodeDynamicDebugConfigurationProvider,
@@ -32,6 +35,7 @@ export const allConfigurationResolvers = [
 export const allConfigurationProviders = [
   ChromeDebugConfigurationProvider,
   EdgeDebugConfigurationProvider,
+  EditorBrowserDebugConfigurationProvider,
   NodeInitialDebugConfigurationProvider,
   NodeDynamicDebugConfigurationProvider,
 ];

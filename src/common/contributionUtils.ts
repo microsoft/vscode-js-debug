@@ -181,6 +181,7 @@ export const enum Configuration {
   DefaultRuntimeExecutables = 'debug.javascript.defaultRuntimeExecutable',
   ResourceRequestOptions = 'debug.javascript.resourceRequestOptions',
   EnableNetworkView = 'debug.javascript.enableNetworkView',
+  ResolveDebugEntrypoint = 'debug.javascript.resolveDebugEntrypoint',
 }
 
 export type DebugByLinkState = 'on' | 'off' | 'always';
@@ -203,6 +204,7 @@ export interface IConfigurationTypes {
   [Configuration.DefaultRuntimeExecutables]: { [K in DebugType]?: string };
   [Configuration.ResourceRequestOptions]: Partial<OptionsOfBufferResponseBody>;
   [Configuration.EnableNetworkView]: boolean;
+  [Configuration.ResolveDebugEntrypoint]: boolean;
 }
 
 export interface IStackFrameContext {

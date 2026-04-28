@@ -10,6 +10,7 @@ import { DebugType } from '../../common/contributionUtils';
 import { EventEmitter } from '../../common/events';
 import { ILogger } from '../../common/logging';
 import { ISourcePathResolver } from '../../common/sourcePathResolver';
+import { requirePageTarget } from '../../common/urlUtils';
 import {
   AnyChromiumConfiguration,
   AnyLaunchConfiguration,
@@ -20,6 +21,7 @@ import { ProtocolError } from '../../dap/protocolError';
 import { VSCodeApi } from '../../ioc-extras';
 import { ILaunchContext, ILauncher, ILaunchResult, IStopMetadata, ITarget } from '../targets';
 import { BrowserTargetManager } from './browserTargetManager';
+import { BrowserTargetType } from './browserTargets';
 import { EditorBrowserSessionTransport } from './editorBrowserSessionTransport';
 
 @injectable()
@@ -75,7 +77,10 @@ export class EditorBrowserLauncher implements ILauncher {
       );
     }
 
-    const tab = await vscodeWindow.openBrowserTab(url);
+    // Open the browser tab to about:blank first, then attach the debugger
+    // before navigating to the target URL. This mirrors the Chrome/Edge launch
+    // flow and ensures early breakpoints and on-load scripts are captured.
+    const tab = await vscodeWindow.openBrowserTab('');
     const session = await tab.startCDPSession();
 
     const transport = new EditorBrowserSessionTransport(session);
@@ -92,7 +97,7 @@ export class EditorBrowserLauncher implements ILauncher {
       connection,
       undefined,
       this.pathResolver,
-      launchParams as unknown as AnyChromiumConfiguration,
+      { ...launchParams, cleanUp: 'wholeBrowser' } as unknown as AnyChromiumConfiguration,
       this.logger,
       context.telemetryReporter,
       context.targetOrigin,
@@ -116,7 +121,15 @@ export class EditorBrowserLauncher implements ILauncher {
       }
     });
 
-    await targetManager.waitForMainTarget();
+    const mainTarget = await targetManager.waitForMainTarget(
+      requirePageTarget(t => t.type === BrowserTargetType.Page),
+    );
+
+    // Navigate to the user's URL after the debugger is attached, matching
+    // the finishLaunch() behavior in BrowserLauncher for Chrome/Edge.
+    if (mainTarget) {
+      await mainTarget.cdp().Page.navigate({ url });
+    }
 
     return { blockSessionTermination: true };
   }

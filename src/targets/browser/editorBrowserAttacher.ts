@@ -10,7 +10,7 @@ import { DebugType } from '../../common/contributionUtils';
 import { EventEmitter } from '../../common/events';
 import { ILogger } from '../../common/logging';
 import { ISourcePathResolver } from '../../common/sourcePathResolver';
-import { createTargetFilter } from '../../common/urlUtils';
+import { createTargetFilter, requirePageTarget } from '../../common/urlUtils';
 import {
   AnyChromiumConfiguration,
   AnyLaunchConfiguration,
@@ -21,6 +21,7 @@ import { ProtocolError } from '../../dap/protocolError';
 import { VSCodeApi } from '../../ioc-extras';
 import { ILaunchContext, ILauncher, ILaunchResult, IStopMetadata, ITarget } from '../targets';
 import { BrowserTargetManager } from './browserTargetManager';
+import { BrowserTargetType } from './browserTargets';
 import { EditorBrowserSessionTransport } from './editorBrowserSessionTransport';
 
 @injectable()
@@ -238,7 +239,9 @@ export class EditorBrowserAttacher implements ILauncher {
       }
     });
 
-    await targetManager.waitForMainTarget();
+    await targetManager.waitForMainTarget(
+      requirePageTarget(t => t.type === BrowserTargetType.Page),
+    );
 
     return { blockSessionTermination: true };
   }

@@ -6,6 +6,12 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 Nothing, yet
 
+## 1.117 (April 2026)
+
+- feat: add debug configuration provider for integrated browser ([#2347](https://github.com/microsoft/vscode-js-debug/pull/2347))
+- fix: capture early breakpoints when launching integrated browser ([#2347](https://github.com/microsoft/vscode-js-debug/pull/2347))
+- fix: prevent duplicate worker attachments in integrated browser ([#2347](https://github.com/microsoft/vscode-js-debug/pull/2347))
+
 ## 1.112 (March 2026)
 
 - feat: support debugging integrated browser ([#2329](https://github.com/microsoft/vscode-js-debug/pull/2329))

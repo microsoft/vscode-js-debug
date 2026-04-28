@@ -4,11 +4,12 @@
 
 import { inject, injectable, multiInject } from 'inversify';
 import { extname, resolve } from 'path';
+import * as vscode from 'vscode';
 import { IBreakpointsPredictor } from '../../adapter/breakpointPredictor';
 import { IPortLeaseTracker } from '../../adapter/portLeaseTracker';
 import Cdp from '../../cdp/api';
 import { asArray, iteratorFirst } from '../../common/arrayUtils';
-import { DebugType } from '../../common/contributionUtils';
+import { Configuration, DebugType, readConfig } from '../../common/contributionUtils';
 import { IFsUtils, LocalFsUtils } from '../../common/fsUtils';
 import { ILogger, LogTag } from '../../common/logging';
 import { fixDriveLetterAndSlashes } from '../../common/pathUtils';
@@ -309,6 +310,11 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
 
     const ext = extname(targetProgram);
     if (!ext || ext === '.js') {
+      return targetProgram;
+    }
+
+    const resolve = readConfig(vscode.workspace, Configuration.ResolveDebugEntrypoint);
+    if (!resolve) {
       return targetProgram;
     }
 
