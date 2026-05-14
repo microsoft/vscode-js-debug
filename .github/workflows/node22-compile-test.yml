@@ -1,0 +1,31 @@
+name: Node 22 Compile and Test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  compile-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Compile
+        run: npm run compile
+
+      - name: Test
+        run: xvfb-run -a npm test
+        env:
+          JSDBG_TEST_VERSION: insiders
+          JSDBG_USE_NODE_VERSION: '22'
