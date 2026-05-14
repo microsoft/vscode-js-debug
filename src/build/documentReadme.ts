@@ -9,6 +9,8 @@ import strings from '../../package.nls.json';
 import { getPreferredOrDebugType } from '../common/contributionUtils';
 import { debuggers, DescribedAttribute } from './generate-contributions.js';
 
+const nlsStrings = strings as Record<string, string | { message: string }>;
+
 (async () => {
   let out = `# Options\n\n`;
   for (const dbg of debuggers) {
@@ -27,7 +29,11 @@ import { debuggers, DescribedAttribute } from './generate-contributions.js';
       }
 
       const descriptionKey = descriptionKeyRaw.slice(1, -1);
-      const description = strings[descriptionKey].replace(/\n/g, '<br>');
+      const localized = nlsStrings[descriptionKey];
+      const description = (typeof localized === 'string' ? localized : localized?.message)?.replace(
+        /\n/g,
+        '<br>',
+      );
       if (!description) {
         continue;
       }
