@@ -19,8 +19,8 @@ const jszip = require('jszip');
 const stream = require('stream');
 
 const pipelineAsync = util.promisify(stream.pipeline);
-let gotPromise;
-const importGot = () => (gotPromise ??= import('got').then(mod => mod.default));
+let cachedGotImport;
+const getGotInstance = () => (cachedGotImport ??= import('got').then(mod => mod.default));
 
 const dirname = 'js-debug';
 const sources = ['src/**/*.{ts,tsx}'];
@@ -355,7 +355,7 @@ gulp.task('package:createVSIX', () =>
   }));
 
 gulp.task('l10n:bundle-download', async () => {
-  const got = await importGot();
+  const got = await getGotInstance();
   const opts = {};
   const proxy = process.env.https_proxy || process.env.HTTPS_PROXY || null;
   if (proxy) {
