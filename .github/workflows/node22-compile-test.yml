@@ -7,6 +7,8 @@ on:
 jobs:
   compile-and-test:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
 
     steps:
       - name: Checkout repository
