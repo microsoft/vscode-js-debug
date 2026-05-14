@@ -2,7 +2,11 @@ name: Node 22 Compile and Test
 
 on:
   push:
+    branches:
+      - main
   pull_request:
+    branches:
+      - main
 
 jobs:
   compile-and-test:
