@@ -19,8 +19,8 @@ const jszip = require('jszip');
 const stream = require('stream');
 
 const pipelineAsync = util.promisify(stream.pipeline);
-let cachedGotImport;
-const getGotInstance = () => (cachedGotImport ??= import('got').then(mod => mod.default));
+let cachedGotPromise;
+const getGotInstance = () => (cachedGotPromise ??= import('got').then(mod => mod.default));
 
 const dirname = 'js-debug';
 const sources = ['src/**/*.{ts,tsx}'];
