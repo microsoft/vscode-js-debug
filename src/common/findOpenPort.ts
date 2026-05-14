@@ -112,7 +112,7 @@ export const makeAcquireTcpServer =
  * @returns the listening server
  */
 export const makeAcquireWebSocketServer =
-  (options?: WebSocket.ServerOptions): PortTesterFn<WebSocket.Server> => (port, ct) =>
+  (options?: WebSocket.ServerOptions): PortTesterFn<WebSocket.WebSocketServer> => (port, ct) =>
     waitForServerToListen(
       new WebSocket.WebSocketServer({ host: '127.0.0.1', ...options, port }),
       ct,

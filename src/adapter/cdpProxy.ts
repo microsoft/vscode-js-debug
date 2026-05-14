@@ -241,7 +241,7 @@ export class CdpProxyProvider implements ICdpProxyProvider {
 
     this.logger.info(LogTag.ProxyActivity, 'activated cdp proxy');
 
-    server.on('connection', client => {
+    server.on('connection', (client: WebSocket) => {
       const clientHandle = new ClientHandle(client, this.logger);
       this.logger.info(LogTag.ProxyActivity, 'accepted proxy connection', {
         id: clientHandle.id,
@@ -254,7 +254,7 @@ export class CdpProxyProvider implements ICdpProxyProvider {
         this.disposables.disposeObject(clientHandle);
       });
 
-      client.on('message', async d => {
+      client.on('message', async (d: WebSocket.RawData) => {
         let message: CdpProtocol.ICommand;
         try {
           message = JSON.parse(d.toString());

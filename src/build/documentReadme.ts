@@ -27,7 +27,11 @@ import { debuggers, DescribedAttribute } from './generate-contributions.js';
       }
 
       const descriptionKey = descriptionKeyRaw.slice(1, -1);
-      const description = strings[descriptionKey].replace(/\n/g, '<br>');
+      const descriptionValue = strings[descriptionKey as keyof typeof strings];
+      const descriptionText = typeof descriptionValue === 'string'
+        ? descriptionValue
+        : descriptionValue?.message;
+      const description = descriptionText?.replace(/\n/g, '<br>');
       if (!description) {
         continue;
       }

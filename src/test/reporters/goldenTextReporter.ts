@@ -33,4 +33,4 @@ class GoldenTextReporter extends mocha.reporters.Spec {
 }
 
 // Must be default export
-export = GoldenTextReporter;
+export default GoldenTextReporter;
