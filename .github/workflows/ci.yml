@@ -32,9 +32,6 @@ jobs:
             only_minspec: false
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
-    env:
-      # TODO: Re-enable lint checks after current lint baseline failures are resolved.
-      DISABLE_LINT_FOR_NOW: 'true'
     permissions:
       contents: read
 
@@ -66,5 +63,5 @@ jobs:
         run: npm run test:types
 
       - name: Lint checking
-        if: ${{ env.DISABLE_LINT_FOR_NOW != 'true' && !matrix.only_minspec }}
+        if: ${{ !matrix.only_minspec }}
         run: npm run test:lint
