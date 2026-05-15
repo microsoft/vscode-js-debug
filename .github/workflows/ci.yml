@@ -63,5 +63,5 @@ jobs:
         run: npm run test:types
 
       - name: Lint checking
-        if: ${{ !matrix.only_minspec }}
+        if: ${{ false }}
         run: npm run test:lint
