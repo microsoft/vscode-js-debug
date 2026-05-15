@@ -59,7 +59,7 @@ jobs:
           JSDBG_TEST_VERSION: insiders
           DISPLAY: ':99.0'
 
-      - name: npm run test:types
+      - name: Type checking
         run: npm run test:types
 
       - name: gulp lint
