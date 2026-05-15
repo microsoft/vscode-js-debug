@@ -32,6 +32,8 @@ jobs:
             only_minspec: false
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
+    env:
+      ENABLE_LINT: 'false'
     permissions:
       contents: read
 
@@ -63,5 +65,5 @@ jobs:
         run: npm run test:types
 
       - name: Lint checking
-        if: ${{ false }}
+        if: ${{ env.ENABLE_LINT == 'true' && !matrix.only_minspec }}
         run: npm run test:lint
