@@ -51,7 +51,7 @@ jobs:
           echo ">>> Started xvfb"
 
       - name: npm install
-        run: npm install --legacy-peer-deps
+        run: npm ci --legacy-peer-deps
 
       - name: Test echo environment
         run: node -e "console.log(process.env.PATH)"
