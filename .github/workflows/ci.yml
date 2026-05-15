@@ -33,6 +33,7 @@ jobs:
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     env:
+      # TODO: Re-enable lint checks after current lint baseline failures are resolved.
       DISABLE_LINT_FOR_NOW: 'true'
     permissions:
       contents: read
