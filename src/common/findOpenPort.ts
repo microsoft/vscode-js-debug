@@ -4,7 +4,7 @@
 
 import * as net from 'net';
 import type { CancellationToken } from 'vscode';
-import { WebSocketServer, type ServerOptions } from 'ws';
+import { type ServerOptions, WebSocketServer } from 'ws';
 import { NeverCancelled, TaskCancelledError } from './cancellation';
 import { IDisposable } from './disposable';
 import { randomInRange } from './random';
