@@ -41,7 +41,10 @@ describe('cdp transport', () => {
         const address = server.address() as AddressInfo;
         const a = WebSocketTransport.create(`ws://127.0.0.1:${address.port}`, NeverCancelled);
         const b = new Promise<WebSocketTransport>((resolve, reject) => {
-          server.on('connection', (cnx: import('ws').WebSocket) => resolve(new WebSocketTransport(cnx)));
+          server.on(
+            'connection',
+            (cnx: import('ws').WebSocket) => resolve(new WebSocketTransport(cnx)),
+          );
           server.on('error', reject);
         });
 
