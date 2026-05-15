@@ -4,7 +4,7 @@
 
 import { randomBytes } from 'crypto';
 import { inject, injectable } from 'inversify';
-import WebSocket, { type RawData, type WebSocketServer } from 'ws';
+import WebSocket from 'ws';
 import { Cdp } from '../cdp/api';
 import { ICdpApi, ProtocolError } from '../cdp/connection';
 import { CdpProtocol } from '../cdp/protocol';
@@ -162,7 +162,7 @@ export const ICdpProxyProvider = Symbol('ICdpProxyProvider');
  */
 @injectable()
 export class CdpProxyProvider implements ICdpProxyProvider {
-  private server?: Promise<{ server: WebSocketServer; path: string }>;
+  private server?: Promise<{ server: WebSocket.Server; path: string }>;
   private readonly disposables = new DisposableList();
   private readonly replay = new DomainReplays();
 
@@ -241,7 +241,7 @@ export class CdpProxyProvider implements ICdpProxyProvider {
 
     this.logger.info(LogTag.ProxyActivity, 'activated cdp proxy');
 
-    server.on('connection', (client: WebSocket) => {
+    server.on('connection', client => {
       const clientHandle = new ClientHandle(client, this.logger);
       this.logger.info(LogTag.ProxyActivity, 'accepted proxy connection', {
         id: clientHandle.id,
@@ -254,7 +254,7 @@ export class CdpProxyProvider implements ICdpProxyProvider {
         this.disposables.disposeObject(clientHandle);
       });
 
-      client.on('message', async (d: RawData) => {
+      client.on('message', async d => {
         let message: CdpProtocol.ICommand;
         try {
           message = JSON.parse(d.toString());

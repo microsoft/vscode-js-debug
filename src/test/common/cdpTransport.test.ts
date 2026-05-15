@@ -6,7 +6,7 @@ import { expect } from 'chai';
 import { randomBytes } from 'crypto';
 import { stub } from 'sinon';
 import { PassThrough } from 'stream';
-import { AddressInfo, WebSocketServer } from 'ws';
+import { AddressInfo, Server as WebSocketServer } from 'ws';
 import { RawPipeTransport } from '../../cdp/rawPipeTransport';
 import { ITransport } from '../../cdp/transport';
 import { WebSocketTransport } from '../../cdp/webSocketTransport';
@@ -41,7 +41,7 @@ describe('cdp transport', () => {
         const address = server.address() as AddressInfo;
         const a = WebSocketTransport.create(`ws://127.0.0.1:${address.port}`, NeverCancelled);
         const b = new Promise<WebSocketTransport>((resolve, reject) => {
-          server.on('connection', (cnx: import('ws').WebSocket) => resolve(new WebSocketTransport(cnx)));
+          server.on('connection', cnx => resolve(new WebSocketTransport(cnx)));
           server.on('error', reject);
         });
 
