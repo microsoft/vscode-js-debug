@@ -62,6 +62,6 @@ jobs:
       - name: Type checking
         run: npm run test:types
 
-      - name: gulp lint
+      - name: Lint checking
         if: ${{ !matrix.only_minspec }}
         run: npm run test:lint
