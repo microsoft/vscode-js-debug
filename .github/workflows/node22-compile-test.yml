@@ -1,4 +1,4 @@
-name: Node 22 Compile and Test
+name: CI
 
 on:
   push:
@@ -9,8 +9,29 @@ on:
       - main
 
 jobs:
-  compile-and-test:
-    runs-on: ubuntu-latest
+  validation:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS
+            os: macos-latest
+            node_version: '18'
+            only_minspec: false
+          - name: Linux
+            os: ubuntu-22.04
+            node_version: '18'
+            only_minspec: false
+          - name: LinuxMinspec
+            os: ubuntu-22.04
+            node_version: '18'
+            only_minspec: true
+          - name: Windows
+            os: windows-latest
+            node_version: '18'
+            only_minspec: false
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
     permissions:
       contents: read
 
@@ -18,19 +39,34 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js 22
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: ${{ matrix.node_version }}
 
-      - name: Install dependencies
-        run: npm ci --legacy-peer-deps
+      - name: Start xvfb
+        if: runner.os == 'Linux'
+        run: |
+          /usr/bin/Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+          echo ">>> Started xvfb"
 
-      - name: Compile
-        run: npm run compile
+      - name: npm install
+        run: npm install --legacy-peer-deps
 
-      - name: Test
-        run: xvfb-run -a npm test
+      - name: test echo environment
+        run: node -e "console.log(process.env.PATH)"
         env:
           JSDBG_TEST_VERSION: insiders
-          JSDBG_USE_NODE_VERSION: '22'
+          DISPLAY: ':99.0'
+
+      - name: npm test
+        run: npm test
+        timeout-minutes: 12
+        env:
+          JSDBG_TEST_VERSION: insiders
+          JSDBG_USE_NODE_VERSION: ${{ matrix.node_version }}
+          DISPLAY: ':99.0'
+
+      - name: gulp lint
+        if: ${{ !matrix.only_minspec }}
+        run: npx gulp lint
