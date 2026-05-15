@@ -21,7 +21,6 @@ export class TerminalProgramLauncher implements IProgramLauncher {
   constructor(@inject(ILogger) private readonly logger: ILogger) {}
 
   public canLaunch(args: INodeLaunchConfiguration) {
-    args.internalConsoleOptions;
     return args.console !== 'internalConsole';
   }
 

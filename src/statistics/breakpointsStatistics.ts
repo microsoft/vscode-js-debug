@@ -19,12 +19,12 @@ export class BreakpointsStatisticsCalculator {
 
   public registerBreakpoints(manyBreakpoints: Dap.Breakpoint[]): void {
     manyBreakpoints.forEach(breakpoint => {
-      breakpoint.id !== undefined
-        && !this._statisticsById.has(breakpoint.id)
-        && this._statisticsById.set(
+      if (breakpoint.id !== undefined && !this._statisticsById.has(breakpoint.id)) {
+        this._statisticsById.set(
           breakpoint.id,
           new BreakpointStatistic(breakpoint.verified, false),
         );
+      }
     });
   }
 

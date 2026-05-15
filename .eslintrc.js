@@ -34,10 +34,23 @@ module.exports = {
       'warn',
       {
         varsIgnorePattern: '^h$',
-        argsIgnorePattern: '^_',
+        argsIgnorePattern: '^_|^(e|err|error|ex)$',
+        caughtErrorsIgnorePattern: '^(e|err|error|ex)$',
       },
     ],
+    '@typescript-eslint/no-empty-object-type': 'off',
+    '@typescript-eslint/no-unsafe-function-type': 'off',
+    '@typescript-eslint/no-require-imports': 'off',
+    '@typescript-eslint/no-unnecessary-type-constraint': 'off',
     // Place to specify ESLint rules. Can be used to overwrite rules specified from the extended configs
     // e.g. "@typescript-eslint/explicit-function-return-type": "off",
   },
+  overrides: [
+    {
+      files: ['**/*.test.ts'],
+      rules: {
+        '@typescript-eslint/no-unused-expressions': 'off',
+      },
+    },
+  ],
 };

@@ -112,7 +112,7 @@ const Breadcrumbs: FunctionComponent<{
     {sources.map((source, i) => {
       const label = `${basename(source)} (#${source.sourceReference})`;
       if (i === sources.length - 1) {
-        return <li>{label}</li>;
+        return <li key={source.uniqueId}>{label}</li>;
       }
 
       return (

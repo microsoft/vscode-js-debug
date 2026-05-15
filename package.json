@@ -47,7 +47,8 @@
     "test:types": "tsc --noEmit",
     "test:unit": "tsx node_modules/mocha/bin/mocha.js --config .mocharc.unit.js",
     "test:golden": "node ./src/test/runTest.js",
-    "test:lint": "gulp lint"
+    "test:lint": "gulp lint",
+    "lint:fix": "eslint . --fix"
   },
   "dependencies": {
     "@c4312/chromehash": "^0.3.1",
