@@ -66,7 +66,7 @@
     "eslint-visitor-keys": "^3.4.3",
     "execa": "^5.1.1",
     "glob-stream": "^8.0.0",
-    "got": "^11.8.6",
+    "got": "^15.0.5",
     "inversify": "^6.0.2",
     "js-xxhash": "^3.0.1",
     "jsonc-parser": "^3.3.1",
@@ -74,7 +74,7 @@
     "micromatch": "^4.0.5",
     "npm-run-all2": "^7.0.1",
     "path-browserify": "^1.0.1",
-    "picomatch": "^4.0.4",
+    "picomatch": "4.0.4",
     "preact": "^10.19.3",
     "reflect-metadata": "^0.2.1",
     "signale": "^1.4.0",
@@ -117,6 +117,7 @@
     "@typescript-eslint/parser": "^8.56.1",
     "@vscode/dwarf-debugging": "^0.0.2",
     "@vscode/test-electron": "^2.4.1",
+    "@vscode/vsce": "^3.7.1",
     "chai": "^4.3.6",
     "chai-as-promised": "^7.1.1",
     "chai-string": "^1.5.0",
@@ -148,8 +149,7 @@
     "stream-buffers": "^3.0.2",
     "ts-node": "^10.9.2",
     "tsx": "^4.20.3",
-    "typescript": "^5.5.2",
-    "@vscode/vsce": "^3.7.1"
+    "typescript": "^5.5.2"
   },
   "main": "./src/extension.js",
   "enabledApiProposals": [
