@@ -5,7 +5,7 @@
 import { inject, injectable } from 'inversify';
 import * as net from 'net';
 import { CancellationToken } from 'vscode';
-import * as WebSocket from 'ws';
+import { type ServerOptions } from 'ws';
 import { cancellableRace, NeverCancelled } from '../common/cancellation';
 import { IDisposable } from '../common/disposable';
 import { EventEmitter } from '../common/events';
@@ -43,7 +43,7 @@ export const acquireTrackedServer = async (
  */
 export const acquireTrackedWebSocketServer = async (
   tracker: IPortLeaseTracker,
-  options?: WebSocket.ServerOptions,
+  options?: ServerOptions,
   ct?: CancellationToken,
 ) => {
   const server = await findOpenPort({ tester: makeAcquireWebSocketServer(options) }, ct);
