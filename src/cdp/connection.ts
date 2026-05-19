@@ -105,9 +105,15 @@ export default class Connection {
     if (!session) {
       const disposedDate = this._disposedSessions.get(object.sessionId);
       if (!disposedDate) {
-        throw new Error(
-          `Unknown session id: ${object.sessionId} while processing: ${object.method}`,
+        // This can happen when Chrome sends events on a new session (e.g. an
+        // extension service worker) before our createSession() call has run —
+        // a race between Target.attachToTarget's response and early CDP events.
+        this.logger.warn(
+          LogTag.Internal,
+          `Got message for unknown session, ignoring`,
+          { sessionId: object.sessionId, method: object.method },
         );
+        return;
       } else {
         const secondsAgo = (Date.now() - disposedDate.getTime()) / 1000.0;
         this.logger.warn(
