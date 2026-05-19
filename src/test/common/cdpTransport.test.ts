@@ -4,10 +4,9 @@
 
 import { expect } from 'chai';
 import { randomBytes } from 'crypto';
-import { AddressInfo } from 'net';
 import { stub } from 'sinon';
 import { PassThrough } from 'stream';
-import WebSocket from 'ws';
+import { AddressInfo, WebSocketServer } from 'ws';
 import { RawPipeTransport } from '../../cdp/rawPipeTransport';
 import { ITransport } from '../../cdp/transport';
 import { WebSocketTransport } from '../../cdp/webSocketTransport';
@@ -33,7 +32,7 @@ describe('cdp transport', () => {
     [
       'websocket',
       async () => {
-        const server = new WebSocket.WebSocketServer({ host: '127.0.0.1', port: 0 });
+        const server = new WebSocketServer({ host: '127.0.0.1', port: 0 });
         await new Promise<WebSocketTransport>((resolve, reject) => {
           server.on('listening', resolve);
           server.on('error', reject);
@@ -42,7 +41,10 @@ describe('cdp transport', () => {
         const address = server.address() as AddressInfo;
         const a = WebSocketTransport.create(`ws://127.0.0.1:${address.port}`, NeverCancelled);
         const b = new Promise<WebSocketTransport>((resolve, reject) => {
-          server.on('connection', (cnx: WebSocket) => resolve(new WebSocketTransport(cnx)));
+          server.on(
+            'connection',
+            (cnx: import('ws').WebSocket) => resolve(new WebSocketTransport(cnx)),
+          );
           server.on('error', reject);
         });
 

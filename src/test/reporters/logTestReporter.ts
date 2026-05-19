@@ -30,5 +30,4 @@ class LoggingReporter extends mocha.reporters.Spec {
   }
 }
 
-// Must be default export
 export default LoggingReporter;
