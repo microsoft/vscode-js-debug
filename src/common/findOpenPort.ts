@@ -4,7 +4,7 @@
 
 import * as net from 'net';
 import type { CancellationToken } from 'vscode';
-import * as WebSocket from 'ws';
+import { type ServerOptions, WebSocketServer } from 'ws';
 import { NeverCancelled, TaskCancelledError } from './cancellation';
 import { IDisposable } from './disposable';
 import { randomInRange } from './random';
@@ -112,9 +112,9 @@ export const makeAcquireTcpServer =
  * @returns the listening server
  */
 export const makeAcquireWebSocketServer =
-  (options?: WebSocket.ServerOptions): PortTesterFn<WebSocket.Server> => (port, ct) =>
+  (options?: ServerOptions): PortTesterFn<WebSocketServer> => (port, ct) =>
     waitForServerToListen(
-      new WebSocket.WebSocketServer({ host: '127.0.0.1', ...options, port }),
+      new WebSocketServer({ host: '127.0.0.1', ...options, port }),
       ct,
     );
 

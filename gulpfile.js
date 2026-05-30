@@ -14,12 +14,13 @@ const cp = require('child_process');
 const util = require('util');
 const esbuild = require('esbuild');
 const esbuildPlugins = require('./src/build/esbuildPlugins');
-const got = require('got').default;
 const { HttpsProxyAgent } = require('https-proxy-agent');
 const jszip = require('jszip');
 const stream = require('stream');
 
 const pipelineAsync = util.promisify(stream.pipeline);
+let cachedGotPromise;
+const getGotInstance = () => (cachedGotPromise ??= import('got').then(mod => mod.default));
 
 const dirname = 'js-debug';
 const sources = ['src/**/*.{ts,tsx}'];
@@ -354,6 +355,7 @@ gulp.task('package:createVSIX', () =>
   }));
 
 gulp.task('l10n:bundle-download', async () => {
+  const got = await getGotInstance();
   const opts = {};
   const proxy = process.env.https_proxy || process.env.HTTPS_PROXY || null;
   if (proxy) {

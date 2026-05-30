@@ -92,7 +92,7 @@ export class BasicResourceProvider implements IResourceProvider {
     const port = Number(parsed.port) ?? (isSecure ? 443 : 80);
     const options: OptionsOfTextResponseBody = { headers, followRedirect: true };
     if (isSecure && (await isLoopback(url))) {
-      options.rejectUnauthorized = false; // CodeQL [SM03616] Intentional for local development.
+      options.https = { ...options.https, rejectUnauthorized: false }; // CodeQL [SM03616] Intentional for local development.
     }
 
     this.options?.provideOptions(options, url);
@@ -140,10 +140,12 @@ export class BasicResourceProvider implements IResourceProvider {
     this.options?.provideOptions(options, url);
 
     const disposables = new DisposableList();
+    const abortController = new AbortController();
+    options.signal = abortController.signal;
 
     try {
       const request = got(url, options);
-      disposables.push(cancellationToken.onCancellationRequested(() => request.cancel()));
+      disposables.push(cancellationToken.onCancellationRequested(() => abortController.abort()));
 
       const response = await request;
       return { ok: true, url, body: response.body, statusCode: response.statusCode };
