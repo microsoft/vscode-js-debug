@@ -315,11 +315,7 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
       return targetProgram;
     }
 
-    if (!this.vscode) {
-      return targetProgram;
-    }
-
-    const resolve = readConfig(this.vscode.workspace, Configuration.ResolveDebugEntrypoint);
+    const resolve = this.vscode ? readConfig(this.vscode.workspace, Configuration.ResolveDebugEntrypoint) : true;
     if (!resolve) {
       return targetProgram;
     }
