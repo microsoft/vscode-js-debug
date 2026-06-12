@@ -182,6 +182,12 @@ export class BrowserAttacher<
     manager: BrowserTargetManager,
     params: AnyChromiumAttachConfiguration,
   ): Promise<TargetFilter> {
+    if (params.extensionPath) {
+      return (t: { url: string; type: string }) =>
+        t.url.startsWith('chrome-extension://')
+        && (t.type === BrowserTargetType.ServiceWorker || t.type === BrowserTargetType.Page);
+    }
+
     const rawFilter = createTargetFilterForConfig(params);
     const baseFilter = requirePageTarget(rawFilter);
     if (params.targetSelection !== 'pick') {

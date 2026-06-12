@@ -29,6 +29,7 @@ import { ProtocolError } from '../../dap/protocolError';
 import { FS, FsPromises, IInitializeParams, StoragePath } from '../../ioc-extras';
 import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
 import { ILaunchContext, ILauncher, ILaunchResult, IStopMetadata, ITarget } from '../targets';
+import { BrowserSourcePathResolver } from './browserPathResolver';
 import { BrowserTargetManager } from './browserTargetManager';
 import { BrowserTarget, BrowserTargetType } from './browserTargets';
 import * as launcher from './launcher';
@@ -88,6 +89,7 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
       cleanUp,
       launchUnelevated: launchUnelevated,
       killBehavior,
+      extensionPath,
     }: T,
     dap: Dap.Api,
     cancellationToken: CancellationToken,
@@ -117,6 +119,10 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
       resolvedDataDir = fs.realpathSync(resolvedDataDir);
     }
 
+    const effectiveRuntimeArgs = extensionPath
+      ? [...(runtimeArgs || []), `--load-extension=${extensionPath}`]
+      : runtimeArgs || [];
+
     return await launcher.launch(
       dap,
       executablePath,
@@ -132,7 +138,7 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
         hasUserNavigation: !!(url || file),
         cwd: cwd || webRoot || undefined,
         env: EnvironmentVars.merge(EnvironmentVars.processEnv(), env),
-        args: runtimeArgs || [],
+        args: effectiveRuntimeArgs,
         userDataDir: resolvedDataDir,
         connection: port || (inspectUri ? 0 : 'pipe'), // We don't default to pipe if we are using an inspectUri
         launchUnelevated: launchUnelevated,
@@ -147,6 +153,11 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
   }
 
   protected getFilterForTarget(params: T) {
+    if (params.extensionPath) {
+      return (t: { url: string; type: string }) =>
+        t.url.startsWith('chrome-extension://')
+        && (t.type === BrowserTargetType.ServiceWorker || t.type === BrowserTargetType.Page);
+    }
     return requirePageTarget(createTargetFilterForConfig(params, ['about:blank']));
   }
 
@@ -292,6 +303,16 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
 
     if (!mainTarget) {
       throw new ProtocolError(targetPageNotFound());
+    }
+
+    // Once we know which target we attached to, pin the extension ID in the
+    // path resolver so subsequent source URL resolutions only accept that exact
+    // extension and not any other chrome-extension:// origin.
+    if (params.extensionPath) {
+      const idMatch = mainTarget.fileName()?.match(/^chrome-extension:\/\/([a-z0-9]{32})\//);
+      if (idMatch) {
+        (this.pathResolver as BrowserSourcePathResolver).pinExtensionId(idMatch[1]);
+      }
     }
 
     return mainTarget;
