@@ -606,7 +606,7 @@ function formatPropertyPreviewAsJson(prop: Cdp.Runtime.PropertyPreview): string 
       return JSON.stringify(prop.value ?? '');
     case 'number': {
       const num = Number(prop.value);
-      return isFinite(num) ? (prop.value ?? 'null') : 'null';
+      return isFinite(num) ? String(num) : 'null';
     }
     case 'boolean':
       return prop.value === 'true' ? 'true' : 'false';
