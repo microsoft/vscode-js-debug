@@ -81,7 +81,7 @@
     "source-map-support": "^0.5.21",
     "to-absolute-glob": "^3.0.0",
     "vscode-tas-client": "^0.1.84",
-    "ws": "^8.20.1"
+    "ws": "^8.21.0"
   },
   "devDependencies": {
     "@c4312/matcha": "^1.3.1",
@@ -124,7 +124,7 @@
     "chai-subset": "^1.6.0",
     "diff": "^5.1.0",
     "dprint": "^0.47.2",
-    "esbuild": "^0.25.0",
+    "esbuild": "^0.28.1",
     "@eslint/eslintrc": "^3.3.1",
     "eslint": "^9.39.1",
     "eslint-plugin-headers": "^1.3.4",
@@ -143,12 +143,12 @@
     "mocha": "^10.8.2",
     "mocha-junit-reporter": "^2.2.1",
     "mocha-multi-reporters": "^1.5.1",
-    "nyc": "^15.1.0",
+    "nyc": "^18.0.0",
     "playwright": "^1.55.1",
     "sinon": "^17.0.1",
     "stream-buffers": "^3.0.2",
     "ts-node": "^10.9.2",
-    "tsx": "^4.20.3",
+    "tsx": "^4.22.4",
     "typescript": "^5.5.2"
   },
   "main": "./src/extension.js",
