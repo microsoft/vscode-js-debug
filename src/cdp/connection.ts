@@ -105,9 +105,7 @@ export default class Connection {
     if (!session) {
       const disposedDate = this._disposedSessions.get(object.sessionId);
       if (!disposedDate) {
-        throw new Error(
-          `Unknown session id: ${object.sessionId} while processing: ${object.method}`,
-        );
+        this.logger.warn(LogTag.Internal,`Unknown session id: ${object.sessionId} while processing: ${object.method}`,);
       } else {
         const secondsAgo = (Date.now() - disposedDate.getTime()) / 1000.0;
         this.logger.warn(
@@ -122,7 +120,7 @@ export default class Connection {
     const eventName = object.method;
     let error: Error | undefined;
     try {
-      session._onMessage(object);
+      session?._onMessage(object);
     } catch (e) {
       error = e;
     }
