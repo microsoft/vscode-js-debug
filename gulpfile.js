@@ -6,7 +6,6 @@ const gulp = require('gulp');
 const glob = require('glob');
 const path = require('path');
 const rename = require('gulp-rename');
-const merge = require('merge2');
 const vsce = require('@vscode/vsce');
 const execSync = require('child_process').execSync;
 const fs = require('fs');
@@ -19,6 +18,7 @@ const jszip = require('jszip');
 const stream = require('stream');
 
 const pipelineAsync = util.promisify(stream.pipeline);
+const finishedAsync = util.promisify(stream.finished);
 let cachedGotPromise;
 const getGotInstance = () => (cachedGotPromise ??= import('got').then(mod => mod.default));
 
@@ -165,25 +165,34 @@ gulp.task('compile:dynamic', async () => {
   await writeFile(`${buildDir}/package.json`, JSON.stringify(packageJson));
 });
 
-gulp.task('compile:static', () =>
-  merge(
-    gulp.src(
-      [
-        'LICENSE',
-        'resources/**/*',
-        'README.md',
-        'package.nls.json',
-        'src/**/*.sh',
-        'src/ui/basic-wat.tmLanguage.json',
-        'src/ui/basic-wat.configuration.json',
-        '.vscodeignore',
-      ],
-      {
-        base: '.',
-      },
+gulp.task('compile:static', async () =>
+  Promise.all([
+    finishedAsync(
+      gulp
+        .src(
+          [
+            'LICENSE',
+            'resources/**/*',
+            'README.md',
+            'package.nls.json',
+            'src/**/*.sh',
+            'src/ui/basic-wat.tmLanguage.json',
+            'src/ui/basic-wat.configuration.json',
+            '.vscodeignore',
+          ],
+          {
+            base: '.',
+          },
+        )
+        .pipe(gulp.dest(buildDir)),
     ),
-    gulp.src(['node_modules/@c4312/chromehash/pkg/*.wasm']).pipe(rename({ dirname: 'src' })),
-  ).pipe(gulp.dest(buildDir)));
+    finishedAsync(
+      gulp
+        .src(['node_modules/@c4312/chromehash/pkg/*.wasm'])
+        .pipe(rename({ dirname: 'src' }))
+        .pipe(gulp.dest(buildDir)),
+    ),
+  ]));
 
 const resolveDefaultExts = ['.tsx', '.ts', '.jsx', '.js', '.css', '.json'];
 
