@@ -444,6 +444,17 @@ describe('console format', () => {
     p.assertLog();
   });
 
+  itIntegrates('json format', async ({ r }) => {
+    const p = await r.launchAndLoad('blank');
+    await p.logger.evaluateAndLog([
+      `console.log("%j", {host: "localhost"})`,
+      `console.log("%s: %s %j", "id", "Request headers", {host: "localhost"})`,
+      `console.log("%j", [1, 2, 3])`,
+      `console.log("%j", null)`,
+    ]);
+    p.assertLog();
+  });
+
   itIntegrates('colors', async ({ r }) => {
     const p = await r.launchAndLoad(`blank`);
 
