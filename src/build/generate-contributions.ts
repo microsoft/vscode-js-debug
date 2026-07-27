@@ -793,6 +793,11 @@ const chromiumBaseConfigurationAttributes: ConfigurationAttributes<IChromiumBase
     enum: ['yes', 'no', 'auto'],
     description: refString('browser.perScriptSourcemaps.description'),
   },
+  extensionPath: {
+    type: ['string', 'null'],
+    description: refString('browser.extensionPath.description'),
+    default: null,
+  },
 };
 
 /**
@@ -854,6 +859,17 @@ const chromeLaunchConfig: IDebugger<IChromeLaunchConfiguration> = {
         webRoot: '^"${2:\\${workspaceFolder\\}}"',
       },
     },
+    {
+      label: refString('chrome.launch.extension.label'),
+      description: refString('chrome.launch.extension.description'),
+      body: {
+        type: DebugType.Chrome,
+        request: 'launch',
+        name: 'Launch Chrome Extension',
+        extensionPath: '^"${1:\\${workspaceFolder\\}}"',
+        webRoot: '^"${2:\\${workspaceFolder\\}}"',
+      },
+    },
   ],
   configurationAttributes: {
     ...chromiumBaseConfigurationAttributes,
@@ -872,6 +888,11 @@ const chromeLaunchConfig: IDebugger<IChromeLaunchConfiguration> = {
       type: ['string', 'boolean'],
       description: refString('browser.userDataDir.description'),
       default: true,
+    },
+    ephemeralUserDataDir: {
+      type: 'boolean',
+      description: refString('browser.ephemeralUserDataDir.description'),
+      default: false,
     },
     includeDefaultArgs: {
       type: 'boolean',

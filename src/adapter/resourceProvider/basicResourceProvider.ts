@@ -88,6 +88,19 @@ export class BasicResourceProvider implements IResourceProvider {
   ): Promise<Response<string>> {
     const parsed = new URL(url);
 
+    // Schemes the HTTP client can't speak (chrome-extension:, webpack:, ...)
+    // would make it throw an opaque "Unsupported protocol" error. Return a
+    // failed response instead, so subclasses can fall back to loading the
+    // resource through the browser, which does understand them.
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return {
+        ok: false,
+        url,
+        statusCode: 0,
+        error: new Error(`Cannot fetch ${parsed.protocol} URLs over HTTP`),
+      };
+    }
+
     const isSecure = parsed.protocol !== 'http:';
     const port = Number(parsed.port) ?? (isSecure ? 443 : 80);
     const options: OptionsOfTextResponseBody = { headers, followRedirect: true };
