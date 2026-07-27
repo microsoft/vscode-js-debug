@@ -23,7 +23,7 @@ export class BrowserTargetManager implements IDisposable {
   protected readonly _browser: Cdp.Api;
   private readonly _detachedTargets = new Set();
   readonly frameModel = new FrameModel();
-  readonly serviceWorkerModel = new ServiceWorkerModel(this.frameModel);
+  readonly serviceWorkerModel = new ServiceWorkerModel(this.frameModel, this.logger);
   private _lifecycleQueue = Promise.resolve();
   _sourcePathResolver: ISourcePathResolver;
   _targetOrigin: ITargetOrigin;
@@ -116,6 +116,114 @@ export class BrowserTargetManager implements IDisposable {
       }
 
       this.process = undefined;
+    }
+  }
+
+  /**
+   * Wakes the service worker of the given extension so that it exposes a CDP
+   * target we can attach to.
+   *
+   * MV3 extension service workers are torn down when idle, and a stopped
+   * worker has no target at all — so there is nothing for
+   * {@link waitForMainTarget} to match until something causes it to start.
+   * `ServiceWorker.startWorker` starts it on demand. The domain is not
+   * available on the browser session, so this borrows a page target's session.
+   *
+   * Best-effort: failures are logged and ignored, since the worker may also
+   * start on its own.
+   */
+  public async wakeExtensionServiceWorker(extensionId: string): Promise<void> {
+    const scopeURL = `chrome-extension://${extensionId}/`;
+    const targets = await this._browser.Target.getTargets({});
+    const page = targets?.targetInfos.find(t => t.type === BrowserTargetType.Page);
+    if (!page) {
+      this.logger.info(
+        LogTag.RuntimeTarget,
+        'No page target available to start the extension service worker from',
+        { scopeURL },
+      );
+      return;
+    }
+
+    const attached = await this._browser.Target.attachToTarget({
+      targetId: page.targetId,
+      flatten: true,
+    });
+    if (!attached) {
+      return;
+    }
+
+    const session = this._connection.createSession(attached.sessionId);
+    try {
+      await session.ServiceWorker.enable({});
+      await session.ServiceWorker.startWorker({ scopeURL });
+      this.logger.verbose(LogTag.RuntimeTarget, 'Requested extension service worker start', {
+        scopeURL,
+      });
+    } catch (e) {
+      this.logger.info(LogTag.RuntimeTarget, 'Could not start extension service worker', {
+        scopeURL,
+        error: e,
+      });
+    } finally {
+      this._connection.disposeSession(attached.sessionId);
+      await this._browser.Target.detachFromTarget({ sessionId: attached.sessionId });
+    }
+  }
+
+  /**
+   * Turns on the chrome://extensions developer-mode UI so the unpacked
+   * extension's "service worker" and error links are usable. The API behind
+   * the UI toggle is only exposed on the extensions WebUI page, so this opens
+   * one in a background tab and closes it again. Best-effort: failures are
+   * logged and ignored.
+   */
+  public async enableExtensionDeveloperMode(): Promise<void> {
+    try {
+      const created = await this._browser.Target.createTarget({
+        url: 'chrome://extensions/',
+        background: true,
+      });
+      if (!created) {
+        return;
+      }
+
+      try {
+        const attached = await this._browser.Target.attachToTarget({
+          targetId: created.targetId,
+          flatten: true,
+        });
+        if (!attached) {
+          return;
+        }
+
+        const session = this._connection.createSession(attached.sessionId);
+        try {
+          // the WebUI may not have loaded far enough to expose the API yet
+          for (let attempt = 0; attempt < 5; attempt++) {
+            const result = await session.Runtime.evaluate({
+              expression:
+                'new Promise(r => chrome.developerPrivate.updateProfileConfiguration({ inDeveloperMode: true }, () => r(true)))',
+              awaitPromise: true,
+              returnByValue: true,
+            });
+            if (result?.result.value === true) {
+              this.logger.verbose(LogTag.RuntimeTarget, 'Enabled extension developer mode');
+              return;
+            }
+            await new Promise(r => setTimeout(r, 300));
+          }
+        } finally {
+          this._connection.disposeSession(attached.sessionId);
+          await this._browser.Target.detachFromTarget({ sessionId: attached.sessionId });
+        }
+      } finally {
+        await this._browser.Target.closeTarget({ targetId: created.targetId });
+      }
+    } catch (e) {
+      this.logger.info(LogTag.RuntimeTarget, 'Could not enable extension developer mode', {
+        error: e,
+      });
     }
   }
 
@@ -236,6 +344,17 @@ export class BrowserTargetManager implements IDisposable {
         this._detachedFromTarget(event.sessionId, false);
       }
     });
+    cdp.Inspector.on('targetCrashed', () => {
+      // A service worker torn down by e.g. `chrome.runtime.reload()` is
+      // reported only as a crash on its own session -- Chrome sends no
+      // detachedFromTarget or targetDestroyed for it. Release it, or the dead
+      // target stays in the list forever. A restarted worker is a new target,
+      // so there is nothing to recover on this session. Crashed pages are left
+      // alone: they keep their target and can be revived by a reload.
+      if (targetInfo.type === BrowserTargetType.ServiceWorker) {
+        this._detachedFromTarget(sessionId, true);
+      }
+    });
 
     cdp.Target.setAutoAttach({ autoAttach: true, waitForDebuggerOnStart, flatten: true });
 
@@ -325,7 +444,14 @@ export class BrowserTargetManager implements IDisposable {
       await this._browser.Target.detachFromTarget({ sessionId });
     }
 
-    if (!this._targets.size && this.launchParams.request === 'launch') {
+    // When debugging an extension, an empty target list is a normal state --
+    // the worker is torn down whenever it goes idle or the extension reloads,
+    // and a popup closes on any focus loss -- so keep the browser and session
+    // alive; new targets attach as they appear.
+    const emptyIsTransient = 'extensionPath' in this.launchParams
+      && this.launchParams.extensionPath;
+
+    if (!this._targets.size && this.launchParams.request === 'launch' && !emptyIsTransient) {
       try {
         if (this.launchParams.cleanUp === 'wholeBrowser') {
           await this._browser.Browser.close({});

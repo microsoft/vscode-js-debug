@@ -5,6 +5,7 @@
 import { URL } from 'url';
 import Cdp from '../../cdp/api';
 import { EventEmitter, IDisposable } from '../../common/events';
+import { ILogger, LogTag } from '../../common/logging';
 import { FrameModel } from './frames';
 
 export class ServiceWorkerRegistration {
@@ -84,7 +85,7 @@ export class ServiceWorkerModel implements IDisposable {
   private static _mode: ServiceWorkerMode;
   private static _instances = new Set<ServiceWorkerModel>();
 
-  constructor(frameModel: FrameModel) {
+  constructor(frameModel: FrameModel, private readonly _logger?: ILogger) {
     this._frameModel = frameModel;
     ServiceWorkerModel._instances.add(this);
   }
@@ -163,7 +164,15 @@ export class ServiceWorkerModel implements IDisposable {
   _workerRegistrationsUpdated(payloads: Cdp.ServiceWorker.ServiceWorkerRegistration[]): void {
     for (const payload of payloads) {
       if (payload.isDeleted) {
-        if (!this._registrations.has(payload.registrationId)) debugger;
+        if (!this._registrations.has(payload.registrationId)) {
+          // Delete received for a registration we don't have. Log at verbose
+          // level rather than breaking into the debugger.
+          this._logger?.verbose(
+            LogTag.RuntimeTarget,
+            'Ignoring delete for unknown service worker registration',
+            { registrationId: payload.registrationId },
+          );
+        }
         this._registrations.delete(payload.registrationId);
       } else {
         if (this._registrations.has(payload.registrationId)) return;
