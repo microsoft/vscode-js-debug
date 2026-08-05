@@ -1,0 +1,18 @@
+Evaluating: 'console.log("%j", {host: "localhost"})'
+stdout> {"host":"localhost"}
+stdout> > {"host":"localhost"}
+stdout>     > arg1: {host: 'localhost'}
+
+Evaluating: 'console.log("%s: %s %j", "id", "Request headers", {host: "localhost"})'
+stdout> id: Request headers {"host":"localhost"}
+stdout> > id: Request headers {"host":"localhost"}
+stdout>     > arg3: {host: 'localhost'}
+
+Evaluating: 'console.log("%j", [1, 2, 3])'
+stdout> [1,2,3]
+stdout> > [1,2,3]
+stdout>     > arg1: (3) [1, 2, 3]
+
+Evaluating: 'console.log("%j", null)'
+stdout> null
+
