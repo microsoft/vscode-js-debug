@@ -282,7 +282,7 @@ export class Completions {
 
     const start = getStart(node.property) - 1;
 
-    // For any properties are aren't valid identifiers, quote them as foo['bar!']
+    // For any properties that aren't valid identifiers, quote them as foo['bar!']
     for (const item of result) {
       if (!validIdentifierRe.test(item.label)) {
         item.text = `[${JSON.stringify(item.label)}]`;
