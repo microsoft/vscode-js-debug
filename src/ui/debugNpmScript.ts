@@ -49,6 +49,10 @@ export async function debugNpmScript(inFolder?: vscode.WorkspaceFolder | string)
   // directory name so the user knows where it's coming from.
   const multiDir = scripts.some(s => s.directory !== scripts[0].directory);
   const quickPick = vscode.window.createQuickPick<ScriptPickItem>();
+  // Keep the original order while filtering so directory separators stay attached to their
+  // groups; sorting by match would reorder across groups and drop them. (sortByLabel is
+  // proposed API microsoft/vscode#73904, safe at runtime — cast to avoid the dependency.)
+  (quickPick as { sortByLabel?: boolean }).sortByLabel = !multiDir;
 
   let lastDir: string | undefined;
   const items: ScriptPickItem[] = [];
