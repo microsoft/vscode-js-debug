@@ -88,7 +88,7 @@ const enum SortOrder {
 const customStringReprMaxLength = 1024;
 
 const identifierRe = /^[$_\p{ID_Start}][$_\u200C\u200D\p{ID_Continue}]*$/u;
-const privatePropertyRe = /^#[$_\u200C\u200D\p{ID_Continue}]*$/u;
+const privatePropertyRe = /^#[$_\p{ID_Start}][$_\u200C\u200D\p{ID_Continue}]*$/u;
 
 type AnyPropertyDescriptor = Cdp.Runtime.PropertyDescriptor | Cdp.Runtime.PrivatePropertyDescriptor;
 
