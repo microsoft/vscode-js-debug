@@ -12,8 +12,7 @@ enum Constant {
   SourceMapNameIndex = 4,
 }
 
-/** Very approximate regex for JS identifiers */
-const identifierRe = /[$a-z_][$0-9A-Z_$]*/iy;
+const identifierRe = /[$_\p{ID_Start}][$_\u200C\u200D\p{ID_Continue}]*/uy;
 
 export const extractScopeRenames = async (source: string, sourceMap: SourceMap) => {
   const toOffset = new PositionToOffset(source);

@@ -132,6 +132,8 @@ export interface ICompletions {
   completions(options: ICompletionContext & ICompletionExpression): Promise<Dap.CompletionItem[]>;
 }
 
+const validIdentifierRe = /^[$_\p{ID_Start}][$_\u200C\u200D\p{ID_Continue}]*$/u;
+
 /**
  * Provides REPL completions for the debug session.
  */
@@ -280,9 +282,7 @@ export class Completions {
 
     const start = getStart(node.property) - 1;
 
-    // For any properties are aren't valid identifiers, (erring on the side of
-    // caution--not checking unicode and such), quote them as foo['bar!']
-    const validIdentifierRe = /^[$a-z_][0-9a-z_$]*$/i;
+    // For any properties that aren't valid identifiers, quote them as foo['bar!']
     for (const item of result) {
       if (!validIdentifierRe.test(item.label)) {
         item.text = `[${JSON.stringify(item.label)}]`;
