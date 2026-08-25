@@ -455,6 +455,14 @@ export type PathMapping = Readonly<{ [key: string]: string }>;
 
 export interface IChromiumBaseConfiguration extends IBaseConfiguration {
   /**
+   * Absolute path to the root directory of an unpacked browser extension to
+   * load and debug. When set, the debugger automatically passes
+   * --load-extension to Chrome/Edge (launch only) and attaches to the
+   * extension's background script or service worker rather than a web page.
+   */
+  extensionPath: string | null;
+
+  /**
    * Controls whether to skip the network cache for each request.
    */
   disableNetworkCache: boolean;
@@ -630,6 +638,13 @@ export interface IChromiumLaunchConfiguration extends IChromiumBaseConfiguration
    * with your default user profile.
    */
   userDataDir: string | boolean;
+
+  /**
+   * When true, the profile directory given by (or created for) userDataDir is
+   * deleted before the browser launches, so every debug session starts from a
+   * clean browser state.
+   */
+  ephemeralUserDataDir: boolean;
 
   /**
    * The debug adapter is running elevated. Launch Chrome unelevated to avoid the security restrictions of running Chrome elevated
@@ -959,6 +974,7 @@ export const chromeAttachConfigDefaults: IChromeAttachConfiguration = {
   request: 'attach',
   address: 'localhost',
   port: 0,
+  extensionPath: null,
   disableNetworkCache: true,
   pathMapping: {},
   url: null,
@@ -992,10 +1008,12 @@ export const chromeLaunchConfigDefaults: IChromeLaunchConfiguration = {
   runtimeArgs: null,
   runtimeExecutable: '*',
   userDataDir: true,
+  ephemeralUserDataDir: false,
   browserLaunchLocation: 'workspace',
   profileStartup: false,
   cleanUp: 'wholeBrowser',
   killBehavior: KillBehavior.Forceful,
+  extensionPath: null,
 };
 
 export const edgeLaunchConfigDefaults: IEdgeLaunchConfiguration = {
@@ -1006,6 +1024,7 @@ export const edgeLaunchConfigDefaults: IEdgeLaunchConfiguration = {
 
 const editorBrowserBaseDefaults: IChromiumBaseConfiguration = {
   ...baseDefaults,
+  extensionPath: null,
   disableNetworkCache: true,
   pathMapping: {},
   url: null,
