@@ -57,11 +57,14 @@ export class EventEmitter<T> implements IDisposable {
     if (!this._deliveryQueue) this._deliveryQueue = [];
     for (const data of this._listeners) this._deliveryQueue.push({ data, event });
     if (!dispatch) return;
-    for (let index = 0; index < this._deliveryQueue.length; index++) {
-      const { data, event } = this._deliveryQueue[index];
-      data.listener.call(data.thisArg, event);
+    try {
+      for (let index = 0; index < this._deliveryQueue.length; index++) {
+        const { data, event } = this._deliveryQueue[index];
+        data.listener.call(data.thisArg, event);
+      }
+    } finally {
+      this._deliveryQueue = undefined;
     }
-    this._deliveryQueue = undefined;
   }
 
   dispose() {
