@@ -43,6 +43,7 @@ import {
   INodeAttachConfiguration,
   INodeBaseConfiguration,
   INodeLaunchConfiguration,
+  IReactNativeAttachConfiguration,
   ITerminalLaunchConfiguration,
   KillBehavior,
   nodeAttachConfigDefaults,
@@ -498,6 +499,41 @@ const nodeAttachConfig: IDebugger<INodeAttachConfiguration> = {
     },
   },
   defaults: nodeAttachConfigDefaults,
+};
+
+// `websocketAddress` is resolved internally from the dev server target picker
+// and must not be set by the user, so it's omitted from the React Native schema.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const { websocketAddress: _rnWebsocketAddress, ...reactNativeAttachAttributes } =
+  nodeAttachConfig.configurationAttributes;
+
+/**
+ * React Native attach configuration. Behaves like a Node attach, but the
+ * distinct `react-native` type drives React Native-specific behavior: the
+ * target is discovered from the dev server (via the target picker) and
+ * `ReactNativeApplication.enable` is sent on attach. Reuses the Node attach
+ * attributes, minus `websocketAddress`.
+ */
+const reactNativeAttachConfig: IDebugger<IReactNativeAttachConfiguration> = {
+  type: DebugType.ReactNative,
+  request: 'attach',
+  label: refString('reactNative.label'),
+  languages: commonLanguages,
+  configurationSnippets: [
+    {
+      label: refString('reactNative.snippet.attach.label'),
+      description: refString('reactNative.snippet.attach.description'),
+      body: {
+        type: DebugType.ReactNative,
+        request: 'attach',
+        name: '${1:Attach to React Native}',
+        port: 8081,
+        skipFiles: [`${nodeInternalsToken}/**`],
+      },
+    },
+  ],
+  configurationAttributes: reactNativeAttachAttributes,
+  defaults: { ...nodeAttachConfigDefaults, type: DebugType.ReactNative },
 };
 
 /**
@@ -1162,6 +1198,7 @@ const editorBrowserAttachConfig: IDebugger<IEditorBrowserAttachConfiguration> = 
 
 export const debuggers = [
   nodeAttachConfig,
+  reactNativeAttachConfig,
   nodeLaunchConfig,
   nodeTerminalConfiguration,
   extensionHostConfig,
