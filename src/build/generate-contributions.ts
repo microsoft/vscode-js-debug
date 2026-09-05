@@ -543,7 +543,7 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
         request: 'launch',
         name: 'TypeScript with Nub loader',
         runtimeExecutable: 'node',
-        runtimeArgs: ['--import', '@nubjs/loader'],
+        runtimeArgs: ['--enable-source-maps', '--import', '@nubjs/loader'],
         program: '^"\\${workspaceFolder}/${1:app.ts}"',
         skipFiles: [`${nodeInternalsToken}/**`],
       },
