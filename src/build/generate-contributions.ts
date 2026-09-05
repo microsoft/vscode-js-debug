@@ -536,6 +536,19 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
       },
     },
     {
+      label: refString('node.snippet.nub.label'),
+      description: refString('node.snippet.nub.description'),
+      body: {
+        type: DebugType.Node,
+        request: 'launch',
+        name: 'TypeScript with Nub loader',
+        runtimeExecutable: 'node',
+        runtimeArgs: ['--import', '@nubjs/loader'],
+        program: '^"\\${workspaceFolder}/${1:app.ts}"',
+        skipFiles: [`${nodeInternalsToken}/**`],
+      },
+    },
+    {
       label: refString('node.snippet.nodemon.label'),
       description: refString('node.snippet.nodemon.description'),
       body: {
