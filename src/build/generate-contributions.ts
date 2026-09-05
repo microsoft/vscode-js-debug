@@ -537,7 +537,7 @@ const nodeLaunchConfig: IDebugger<INodeLaunchConfiguration> = {
     },
     {
       label: refString('node.snippet.nub.label'),
-      description: refString('node.snippet.nub.description'),
+      markdownDescription: refString('node.snippet.nub.description'),
       body: {
         type: DebugType.Node,
         request: 'launch',

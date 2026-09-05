@@ -195,7 +195,7 @@
   "node.snippet.nodemon.label": "Node.js: Nodemon Setup",
   "node.snippet.npm.description": "Launch a node program through an npm `debug` script",
   "node.snippet.npm.label": "Node.js: Launch via npm",
-  "node.snippet.nub.description": "Launch a TypeScript program through the Nub loader",
+  "node.snippet.nub.description": "Launch a TypeScript program through the Nub loader. Requires the `@nubjs/loader` package.",
   "node.snippet.nub.label": "Node.js: TypeScript with Nub loader",
   "node.snippet.remoteattach.description": "Attach to the debug port of a remote node program",
   "node.snippet.remoteattach.label": "Node.js: Attach to Remote Program",
