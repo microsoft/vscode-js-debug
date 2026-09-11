@@ -310,6 +310,50 @@ describe('completion', () => {
     ]);
   });
 
+
+  itIntegrates('completes primitive when name clashes with template locals (#2399)', async ({ r }) => {
+    const p = await r.launch(`
+      <script>
+        function foo() {
+          const n = 1;
+          const target = 'abc';
+          debugger;
+        }
+
+        foo();
+      </script>
+    `);
+
+    const untilStopped = p.dap.once('stopped');
+    p.load();
+
+    const frame = (
+      await p.dap.stackTrace({
+        threadId: (await untilStopped).threadId!,
+      })
+    ).stackFrames[0];
+
+    const forN = await p.dap.completions({
+      text: 'n.',
+      column: 3,
+      frameId: frame.id,
+    });
+    expect(forN.targets.some(t => t.label === 'toFixed')).to.equal(
+      true,
+      `expected number completions for n., got ${JSON.stringify(forN.targets.slice(0, 5))}`,
+    );
+
+    const forTarget = await p.dap.completions({
+      text: 'target.',
+      column: 8,
+      frameId: frame.id,
+    });
+    expect(forTarget.targets.some(t => t.label === 'toLowerCase' || t.label === 'length')).to.equal(
+      true,
+      `expected string completions for target., got ${JSON.stringify(forTarget.targets.slice(0, 5))}`,
+    );
+  });
+
   itIntegrates('$returnValue', async ({ r }) => {
     const getFrameId = async () =>
       (
