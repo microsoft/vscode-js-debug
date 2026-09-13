@@ -76,6 +76,13 @@ export class SmartStepper {
       return;
     }
 
+    // An explicit pause must leave the debuggee stopped, even in skipped code.
+    // Other pauses (such as debugger statements) can still be smart stepped.
+    if (reason?.reason === 'pause') {
+      this.resetSmartStepCount();
+      return;
+    }
+
     if (neverStepReasons.has(pausedDetails.reason)) {
       return;
     }
