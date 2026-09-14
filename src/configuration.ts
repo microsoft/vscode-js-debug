@@ -576,6 +576,16 @@ export interface INodeAttachConfiguration extends INodeBaseConfiguration {
   attachExistingChildren: boolean;
 }
 
+/**
+ * Configuration for a React Native attach. Structurally identical to a Node
+ * attach, but with a distinct `type` discriminant that drives React
+ * Native-specific behavior: the target is discovered from the dev server and
+ * `ReactNativeApplication.enable` is sent on attach.
+ */
+export type IReactNativeAttachConfiguration =
+  & Omit<INodeAttachConfiguration, 'type'>
+  & { type: DebugType.ReactNative };
+
 export interface IChromiumLaunchConfiguration extends IChromiumBaseConfiguration {
   request: 'launch';
 
@@ -787,6 +797,7 @@ export interface ITerminalDelegateConfiguration extends INodeBaseConfiguration {
 
 export type AnyNodeConfiguration =
   | INodeAttachConfiguration
+  | IReactNativeAttachConfiguration
   | INodeLaunchConfiguration
   | ITerminalLaunchConfiguration
   | IExtensionHostLaunchConfiguration
@@ -817,6 +828,9 @@ export type ResolvingExtensionHostConfiguration = ResolvingConfiguration<
   IExtensionHostLaunchConfiguration
 >;
 export type ResolvingNodeAttachConfiguration = ResolvingConfiguration<INodeAttachConfiguration>;
+export type ResolvingReactNativeAttachConfiguration = ResolvingConfiguration<
+  IReactNativeAttachConfiguration
+>;
 export type ResolvingNodeLaunchConfiguration = ResolvingConfiguration<INodeLaunchConfiguration>;
 export type ResolvingTerminalDelegateConfiguration = ResolvingConfiguration<
   ITerminalDelegateConfiguration
@@ -829,6 +843,7 @@ export type ResolvingTerminalConfiguration =
   | ResolvingTerminalLaunchConfiguration;
 export type ResolvingNodeConfiguration =
   | ResolvingNodeAttachConfiguration
+  | ResolvingReactNativeAttachConfiguration
   | ResolvingNodeLaunchConfiguration;
 export type ResolvingChromeConfiguration = ResolvingConfiguration<AnyChromeConfiguration>;
 export type ResolvingEdgeConfiguration = ResolvingConfiguration<AnyEdgeConfiguration>;
@@ -839,6 +854,7 @@ export type AnyResolvingConfiguration =
   | ResolvingExtensionHostConfiguration
   | ResolvingChromeConfiguration
   | ResolvingNodeAttachConfiguration
+  | ResolvingReactNativeAttachConfiguration
   | ResolvingNodeLaunchConfiguration
   | ResolvingTerminalConfiguration
   | ResolvingEdgeConfiguration
@@ -1136,6 +1152,7 @@ export function applyDefaults(
   const defaultBrowserLocation = location === 'remote' ? ('ui' as const) : ('workspace' as const);
   switch (config.type) {
     case DebugType.Node:
+    case DebugType.ReactNative:
       configWithDefaults = applyNodeDefaults(config);
       break;
     case DebugType.Edge:

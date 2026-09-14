@@ -770,6 +770,13 @@ export class Thread implements IVariableStoreLocationProvider {
     // console.profile/console.endProfile. Otherwise, these just no-op.
     this._cdp.Profiler.enable({});
 
+    // For React Native targets, enable the React Native application
+    // domain so the app knows a debugger is attached. This method is not part
+    // of the standard CDP protocol, so it's sent through the raw session.
+    if (this.launchConfig.type === DebugType.ReactNative) {
+      this._cdp.session.send('ReactNativeApplication.enable', {});
+    }
+
     this._ensureDebuggerEnabledAndRefreshDebuggerId();
 
     if (this.launchConfig.noDebug) {

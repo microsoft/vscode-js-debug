@@ -11,7 +11,11 @@ import { DebugType } from '../../common/contributionUtils';
 import { ILogger, LogTag } from '../../common/logging';
 import { delay } from '../../common/promiseUtil';
 import { isLoopback } from '../../common/urlUtils';
-import { AnyLaunchConfiguration, INodeAttachConfiguration } from '../../configuration';
+import {
+  AnyLaunchConfiguration,
+  INodeAttachConfiguration,
+  IReactNativeAttachConfiguration,
+} from '../../configuration';
 import { retryGetNodeEndpoint } from '../browser/spawn/endpoints';
 import { ISourcePathResolverFactory } from '../sourcePathResolverFactory';
 import { IStopMetadata } from '../targets';
@@ -26,6 +30,13 @@ import { IRestartPolicy, RestartPolicyFactory } from './restartPolicy';
 import { WatchDog } from './watchdogSpawn';
 
 /**
+ * Configurations handled by the Node attacher. React Native attach is
+ * structurally identical to a Node attach and reuses this launcher; only the
+ * `type` discriminant differs.
+ */
+type NodeAttachConfiguration = INodeAttachConfiguration | IReactNativeAttachConfiguration;
+
+/**
  * Attaches to ongoing Node processes. This works pretty similar to the
  * existing Node launcher, except with how we attach to the entry point:
  * we don't have the bootloader in there, so we manually attach and enable
@@ -33,7 +44,7 @@ import { WatchDog } from './watchdogSpawn';
  * child processes operate just like those we boot with the NodeLauncher.
  */
 @injectable()
-export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
+export class NodeAttacher extends NodeAttacherBase<NodeAttachConfiguration> {
   private telemetry?: IProcessTelemetry;
 
   constructor(
@@ -49,14 +60,17 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
   /**
    * @inheritdoc
    */
-  protected resolveParams(params: AnyLaunchConfiguration): INodeAttachConfiguration | undefined {
-    return params.type === DebugType.Node && params.request === 'attach' ? params : undefined;
+  protected resolveParams(params: AnyLaunchConfiguration): NodeAttachConfiguration | undefined {
+    return (params.type === DebugType.Node || params.type === DebugType.ReactNative)
+        && params.request === 'attach'
+      ? params
+      : undefined;
   }
 
   /**
    * @inheritdoc
    */
-  protected async launchProgram(runData: IRunData<INodeAttachConfiguration>): Promise<void> {
+  protected async launchProgram(runData: IRunData<NodeAttachConfiguration>): Promise<void> {
     const doLaunch = async (
       restartPolicy: IRestartPolicy,
       restarting?: IProgram,
@@ -153,7 +167,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
    */
   protected override createLifecycle(
     cdp: Cdp.Api,
-    run: IRunData<INodeAttachConfiguration>,
+    run: IRunData<NodeAttachConfiguration>,
     target: Cdp.Target.TargetInfo,
   ) {
     if (target.openerId) {
@@ -179,7 +193,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
 
   protected async onFirstInitialize(
     cdp: Cdp.Api,
-    run: IRunData<INodeAttachConfiguration>,
+    run: IRunData<NodeAttachConfiguration>,
     parentInfo: Cdp.Target.TargetInfo,
   ) {
     // We use a lease file to indicate to the process that the debugger is
@@ -222,7 +236,7 @@ export class NodeAttacher extends NodeAttacherBase<INodeAttachConfiguration> {
 
   private async setEnvironmentVariables(
     cdp: Cdp.Api,
-    run: IRunData<INodeAttachConfiguration>,
+    run: IRunData<NodeAttachConfiguration>,
     leasePath: string,
     openerId: string,
     binary: NodeBinary,
