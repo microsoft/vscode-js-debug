@@ -60,7 +60,7 @@
     "acorn-loose": "^8.4.0",
     "astring": "^1.8.6",
     "color": "^4.2.3",
-    "data-uri-to-buffer": "^6.0.1",
+    "data-uri-to-buffer": "^6.0.2",
     "default-browser": "^5.2.1",
     "dotenv": "^16.4.1",
     "eslint-visitor-keys": "^3.4.3",
