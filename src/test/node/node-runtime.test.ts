@@ -538,6 +538,49 @@ describe('node runtime', () => {
     handle.assertLog({ substring: true });
   });
 
+  itIntegrates(
+    'remoteRoot: resolves relative sourceMappingURL outside remoteRoot',
+    async ({ r }) => {
+      // Reproduces: when remoteRoot/localRoot translates the script path, a relative
+      // sourceMappingURL that navigates outside remoteRoot must be resolved against
+      // the translated local path, not the original remote URL.
+      createFileTree(testFixturesDir, {
+        remote: {
+          'index.js': [
+            "'use strict';",
+            'debugger;',
+            '//# sourceMappingURL=../maps/index.js.map',
+          ],
+        },
+        local: {
+          maps: {
+            'index.js.map': JSON.stringify({
+              version: 3,
+              file: '../remote/index.js',
+              sources: ['../src/index.js'],
+              sourcesContent: null,
+              names: [],
+              mappings: 'AAAA;AACA',
+            }),
+          },
+          src: {
+            'index.js': ["'use strict';", 'debugger;'],
+          },
+        },
+      });
+
+      const handle = await r.runScript('remote/index.js', {
+        remoteRoot: join(testFixturesDir, 'remote'),
+        localRoot: join(testFixturesDir, 'local'),
+        outFiles: [],
+      });
+
+      handle.load();
+      await waitForPause(handle);
+      handle.assertLog({ substring: true });
+    },
+  );
+
   itIntegrates('sets environment variables', async ({ r }) => {
     createFileTree(testFixturesDir, { 'test.js': 'debugger' });
     const handle = await r.runScript('test.js', {
