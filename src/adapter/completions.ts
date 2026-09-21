@@ -137,6 +137,21 @@ const validIdentifierRe = /^[$_\p{ID_Start}][$_\u200C\u200D\p{ID_Continue}]*$/u;
 /**
  * Provides REPL completions for the debug session.
  */
+
+/**
+ * Serialize a CDP primitive RemoteObject into a JS expression suitable for
+ * interpolating into {@link enumeratePropertiesTemplate}.
+ */
+function expressionForRemotePrimitive(object: Cdp.Runtime.RemoteObject): string {
+  if (object.unserializableValue) {
+    return object.unserializableValue;
+  }
+  if (object.type === 'undefined') {
+    return 'undefined';
+  }
+  return JSON.stringify(object.value);
+}
+
 @injectable()
 export class Completions {
   constructor(
@@ -340,26 +355,26 @@ export class Completions {
       return { result: [], isArray: false };
     }
 
-    // No object ID indicates a primitive. Call enumeration on the value
-    // directly. We don't do this all the time, since our enumeration logic
-    // triggers Chrome's side-effect detect and fails.
+    // No object ID indicates a primitive. Enumerate from the already-evaluated
+    // value rather than re-reading the expression on the call frame: the
+    // template binds its own locals (minified names like `n`/`target`), which
+    // would otherwise shadow a same-named user binding (#2399).
     if (!objRefResult.result.objectId) {
       const primitiveParams = {
         ...params,
         returnByValue: true,
         throwOnSideEffect: false,
         expression: enumeratePropertiesTemplate.expr(
-          `(${expression})`,
+          expressionForRemotePrimitive(objRefResult.result),
           JSON.stringify(prefix),
           JSON.stringify(isInGlobalScope),
         ),
       };
 
-      const propsResult = await this.evaluator.evaluate(
-        callFrameId
-          ? { ...primitiveParams, callFrameId }
-          : { ...primitiveParams, contextId: executionContextId },
-      );
+      const propsResult = await this.evaluator.evaluate({
+        ...primitiveParams,
+        contextId: executionContextId,
+      });
 
       return !propsResult || propsResult.exceptionDetails
         ? { result: [], isArray: false }
