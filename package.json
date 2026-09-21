@@ -66,7 +66,7 @@
     "eslint-visitor-keys": "^3.4.3",
     "execa": "^5.1.1",
     "glob-stream": "^8.0.0",
-    "got": "^15.0.5",
+    "got": "^16.0.0",
     "inversify": "^6.0.2",
     "js-xxhash": "^3.0.1",
     "jsonc-parser": "^3.3.1",
@@ -163,5 +163,13 @@
   ],
   "overrides": {
     "serialize-javascript": ">=7.0.5"
+  },
+  "allowScripts": {
+    "fsevents@2.3.2": true,
+    "fsevents@1.2.13": true,
+    "fsevents@2.3.3": true,
+    "@vscode/vsce-sign@2.0.9": true,
+    "keytar@7.7.0": true,
+    "microtime@3.0.0": true
   }
 }
