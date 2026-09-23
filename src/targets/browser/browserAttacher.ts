@@ -21,11 +21,12 @@ import {
 import { AnyChromiumAttachConfiguration, AnyLaunchConfiguration } from '../../configuration';
 import { browserAttachFailed, targetPageNotFound } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
-import { VSCodeApi } from '../../ioc-extras';
+import { FS, FsPromises, VSCodeApi } from '../../ioc-extras';
 import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
 import { ILaunchContext, ILauncher, ILaunchResult, IStopMetadata, ITarget } from '../targets';
 import { BrowserTargetManager } from './browserTargetManager';
 import { BrowserTargetType } from './browserTargets';
+import { createExtensionTargetFilter, resolveExpectedExtensionId } from './extensionId';
 import * as launcher from './launcher';
 
 @injectable()
@@ -46,6 +47,7 @@ export class BrowserAttacher<
   constructor(
     @inject(ILogger) protected readonly logger: ILogger,
     @inject(ISourcePathResolver) private readonly pathResolver: ISourcePathResolver,
+    @inject(FS) private readonly fs: FsPromises,
     @optional() @inject(VSCodeApi) private readonly vscode?: typeof vscodeType,
   ) {}
 
@@ -158,15 +160,33 @@ export class BrowserAttacher<
     });
     targetManager.onTargetRemoved(() => {
       this._onTargetListChangedEmitter.fire();
-      if (!targetManager.targetList().length && this.closeWhenTargetsEmpty) {
+      // For extension debugging an empty target list is a normal, transient
+      // state (idle worker, closed popup); stay attached and wait for the
+      // next target instead of ending the session.
+      if (
+        !targetManager.targetList().length && this.closeWhenTargetsEmpty && !params.extensionPath
+      ) {
         // graceful exit
         this._onTerminatedEmitter.fire({ killed: true, code: 0 });
         this._connection?.close();
       }
     });
 
+    const filter = await this.getTargetFilter(targetManager, params);
+    const waitForTarget = targetManager.waitForMainTarget(filter);
+
+    // An idle extension service worker has no target to attach to, so ask the
+    // browser to start it. Done after waitForMainTarget has subscribed so we
+    // don't miss the target it creates.
+    if (params.extensionPath) {
+      const extensionId = await resolveExpectedExtensionId(params.extensionPath, this.fs);
+      if (extensionId) {
+        await targetManager.wakeExtensionServiceWorker(extensionId);
+      }
+    }
+
     const result = await Promise.race([
-      targetManager.waitForMainTarget(await this.getTargetFilter(targetManager, params)),
+      waitForTarget,
       delay(params.timeout).then(() => {
         throw new ProtocolError(targetPageNotFound());
       }),
@@ -182,6 +202,14 @@ export class BrowserAttacher<
     manager: BrowserTargetManager,
     params: AnyChromiumAttachConfiguration,
   ): Promise<TargetFilter> {
+    if (params.extensionPath) {
+      return createExtensionTargetFilter(
+        params.extensionPath,
+        await resolveExpectedExtensionId(params.extensionPath, this.fs),
+        this.logger,
+      );
+    }
+
     const rawFilter = createTargetFilterForConfig(params);
     const baseFilter = requirePageTarget(rawFilter);
     if (params.targetSelection !== 'pick') {
