@@ -46,6 +46,22 @@ describe('simpleGlobsToRe', () => {
         'file:///hello/foo/bin/filename.js': false,
       },
     },
+    {
+      globs: ['**/foo/**/*.js'],
+      matches: {
+        'file:///hello/foo/bar.js': true,
+        'file:///hello/foo/bin/bar.js': true,
+        'file:///hello/foobar.js': false,
+      },
+    },
+    {
+      globs: ['**/foo/**', '!**/foo/**/bar/**'],
+      matches: {
+        'file:///hello/foo/bin/baz': true,
+        'file:///hello/foo/bar/baz': false,
+        'file:///hello/foo/bin/bar/baz': false,
+      },
+    },
   ];
 
   for (const { globs, matches } of truthTable) {
