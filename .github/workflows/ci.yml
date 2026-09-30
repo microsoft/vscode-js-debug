@@ -16,19 +16,19 @@ jobs:
         include:
           - name: macOS
             os: macos-latest
-            node_version: '18'
+            node_version: '24'
             only_minspec: false
           - name: Linux
             os: ubuntu-22.04
-            node_version: '18'
+            node_version: '24'
             only_minspec: false
           - name: LinuxMinspec
             os: ubuntu-22.04
-            node_version: '18'
+            node_version: '24'
             only_minspec: true
           - name: Windows
             os: windows-latest
-            node_version: '18'
+            node_version: '24'
             only_minspec: false
     name: ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
@@ -64,6 +64,9 @@ jobs:
 
       - name: Type checking
         run: npm run test:types
+
+      - name: Unit tests
+        run: npm run test:unit
 
       - name: Lint checking
         if: ${{ env.DISABLE_LINT_FOR_NOW != 'true' && !matrix.only_minspec }}

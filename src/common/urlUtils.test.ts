@@ -287,6 +287,7 @@ describe('urlUtils', () => {
     beforeEach(() => {
       lookupStub = stub(dns, 'lookup');
       lookupStub.callThrough();
+      lookupStub.withArgs('totes invalid').rejects();
       lookupStub.withArgs('contoso.com').resolves({ address: '1.1.1.1' });
       lookupStub.withArgs('local.contoso.com').resolves({ address: '127.0.0.1' });
     });

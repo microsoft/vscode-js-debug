@@ -6,6 +6,15 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 Nothing, yet
 
+## 1.140 (September 2026)
+
+- feat: add `debug.javascript.resolveDebugEntrypoint` to opt out of compiled entrypoint resolution ([#2349](https://github.com/microsoft/vscode-js-debug/pull/2349))
+- fix: restore standalone debugger bundle builds after adding entrypoint resolution configuration ([#2369](https://github.com/microsoft/vscode-js-debug/pull/2369))
+- fix: support Unicode identifiers in completions ([#2393](https://github.com/microsoft/vscode-js-debug/pull/2393))
+- fix: avoid template local clashes for primitive completions ([#2411](https://github.com/microsoft/vscode-js-debug/pull/2411))
+- fix: honor explicit pause requests while smart stepping ([#2413](https://github.com/microsoft/vscode-js-debug/pull/2413))
+- fix: restore debugger attach retries on Node 24.20 ([#2417](https://github.com/microsoft/vscode-js-debug/pull/2417))
+
 ## 1.117 (April 2026)
 
 - feat: add debug configuration provider for integrated browser ([#2347](https://github.com/microsoft/vscode-js-debug/pull/2347))

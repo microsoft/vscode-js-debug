@@ -54,6 +54,35 @@ describe('node runtime', () => {
   }
 
   describe('skipFiles', () => {
+    itIntegrates('honors an explicit pause in skipped code', async ({ r }) => {
+      createFileTree(testFixturesDir, {
+        'skipped.js': ['setInterval(() => {}, 10);', 'console.log("ready");'],
+      });
+      const handle = await r.runScript('skipped.js', {
+        smartStep: true,
+        skipFiles: ['<node_internals>/**', '**/skipped.js'],
+      });
+      const ready = handle.dap.once('output', event => event.output.includes('ready'));
+      await handle.load();
+      await ready;
+
+      const { threads } = await handle.dap.threads({});
+      const threadId = threads[0].id;
+      const stopped = handle.dap.once('stopped');
+      await handle.dap.pause({ threadId });
+      expect((await stopped).reason).to.equal('pause');
+
+      const { stackFrames } = await handle.dap.stackTrace({ threadId });
+      expect(stackFrames).to.not.be.empty;
+      const evaluated = await handle.dap.evaluate({
+        expression: '1 + 1',
+        frameId: stackFrames[0].id,
+        context: 'watch',
+      });
+      expect(evaluated.result).to.equal('2');
+      await handle.dap.continue({ threadId });
+    });
+
     itIntegrates('skipFiles skip node internals', async ({ r }) => {
       await r.initialize;
       const cwd = join(testWorkspace, 'simpleNode');
