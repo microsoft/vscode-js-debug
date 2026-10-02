@@ -4,9 +4,14 @@
 
 import { expect } from 'chai';
 import { Base0Position } from './positions';
-import { PositionToOffset } from './stringUtils';
+import { PositionToOffset, trimEnd } from './stringUtils';
 
 describe('stringUtils', () => {
+  it('trimEnd does not split surrogate pairs', () => {
+    expect(trimEnd('ab\u{1F600}cd', 4)).to.equal('ab…');
+    expect(trimEnd('ab\u{1F600}cd', 5)).to.equal('ab\u{1F600}…');
+  });
+
   it('positionToOffset', () => {
     const simple = new PositionToOffset('hello\nworld');
     expect(simple.convert(new Base0Position(0, 2))).to.equal(2);

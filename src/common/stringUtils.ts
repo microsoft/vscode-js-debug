@@ -6,7 +6,10 @@ import { IPosition } from './positions';
 
 export function trimEnd(text: string, maxLength: number) {
   if (text.length <= maxLength) return text;
-  return text.substr(0, maxLength - 1) + '…';
+  let end = maxLength - 1;
+  const lastPoint = text.codePointAt(end - 1);
+  if (lastPoint && lastPoint >= 0x10000) --end;
+  return text.substr(0, end) + '…';
 }
 
 export function trimMiddle(text: string, maxLength: number) {
