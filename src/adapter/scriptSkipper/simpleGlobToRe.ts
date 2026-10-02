@@ -48,7 +48,7 @@ function globToRe(glob: string, processPart = escapeRegexSpecialChars) {
       } else if (j === parts.length - 1) {
         // nothing more needed!
       } else {
-        regexParts.push('.*/');
+        regexParts.push('(.*/)?'); // zero or more directories
       }
     } else {
       if (p.includes('*')) {
