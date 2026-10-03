@@ -809,10 +809,19 @@ export class SourceContainer {
       return; // already removed
     }
 
-    this.logger.assert(
-      source === existing,
-      'Expected source to be the same as the existing reference',
-    );
+    if (existing !== source) {
+      // The reference was reassigned. If the replacement source has the same
+      // URL, this is an expected lifecycle event (e.g. an extension service
+      // worker restarted and re-registered the same URL under the freed
+      // reference id) — silently ignore. Any other mismatch is unexpected
+      // and still flagged so genuine state bugs surface.
+      this.logger.assert(
+        existing.url === source.url,
+        'Expected source to be the same as the existing reference',
+      );
+      return;
+    }
+
     this._sourceByReference.delete(source.sourceReference);
 
     // check for overwrites:
