@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import * as l10n from '@vscode/l10n';
-import { promises as fs } from 'fs';
+import { Dirent, promises as fs } from 'fs';
 import { inject, injectable } from 'inversify';
 import * as path from 'path';
 import * as vscode from 'vscode';
@@ -266,6 +266,13 @@ function getAbsoluteLocation(folder: vscode.WorkspaceFolder | undefined, relpath
  *
  * This used to narrow (#326), but I think this is undesirable behavior for
  * most users (vscode#142641), so now it only widens the `outFiles`.
+ *
+ * As an exception, when the workspace folder itself is an npm/yarn
+ * workspaces root, we narrow `outFiles` down to the package being debugged
+ * plus its workspace-local dependencies. Without this, debugging any
+ * package in a large monorepo ends up scanning the whole repo for source
+ * maps, since the program's folder is already "inside" the workspace
+ * folder and the widen-only logic above never kicks in (#1730).
  */
 async function guessOutFiles(
   fsUtils: LocalFsUtils,
@@ -286,7 +293,15 @@ async function guessOutFiles(
     programLocation = getAbsoluteLocation(folder, config.cwd);
   }
 
-  if (!programLocation || isSubpathOrEqualTo(folder.uri.fsPath, programLocation)) {
+  if (!programLocation) {
+    return;
+  }
+
+  if (await tryGuessWorkspaceOutFiles(fsUtils, folder, programLocation, config)) {
+    return;
+  }
+
+  if (isSubpathOrEqualTo(folder.uri.fsPath, programLocation)) {
     return;
   }
 
@@ -308,6 +323,180 @@ async function guessOutFiles(
       ];
     }
   }
+}
+
+interface IWorkspacesPackageJson {
+  name?: string;
+  workspaces?: string[] | { packages?: string[] };
+  dependencies?: Record<string, string>;
+  devDependencies?: Record<string, string>;
+  peerDependencies?: Record<string, string>;
+}
+
+async function readPackageJsonAt(dir: string): Promise<IWorkspacesPackageJson | undefined> {
+  try {
+    return JSON.parse(await fs.readFile(path.join(dir, 'package.json'), 'utf8'));
+  } catch {
+    return undefined;
+  }
+}
+
+function getWorkspacePatterns(pkg: IWorkspacesPackageJson | undefined): string[] {
+  if (!pkg?.workspaces) {
+    return [];
+  }
+
+  return Array.isArray(pkg.workspaces) ? pkg.workspaces : pkg.workspaces.packages ?? [];
+}
+
+/**
+ * Expands a single npm/yarn `workspaces` glob entry into the workspace
+ * package directories it matches. Only literal paths and a single trailing
+ * `*` wildcard segment (e.g. `packages/*`) are supported, which covers the
+ * overwhelming majority of real-world workspace configs; anything more
+ * exotic (`**`, mid-pattern wildcards) is skipped rather than mishandled.
+ */
+async function expandWorkspacePattern(workspaceRoot: string, pattern: string): Promise<string[]> {
+  const segments = pattern.split('/').filter(Boolean);
+  const wildcardIndex = segments.indexOf('*');
+
+  if (wildcardIndex === -1) {
+    const dir = path.join(workspaceRoot, ...segments);
+    return (await existsInjected(fs, path.join(dir, 'package.json'))) ? [dir] : [];
+  }
+
+  if (wildcardIndex !== segments.length - 1 || segments.includes('**')) {
+    return [];
+  }
+
+  const base = path.join(workspaceRoot, ...segments.slice(0, wildcardIndex));
+  let entries: Dirent[];
+  try {
+    entries = await fs.readdir(base, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+
+  const dirs: string[] = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory() || entry.name === 'node_modules' || entry.name.startsWith('.')) {
+      continue;
+    }
+    const dir = path.join(base, entry.name);
+    if (await existsInjected(fs, path.join(dir, 'package.json'))) {
+      dirs.push(dir);
+    }
+  }
+
+  return dirs;
+}
+
+/**
+ * Given the workspace packages' directories, returns the directory of the
+ * package being debugged plus the directories of any workspace-local
+ * package it transitively depends on.
+ */
+async function collectWorkspaceDependencyDirs(
+  packageDirs: string[],
+  pkgDir: string,
+): Promise<string[]> {
+  const graph = new Map<string, { dir: string; deps: string[] }>();
+  const nameByDir = new Map<string, string>();
+
+  await Promise.all(
+    packageDirs.map(async dir => {
+      const pkg = await readPackageJsonAt(dir);
+      if (!pkg?.name) {
+        return;
+      }
+      const deps = Object.keys({
+        ...pkg.dependencies,
+        ...pkg.devDependencies,
+        ...pkg.peerDependencies,
+      });
+      graph.set(pkg.name, { dir, deps });
+      nameByDir.set(dir, pkg.name);
+    }),
+  );
+
+  const included = new Set<string>([pkgDir]);
+  const startName = nameByDir.get(pkgDir);
+  const queue = startName ? [startName] : [];
+  const visited = new Set(queue);
+
+  while (queue.length) {
+    const node = graph.get(queue.shift()!);
+    if (!node) {
+      continue;
+    }
+
+    included.add(node.dir);
+    for (const dep of node.deps) {
+      if (graph.has(dep) && !visited.has(dep)) {
+        visited.add(dep);
+        queue.push(dep);
+      }
+    }
+  }
+
+  return [...included];
+}
+
+/**
+ * If the workspace folder is an npm/yarn workspaces root and the program
+ * being debugged lives in one of its packages, narrows `outFiles` to that
+ * package plus its workspace-local dependencies. Returns whether it
+ * applied (successfully or not -- either way the caller should not fall
+ * back to the widen-only logic once a workspaces root is found, since
+ * scanning the whole monorepo is the exact problem being avoided).
+ */
+async function tryGuessWorkspaceOutFiles(
+  fsUtils: LocalFsUtils,
+  folder: vscode.WorkspaceFolder,
+  programLocation: string,
+  config: ResolvingNodeLaunchConfiguration,
+): Promise<boolean> {
+  const patterns = getWorkspacePatterns(await readPackageJsonAt(folder.uri.fsPath));
+  if (!patterns.length) {
+    return false;
+  }
+
+  const pkgDir = await nearestDirectoryWhere(
+    programLocation,
+    async p =>
+      !p.includes('node_modules') && (await fsUtils.exists(path.join(p, 'package.json')))
+        ? p
+        : undefined,
+  );
+
+  if (!pkgDir || !isSubpathOrEqualTo(folder.uri.fsPath, pkgDir)) {
+    return false;
+  }
+
+  const packageDirs = (
+    await Promise.all(patterns.map(pattern => expandWorkspacePattern(folder.uri.fsPath, pattern)))
+  ).flat();
+
+  const dirs = await collectWorkspaceDependencyDirs(packageDirs, pkgDir);
+  const outFiles = [...baseDefaults.outFiles];
+  let any = false;
+  for (const dir of dirs) {
+    const rel = forceForwardSlashes(path.relative(folder.uri.fsPath, dir));
+    if (!rel.length || rel.startsWith('..')) {
+      continue;
+    }
+    outFiles.push(
+      `\${workspaceFolder}/${rel}/**/*.js`,
+      `!\${workspaceFolder}/${rel}/**/node_modules/**`,
+    );
+    any = true;
+  }
+
+  if (any) {
+    config.outFiles = outFiles;
+  }
+
+  return true;
 }
 
 interface ITSConfig {

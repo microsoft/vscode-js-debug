@@ -433,6 +433,68 @@ describe('NodeDebugConfigurationProvider', () => {
     });
   });
 
+  describe('workspaces outFiles', () => {
+    it('narrows to the debugged package and its workspace deps', async () => {
+      createFileTree(testFixturesDir, {
+        'package.json': JSON.stringify({ name: 'root', workspaces: ['packages/*'] }),
+        packages: {
+          a: {
+            'index.js': '',
+            'package.json': JSON.stringify({ name: 'pkg-a', dependencies: { 'pkg-b': '^1.0.0' } }),
+          },
+          b: {
+            'index.js': '',
+            'package.json': JSON.stringify({ name: 'pkg-b' }),
+          },
+          c: {
+            'index.js': '',
+            'package.json': JSON.stringify({ name: 'pkg-c' }),
+          },
+        },
+      });
+
+      const result = await provider.resolveDebugConfiguration(folder, {
+        type: DebugType.Node,
+        name: '',
+        request: 'launch',
+        program: 'packages/a/index.js',
+      });
+
+      expect(result?.outFiles).to.deep.equal([
+        '${workspaceFolder}/**/*.(m|c|)js',
+        '!**/node_modules/**',
+        '${workspaceFolder}/packages/a/**/*.js',
+        '!${workspaceFolder}/packages/a/**/node_modules/**',
+        '${workspaceFolder}/packages/b/**/*.js',
+        '!${workspaceFolder}/packages/b/**/node_modules/**',
+      ]);
+    });
+
+    it('does not narrow when there is no workspaces field', async () => {
+      createFileTree(testFixturesDir, {
+        'package.json': JSON.stringify({ name: 'root' }),
+        packages: {
+          a: {
+            'index.js': '',
+            'package.json': JSON.stringify({ name: 'pkg-a' }),
+          },
+        },
+      });
+
+      const result = await provider.resolveDebugConfiguration(folder, {
+        type: DebugType.Node,
+        name: '',
+        request: 'launch',
+        program: 'packages/a/index.js',
+      });
+
+      expect(result?.outFiles).to.deep.equal([
+        '${workspaceFolder}/**/*.(m|c|)js',
+        '!**/node_modules/**',
+      ]);
+    });
+  });
+
   describe('deno', () => {
     it('fills in default deno options', async () => {
       const result = (await provider.resolveDebugConfiguration(folder, {
