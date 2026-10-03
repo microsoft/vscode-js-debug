@@ -626,6 +626,12 @@ export class SourceContainer {
   ): Promise<Source> {
     const absolutePath = await this.sourcePathResolver.urlToAbsolutePath({ url: event.url });
 
+    // Another script event may have registered this source while the URL was resolving.
+    const existingSource = contentHash && this._sourceByOriginalUrl.get(event.url);
+    if (existingSource && existingSource.contentHash === contentHash) {
+      return existingSource;
+    }
+
     this.logger.verbose(LogTag.RuntimeSourceCreate, 'Creating source from url', {
       inputUrl: event.url,
       absolutePath,
