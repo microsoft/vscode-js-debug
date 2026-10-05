@@ -198,7 +198,7 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
       );
       if (
         this.options.clientID === 'visualstudio'
-        && fullSourceEntry.startsWith('webpack:///')
+        && fullSourceEntry.startsWith('webpack://')
         && !(await this.fsUtils.exists(mappedFullSourceEntry))
         && (await this.fsUtils.exists(clientAppPath))
       ) {

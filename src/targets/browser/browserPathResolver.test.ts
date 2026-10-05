@@ -148,8 +148,10 @@ describe('BrowserPathResolver', () => {
     exists(path: string): Promise<boolean> {
       switch (path) {
         case 'c:\\Users\\user\\Source\\Repos\\Angular Project\\ClientApp\\src\\app\\app.component.html':
+        case 'c:\\Users\\user\\Source\\Repos\\Angular Project\\ClientApp\\src\\components\\Component.vue':
           return Promise.resolve(true);
         case 'c:\\Users\\user\\Source\\Repos\\Angular Project\\wwwroot\\src\\app\\app.component.html':
+        case 'c:\\Users\\user\\Source\\Repos\\Angular Project\\wwwroot\\src\\components\\Component.vue':
           return Promise.resolve(false);
         default:
           throw Error(`Unknown path ${path}`);
@@ -231,10 +233,26 @@ describe('BrowserPathResolver', () => {
   });
 
   [
-    ['visualstudio', 'ClientApp'],
-    ['vscode', 'wwwroot'],
-  ].forEach(([client, folder]) => {
-    it(`returns ${folder} for ${client} if the webroot path doesn't exist and the modified path does`, async () => {
+    [
+      'visualstudio',
+      'webpack:///src/app/app.component.html',
+      'ClientApp',
+      'src\\app\\app.component.html',
+    ],
+    [
+      'visualstudio',
+      'webpack://vue-app/src/components/Component.vue',
+      'ClientApp',
+      'src\\components\\Component.vue',
+    ],
+    [
+      'vscode',
+      'webpack:///src/app/app.component.html',
+      'wwwroot',
+      'src\\app\\app.component.html',
+    ],
+  ].forEach(([client, url, folder, relativePath]) => {
+    it(`returns ${folder} for ${client} and ${url} if the webroot path doesn't exist and the modified path does`, async () => {
       const webRoot = 'c:\\Users\\user\\Source\\Repos\\Angular Project\\wwwroot';
 
       const resolver = new BrowserSourcePathResolver(
@@ -254,14 +272,13 @@ describe('BrowserPathResolver', () => {
         await Logger.test(),
       );
 
-      const url = 'webpack:///src/app/app.component.html';
       const absolutePath = await resolver.urlToAbsolutePath({
         url,
         map: upcastPartial<SourceMap>({ metadata: { sourceMapUrl: '', compiledPath: 'x' } }),
       });
 
       expect(absolutePath).to.equal(
-        `c:\\Users\\user\\Source\\Repos\\Angular Project\\${folder}\\src\\app\\app.component.html`,
+        `c:\\Users\\user\\Source\\Repos\\Angular Project\\${folder}\\${relativePath}`,
       );
     });
   });
