@@ -309,7 +309,7 @@ export interface INodeBaseConfiguration extends IBaseConfiguration, IConfigurati
   remoteRoot: string | null;
 
   /**
-   * Attach debugger to new child processes automatically.
+   * Attach debugger to new child processes and worker threads automatically.
    */
   autoAttachChildProcesses: boolean;
 
