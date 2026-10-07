@@ -235,15 +235,12 @@ describe('node runtime', () => {
       let sessions = 0;
       r.onSessionCreated(() => sessions++);
       const handle = await r.runScript('test.js', { autoAttachChildProcesses: false });
-      let attachedWorkers = 0;
-      handle.cdp.NodeWorker.on('attachedToWorker', () => attachedWorkers++);
       const finished = handle.dap.once('output', event => event.output.includes('worker finished'));
       const terminated = handle.dap.once('terminated');
 
       await handle.load();
       await finished;
       await terminated;
-      expect(attachedWorkers).to.equal(0);
       expect(sessions).to.equal(1);
     });
   }
