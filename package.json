@@ -170,6 +170,8 @@
     "fsevents@2.3.3": true,
     "@vscode/vsce-sign@2.0.9": true,
     "keytar@7.7.0": true,
-    "microtime@3.0.0": true
+    "microtime@3.0.0": true,
+    "dprint@0.47.2": true,
+    "esbuild@0.28.1": true
   }
 }
