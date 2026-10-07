@@ -4,7 +4,7 @@
 
 <details><h4>address</h4><p>TCP/IP address of process to be debugged. Default is &#39;localhost&#39;.</p>
 <h5>Default value:</h4><pre><code>"localhost"</pre></code><h4>attachExistingChildren</h4><p>Whether to attempt to attach to already-spawned child processes.</p>
-<h5>Default value:</h4><pre><code>true</pre></code><h4>autoAttachChildProcesses</h4><p>Attach debugger to new child processes automatically.</p>
+<h5>Default value:</h4><pre><code>true</pre></code><h4>autoAttachChildProcesses</h4><p>Attach debugger to new child processes and worker threads automatically.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>cascadeTerminateToConfigurations</h4><p>A list of debug sessions which, when this debug session is terminated, will also be stopped.</p>
 <h5>Default value:</h4><pre><code>[]</pre></code><h4>continueOnAttach</h4><p>If true, we&#39;ll automatically resume programs launched and waiting on <code>--inspect-brk</code></p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>customDescriptionGenerator</h4><p>Customize the textual description the debugger shows for objects (local variables, etc...). Samples:<br>      1. this.toString() // will call toString to print all objects<br>      2. this.customDescription ? this.customDescription() : defaultValue // Use customDescription method if available, if not return defaultValue<br>      3. function (def) { return this.customDescription ? this.customDescription() : def } // Use customDescription method if available, if not return defaultValue<br>      </p>
@@ -59,7 +59,7 @@
 
 <details><h4>args</h4><p>Command line arguments passed to the program.<br><br>Can be an array of strings or a single string. When the program is launched in a terminal, setting this property to a single string will result in the arguments not being escaped for the shell.</p>
 <h5>Default value:</h4><pre><code>[]</pre></code><h4>attachSimplePort</h4><p>If set, attaches to the process via the given port. This is generally no longer necessary for Node.js programs and loses the ability to debug child processes, but can be useful in more esoteric scenarios such as with Deno and Docker launches. If set to 0, a random port will be chosen and --inspect-brk added to the launch arguments automatically.</p>
-<h5>Default value:</h4><pre><code>null</pre></code><h4>autoAttachChildProcesses</h4><p>Attach debugger to new child processes automatically.</p>
+<h5>Default value:</h4><pre><code>null</pre></code><h4>autoAttachChildProcesses</h4><p>Attach debugger to new child processes and worker threads automatically.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>cascadeTerminateToConfigurations</h4><p>A list of debug sessions which, when this debug session is terminated, will also be stopped.</p>
 <h5>Default value:</h4><pre><code>[]</pre></code><h4>console</h4><p>Where to launch the debug target.</p>
 <h5>Default value:</h4><pre><code>"internalConsole"</pre></code><h4>customDescriptionGenerator</h4><p>Customize the textual description the debugger shows for objects (local variables, etc...). Samples:<br>      1. this.toString() // will call toString to print all objects<br>      2. this.customDescription ? this.customDescription() : defaultValue // Use customDescription method if available, if not return defaultValue<br>      3. function (def) { return this.customDescription ? this.customDescription() : def } // Use customDescription method if available, if not return defaultValue<br>      </p>
@@ -116,7 +116,7 @@
 
 ### node-terminal: launch
 
-<details><h4>autoAttachChildProcesses</h4><p>Attach debugger to new child processes automatically.</p>
+<details><h4>autoAttachChildProcesses</h4><p>Attach debugger to new child processes and worker threads automatically.</p>
 <h5>Default value:</h4><pre><code>true</pre></code><h4>cascadeTerminateToConfigurations</h4><p>A list of debug sessions which, when this debug session is terminated, will also be stopped.</p>
 <h5>Default value:</h4><pre><code>[]</pre></code><h4>command</h4><p>Command to run in the launched terminal. If not provided, the terminal will open without launching a program.</p>
 <h5>Default value:</h4><pre><code>undefined</pre></code><h4>customDescriptionGenerator</h4><p>Customize the textual description the debugger shows for objects (local variables, etc...). Samples:<br>      1. this.toString() // will call toString to print all objects<br>      2. this.customDescription ? this.customDescription() : defaultValue // Use customDescription method if available, if not return defaultValue<br>      3. function (def) { return this.customDescription ? this.customDescription() : def } // Use customDescription method if available, if not return defaultValue<br>      </p>
@@ -169,7 +169,7 @@
 <details><h4>args</h4><p>Command line arguments passed to the program.<br><br>Can be an array of strings or a single string. When the program is launched in a terminal, setting this property to a single string will result in the arguments not being escaped for the shell.</p>
 <h5>Default value:</h4><pre><code>[
   "--extensionDevelopmentPath=${workspaceFolder}"
-]</pre></code><h4>autoAttachChildProcesses</h4><p>Attach debugger to new child processes automatically.</p>
+]</pre></code><h4>autoAttachChildProcesses</h4><p>Attach debugger to new child processes and worker threads automatically.</p>
 <h5>Default value:</h4><pre><code>false</pre></code><h4>cascadeTerminateToConfigurations</h4><p>A list of debug sessions which, when this debug session is terminated, will also be stopped.</p>
 <h5>Default value:</h4><pre><code>[]</pre></code><h4>customDescriptionGenerator</h4><p>Customize the textual description the debugger shows for objects (local variables, etc...). Samples:<br>      1. this.toString() // will call toString to print all objects<br>      2. this.customDescription ? this.customDescription() : defaultValue // Use customDescription method if available, if not return defaultValue<br>      3. function (def) { return this.customDescription ? this.customDescription() : def } // Use customDescription method if available, if not return defaultValue<br>      </p>
 <h5>Default value:</h4><pre><code>undefined</pre></code><h4>customPropertiesGenerator</h4><p>Customize the properties shown for an object in the debugger (local variables, etc...). Samples:<br>    1. { ...this, extraProperty: &#39;12345&#39; } // Add an extraProperty 12345 to all objects<br>    2. this.customProperties ? this.customProperties() : this // Use customProperties method if available, if not use the properties in this (the default properties)<br>    3. function () { return this.customProperties ? this.customProperties() : this } // Use customDescription method if available, if not return the default properties<br><br>    Deprecated: This is a temporary implementation of this feature until we have time to implement it in the way described here: <a href="https://github.com/microsoft/vscode/issues/102181">https://github.com/microsoft/vscode/issues/102181</a></p>

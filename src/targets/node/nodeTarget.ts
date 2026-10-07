@@ -152,7 +152,9 @@ export class NodeTarget implements ITarget {
       return; // timed out or cancelled, may have been a short-lived process
     }
 
-    this._cdp.NodeWorker.enable({ waitForDebuggerOnStart: true });
+    if (this.launchConfig.autoAttachChildProcesses) {
+      this._cdp.NodeWorker.enable({ waitForDebuggerOnStart: true });
+    }
 
     if (result && '__dynamicAttach' in result) {
       // order matters! The runtime must be enabled first so we know what

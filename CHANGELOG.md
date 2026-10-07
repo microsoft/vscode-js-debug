@@ -4,7 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Unreleased
 
-Nothing, yet
+- fix: honor `autoAttachChildProcesses` for Node.js worker threads ([microsoft/vscode-remote-release#11860](https://github.com/microsoft/vscode-remote-release/issues/11860))
 
 ## 1.140 (September 2026)
 

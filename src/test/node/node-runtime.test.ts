@@ -216,6 +216,33 @@ describe('node runtime', () => {
       await waitForPause(worker);
       handle.assertLog({ substring: true });
     });
+
+    itIntegrates('does not debug worker threads if auto attach off', async ({ r }) => {
+      createFileTree(testFixturesDir, {
+        'test.js': [
+          'const { Worker } = require("worker_threads");',
+          'const path = require("path");',
+          'const worker = new Worker(path.join(__dir' + 'name, "worker.js"));',
+          'worker.on("message", message => console.log(message));',
+        ],
+        'worker.js': [
+          'const { parentPort } = require("worker_threads");',
+          'debugger;',
+          'parentPort.postMessage("worker finished");',
+        ],
+      });
+
+      let sessions = 0;
+      r.onSessionCreated(() => sessions++);
+      const handle = await r.runScript('test.js', { autoAttachChildProcesses: false });
+      const finished = handle.dap.once('output', event => event.output.includes('worker finished'));
+      const terminated = handle.dap.once('terminated');
+
+      await handle.load();
+      await finished;
+      await terminated;
+      expect(sessions).to.equal(1);
+    });
   }
 
   itIntegrates('exits with integrated terminal launcher', async ({ r }) => {
