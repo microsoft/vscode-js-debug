@@ -79,7 +79,7 @@ export class PositionToOffset {
    */
   public convert(position: IPosition) {
     const base0 = position.base0;
-    if (base0.lineNumber > this.lines.length) {
+    if (base0.lineNumber >= this.lines.length) {
       return this.source.length;
     }
 
