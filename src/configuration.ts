@@ -693,6 +693,13 @@ export interface IChromiumAttachConfiguration extends IChromiumBaseConfiguration
   port: number;
 
   /**
+   * User data directory of the browser to attach to, used to connect when remote debugging
+   * was turned on via chrome://inspect/#remote-debugging or edge://inspect/#remote-debugging.
+   * Only needed when the browser uses a non-default user data directory.
+   */
+  userDataDir?: string;
+
+  /**
    * Whether to restart whe attachment is lost.
    */
   restart: boolean;

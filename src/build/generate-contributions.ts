@@ -811,6 +811,11 @@ const chromiumAttachConfigurationAttributes: ConfigurationAttributes<IChromeAtta
     default: 9229,
     tags: [Tag.Setup],
   },
+  userDataDir: {
+    type: 'string',
+    markdownDescription: refString('browser.attach.userDataDir.description'),
+    default: undefined,
+  },
   restart: {
     type: 'boolean',
     markdownDescription: refString('browser.restart'),

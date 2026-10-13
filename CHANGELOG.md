@@ -4,6 +4,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 
 ## Unreleased
 
+- feat: support attaching to browsers using approval-based remote debugging ([#2435](https://github.com/microsoft/vscode-js-debug/issues/2435))
 - fix: honor `autoAttachChildProcesses` for Node.js worker threads ([microsoft/vscode-remote-release#11860](https://github.com/microsoft/vscode-remote-release/issues/11860))
 
 ## 1.140 (September 2026)
