@@ -9,6 +9,7 @@
   "base.enableDWARF.label": "Toggles whether the debugger will try to read DWARF debug symbols from WebAssembly, which can be resource intensive. Requires the `ms-vscode.wasm-dwarf-debugging` extension to function.",
   "browser.address.description": "IP address or hostname the debugged browser is listening on.",
   "browser.attach.port.description": "Port to use to remote debugging the browser, given as `--remote-debugging-port` when launching the browser.",
+  "browser.attach.userDataDir.description": "User data directory of the browser to attach to, used to connect when remote debugging was turned on via `chrome://inspect/#remote-debugging` or `edge://inspect/#remote-debugging`. Only needed when the browser uses a non-default user data directory.",
   "browser.baseUrl.description": "Base URL to resolve paths baseUrl. baseURL is trimmed when mapping URLs to the files on disk. Defaults to the launch URL domain.",
   "browser.browserAttachLocation.description": "Forces the browser to attach in one location. In a remote workspace (through ssh or WSL, for example) this can be used to attach to a browser on the remote machine rather than locally.",
   "browser.browserLaunchLocation.description": "Forces the browser to be launched in one location. In a remote workspace (through ssh or WSL, for example) this can be used to open the browser on the remote machine rather than locally.",

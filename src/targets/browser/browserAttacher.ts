@@ -3,11 +3,13 @@
  *--------------------------------------------------------*/
 
 import * as l10n from '@vscode/l10n';
+import { randomUUID } from 'crypto';
 import { inject, injectable, optional } from 'inversify';
 import type * as vscodeType from 'vscode';
 import { CancellationToken } from 'vscode';
 import CdpConnection from '../../cdp/connection';
-import { NeverCancelled } from '../../common/cancellation';
+import { WebSocketTransport } from '../../cdp/webSocketTransport';
+import { CancellationTokenSource, NeverCancelled } from '../../common/cancellation';
 import { DebugType } from '../../common/contributionUtils';
 import { EventEmitter, IDisposable } from '../../common/events';
 import { ILogger } from '../../common/logging';
@@ -19,7 +21,8 @@ import {
   TargetFilter,
 } from '../../common/urlUtils';
 import { AnyChromiumAttachConfiguration, AnyLaunchConfiguration } from '../../configuration';
-import { browserAttachFailed, targetPageNotFound } from '../../dap/errors';
+import Dap from '../../dap/api';
+import { browserAttachFailed, createSilentError, targetPageNotFound } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
 import { VSCodeApi } from '../../ioc-extras';
 import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
@@ -27,6 +30,7 @@ import { ILaunchContext, ILauncher, ILaunchResult, IStopMetadata, ITarget } from
 import { BrowserTargetManager } from './browserTargetManager';
 import { BrowserTargetType } from './browserTargets';
 import * as launcher from './launcher';
+import { findDevToolsActivePortEndpoint } from './spawn/endpoints';
 
 @injectable()
 export class BrowserAttacher<
@@ -36,6 +40,7 @@ export class BrowserAttacher<
   private _connection: CdpConnection | undefined;
   private _targetManager: BrowserTargetManager | undefined;
   private _disposables: IDisposable[] = [];
+  private readonly _approvalCts = new CancellationTokenSource();
   protected _lastLaunchParams?: T;
   private _onTerminatedEmitter = new EventEmitter<IStopMetadata>();
   readonly onTerminated = this._onTerminatedEmitter.event;
@@ -53,6 +58,7 @@ export class BrowserAttacher<
    * @inheritdoc
    */
   public dispose() {
+    this._approvalCts.dispose(true);
     for (const disposable of this._disposables) disposable.dispose();
     this._disposables = [];
     if (this._attemptTimer) clearTimeout(this._attemptTimer);
@@ -218,13 +224,17 @@ export class BrowserAttacher<
    * Gets a CDP connection to the browser.
    */
   protected async acquireConnectionForBrowser(
-    { telemetryReporter, cancellationToken }: ILaunchContext,
+    { telemetryReporter, cancellationToken, dap }: ILaunchContext,
     params: AnyChromiumAttachConfiguration,
   ): Promise<CdpConnection> {
     while (this._lastLaunchParams === params) {
       try {
-        return await this.acquireConnectionInner(telemetryReporter, params, cancellationToken);
+        return await this.acquireConnectionInner(telemetryReporter, params, cancellationToken, dap);
       } catch (e) {
+        if (e instanceof ProtocolError) {
+          throw e;
+        }
+
         if (cancellationToken.isCancellationRequested) {
           throw new ProtocolError(
             browserAttachFailed(
@@ -260,18 +270,101 @@ export class BrowserAttacher<
     rawTelemetryReporter: ITelemetryReporter,
     params: AnyChromiumAttachConfiguration,
     cancellationToken: CancellationToken,
+    dap: Dap.Api,
   ) {
     const browserURL = `http://${params.address}:${params.port}`;
-    return await launcher.attach(
+    const traditionalCts = new CancellationTokenSource(cancellationToken);
+    // Approval must not inherit the launch timeout.
+    const approvalCts = new CancellationTokenSource(this._approvalCts.token);
+    let connected = false;
+    const accept = (connection: CdpConnection, loser: CancellationTokenSource) => {
+      if (connected) {
+        connection.close();
+      } else {
+        connected = true;
+        loser.cancel();
+      }
+      return connection;
+    };
+
+    const traditional = launcher.attach(
       { browserURL, inspectUri: params.inspectUri, pageURL: params.url },
-      cancellationToken,
+      traditionalCts.token,
       this.logger,
       rawTelemetryReporter,
+    ).then(connection => accept(connection, approvalCts));
+    const approval = (async () => {
+      const endpoint = await findDevToolsActivePortEndpoint(
+        params.address,
+        params.port,
+        params.userDataDir,
+        this.logger,
+      );
+      if (!endpoint) {
+        throw new Error('Approval-based browser attachment unavailable.');
+      }
+
+      const transport = await this.connectWithApproval(endpoint, dap, approvalCts);
+      return new CdpConnection(transport, this.logger, rawTelemetryReporter);
+    })().then(
+      connection => accept(connection, traditionalCts),
+      error => {
+        // the user cancelled the approval, so cancel the whole attach
+        if (error instanceof ProtocolError) {
+          traditionalCts.cancel();
+        }
+        throw error;
+      },
     );
+
+    try {
+      return await Promise.any([traditional, approval]).catch((e: AggregateError) => {
+        throw e.errors.find(e => e instanceof ProtocolError) ?? e.errors[0];
+      });
+    } finally {
+      traditionalCts.dispose();
+      approvalCts.dispose();
+    }
+  }
+
+  private async connectWithApproval(url: string, dap: Dap.Api, cts: CancellationTokenSource) {
+    if (cts.token.isCancellationRequested) {
+      throw new Error('Browser attachment cancelled.');
+    }
+
+    const progressId = randomUUID();
+    let userCancelled = false;
+    const disposeCancel = dap.on('cancel', async params => {
+      if (params.progressId === progressId && !cts.token.isCancellationRequested) {
+        userCancelled = true;
+        cts.cancel();
+      }
+      return {};
+    });
+
+    try {
+      dap.progressStart({
+        progressId,
+        title: l10n.t('Waiting for browser approval'),
+        message: l10n.t('Approve the remote debugging request in your browser to continue.'),
+        cancellable: true,
+      });
+
+      return await WebSocketTransport.open(url, cts.token);
+    } catch (e) {
+      if (userCancelled) {
+        throw new ProtocolError(createSilentError(l10n.t('Browser attachment was cancelled.')));
+      }
+      throw e;
+    } finally {
+      disposeCancel();
+      dap.progressEnd({ progressId });
+    }
   }
 
   async terminate(): Promise<void> {
     this._lastLaunchParams = undefined;
+    this._approvalCts.cancel();
     this._connection?.close();
   }
 

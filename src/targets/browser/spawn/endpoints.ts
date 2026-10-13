@@ -3,12 +3,15 @@
  *--------------------------------------------------------*/
 
 import { promises as fs } from 'fs';
+import { homedir } from 'os';
+import { join } from 'path';
 import { CancellationToken } from 'vscode';
 import { Response } from '../../../adapter/resourceProvider';
 import { BasicResourceProvider } from '../../../adapter/resourceProvider/basicResourceProvider';
 import { CancellationTokenSource } from '../../../common/cancellation';
 import { ILogger, LogTag } from '../../../common/logging';
 import { delay, some } from '../../../common/promiseUtil';
+import { isLoopback } from '../../../common/urlUtils';
 
 /**
  * Returns the debugger websocket URL a process listening at the given address.
@@ -145,6 +148,86 @@ export const retryGetNodeEndpoint = makeRetryGetWSEndpoint(true);
  * @param cancellationToken -- Optional cancellation for this operation
  */
 export const retryGetBrowserEndpoint = makeRetryGetWSEndpoint(false);
+
+export async function findDevToolsActivePortEndpoint(
+  address: string,
+  port: number,
+  userDataDir: string | undefined,
+  logger: ILogger,
+): Promise<string | undefined> {
+  const directories = userDataDir !== undefined
+    ? [userDataDir]
+    : await isLoopback(address)
+    ? defaultUserDataDirectories()
+    : [];
+  const endpoints = await Promise.all(
+    directories.map(async directory => {
+      const contents = await fs.readFile(join(directory, 'DevToolsActivePort'), 'utf8').catch(() =>
+        undefined
+      );
+      if (!contents) {
+        return undefined;
+      }
+
+      const [filePort, wsPath] = contents.split('\n').map(line => line.trim());
+      if (filePort !== String(port) || !wsPath) {
+        return undefined;
+      }
+
+      const url = `ws://${address}:${port}${wsPath}`;
+      logger.verbose(LogTag.RuntimeLaunch, 'Discovered target URL from DevToolsActivePort', {
+        directory,
+        url,
+      });
+      return url;
+    }),
+  );
+
+  return endpoints.find(endpoint => endpoint !== undefined);
+}
+
+function defaultUserDataDirectories(): string[] {
+  if (process.platform === 'darwin') {
+    return [
+      'Google/Chrome',
+      'Google/Chrome Beta',
+      'Google/Chrome Dev',
+      'Google/Chrome Canary',
+      'Chromium',
+      'Microsoft Edge',
+      'Microsoft Edge Beta',
+      'Microsoft Edge Dev',
+      'Microsoft Edge Canary',
+    ].map(directory => join(homedir(), 'Library', 'Application Support', directory));
+  }
+
+  if (process.platform === 'win32') {
+    const localAppData = process.env.LOCALAPPDATA;
+    return localAppData
+      ? [
+        'Google/Chrome',
+        'Google/Chrome Beta',
+        'Google/Chrome Dev',
+        'Google/Chrome SxS',
+        'Chromium',
+        'Microsoft/Edge',
+        'Microsoft/Edge Beta',
+        'Microsoft/Edge Dev',
+        'Microsoft/Edge SxS',
+      ].map(directory => join(localAppData, directory, 'User Data'))
+      : [];
+  }
+
+  return [
+    'google-chrome',
+    'google-chrome-beta',
+    'google-chrome-unstable',
+    'chromium',
+    'microsoft-edge',
+    'microsoft-edge-beta',
+    'microsoft-edge-dev',
+  ].map(directory => join(homedir(), '.config', directory));
+}
 
 function fixRemoteUrl(rawBrowserUrl: string, rawWebSocketUrl: string) {
   const browserUrl = new URL(rawBrowserUrl);

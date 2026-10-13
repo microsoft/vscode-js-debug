@@ -29,42 +29,14 @@ export class WebSocketTransport implements ITransport {
     cancellationToken: CancellationToken,
     remoteHostHeader?: string,
   ): Promise<WebSocketTransport> {
-    const isSecure = !url.startsWith('ws://');
-    const targetAddressIsLoopback = await isLoopback(url);
-
     while (true) {
       const dontRetryBefore = Date.now() + maxRetryInterval;
       try {
-        const options = {
-          headers: { host: remoteHostHeader ?? 'localhost' },
-          perMessageDeflate: false,
-          maxPayload: 256 * 1024 * 1024, // 256Mb
-          rejectUnauthorized: !(isSecure && targetAddressIsLoopback),
-          followRedirects: true,
-        };
-
-        const ws = new WebSocket(url, [], options);
-        return await timeoutPromise(
-          new Promise<WebSocketTransport>((resolve, reject) => {
-            ws.addEventListener('open', () => resolve(new WebSocketTransport(ws)));
-            ws.addEventListener('error', errorEvent => {
-              // Check for invalid http redirects for compatibility with old cdp proxies
-              const redirectUrl = url === ws.url ? url : ws.url.replace(/^http(s?):/, 'ws$1:');
-
-              if (redirectUrl === url) {
-                reject(errorEvent.error); // Parameter is an ErrorEvent. See https://github.com/websockets/ws/blob/master/doc/ws.md#websocketonerror
-                return;
-              }
-
-              this.create(redirectUrl, cancellationToken, remoteHostHeader).then(resolve, reject);
-            });
-          }),
+        return await this.open(
+          url,
           CancellationTokenSource.withTimeout(2000, cancellationToken).token,
-          `Could not open ${url}`,
-        ).catch(err => {
-          ws.close();
-          throw err;
-        });
+          remoteHostHeader,
+        );
       } catch (err) {
         if (cancellationToken.isCancellationRequested) {
           throw err;
@@ -76,6 +48,48 @@ export class WebSocketTransport implements ITransport {
         }
       }
     }
+  }
+
+  /**
+   * Opens a WebSocket transport with a single attempt and no connection timeout.
+   */
+  static async open(
+    url: string,
+    cancellationToken: CancellationToken,
+    remoteHostHeader?: string,
+  ): Promise<WebSocketTransport> {
+    const isSecure = !url.startsWith('ws://');
+    const targetAddressIsLoopback = await isLoopback(url);
+    const options = {
+      headers: { host: remoteHostHeader ?? 'localhost' },
+      perMessageDeflate: false,
+      maxPayload: 256 * 1024 * 1024, // 256Mb
+      rejectUnauthorized: !(isSecure && targetAddressIsLoopback),
+      followRedirects: true,
+    };
+
+    const ws = new WebSocket(url, [], options);
+    return timeoutPromise(
+      new Promise<WebSocketTransport>((resolve, reject) => {
+        ws.addEventListener('open', () => resolve(new WebSocketTransport(ws)));
+        ws.addEventListener('error', errorEvent => {
+          // Check for invalid http redirects for compatibility with old cdp proxies
+          const redirectUrl = url === ws.url ? url : ws.url.replace(/^http(s?):/, 'ws$1:');
+
+          if (redirectUrl === url) {
+            reject(errorEvent.error); // Parameter is an ErrorEvent. See https://github.com/websockets/ws/blob/master/doc/ws.md#websocketonerror
+            return;
+          }
+
+          this.open(redirectUrl, cancellationToken, remoteHostHeader).then(resolve, reject);
+        });
+      }),
+      cancellationToken,
+      `Could not open ${url}`,
+    ).catch(err => {
+      ws.close();
+      throw err;
+    });
   }
 
   constructor(ws: WebSocket) {
