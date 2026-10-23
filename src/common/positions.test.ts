@@ -59,5 +59,14 @@ describe('Range', () => {
       const mergedRanges = Range.simplify([range1, range2, range3, range4]);
       expect(mergedRanges.join(', ')).to.equal('Range[0:0 -> 0:5], Range[0:6 -> 0:7]');
     });
+
+    it('should keep the outer range when merging contained ranges', () => {
+      const range1 = new Range(new Base0Position(0, 0), new Base0Position(0, 10));
+      const range2 = new Range(new Base0Position(0, 2), new Base0Position(0, 5));
+      const range3 = new Range(new Base0Position(0, 7), new Base0Position(0, 8));
+      const range4 = new Range(new Base0Position(0, 0), new Base0Position(0, 3));
+      const mergedRanges = Range.simplify([range1, range2, range3, range4]);
+      expect(mergedRanges.join(', ')).to.equal('Range[0:0 -> 0:10]');
+    });
   });
 });
