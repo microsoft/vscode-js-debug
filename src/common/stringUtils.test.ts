@@ -16,6 +16,7 @@ describe('stringUtils', () => {
     const simple = new PositionToOffset('hello\nworld');
     expect(simple.convert(new Base0Position(0, 2))).to.equal(2);
     expect(simple.convert(new Base0Position(1, 2))).to.equal(8);
+    expect(simple.convert(new Base0Position(2, 0))).to.equal(11);
 
     const toOffset = new PositionToOffset('\nhello\nworld\n');
 
@@ -27,6 +28,7 @@ describe('stringUtils', () => {
     expect(toOffset.convert(new Base0Position(2, 1))).to.equal(8);
 
     expect(toOffset.convert(new Base0Position(3, 0))).to.equal(13);
+    expect(toOffset.convert(new Base0Position(4, 0))).to.equal(13);
     expect(toOffset.convert(new Base0Position(10, 0))).to.equal(13);
   });
 });
