@@ -130,7 +130,9 @@ export class Range {
     for (let i = 1; i < sortedRanges.length; i++) {
       const nextRange = sortedRanges[i];
       if (currentRange.end.compare(nextRange.begin) >= 0) {
-        currentRange = new Range(currentRange.begin, nextRange.end);
+        if (nextRange.end.compare(currentRange.end) > 0) {
+          currentRange = new Range(currentRange.begin, nextRange.end);
+        }
       } else {
         mergedRanges.push(currentRange);
         currentRange = nextRange;
