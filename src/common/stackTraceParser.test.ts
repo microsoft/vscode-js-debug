@@ -38,4 +38,10 @@ describe('StackTraceParser', () => {
       '    \n',
     ]);
   });
+
+  it('detects stack frames in multi-line text', () => {
+    expect(StackTraceParser.isStackLike('Error: oof\n    at f (/app/out/index.js:3:9)\n')).to.be
+      .true;
+    expect(StackTraceParser.isStackLike('hello\nworld\n')).to.be.false;
+  });
 });

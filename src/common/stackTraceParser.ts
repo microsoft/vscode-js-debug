@@ -18,7 +18,7 @@ const re2 = /^(\W*at )(.*):(\d+):(\d+)$/;
 export class StackTraceParser {
   /** Gets whether the stacktrace has any locations in it. */
   public static isStackLike(str: string) {
-    return re1.test(str) || re2.test(str);
+    return str.split('\n').some(line => re1.test(line) || re2.test(line));
   }
   constructor(private readonly stack: string) {}
 
