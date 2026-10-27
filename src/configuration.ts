@@ -314,6 +314,14 @@ export interface INodeBaseConfiguration extends IBaseConfiguration, IConfigurati
   autoAttachChildProcesses: boolean;
 
   /**
+   * Glob patterns of the scripts to debug when `autoAttachChildProcesses` is
+   * on, like the `debug.javascript.autoAttachSmartPattern` setting. If empty,
+   * every process is debugged.
+   * @see https://github.com/microsoft/vscode-js-debug/issues/1246
+   */
+  autoAttachSmartPattern: ReadonlyArray<string>;
+
+  /**
    * A list of patterns at which to manually insert entrypoint breakpoints.
    * This can be useful to give the debugger an opportunity to set breakpoints
    * when using sourcemaps that don't exist or can't be detected before launch.
@@ -904,6 +912,7 @@ const nodeBaseDefaults: INodeBaseConfiguration = {
   remoteRoot: null,
   resolveSourceMapLocations: ['**', '!**/node_modules/**'],
   autoAttachChildProcesses: true,
+  autoAttachSmartPattern: [],
   runtimeSourcemapPausePatterns: [],
   skipFiles: [`${nodeInternalsToken}/**`],
 };

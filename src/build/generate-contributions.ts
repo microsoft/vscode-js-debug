@@ -353,6 +353,14 @@ const nodeBaseConfigurationAttributes: ConfigurationAttributes<INodeBaseConfigur
     description: refString('node.launch.autoAttachChildProcesses.description'),
     default: true,
   },
+  autoAttachSmartPattern: {
+    type: 'array',
+    items: {
+      type: 'string',
+    },
+    markdownDescription: refString('node.launch.autoAttachSmartPattern.description'),
+    default: [],
+  },
   env: {
     type: 'object',
     additionalProperties: {
