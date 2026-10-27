@@ -20,6 +20,10 @@ import {
   ResolvingConfiguration,
 } from '../../configuration';
 import { ExtensionContext, ExtensionLocation, FS, FsPromises } from '../../ioc-extras';
+import {
+  extensionProfileDirName,
+  resolveExpectedExtensionId,
+} from '../../targets/browser/extensionId';
 import { BaseConfigurationProvider } from './baseConfigurationProvider';
 import { BaseConfigurationResolver } from './baseConfigurationResolver';
 import { NodeConfigurationResolver } from './nodeDebugConfigurationResolver';
@@ -148,12 +152,22 @@ export abstract class ChromiumDebugConfigurationResolver<T extends AnyChromiumCo
       return config;
     }
 
-    const userDataDir = typeof cast.userDataDir === 'string'
-      ? cast.userDataDir
-      : join(
+    let userDataDir: string;
+    if (typeof cast.userDataDir === 'string') {
+      userDataDir = cast.userDataDir;
+    } else if (cast.extensionPath) {
+      // Extension debugging gets its own profile with a deliberately short
+      // path: under workspaceStorage the profile base can exceed ~135
+      // characters, past which the extension origin's IndexedDB paths blow
+      // MAX_PATH on Windows and break with "Internal error opening database".
+      const extensionId = await resolveExpectedExtensionId(cast.extensionPath, this.fs);
+      userDataDir = join(tmpdir(), extensionProfileDirName(cast.extensionPath, extensionId));
+    } else {
+      userDataDir = join(
         this.extensionContext.storagePath ?? tmpdir(),
         cast.runtimeArgs?.includes('--headless') ? '.headless-profile' : '.profile',
       );
+    }
 
     // Warn if there's an existing instance, so we probably can't launch it in debug mode:
     const platformLock = join(

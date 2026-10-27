@@ -92,6 +92,9 @@ export class SourcePathResolverFactory implements ISourcePathResolverFactory {
           sourceMapOverrides: c.sourceMapPathOverrides,
           clientID: this.initializeParams.clientID,
           remoteFilePrefix: c.__remoteFilePrefix,
+          extensionPath: 'extensionPath' in c && typeof c.extensionPath === 'string'
+            ? c.extensionPath
+            : undefined,
         },
         logger,
       );
