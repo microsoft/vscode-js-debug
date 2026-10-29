@@ -92,7 +92,10 @@ export class LogPointCompiler {
       formatParts.push('%O');
     }
 
-    const evalArgs = [JSON.stringify(formatParts.join('')), ...args].join(', ');
+    // console.log only applies format specifiers when it gets more than one
+    // argument, so `%` must only be escaped if something was interpolated.
+    const format = args.length ? formatParts.join('') : msg;
+    const evalArgs = [JSON.stringify(format), ...args].join(', ');
     const result = `console.log(${evalArgs}), false`; // false for #1191
     const hash = createHash('sha256').update(result).digest('hex').slice(0, 7);
 
