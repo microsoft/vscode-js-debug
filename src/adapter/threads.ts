@@ -80,6 +80,17 @@ export class ExecutionContext {
   }
 }
 
+/**
+ * Node.js reports `vm` contexts as non-default and without a frame. Those can
+ * be garbage collected right after they're created (Node's `repl` module does
+ * this when it loads), and V8 crashes if `Runtime.evaluate` targets a context
+ * that was collected but not yet discarded (#2446). So don't install the
+ * WebAssembly pause handler in them, at the cost of the early pause for
+ * WebAssembly instantiated inside a `vm` context.
+ */
+const wantsWasmPauseHandler = (context: ExecutionContext) =>
+  context.description.auxData?.isDefault !== false || !!context.description.auxData?.frameId;
+
 export type Script = ISourceScript & {
   source: Promise<Source>;
   resolvedSource?: Source;
@@ -928,7 +939,7 @@ export class Thread implements IVariableStoreLocationProvider {
     const context = new ExecutionContext(description);
     this._executionContexts.set(description.id, context);
 
-    if (this._scriptWithSourceMapHandler) {
+    if (this._scriptWithSourceMapHandler && wantsWasmPauseHandler(context)) {
       this._installWasmPauseHandler(description.id);
     }
 
@@ -2013,7 +2024,9 @@ export class Thread implements IVariableStoreLocationProvider {
     // always happens at runtime, not in the brekapoint predictor (currently)
     if (handler) {
       const installed = Promise.all(
-        [...this._executionContexts.keys()].map(id => this._installWasmPauseHandler(id)),
+        [...this._executionContexts.values()]
+          .filter(wantsWasmPauseHandler)
+          .map(c => this._installWasmPauseHandler(c.description.id)),
       );
       await Promise.race([installed, delay(100)]);
     }
