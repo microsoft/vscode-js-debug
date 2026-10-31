@@ -564,6 +564,29 @@ describe('node runtime', () => {
 
       expect(result).to.equal('ok');
     });
+
+    itIntegrates('debugs children matching autoAttachSmartPattern', async ({ r }) => {
+      const handle = await r.runScript('test.js', {
+        autoAttachSmartPattern: ['**/test.js', '**/child.js'],
+      });
+      handle.load();
+
+      const worker = await r.worker();
+      worker.load();
+      await worker.dap.once('stopped');
+    });
+
+    itIntegrates('does not debug children outside autoAttachSmartPattern', async ({ r }) => {
+      const handle = await r.runScript('test.js', { autoAttachSmartPattern: ['**/test.js'] });
+      handle.load();
+
+      const result = await Promise.race([
+        r.worker(),
+        new Promise(r => setTimeout(() => r('ok'), 1000)),
+      ]);
+
+      expect(result).to.equal('ok');
+    });
   });
 
   itIntegrates('sets arguments', async ({ r }) => {

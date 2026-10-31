@@ -152,6 +152,7 @@
   "node.label": "Node.js",
   "node.launch.args.description": "Command line arguments passed to the program.\n\nCan be an array of strings or a single string. When the program is launched in a terminal, setting this property to a single string will result in the arguments not being escaped for the shell.",
   "node.launch.autoAttachChildProcesses.description": "Attach debugger to new child processes and worker threads automatically.",
+  "node.launch.autoAttachSmartPattern.description": "Glob patterns of the scripts to debug when `autoAttachChildProcesses` is on, like the `debug.javascript.autoAttachSmartPattern` setting. They are matched against the script of each Node.js process the debugger would attach to, including the launched program, so tools such as `npm` or `yarn` can be skipped. `$KNOWN_TOOLS$` is replaced with a list of names of common test and code runners. If empty, every process is debugged.",
   "node.launch.config.name": "Launch",
   "node.launch.console.description": "Where to launch the debug target.",
   "node.launch.console.externalTerminal.description": "External terminal that can be configured via user settings",

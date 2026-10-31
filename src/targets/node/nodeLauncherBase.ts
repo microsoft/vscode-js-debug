@@ -301,6 +301,12 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
     const baseEnv = this.getConfiguredEnvironment(params);
     const bootloader = await this.bootloaderFile(params.cwd, binary);
 
+    // Like the `debug.javascript.autoAttachSmartPattern` setting, only attach
+    // to processes whose script matches one of the configured patterns.
+    const smartPatterns = params.autoAttachChildProcesses && params.autoAttachSmartPattern?.length
+      ? params.autoAttachSmartPattern.map(forceForwardSlashes)
+      : undefined;
+
     const bootloaderInfo: IBootloaderInfo = {
       inspectorIpc: serverAddress,
       deferredMode: false,
@@ -314,7 +320,8 @@ export abstract class NodeLauncherBase<T extends AnyNodeConfiguration> implement
       verbose: params.trace === true || (typeof params.trace === 'object' && params.trace.stdio)
         ? true
         : undefined,
-      autoAttachMode: AutoAttachMode.Always,
+      autoAttachMode: smartPatterns ? AutoAttachMode.Smart : AutoAttachMode.Always,
+      aaPatterns: smartPatterns,
       mandatePortTracking: this.portLeaseTracker.isMandated ? true : undefined,
       ...additionalOptions,
     };
