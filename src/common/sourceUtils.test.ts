@@ -53,6 +53,8 @@ describe('sourceUtils', () => {
           )
         }, ${wrapped('return name;')})`,
       ],
+      'escaping without interpolation': ['50% done, 100%', 'console.log("50% done, 100%")'],
+      'escaping with invalid brace': ['100% {}', 'console.log("100% {}")'],
       'complex expression': [
         'hello {n++;v=() => { return true }}',
         `console.log("hello %O", ${wrapped('n++;', 'return v = () => {', '  return true;', '};')})`,
