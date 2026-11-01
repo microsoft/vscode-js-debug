@@ -25,7 +25,7 @@ export class CallbackFile<T> implements IDisposable {
   private readPromise?: Promise<T | undefined>;
 
   /**
-   * Reads the file, returnings its contants after they're written, or returns
+   * Reads the file, returning its contents after they're written, or returns
    * undefined if the file was disposed of before the read completed.
    */
   public read(pollInterval = CallbackFile.pollInterval) {

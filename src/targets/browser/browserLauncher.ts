@@ -170,7 +170,7 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
     // Note: we have a different token for the launch loop, since the initial
     // launch token is cancelled when that finishes. Instead, this token is
     // good until the debug session is terminated, once the initial session
-    // has been craeted.
+    // has been created.
     const launchCts = new CancellationTokenSource(this._terminatedCts.token);
 
     // Retry connections as long as the launch process is running,
@@ -188,7 +188,7 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
         // this looks ugly, because it is... if the browser is closed by the
         // user, we'll generally notice the CDP connection is closed before the
         // process' exit event happens, so add an extra delay to double check
-        // that a retry is appropriate to avoid extranous logs.
+        // that a retry is appropriate to avoid extraneous logs.
         await delay(1000);
         if (canRetry()) {
           ctx.dap.output({

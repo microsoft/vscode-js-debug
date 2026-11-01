@@ -705,7 +705,7 @@ class Variable implements IVariable {
       return `${parent.accessor}[${name}]`;
     }
 
-    // If the object property looks like a valid identifer, don't use the
+    // If the object property looks like a valid identifier, don't use the
     // bracket syntax -- it's ugly!
     if (identifierRe.test(name)) {
       return `${parent.accessor}.${name}`;
@@ -1163,7 +1163,7 @@ class SetOrMapVariable extends ObjectVariable {
       ?.getChildren(params);
 
     return [
-      // filter to only show the actualy entries, not the array prototype/length
+      // filter to only show the actually entries, not the array prototype/length
       ...(entryChildren || []).filter(v => v.sortOrder === SortOrder.Default),
       ...baseChildren.filter(c => c.name !== entriesVariableName),
     ];

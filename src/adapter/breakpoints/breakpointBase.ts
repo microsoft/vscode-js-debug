@@ -224,7 +224,7 @@ export abstract class Breakpoint {
     // Update with the resolved locations immediately and synchronously. This
     // prevents a race conditions where a source is parsed immediately before
     // a breakpoint it hit and not returning correctly in `BreakpointManager.isEntrypointBreak`.
-    // This _can_ be fairly prevelant, especially when resolving UI locations
+    // This _can_ be fairly prevalent, especially when resolving UI locations
     // involves loading or waiting for source maps.
     this.updateExistingCdpRef(cdpId, bp => ({ ...bp, locations: resolvedLocations }));
 

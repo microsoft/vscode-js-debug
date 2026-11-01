@@ -131,7 +131,7 @@ type RemoteObjectWithType<R, ByValue> = ByValue extends true
   ? Omit<Cdp.Runtime.RemoteObject, 'value'> & { value: R }
   : Omit<Cdp.Runtime.RemoteObject, 'value'> & { objectId: string };
 
-/** Represets a CDP remote object that can be used as an argument to RemoteFunctions */
+/** Represents a CDP remote object that can be used as an argument to RemoteFunctions */
 export class RemoteObjectId {
   constructor(public readonly objectId: string) {}
 }

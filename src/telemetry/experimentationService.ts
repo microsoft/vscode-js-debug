@@ -13,7 +13,7 @@ export interface IExperimentationService {
   /**
    * Gets the treatment for the experiment.
    * @param name Name of the experiment
-   * @param defaultValue Default to return if the call fails ot no
+   * @param defaultValue Default to return if the call fails or no
    * experimentation service is available.
    */
   getTreatment<K extends keyof IExperiments>(

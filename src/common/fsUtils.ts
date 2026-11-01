@@ -63,7 +63,7 @@ export async function existsInjected(
 }
 
 /**
- * Returns the file path exists without derefencing symblinks.
+ * Returns the file path exists without dereferencing symblinks.
  */
 export async function existsWithoutDeref(
   { lstat }: FsPromises,
@@ -196,8 +196,8 @@ export class RemoteFsThroughDapUtils implements IFsUtils {
 }
 
 /**
- * Notes: remoteFilePrefix = '' // will do all fs operations thorugh DAP requests
- * remoteFilePrefix = undefined // will do all operations thorugh Local Node.fs
+ * Notes: remoteFilePrefix = '' // will do all fs operations through DAP requests
+ * remoteFilePrefix = undefined // will do all operations through Local Node.fs
  */
 export class LocalAndRemoteFsUtils implements IFsUtils {
   private constructor(

@@ -43,7 +43,7 @@ export const parseSource: (str: string) => (Statement & AcornNode)[] = str => {
   };
 
   // acorn-loose adds a "dummy" identifier to function expressions parsing
-  // as a program, which creates an invalid name. But this isn't actually necesary.
+  // as a program, which creates an invalid name. But this isn't actually necessary.
   for (const stmt of parsed.body) {
     if (stmt.type === 'FunctionDeclaration' && stmt.id && isDummy(stmt.id)) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

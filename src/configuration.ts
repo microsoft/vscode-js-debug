@@ -178,7 +178,7 @@ export interface IBaseConfiguration extends IMandatedConfiguration {
   __workspaceCachePath?: string;
 
   /**
-   * If a file starts with this prefix, we'll consider it a remote file, and perform it's operation thorugh DAP requests
+   * If a file starts with this prefix, we'll consider it a remote file, and perform its operation through DAP requests
    */
   __remoteFilePrefix: string | undefined;
 
@@ -424,7 +424,7 @@ export interface INodeLaunchConfiguration extends INodeBaseConfiguration, IConfi
   profileStartup: boolean;
 
   /**
-   * Legacy debug port. Now, only used for --inspect-brk compatbility.
+   * Legacy debug port. Now, only used for --inspect-brk compatibility.
    * @see https://github.com/microsoft/vscode-js-debug/issues/584
    * @deprecated
    */
@@ -708,7 +708,7 @@ export interface IChromiumAttachConfiguration extends IChromiumBaseConfiguration
   userDataDir?: string;
 
   /**
-   * Whether to restart whe attachment is lost.
+   * Whether to restart when attachment is lost.
    */
   restart: boolean;
 

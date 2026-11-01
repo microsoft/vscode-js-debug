@@ -78,7 +78,7 @@ export class ListenerMap<K, V> {
   public readonly listeners: ReadonlyMap<K, EventEmitter<V>> = this.map;
 
   /**
-   * Adds a listener for the givne event.
+   * Adds a listener for the given event.
    */
   public listen(key: K, handler: (arg: V) => void): IDisposable {
     let emitter = this.map.get(key);

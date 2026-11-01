@@ -33,7 +33,7 @@ export interface ICompletionContext {
 }
 
 /**
- * A completion expresson to be evaluated.
+ * A completion expression to be evaluated.
  */
 export interface ICompletionExpression {
   expression: string;

@@ -118,7 +118,7 @@ export function sortKeys<T>(obj: T, sortFn?: (a: keyof T, b: keyof T) => number)
 }
 
 /**
- * Recurively walks over the simple object.
+ * Recursively walks over the simple object.
  */
 // eslint-disable-next-line
 export function walkObject(obj: any, visitor: (value: unknown) => any): any {
@@ -138,7 +138,7 @@ export function walkObject(obj: any, visitor: (value: unknown) => any): any {
 }
 
 /**
- * Performs a case-insenstive merge of the list of objects.
+ * Performs a case-insensitive merge of the list of objects.
  */
 export function caseInsensitiveMerge<V>(
   ...objs: ReadonlyArray<Readonly<{ [key: string]: V }> | undefined | null>
@@ -304,7 +304,7 @@ export function debounce(duration: number, fn: () => void): (() => void) & { cle
 
 /**
  * Throttles the function to be called at most every "duration", delaying the
- * call by the duration on its first invokation.
+ * call by the duration on its first invocation.
  */
 export function trailingEdgeThrottle(
   duration: number,

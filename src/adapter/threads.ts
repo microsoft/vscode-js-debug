@@ -126,7 +126,7 @@ const getReplSourceSuffix = () =>
     randomBytes(4).toString('hex')
   }${sourceUtils.SourceConstants.ReplExtension}\n`;
 
-/** Auxillary data present in Cdp.Debugger.Paused events in recent Chrome versions */
+/** Auxiliary data present in Cdp.Debugger.Paused events in recent Chrome versions */
 interface IInstrumentationPauseAuxData {
   scriptId: string;
   url: string;
@@ -136,7 +136,7 @@ interface IInstrumentationPauseAuxData {
 /**
  * Queue used to avoid getting into a bad state if the user runs multiple
  * state-changing commands concurrently. Some things can cause V8 to block
- * and take a while responding to requests. Mutliple requests of the same
+ * and take a while responding to requests. Multiple requests of the same
  * operation type get coalesced, while other operation types are
  * run sequentially.
  */
@@ -2028,7 +2028,7 @@ export class Thread implements IVariableStoreLocationProvider {
    * own source map. Because of this, pausing when we see a script with a
    * sourcemap becomes incredibly slow.
    *
-   * If we enounter this, we remove the instrumentation breakpoint and instead
+   * If we encounter this, we remove the instrumentation breakpoint and instead
    * tell our breakpoint manager to set very aggressively-matched entrypoint
    * breakpoints and use those instead. It's not quite as accurate, but it's
    * far better than takes minutes to load simple apps.
