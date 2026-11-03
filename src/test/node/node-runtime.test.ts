@@ -145,6 +145,56 @@ describe('node runtime', () => {
     handle.assertLog({ substring: true });
   });
 
+  describe('WebAssembly pause handler', () => {
+    const script = (delay: number) => [
+      'const vm = require("vm");',
+      'const context = vm.createContext({});',
+      'const isWrapped = fn => !String(fn).includes("[native code]");',
+      'console.log("ready");',
+      'setTimeout(() => {',
+      '  const inMain = isWrapped(WebAssembly.instantiate);',
+      '  const inVm = isWrapped(vm.runInContext("WebAssembly.instantiate", context));',
+      '  console.log(inMain, inVm);',
+      `}, ${delay});`,
+    ];
+
+    const expectOnlyMainWrapped = async (handle: NodeTestHandle) => {
+      const { threadId } = await handle.dap.once('stopped');
+      const { stackFrames } = await handle.dap.stackTrace({ threadId: threadId! });
+      const evaluated = await handle.dap.evaluate({
+        expression: 'inMain && !inVm',
+        frameId: stackFrames[0].id,
+        context: 'watch',
+      });
+      expect(evaluated.result).to.equal('true');
+      await handle.dap.continue({ threadId: threadId! });
+    };
+
+    itIntegrates('is not installed in vm contexts created later', async ({ r }) => {
+      createFileTree(testFixturesDir, { 'test.js': script(500) });
+      const handle = await r.runScript('test.js');
+      await handle.dap.setBreakpoints({
+        source: { path: join(testFixturesDir, 'test.js') },
+        breakpoints: [{ line: 8 }],
+      });
+      handle.load();
+      await expectOnlyMainWrapped(handle);
+    });
+
+    itIntegrates('is not installed in existing vm contexts', async ({ r }) => {
+      createFileTree(testFixturesDir, { 'test.js': script(2000) });
+      const handle = await r.runScript('test.js');
+      const ready = handle.dap.once('output', event => event.output.includes('ready'));
+      handle.load();
+      await ready;
+      await handle.dap.setBreakpoints({
+        source: { path: join(testFixturesDir, 'test.js') },
+        breakpoints: [{ line: 8 }],
+      });
+      await expectOnlyMainWrapped(handle);
+    });
+  });
+
   itIntegrates('chakracore string value', async ({ r }) => {
     if (process.platform !== 'win32') {
       return;
