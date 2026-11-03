@@ -33,17 +33,27 @@ interface ISharedSkipToggleEvent {
 }
 
 function preprocessNodeInternals(userSkipPatterns: ReadonlyArray<string>): string[] | undefined {
-  const nodeInternalRegex = /^<node_internals>[\/\\](.*)$/;
+  const nodeInternalRegex = /^(!?)<node_internals>[\/\\](.*)$/;
 
+  let hasPositive = false;
   const nodeInternalPatterns = userSkipPatterns
     .map(userPattern => {
       userPattern = userPattern.trim();
       const nodeInternalPattern = nodeInternalRegex.exec(userPattern);
-      return nodeInternalPattern ? nodeInternalPattern[1] : null;
+      if (!nodeInternalPattern?.[2]) {
+        return null;
+      }
+
+      // keep a leading `!`, micromatch applies it as a negation
+      const [, negation, glob] = nodeInternalPattern;
+      hasPositive ||= !negation;
+      return negation + glob;
     })
     .filter(truthy);
 
-  return nodeInternalPatterns.length > 0 ? nodeInternalPatterns : undefined;
+  // A negation only excludes internals that a positive entry skips. On its
+  // own, micromatch would match every module the negation does not name.
+  return hasPositive ? nodeInternalPatterns : undefined;
 }
 
 function preprocessAuthoredGlobs(
@@ -52,11 +62,16 @@ function preprocessAuthoredGlobs(
 ): string[] {
   const authoredGlobs = userSkipPatterns
     .filter(pattern => !pattern.includes(nodeInternalsToken))
-    .map(pattern =>
-      urlUtils.isAbsolute(pattern)
-        ? urlUtils.absolutePathToFileUrlWithDetection(spr.rebaseLocalToRemote(pattern))
-        : pathUtils.forceForwardSlashes(pattern)
-    )
+    .map(pattern => {
+      // Convert the glob without its negation, so negated absolute paths
+      // (`!${workspaceFolder}/foo/**`) also become file URLs.
+      const negated = pattern.startsWith('!');
+      const glob = negated ? pattern.slice(1) : pattern;
+      const converted = urlUtils.isAbsolute(glob)
+        ? urlUtils.absolutePathToFileUrlWithDetection(spr.rebaseLocalToRemote(glob))
+        : pathUtils.forceForwardSlashes(glob);
+      return negated ? `!${converted}` : converted;
+    })
     .map(urlUtils.lowerCaseInsensitivePath);
 
   return authoredGlobs;
