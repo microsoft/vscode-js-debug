@@ -626,6 +626,19 @@ export class SourceContainer {
   ): Promise<Source> {
     const absolutePath = await this.sourcePathResolver.urlToAbsolutePath({ url: event.url });
 
+    // When remoteRoot/localRoot translates the script to a local path, resolve a relative
+    // sourceMapURL against that local path. Otherwise a sourceMappingURL that navigates
+    // outside remoteRoot is not translated and fails with ENOENT.
+    if (
+      absolutePath && sourceMapUrl && event.sourceMapURL && !utils.isDataUri(event.sourceMapURL)
+      && utils.isFileUrl(event.url)
+    ) {
+      sourceMapUrl = utils.completeUrl(
+        utils.absolutePathToFileUrlWithDetection(absolutePath),
+        event.sourceMapURL,
+      ) ?? sourceMapUrl;
+    }
+
     this.logger.verbose(LogTag.RuntimeSourceCreate, 'Creating source from url', {
       inputUrl: event.url,
       absolutePath,
