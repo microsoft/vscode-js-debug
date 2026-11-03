@@ -5,7 +5,6 @@
 import * as l10n from '@vscode/l10n';
 import { execSync } from 'child_process';
 import { promises as fsPromises } from 'fs';
-import { basename } from 'path';
 import * as vscode from 'vscode';
 import { Configuration, readConfig } from '../common/contributionUtils';
 import { LocalFsUtils } from '../common/fsUtils';
@@ -16,7 +15,7 @@ import {
   nodeAttachConfigDefaults,
   ResolvingNodeAttachConfiguration,
 } from '../configuration';
-import { analyseArguments, processTree } from './processTree/processTree';
+import { getPickerEntry, processTree } from './processTree/processTree';
 
 const INSPECTOR_PORT_DEFAULT = 9229;
 
@@ -133,7 +132,6 @@ const decodePidAndPort = (encoded: string) => {
 };
 
 async function listProcesses(): Promise<IProcessItem | undefined> {
-  const nodeProcessPattern = /^(?:node|iojs)(?:$|\b)/i;
   let seq = 0; // default sort key
 
   const quickPick = vscode.window.createQuickPick<IProcessItem>();
@@ -160,12 +158,12 @@ async function listProcesses(): Promise<IProcessItem | undefined> {
         leaf.command = leaf.command.replace('\\??\\', '');
       }
 
-      const executableName = basename(leaf.command, '.exe');
-      const { port } = analyseArguments(leaf.args);
-      if (!port && !nodeProcessPattern.test(executableName)) {
+      const entry = getPickerEntry(leaf);
+      if (!entry) {
         return acc;
       }
 
+      const { executableName, port } = entry;
       const newItem = {
         label: executableName,
         description: leaf.args,

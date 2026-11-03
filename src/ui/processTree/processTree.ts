@@ -3,6 +3,7 @@
  *--------------------------------------------------------*/
 
 import { promises as fsPromises } from 'fs';
+import { basename } from 'path';
 import { LocalFsUtils } from '../../common/fsUtils';
 import { once } from '../../common/objUtils';
 import { DarwinProcessTree } from './darwinProcessTree';
@@ -133,4 +134,17 @@ export function analyseArguments(args: string) {
   }
 
   return { address, port };
+}
+
+const NODE_PROCESS_PATTERN = /^(?:node|iojs)(?:$|\b)/i;
+
+/**
+ * Gets the name and debug port that the attach picker shows for a process, or
+ * undefined if the picker hides it. It lists processes that run Node.js or
+ * that were started with a debug port.
+ */
+export function getPickerEntry(leaf: IProcess) {
+  const executableName = basename(leaf.command, '.exe');
+  const { port } = analyseArguments(leaf.args);
+  return port || NODE_PROCESS_PATTERN.test(executableName) ? { executableName, port } : undefined;
 }
