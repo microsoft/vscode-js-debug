@@ -21,6 +21,7 @@ import {
   NodeInitialDebugConfigurationProvider,
 } from './nodeDebugConfigurationProvider';
 import { NodeConfigurationResolver } from './nodeDebugConfigurationResolver';
+import { ReactNativeConfigurationResolver } from './reactNativeConfigurationResolver';
 import { TerminalDebugConfigurationResolver } from './terminalDebugConfigurationResolver';
 
 export const allConfigurationResolvers = [
@@ -29,6 +30,7 @@ export const allConfigurationResolvers = [
   EditorBrowserDebugConfigurationResolver,
   ExtensionHostConfigurationResolver,
   NodeConfigurationResolver,
+  ReactNativeConfigurationResolver,
   TerminalDebugConfigurationResolver,
 ];
 
