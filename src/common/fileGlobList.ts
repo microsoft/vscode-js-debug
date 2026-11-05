@@ -66,7 +66,7 @@ export class FileGlobList {
       }
 
       const parts = path.resolve(this.rootPath, pattern).split(/[\\/]/g);
-      const firstGlobSegment = parts.findIndex(p => p.includes('*'));
+      const firstGlobSegment = parts.findIndex(p => /[*{]/.test(p));
       // if including a single file, just return a glob that yields only that.
       // note, here and below we intentionally use / instead of path.sep for globs
       if (firstGlobSegment === -1) {
