@@ -3,9 +3,18 @@
  *--------------------------------------------------------*/
 
 import { expect } from 'chai';
-import { promises as fsPromises } from 'fs';
+import {
+  mkdirSync,
+  mkdtempSync,
+  promises as fsPromises,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
 import { LocalFsUtils } from '../../common/fsUtils';
-import { PosixProcessTree } from './posixProcessTree';
+import { createProcfs, PosixProcessTree } from './posixProcessTree';
 import { analyseArguments, getPickerEntry } from './processTree';
 
 describe('process tree', () => {
@@ -130,6 +139,30 @@ describe('process tree', () => {
         listed: true,
       },
       {
+        name: 'node 25 without arguments, through a symlink at a path with spaces',
+        comm: 'node-MainThread',
+        input: '/tmp/node 25/node',
+        cmdline: '/tmp/node 25/node\0',
+        // exe has the symlink resolved, so it differs from argv[0], but
+        // argv[0] links to the same file
+        exe: '/opt/node25/bin/node',
+        links: ['/tmp/node 25/node'],
+        command: '/tmp/node 25/node',
+        args: '',
+        listed: true,
+      },
+      {
+        name: 'node 24 without arguments, through a symlink at a path with spaces',
+        comm: 'MainThread',
+        input: '/tmp/node 24/node',
+        cmdline: '/tmp/node 24/node\0',
+        exe: '/opt/node24/bin/node',
+        links: ['/tmp/node 24/node'],
+        command: '/tmp/node 24/node',
+        args: '',
+        listed: true,
+      },
+      {
         name: 'a process whose pid was reused before procfs was read',
         comm: 'node-MainThread',
         input: 'node /app/node-MainThread/server.js',
@@ -184,6 +217,7 @@ describe('process tree', () => {
         const tree = new TestPosixProcessTree(new LocalFsUtils(fsPromises), {
           cmdline: () => t.cmdline,
           exe: () => t.exe,
+          isExe: (_pid, path) => !!t.links?.includes(path),
         });
         const parsed = tree.parse([
           row('PID', 'PPID', 'COMMAND', 'COMMAND'),
@@ -206,6 +240,75 @@ describe('process tree', () => {
       ]);
       expect(parsed).to.deep.equal([{ pid: 4194304, ppid: 1, command: 'node', args }]);
       expect(getPickerEntry(parsed[0])).to.deep.equal({ executableName: 'node', port: 19238 });
+    });
+
+    it('should parse symlinked executables at paths with spaces from procfs', function() {
+      // procfs is Linux only, and symlinks need extra rights on Windows
+      if (process.platform === 'win32') {
+        return this.skip();
+      }
+
+      // A fake procfs, laid out like Linux's: cmdline keeps the spelling the
+      // process was started with, exe links to the resolved executable, and
+      // cwd and root link to the process's directories.
+      const dir = mkdtempSync(join(tmpdir(), 'js-debug-procfs-'));
+      try {
+        const node = join(dir, 'opt', 'node');
+        mkdirSync(join(dir, 'opt'));
+        writeFileSync(node, '');
+        for (const version of ['25', '24']) {
+          mkdirSync(join(dir, `node ${version}`));
+          symlinkSync(node, join(dir, `node ${version}`, 'node'));
+        }
+
+        // a container's root, where "/my apps/node" only resolves through root
+        const rootfs = join(dir, 'rootfs');
+        mkdirSync(join(rootfs, 'usr', 'bin'), { recursive: true });
+        writeFileSync(join(rootfs, 'usr', 'bin', 'node'), '');
+        mkdirSync(join(rootfs, 'my apps'));
+        symlinkSync('../usr/bin/node', join(rootfs, 'my apps', 'node'));
+
+        const proc = (pid: number, cmdline: string, exe = node, root = '/') => {
+          const entry = join(dir, 'proc', String(pid));
+          mkdirSync(entry, { recursive: true });
+          writeFileSync(join(entry, 'cmdline'), cmdline);
+          symlinkSync(exe, join(entry, 'exe'));
+          symlinkSync(dir, join(entry, 'cwd'));
+          symlinkSync(root, join(entry, 'root'));
+        };
+        const absolute = join(dir, 'node 25', 'node');
+        proc(4242, `${absolute}\0`);
+        proc(4243, './node 24/node\0');
+        proc(4244, 'node /home/me/app/server.js\0\0\0\0');
+        proc(4245, '/my apps/node\0', join(rootfs, 'usr', 'bin', 'node'), rootfs);
+        // the pid was reused after ps listed it
+        proc(4246, `${absolute}\0`);
+
+        const tree = new TestPosixProcessTree(
+          new LocalFsUtils(fsPromises),
+          createProcfs(join(dir, 'proc')),
+        );
+        const parsed = tree.parse([
+          row('PID', 'PPID', 'COMMAND', 'COMMAND'),
+          row('4242', '1', 'node-MainThread', absolute),
+          row('4243', '1', 'MainThread', './node 24/node'),
+          row('4244', '1', 'node /home/me/a', 'node /home/me/app/server.js'),
+          row('4245', '1', 'node-MainThread', '/my apps/node'),
+          row('4246', '1', 'node', 'node /app/x.js'),
+        ]);
+        expect(parsed).to.deep.equal([
+          { pid: 4242, ppid: 1, command: absolute, args: '' },
+          { pid: 4243, ppid: 1, command: './node 24/node', args: '' },
+          { pid: 4244, ppid: 1, command: 'node', args: '/home/me/app/server.js' },
+          { pid: 4245, ppid: 1, command: '/my apps/node', args: '' },
+          { pid: 4246, ppid: 1, command: 'node', args: '/app/x.js' },
+        ]);
+        for (const p of parsed) {
+          expect(getPickerEntry(p)).to.deep.equal({ executableName: 'node', port: undefined });
+        }
+      } finally {
+        rmSync(dir, { recursive: true, force: true });
+      }
     });
   });
 });

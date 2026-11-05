@@ -2,39 +2,60 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
-import { readFileSync, readlinkSync } from 'fs';
+import { readFileSync, readlinkSync, statSync } from 'fs';
 import { LocalFsUtils } from '../../common/fsUtils';
 import { DarwinProcessTree } from './darwinProcessTree';
 import { IProcess } from './processTree';
 
 /**
- * Reads what procfs knows about a process. Each method returns undefined if
- * the process exited after ps listed it, if it can't be read, or if there is
- * no procfs.
+ * Reads what procfs knows about a process. Each method returns undefined (or
+ * false) if the process exited after ps listed it, if it can't be read, or if
+ * there is no procfs.
  */
 export interface IProcfs {
   /** NUL delimited argv, from /proc/<pid>/cmdline */
   cmdline(pid: number): string | undefined;
   /** Path of the running executable, from /proc/<pid>/exe */
   exe(pid: number): string | undefined;
+  /**
+   * Whether the path, as the process sees it, is the file it runs. Symlinks
+   * are followed, and a relative path starts at the process's cwd.
+   */
+  isExe(pid: number, path: string): boolean;
 }
 
-const procfs: IProcfs = {
+/**
+ * Reads procfs at the given directory. Tests can point it at a fake one.
+ */
+export const createProcfs = (dir = '/proc'): IProcfs => ({
   cmdline: pid => {
     try {
-      return readFileSync(`/proc/${pid}/cmdline`, 'utf8');
+      return readFileSync(`${dir}/${pid}/cmdline`, 'utf8');
     } catch {
       return undefined;
     }
   },
   exe: pid => {
     try {
-      return readlinkSync(`/proc/${pid}/exe`);
+      return readlinkSync(`${dir}/${pid}/exe`);
     } catch {
       return undefined;
     }
   },
-};
+  isExe: (pid, path) => {
+    // resolve the path from the process's own root or cwd, as it would
+    const file = path.startsWith('/') ? `${dir}/${pid}/root${path}` : `${dir}/${pid}/cwd/${path}`;
+    try {
+      const a = statSync(file, { bigint: true });
+      const b = statSync(`${dir}/${pid}/exe`, { bigint: true });
+      return a.dev === b.dev && a.ino === b.ino;
+    } catch {
+      return false;
+    }
+  },
+});
+
+const procfs = createProcfs();
 
 export class PosixProcessTree extends DarwinProcessTree {
   public constructor(
@@ -83,9 +104,18 @@ export class PosixProcessTree extends DarwinProcessTree {
     }
 
     // A single argv entry is the executable alone or a title written over
-    // argv. If the command line starts with the executable's path, it ends
-    // there, spaces or not. A title like pm2's "node <script>" doesn't.
+    // argv. If a path with spaces is the running file, it's the executable;
+    // compare files, since exe has symlinks resolved and argv[0] doesn't. (A
+    // name without a slash was found on PATH, so it isn't checked.) Otherwise,
+    // if the command line starts with exe's path, it ends there. A title like
+    // pm2's "node <script>" is neither.
     if (argv?.length === 1) {
+      const [path] = argv;
+      const spacedPath = path.includes('/') && /\s/.test(path);
+      if (spacedPath && commandLine === path && this.proc.isExe(pid, path)) {
+        return path.length;
+      }
+
       const exe = this.proc.exe(pid);
       if (exe && (commandLine === exe || commandLine.startsWith(`${exe} `))) {
         return exe.length;

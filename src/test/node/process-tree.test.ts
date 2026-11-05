@@ -92,6 +92,7 @@ describe('process tree', () => {
       new PosixProcessTree(new LocalFsUtils(fsPromises), {
         cmdline: () => undefined,
         exe: () => undefined,
+        isExe: () => false,
       }),
       '   PID   PPID BINARY          COMMAND\n   351      1 systemd         /lib/systemd/systemd --user\n   352    351 (sd-pam)        (sd-pam)\n   540      1 sh              sh /home/connor/.vscode-server-insiders/bin/bbf00d8ea6aa7e825ca3393364d746fe401d3299/server.sh --host=127.0.0.1 --enable-remote-auto-shutdown --port=0\n   548    540 node            /home/connor/.vscode-server-insiders/bin/bbf00d8ea6aa7e825ca3393364d746fe401d3299/node /home/connor/.vscode-server-insiders/bin/bbf00d8ea6aa7e825ca3393364d746fe401d3299/out/vs/server/main.js --host=127.0.0.1 --enable-remote-auto-shutdown --port=0\n  6557   6434 sshd            sshd: connor@notty\n  6558   6557 bash            bash\n  7281   7199 sshd            sshd: connor@pts/0\n  7282   7281 bash            -bash\n  9880  99219 bash            /bin/bash',
       [
