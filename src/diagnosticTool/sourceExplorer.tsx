@@ -57,7 +57,7 @@ export const SourceExplorer: FunctionComponent = () => {
         onChange={onChange}
         onKeyUp={onChange}
       />
-      <small style={{ marginBottom: '1rem' }}>
+      <small className='source-count'>
         Showing {results.length} of {dump.sources.length} sources...
       </small>
       {results.map(result => (
