@@ -76,6 +76,7 @@ export type DescribedAttribute<T> =
     docDefault?: string;
     enum?: Array<T>;
     enumDescriptions?: MappedReferenceString[];
+    restricted?: boolean;
     tags?: Tag[];
   };
 
@@ -1239,6 +1240,7 @@ const configurationSchema: ConfigurationAttributes<IConfigurationTypes> = {
     type: 'object',
     description: refString('configuration.terminalOptions'),
     default: {},
+    restricted: true,
     properties: nodeTerminalConfiguration.configurationAttributes as { [key: string]: JSONSchema6 },
   },
   [Configuration.AutoServerTunnelOpen]: {
