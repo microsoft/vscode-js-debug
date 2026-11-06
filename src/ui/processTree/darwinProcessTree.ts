@@ -63,7 +63,8 @@ export class DarwinProcessTree extends BaseProcessTree {
     let commandOffset: number | void;
     return line => {
       if (!commandOffset) {
-        commandOffset = line.indexOf('COMMAND');
+        // procps on Linux also labels the comm column COMMAND, so use the last one.
+        commandOffset = line.lastIndexOf('COMMAND');
         return;
       }
 
