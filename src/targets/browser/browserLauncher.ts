@@ -14,7 +14,7 @@ import { DisposableList } from '../../common/disposable';
 import { EnvironmentVars } from '../../common/environmentVars';
 import { EventEmitter } from '../../common/events';
 import { existsInjected } from '../../common/fsUtils';
-import { ILogger } from '../../common/logging';
+import { ILogger, LogTag } from '../../common/logging';
 import { delay } from '../../common/promiseUtil';
 import { ISourcePathResolver } from '../../common/sourcePathResolver';
 import {
@@ -29,8 +29,15 @@ import { ProtocolError } from '../../dap/protocolError';
 import { FS, FsPromises, IInitializeParams, StoragePath } from '../../ioc-extras';
 import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
 import { ILaunchContext, ILauncher, ILaunchResult, IStopMetadata, ITarget } from '../targets';
+import { BrowserSourcePathResolver } from './browserPathResolver';
 import { BrowserTargetManager } from './browserTargetManager';
 import { BrowserTarget, BrowserTargetType } from './browserTargets';
+import { ExtensionAutoReloader } from './extensionAutoReload';
+import {
+  createExtensionTargetFilter,
+  extensionProfileDirName,
+  resolveExpectedExtensionId,
+} from './extensionId';
 import * as launcher from './launcher';
 
 export interface IDapInitializeParamsWithExtensions extends Dap.InitializeParams {
@@ -43,6 +50,7 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
 {
   private _connectionForTest: CdpConnection | undefined;
   private _targetManager: BrowserTargetManager | undefined;
+  private _extensionReloader: ExtensionAutoReloader | undefined;
   protected _disposables = new DisposableList();
   private _onTerminatedEmitter = new EventEmitter<IStopMetadata>();
   readonly onTerminated = this._onTerminatedEmitter.event;
@@ -62,6 +70,7 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
    * @inheritdoc
    */
   public dispose() {
+    this._extensionReloader?.dispose();
     this._disposables.dispose();
   }
 
@@ -88,6 +97,8 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
       cleanUp,
       launchUnelevated: launchUnelevated,
       killBehavior,
+      extensionPath,
+      ephemeralUserDataDir,
     }: T,
     dap: Dap.Api,
     cancellationToken: CancellationToken,
@@ -101,6 +112,15 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
     let resolvedDataDir: string | undefined;
     if (typeof userDataDir === 'string') {
       resolvedDataDir = path.resolve(userDataDir);
+    } else if (userDataDir && extensionPath) {
+      // Extension debugging gets a profile of its own rather than the shared
+      // `.profile`: concurrent sessions and different browser builds sharing
+      // one profile corrupt its storage. See extensionProfileDirName for why
+      // the name must stay short.
+      const extensionId = await resolveExpectedExtensionId(extensionPath, this.fs);
+      resolvedDataDir = path.resolve(
+        path.join(this.storagePath, extensionProfileDirName(extensionPath, extensionId)),
+      );
     } else if (userDataDir) {
       resolvedDataDir = path.resolve(
         path.join(
@@ -113,9 +133,59 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
     fs.mkdirSync(this.storagePath, { recursive: true });
 
     if (resolvedDataDir) {
+      if (ephemeralUserDataDir) {
+        // Delete via rename: if the directory is locked (e.g. a previous
+        // browser instance is still shutting down) the rename fails atomically
+        // and the profile is reused whole, rather than rmSync deleting part of
+        // it and leaving corrupted browser storage behind. Locks from a
+        // shutting-down browser clear within moments, so retry briefly.
+        const doomed = `${resolvedDataDir}-deleting`;
+        for (let attempt = 0;; attempt++) {
+          try {
+            fs.rmSync(doomed, { recursive: true, force: true });
+            if (fs.existsSync(resolvedDataDir)) {
+              fs.renameSync(resolvedDataDir, doomed);
+              fs.rmSync(doomed, { recursive: true, force: true });
+            }
+            break;
+          } catch (e) {
+            if (attempt < 6) {
+              await delay(500);
+              continue;
+            }
+
+            this.logger.warn(
+              LogTag.RuntimeLaunch,
+              'Could not clean the browser profile directory',
+              { resolvedDataDir, error: e },
+            );
+            dap.output({
+              category: 'stderr',
+              output: l10n.t(
+                'Could not clean the browser profile at {0}; launching with the existing profile',
+                resolvedDataDir,
+              ) + '\n',
+            });
+            break;
+          }
+        }
+      }
+
       fs.mkdirSync(resolvedDataDir, { recursive: true });
       resolvedDataDir = fs.realpathSync(resolvedDataDir);
     }
+
+    const effectiveRuntimeArgs = extensionPath
+      ? [
+        ...(runtimeArgs || []),
+        `--load-extension=${extensionPath}`,
+        // Allows Extensions.loadUnpacked, used to reload the extension when
+        // its files change. Only available over the pipe transport.
+        ...(this.usesPipeConnection(port, inspectUri)
+          ? ['--enable-unsafe-extension-debugging']
+          : []),
+      ]
+      : runtimeArgs || [];
 
     return await launcher.launch(
       dap,
@@ -132,7 +202,7 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
         hasUserNavigation: !!(url || file),
         cwd: cwd || webRoot || undefined,
         env: EnvironmentVars.merge(EnvironmentVars.processEnv(), env),
-        args: runtimeArgs || [],
+        args: effectiveRuntimeArgs,
         userDataDir: resolvedDataDir,
         connection: port || (inspectUri ? 0 : 'pipe'), // We don't default to pipe if we are using an inspectUri
         launchUnelevated: launchUnelevated,
@@ -146,7 +216,19 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
     );
   }
 
-  protected getFilterForTarget(params: T) {
+  /** Whether the browser will be launched with a pipe CDP transport. */
+  private usesPipeConnection(port: number | undefined, inspectUri: string | null | undefined) {
+    return !port && !inspectUri;
+  }
+
+  protected async getFilterForTarget(params: T) {
+    if (params.extensionPath) {
+      return createExtensionTargetFilter(
+        params.extensionPath,
+        await resolveExpectedExtensionId(params.extensionPath, this.fs),
+        this.logger,
+      );
+    }
     return requirePageTarget(createTargetFilterForConfig(params, ['about:blank']));
   }
 
@@ -283,15 +365,69 @@ export abstract class BrowserLauncher<T extends AnyChromiumLaunchConfiguration>
 
     // Note: assuming first page is our main target breaks multiple debugging sessions
     // sharing the browser instance. This can be fixed.
-    const filter = this.getFilterForTarget(params);
+    const filter = await this.getFilterForTarget(params);
+    const waitForTarget = this._targetManager.waitForMainTarget(filter);
+
+    // An idle extension service worker has no target to attach to, so ask the
+    // browser to start it. Done after waitForMainTarget has subscribed so we
+    // don't miss the target it creates.
+    if (params.extensionPath) {
+      const extensionId = await resolveExpectedExtensionId(params.extensionPath, this.fs);
+      if (extensionId) {
+        await this._targetManager.wakeExtensionServiceWorker(extensionId);
+      }
+
+      // best-effort and not needed for attaching; runs while we wait
+      this._targetManager.enableExtensionDeveloperMode();
+    }
+
     const mainTarget = await timeoutPromise(
-      this._targetManager.waitForMainTarget(filter),
+      waitForTarget,
       ctx.cancellationToken,
       'Could not attach to main target',
     );
 
     if (!mainTarget) {
       throw new ProtocolError(targetPageNotFound());
+    }
+
+    // Pin the ID of the extension we attached to, so subsequent source URL
+    // resolutions only accept that exact extension and not any other
+    // chrome-extension:// origin the browser may have loaded.
+    if (params.extensionPath) {
+      const idMatch = mainTarget.fileName()?.match(/^chrome-extension:\/\/([a-p]{32})\//);
+      if (idMatch) {
+        (this.pathResolver as BrowserSourcePathResolver).pinExtensionId(idMatch[1]);
+      }
+    }
+
+    // Reload the extension when its files change. Extensions.loadUnpacked
+    // re-installs from the same path (same ID), which also starts the new
+    // service worker; the debugger then re-attaches through the normal
+    // target-created flow. The method requires the pipe transport.
+    if (params.extensionPath && this.usesPipeConnection(params.port, params.inspectUri)) {
+      const extensionPath = params.extensionPath;
+      const rootSession = cdp.rootSession();
+      this._extensionReloader?.dispose();
+      this._extensionReloader = new ExtensionAutoReloader(
+        extensionPath,
+        async () => {
+          const result = await rootSession.Extensions.loadUnpacked({ path: extensionPath });
+          ctx.dap.output(
+            result
+              ? {
+                category: 'console',
+                output: l10n.t('Reloaded browser extension from {0}', extensionPath) + '\n',
+              }
+              : {
+                category: 'stderr',
+                output: l10n.t('Could not reload the browser extension from {0}', extensionPath)
+                  + '\n',
+              },
+          );
+        },
+        this.logger,
+      );
     }
 
     return mainTarget;

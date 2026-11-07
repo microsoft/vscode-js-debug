@@ -15,6 +15,7 @@ import {
   applyDefaults,
   IChromeAttachConfiguration,
 } from '../../configuration';
+import { FS, FsPromises } from '../../ioc-extras';
 import { ITelemetryReporter } from '../../telemetry/telemetryReporter';
 import { ISourcePathResolverFactory } from '../sourcePathResolverFactory';
 import { ILaunchContext } from '../targets';
@@ -43,10 +44,11 @@ export class VSCodeRendererAttacher extends BrowserAttacher<IRendererAttachParam
   constructor(
     @inject(ILogger) logger: ILogger,
     @inject(ISourcePathResolver) pathResolver: ISourcePathResolver,
+    @inject(FS) fs: FsPromises,
     @inject(ISourcePathResolverFactory) private readonly pathResolverFactory:
       ISourcePathResolverFactory,
   ) {
-    super(logger, pathResolver);
+    super(logger, pathResolver, fs);
   }
 
   /**

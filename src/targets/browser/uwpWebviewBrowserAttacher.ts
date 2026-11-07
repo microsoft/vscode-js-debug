@@ -17,7 +17,7 @@ import { getWinUtils } from '../../common/win32Utils';
 import { AnyLaunchConfiguration, IEdgeAttachConfiguration } from '../../configuration';
 import { noUwpPipeFound, uwpPipeNotAvailable } from '../../dap/errors';
 import { ProtocolError } from '../../dap/protocolError';
-import { VSCodeApi } from '../../ioc-extras';
+import { FS, FsPromises, VSCodeApi } from '../../ioc-extras';
 import { ILaunchContext } from '../targets';
 import { BrowserAttacher } from './browserAttacher';
 
@@ -30,9 +30,10 @@ export class UWPWebviewBrowserAttacher extends BrowserAttacher<IEdgeParamsWithWe
   constructor(
     @inject(ILogger) logger: ILogger,
     @inject(ISourcePathResolver) pathResolver: ISourcePathResolver,
+    @inject(FS) fs: FsPromises,
     @optional() @inject(VSCodeApi) vscode?: typeof vscodeType,
   ) {
-    super(logger, pathResolver, vscode);
+    super(logger, pathResolver, fs, vscode);
   }
 
   /**
