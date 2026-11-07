@@ -115,11 +115,16 @@ export class TurboSearchStrategy implements ISearchStrategy {
               {
                 ignore: glob.negations,
                 cwd: glob.cwd,
+                allowEmpty: true,
               },
             )
               .on('data', onFile)
               .on('end', resolve)
-              .on('error', reject)
+              // A brace alternative can name a folder that does not exist
+              .on(
+                'error',
+                (e: NodeJS.ErrnoException) => e.code === 'ENOENT' ? resolve() : reject(e),
+              )
           ),
       ),
     );

@@ -20,15 +20,51 @@ describe('FileGlobList', () => {
     ]);
   });
 
-  it('stops the cwd before a brace segment', () => {
+  it('gives each brace alternative its own search root', () => {
     expect(explode('{dist,build}/**/*.js', '!{dist,build}/vendor/**')).to.deep.equal([
-      { cwd, negations: ['{dist,build}/vendor/**'], pattern: '{dist,build}/**/*.js' },
+      { cwd: `${cwd}/dist`, negations: ['vendor/**'], pattern: '**/*.js' },
+      { cwd: `${cwd}/build`, negations: ['vendor/**'], pattern: '**/*.js' },
     ]);
   });
 
-  it('keeps braces in a pattern without stars', () => {
+  it('expands braces in a pattern without stars', () => {
     expect(explode('{dist,build}/index.js')).to.deep.equal([
-      { cwd, negations: [], pattern: '{dist,build}/index.js' },
+      { cwd: `${cwd}/dist`, negations: [], pattern: 'index.js' },
+      { cwd: `${cwd}/build`, negations: [], pattern: 'index.js' },
+    ]);
+  });
+
+  it('expands nested and repeated brace sets', () => {
+    const cwds = explode('{a,b{1,2}}/{c,d}/**/*.js').map(glob => glob.cwd);
+    expect(cwds).to.deep.equal(
+      ['a/c', 'a/d', 'b1/c', 'b1/d', 'b2/c', 'b2/d'].map(dir => `${cwd}/${dir}`),
+    );
+  });
+
+  it('expands braces in the first folder under the root', () => {
+    const root = forceForwardSlashes(resolve('/'));
+    expect(explode(`${root}{a,b}/out/**/*.js`)).to.deep.equal([
+      { cwd: `${root}a/out`, negations: [], pattern: '**/*.js' },
+      { cwd: `${root}b/out`, negations: [], pattern: '**/*.js' },
+    ]);
+  });
+
+  it('keeps a brace pair without a comma as a literal folder', () => {
+    expect(explode('{proj}/.build/**/*.js')).to.deep.equal([
+      { cwd: `${cwd}/{proj}/.build`, negations: [], pattern: '**/*.js' },
+    ]);
+  });
+
+  it('keeps explicitly named hidden folders in the search root', () => {
+    expect(explode('{dist,.nuxt}/**/*.js').map(glob => glob.cwd)).to.deep.equal([
+      `${cwd}/dist`,
+      `${cwd}/.nuxt`,
+    ]);
+  });
+
+  it('leaves braces after the first star in the pattern', () => {
+    expect(explode('out/**/{a,b}.js')).to.deep.equal([
+      { cwd: `${cwd}/out`, negations: [], pattern: '**/{a,b}.js' },
     ]);
   });
 });
