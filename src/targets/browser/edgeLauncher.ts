@@ -122,7 +122,7 @@ export class EdgeLauncher extends BrowserLauncher<IEdgeLaunchConfiguration> {
 
         promisedPort.resolve(port);
 
-        // All web views started under our debugger are waiting to to be resumed.
+        // All web views started under our debugger are waiting to be resumed.
         const wsURL = `ws://${params.address}:${port}/devtools/${info.type}/${info.id}`;
         const ws = await WebSocketTransport.create(wsURL, NeverCancelled);
         const connection = new CdpConnection(ws, this.logger, telemetryReporter);

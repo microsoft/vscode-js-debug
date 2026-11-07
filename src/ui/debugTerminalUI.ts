@@ -43,7 +43,7 @@ export const launchVirtualTerminalParent = (
   const telemetry = new DapTelemetryReporter();
   const baseDebugOptions: Partial<ITerminalLaunchConfiguration> = {
     ...readConfig(vscode.workspace, Configuration.TerminalDebugConfig),
-    // Prevent switching over the the Debug Console whenever a process starts
+    // Prevent switching over the Debug Console whenever a process starts
     internalConsoleOptions: 'neverOpen',
   };
 
