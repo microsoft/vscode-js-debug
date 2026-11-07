@@ -62,6 +62,24 @@ describe('FileGlobList', () => {
     ]);
   });
 
+  it('expands brace alternatives that contain a slash', () => {
+    expect(explode('{dist,packages/foo/dist}/**/*.js').map(glob => glob.cwd)).to.deep.equal([
+      `${cwd}/dist`,
+      `${cwd}/packages/foo/dist`,
+    ]);
+    expect(explode('{out,../shared/out}/**/*.js').map(glob => glob.cwd)).to.deep.equal([
+      `${cwd}/out`,
+      `${forceForwardSlashes(resolve('/shared/out'))}`,
+    ]);
+  });
+
+  it('expands brace alternatives that contain a star', () => {
+    expect(explode('{dist,packages/*/dist}/**/*.js')).to.deep.equal([
+      { cwd: `${cwd}/dist`, negations: [], pattern: '**/*.js' },
+      { cwd: `${cwd}/packages`, negations: [], pattern: '*/dist/**/*.js' },
+    ]);
+  });
+
   it('leaves braces after the first star in the pattern', () => {
     expect(explode('out/**/{a,b}.js')).to.deep.equal([
       { cwd: `${cwd}/out`, negations: [], pattern: '**/{a,b}.js' },

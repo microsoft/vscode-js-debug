@@ -36,4 +36,8 @@ describe('TurboSearchStrategy', () => {
     expect(await search('{dist,build}/**/*.js')).to.deep.equal(['dist.js']);
     expect(await search('{dist,build}/dist.js')).to.deep.equal(['dist.js']);
   });
+
+  it('walks the tree once for braces after the first star', async () => {
+    expect(await search('dist/**/*.{js,mjs}')).to.deep.equal(['dist.js']);
+  });
 });

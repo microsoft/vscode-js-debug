@@ -3,6 +3,7 @@
  *--------------------------------------------------------*/
 
 import { inject, injectable } from 'inversify';
+import micromatch from 'micromatch';
 import * as path from 'path';
 import { AnyLaunchConfiguration } from '../configuration';
 import { forceForwardSlashes } from './pathUtils';
@@ -13,28 +14,32 @@ export interface IExplodedGlob {
   pattern: string;
 }
 
-const braceSet = /\{([^{}]*,[^{}]*)\}/;
-
 /**
- * Expands the brace sets in the path segments before the first star, so that
- * each alternative gets its own search root. A brace pair without a comma is
- * a literal name, and anything after the first star stays in the glob.
+ * Expands the brace sets that start before the first star outside of braces,
+ * so that each alternative gets its own search root. Braces after it, like in
+ * `*.{js,mjs}`, stay in the glob so that the tree is only walked once.
  */
-const expandBraces = (parts: string[]): string[][] => {
-  for (let i = 0; i < parts.length && !parts[i].includes('*'); i++) {
-    const match = braceSet.exec(parts[i]);
-    if (match) {
-      const expanded = match[1].split(',').flatMap(alternative => {
-        const next = parts.slice();
-        next[i] = parts[i].replace(match[0], () => alternative);
-        return expandBraces(next);
-      });
-      // nested sets are expanded innermost first and can repeat an alternative
-      return [...new Map(expanded.map(e => [e.join('/'), e])).values()];
+const expandBraces = (pattern: string): string[] => {
+  let depth = 0;
+  let end = pattern.length;
+  for (let i = 0; i < pattern.length; i++) {
+    if (pattern[i] === '{') {
+      depth++;
+    } else if (pattern[i] === '}' && depth > 0) {
+      depth--;
+    } else if (pattern[i] === '*' && depth === 0) {
+      end = i;
+      break;
     }
   }
 
-  return [parts];
+  const head = pattern.slice(0, end);
+  if (depth !== 0 || !head.includes('{')) {
+    return [pattern];
+  }
+
+  const tail = pattern.slice(end);
+  return [...new Set(micromatch.braces(head, { expand: true }))].map(h => h + tail);
 };
 
 @injectable()
@@ -89,7 +94,8 @@ export class FileGlobList {
         continue;
       }
 
-      for (const parts of expandBraces(this.splitPattern(pattern))) {
+      for (const expanded of expandBraces(forceForwardSlashes(pattern))) {
+        const parts = path.resolve(this.rootPath, expanded).split(/[\\/]/g);
         const firstGlobSegment = parts.findIndex(p => p.includes('*'));
         // if including a single file, just return a glob that yields only that.
         // note, here and below we intentionally use / instead of path.sep for globs
@@ -116,8 +122,8 @@ export class FileGlobList {
             negations.push(forceForwardSlashes(pattern));
           } else {
             // otherwise just resolve relative to this cwd
-            for (const negation of expandBraces(this.splitPattern(pattern))) {
-              const rel = path.relative(cwd, negation.join('/'));
+            for (const negation of expandBraces(forceForwardSlashes(pattern))) {
+              const rel = path.relative(cwd, path.resolve(this.rootPath, negation));
               if (!rel.startsWith('..')) {
                 negations.push(forceForwardSlashes(rel));
               }
@@ -128,10 +134,6 @@ export class FileGlobList {
         yield { cwd, negations, pattern: parts.slice(firstGlobSegment).join('/') };
       }
     }
-  }
-
-  private splitPattern(pattern: string) {
-    return path.resolve(this.rootPath, pattern).split(/[\\/]/g);
   }
 }
 

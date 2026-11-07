@@ -2,6 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { promises as fs } from 'fs';
 import globStream from 'glob-stream';
 import { inject, injectable } from 'inversify';
 import { FileGlobList, IExplodedGlob } from '../fileGlobList';
@@ -101,32 +102,37 @@ export class TurboSearchStrategy implements ISearchStrategy {
 
   protected async globForFiles(files: FileGlobList, onFile: (file: globStream.Entry) => void) {
     await Promise.all(
-      [...files.explode()].map(
-        glob =>
-          new Promise<void>((resolve, reject) =>
-            globStream(
-              [
-                glob.pattern,
-                // Avoid reading asar files: electron patches in support for them, but
-                // if we see an invalid one then it throws a synchronous error that
-                // breaks glob. We don't care about asar's here, so just skip that:
-                '!**/*.asar/**',
-              ],
-              {
-                ignore: glob.negations,
-                cwd: glob.cwd,
-                allowEmpty: true,
-              },
-            )
-              .on('data', onFile)
-              .on('end', resolve)
-              // A brace alternative can name a folder that does not exist
-              .on(
-                'error',
-                (e: NodeJS.ErrnoException) => e.code === 'ENOENT' ? resolve() : reject(e),
-              )
-          ),
-      ),
+      [...files.explode()].map(async glob => {
+        // A brace alternative can name a folder that was not generated
+        if (await isMissing(glob.cwd)) {
+          return;
+        }
+
+        await new Promise<void>((resolve, reject) =>
+          globStream(
+            [
+              glob.pattern,
+              // Avoid reading asar files: electron patches in support for them, but
+              // if we see an invalid one then it throws a synchronous error that
+              // breaks glob. We don't care about asar's here, so just skip that:
+              '!**/*.asar/**',
+            ],
+            {
+              ignore: glob.negations,
+              cwd: glob.cwd,
+            },
+          )
+            .on('data', onFile)
+            .on('end', resolve)
+            .on('error', reject)
+        );
+      }),
     );
   }
 }
+
+const isMissing = (dir: string) =>
+  fs.stat(dir).then(
+    () => false,
+    (e: NodeJS.ErrnoException) => (e.code === 'ENOENT' ? true : Promise.reject(e)),
+  );
