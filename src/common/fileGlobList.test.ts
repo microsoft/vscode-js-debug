@@ -80,6 +80,28 @@ describe('FileGlobList', () => {
     ]);
   });
 
+  it('keeps quotes in the folder names', () => {
+    const quoted = forceForwardSlashes(resolve("/tmp/o'neil/proj"));
+    const glob = (...patterns: string[]) => [
+      ...new FileGlobList({ rootPath: quoted, patterns }).explode(),
+    ];
+    expect(glob(`${quoted}/out/{a,b}.js`)).to.deep.equal([
+      { cwd: `${quoted}/out`, negations: [], pattern: 'a.js' },
+      { cwd: `${quoted}/out`, negations: [], pattern: 'b.js' },
+    ]);
+    expect(glob(`${quoted}/{dist,build}/**/*.js`).map(g => g.cwd)).to.deep.equal([
+      `${quoted}/dist`,
+      `${quoted}/build`,
+    ]);
+    expect(glob(`${quoted}/out/*.js`, `!${quoted}/out/{a,b}.js`)).to.deep.equal([
+      { cwd: `${quoted}/out`, negations: ['a.js', 'b.js'], pattern: '*.js' },
+    ]);
+    expect(glob('src/{"a",`b`}/**/*.js').map(g => g.cwd)).to.deep.equal([
+      `${quoted}/src/"a"`,
+      `${quoted}/src/\`b\``,
+    ]);
+  });
+
   it('leaves braces after the first star in the pattern', () => {
     expect(explode('out/**/{a,b}.js')).to.deep.equal([
       { cwd: `${cwd}/out`, negations: [], pattern: '**/{a,b}.js' },

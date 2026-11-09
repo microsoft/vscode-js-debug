@@ -39,7 +39,10 @@ const expandBraces = (pattern: string): string[] => {
   }
 
   const tail = pattern.slice(end);
-  return [...new Set(micromatch.braces(head, { expand: true }))].map(h => h + tail);
+  // braces treats quotes as shell quotes, and the head can hold a folder like
+  // O'Neil. Backslashes are already gone, so escaping them cannot collide.
+  const escaped = head.replace(/['"`]/g, '\\$&');
+  return [...new Set(micromatch.braces(escaped, { expand: true }))].map(h => h + tail);
 };
 
 @injectable()
