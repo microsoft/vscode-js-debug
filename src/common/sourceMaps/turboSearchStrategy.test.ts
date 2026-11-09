@@ -37,6 +37,12 @@ describe('TurboSearchStrategy', () => {
     expect(await search('{dist,build}/dist.js')).to.deep.equal(['dist.js']);
   });
 
+  it('finds a named file that only exists in some brace alternatives', async () => {
+    mkdirSync(join(rootPath, 'build'));
+    writeFileSync(join(rootPath, 'build', 'other.js'), '');
+    expect(await search('{dist,build}/dist.js')).to.deep.equal(['dist.js']);
+  });
+
   it('walks the tree once for braces after the first star', async () => {
     expect(await search('dist/**/*.{js,mjs}')).to.deep.equal(['dist.js']);
   });

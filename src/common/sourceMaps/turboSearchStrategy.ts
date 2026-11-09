@@ -120,6 +120,8 @@ export class TurboSearchStrategy implements ISearchStrategy {
             {
               ignore: glob.negations,
               cwd: glob.cwd,
+              // a brace alternative can name a file that only exists in some folders
+              allowEmpty: true,
             },
           )
             .on('data', onFile)
