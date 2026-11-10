@@ -2,6 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 
+import { randomBytes } from 'crypto';
 import { inject, injectable } from 'inversify';
 import { tmpdir } from 'os';
 import { join } from 'path';
@@ -61,6 +62,33 @@ export interface IDiagnosticDump {
   config: AnyLaunchConfiguration;
 }
 
+export const createDiagnosticHtml = (
+  dump: IDiagnosticDump,
+  styles: string,
+  script: string,
+  nonce = randomBytes(16).toString('hex'),
+) => {
+  const serializedDump = JSON.stringify(dump)
+    .replace(/</g, '\\u003c')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+
+  return `<!DOCTYPE html>
+      <html lang="en">
+      <head>
+        <meta charset="UTF-8">
+        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-${nonce}'; style-src 'nonce-${nonce}'; base-uri 'none'; form-action 'none';">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Document</title>
+        <style nonce="${nonce}">${styles}</style>
+      </head>
+      <body>
+        <script nonce="${nonce}">window.DUMP=${serializedDump}</script>
+        <script nonce="${nonce}">${script}</script>
+      </body>
+      </html>`;
+};
+
 @injectable()
 export class Diagnostics {
   constructor(
@@ -88,22 +116,13 @@ export class Diagnostics {
    * Generates an HTML diagnostic report.
    */
   public async generateHtml(file = join(tmpdir(), 'js-debug-diagnostics.html')) {
-    await this.fs.writeFile(
-      file,
-      `<!DOCTYPE html>
-      <html lang="en">
-      <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Document</title>
-        <style>${await this.fs.readFile(toolStylePath, 'utf-8')}<</style>
-      </head>
-      <body>
-        <script>window.DUMP=${JSON.stringify(await this.generateObject())}</script>
-        <script>${await this.fs.readFile(toolPath, 'utf-8')}</script>
-      </body>
-      </html>`,
-    );
+    const [dump, styles, script] = await Promise.all([
+      this.generateObject(),
+      this.fs.readFile(toolStylePath, 'utf-8'),
+      this.fs.readFile(toolPath, 'utf-8'),
+    ]);
+
+    await this.fs.writeFile(file, createDiagnosticHtml(dump, styles, script));
 
     return file;
   }

@@ -134,7 +134,10 @@ export class DiagnosticsUI implements IExtensionContribution {
       'Debug Diagnostics',
       vscode.ViewColumn.Active,
       {
+        enableCommandUris: false,
+        enableForms: false,
         enableScripts: true,
+        localResourceRoots: [],
       },
     );
 
