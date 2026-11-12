@@ -44,6 +44,8 @@ export default class Connection {
   private _transport: ITransport;
   private _sessions: Map<string, CDPSession>;
   private _disposedSessions = new Map<string, Date>();
+  /** Messages for sessions that are not created yet. */
+  private _earlyMessages = new Map<string, CdpProtocol.Message[]>();
   private _closed: boolean;
   private _rootSession: CDPSession;
   private _onDisconnectedEmitter = new EventEmitter<void>();
@@ -105,9 +107,18 @@ export default class Connection {
     if (!session) {
       const disposedDate = this._disposedSessions.get(object.sessionId);
       if (!disposedDate) {
-        throw new Error(
-          `Unknown session id: ${object.sessionId} while processing: ${object.method}`,
-        );
+        // A target auto-attached under a session whose events are paused can send events before
+        // its own Target.attachedToTarget event is processed. For example, an extension's running
+        // service worker attaches under its extension page and immediately sends
+        // Inspector.workerScriptLoaded. Keep them for createSession() instead of throwing, which
+        // would stop all further messages on this connection.
+        const early = this._earlyMessages.get(object.sessionId);
+        if (early) {
+          early.push(object);
+        } else {
+          this._earlyMessages.set(object.sessionId, [object]);
+        }
+        return;
       } else {
         const secondsAgo = (Date.now() - disposedDate.getTime()) / 1000.0;
         this.logger.warn(
@@ -147,6 +158,7 @@ export default class Connection {
     });
     for (const session of this._sessions.values()) session._onClose();
     this._sessions.clear();
+    this._earlyMessages.clear();
     this._onDisconnectedEmitter.fire();
   }
 
@@ -161,6 +173,11 @@ export default class Connection {
   public createSession(sessionId: Cdp.Target.SessionID): Cdp.Api {
     const session = new CDPSession(this, sessionId, this.logger);
     this._sessions.set(sessionId, session);
+    const early = this._earlyMessages.get(sessionId);
+    if (early) {
+      this._earlyMessages.delete(sessionId);
+      session._replay(early);
+    }
     return session.cdp();
   }
 
@@ -210,6 +227,15 @@ export class CDPSession {
     for (const item of toSend) {
       this._processResponse(item);
     }
+  }
+
+  /**
+   * Queues messages that arrived before the session was created. They are delivered on a later
+   * task, after the creator has added its listeners, and ahead of any message that arrives later.
+   */
+  public _replay(messages: CdpProtocol.Message[]) {
+    this._queue.push(...messages);
+    this._processQueue();
   }
 
   cdp(): Cdp.Api {
@@ -320,7 +346,7 @@ export class CDPSession {
 
   private _processQueue() {
     this._connection?.waitWrapper(() => {
-      if (this.paused) {
+      if (this.paused || !this._connection) {
         return;
       }
 
@@ -329,7 +355,13 @@ export class CDPSession {
         return;
       }
 
-      this._processResponse(object);
+      try {
+        this._processResponse(object);
+      } catch (error) {
+        // A throwing listener must not leave the rest of the queue undelivered.
+        this.logger.error(LogTag.Internal, 'Error handling a queued CDP message', { error });
+      }
+
       if (this._queue.length) {
         this._processQueue();
       }
