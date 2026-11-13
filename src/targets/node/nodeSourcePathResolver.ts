@@ -168,6 +168,8 @@ export class NodeSourcePathResolver extends SourcePathResolverBase<IOptions> {
       return this.rebaseRemoteToLocal(urlUtils.fileUrlToAbsolutePath(url));
     }
 
+    url = urlUtils.decodeSourceMapSource(url);
+
     if (!path.isAbsolute(url) && this.options.basePath) {
       return properResolve(
         await getComputedSourceRoot(

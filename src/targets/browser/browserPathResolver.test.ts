@@ -232,6 +232,38 @@ describe('BrowserPathResolver', () => {
     });
   });
 
+  it('decodes relative source map source URLs', async () => {
+    const webRoot = path.join(testFixturesDir, 'web');
+    const resolver = new BrowserSourcePathResolver(
+      testVueMapper,
+      fsUtils,
+      {
+        workspaceFolder: testFixturesDir,
+        pathMapping: { '/': webRoot },
+        clientID: 'vscode',
+        baseUrl: 'http://localhost:1234/',
+        sourceMapOverrides: defaultSourceMapPathOverrides(webRoot),
+        localRoot: null,
+        remoteRoot: null,
+        resolveSourceMapLocations: null,
+        remoteFilePrefix: undefined,
+      },
+      Logger.null,
+    );
+
+    expect(
+      await resolver.urlToAbsolutePath({
+        url: '%5Bfoo%5D.ts',
+        map: upcastPartial<SourceMap>({
+          metadata: {
+            compiledPath: path.join(webRoot, 'bundle.js'),
+            sourceMapUrl: path.join(webRoot, 'bundle.js.map'),
+          },
+        }),
+      }),
+    ).to.equal(fixDriveLetter(path.join(webRoot, '[foo].ts')));
+  });
+
   [
     [
       'visualstudio',
