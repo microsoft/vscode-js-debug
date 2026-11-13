@@ -600,6 +600,84 @@ export function formatAsTable(param: Cdp.Runtime.ObjectPreview): string {
   return table.map(row => stringUtils.trimEnd(row, maxTableWidth)).join('\n');
 }
 
+function formatPropertyPreviewAsJson(prop: Cdp.Runtime.PropertyPreview): string | undefined {
+  switch (prop.type) {
+    case 'string':
+      return JSON.stringify(prop.value ?? '');
+    case 'number': {
+      const num = Number(prop.value);
+      return isFinite(num) ? String(num) : 'null';
+    }
+    case 'boolean':
+      return prop.value === 'true' ? 'true' : 'false';
+    case 'undefined':
+    case 'function':
+    case 'symbol':
+    case 'accessor':
+      return undefined; // omit from JSON (matches JSON.stringify behavior)
+    case 'bigint':
+      return undefined; // not JSON serializable
+    case 'object':
+      if (prop.subtype === 'null') return 'null';
+      if (prop.valuePreview) return formatObjectPreviewAsJson(prop.valuePreview);
+      return '{}';
+    default:
+      return prop.value !== undefined ? JSON.stringify(prop.value) : 'null';
+  }
+}
+
+function formatObjectPreviewAsJson(preview: Cdp.Runtime.ObjectPreview): string {
+  if (preview.subtype === 'array' || preview.subtype === 'typedarray') {
+    const items: (string | undefined)[] = [];
+    for (const prop of preview.properties || []) {
+      if (!/^\d+$/.test(prop.name)) continue;
+      items[parseInt(prop.name, 10)] = formatPropertyPreviewAsJson(prop) ?? 'null';
+    }
+    const result: string[] = [];
+    for (let i = 0; i < items.length; i++) {
+      result.push(items[i] ?? 'null');
+    }
+    return '[' + result.join(',') + ']';
+  }
+
+  const parts: string[] = [];
+  for (const prop of preview.properties || []) {
+    const value = formatPropertyPreviewAsJson(prop);
+    if (value !== undefined) {
+      parts.push(JSON.stringify(prop.name) + ':' + value);
+    }
+  }
+  return '{' + parts.join(',') + '}';
+}
+
+function formatAsJson(param: ObjectPreview.AnyObject): string {
+  const raw = param as Cdp.Runtime.RemoteObject;
+
+  if (raw.type === 'string') {
+    return JSON.stringify(raw.value ?? raw.description ?? '');
+  }
+  if (raw.type === 'number') {
+    if (raw.unserializableValue) return 'null'; // NaN, Infinity, -Infinity → null in JSON
+    return String(raw.value ?? raw.description);
+  }
+  if (raw.type === 'boolean') {
+    return String(raw.value);
+  }
+  if (raw.type === 'undefined') {
+    return 'undefined';
+  }
+  if (raw.type === 'bigint' || raw.type === 'symbol') {
+    return 'undefined'; // not JSON serializable
+  }
+  if (raw.type === 'function') {
+    return 'undefined';
+  }
+  // raw.type === 'object'
+  if (raw.subtype === 'null') return 'null';
+  if (raw.preview) return formatObjectPreviewAsJson(raw.preview);
+  return '{}';
+}
+
 export const messageFormatters: messageFormat.Formatters<ObjectPreview.AnyObject> = new Map([
   ['', (param, context) => previewRemoteObjectInternal(param, context)],
   ['s', (param, context) => formatAsString(param as ObjectPreview.StringObj, context.budget)],
@@ -619,6 +697,7 @@ export const messageFormatters: messageFormat.Formatters<ObjectPreview.AnyObject
       formatAsNumber(param as ObjectPreview.Numeric, false, context.budget, undefined),
   ],
   ['c', param => messageFormat.formatCssAsAnsi((param as { value: string }).value)],
+  ['j', param => formatAsJson(param)],
   ['o', (param, context) => previewRemoteObjectInternal(param, context)],
   ['O', (param, context) => previewRemoteObjectInternal(param, context)],
 ]);
