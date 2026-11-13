@@ -305,6 +305,19 @@ export function fileUrlToAbsolutePath(urlOrPath: string): string | undefined {
 }
 
 /**
+ * Decodes a source map `sources` entry. Per the source map spec these are
+ * URLs, so e.g. `%5Bfoo%5D.ts` refers to `[foo].ts`. Returns the input
+ * as-is if it's not validly encoded.
+ */
+export function decodeSourceMapSource(url: string): string {
+  try {
+    return decodeURIComponent(url);
+  } catch {
+    return url;
+  }
+}
+
+/**
  * Converts a file URL to a windows network path, if possible.
  */
 export function fileUrlToNetworkPath(urlOrPath: string): string {

@@ -8,6 +8,7 @@ This changelog records changes to stable releases since 1.50.2. "TBA" changes he
 - feat: support `autoAttachSmartPattern` in Node.js launch configurations ([#1246](https://github.com/microsoft/vscode-js-debug/issues/1246))
 - fix: honor `autoAttachChildProcesses` for Node.js worker threads ([microsoft/vscode-remote-release#11860](https://github.com/microsoft/vscode-remote-release/issues/11860))
 - fix: don't evaluate the WebAssembly pause handler in Node.js `vm` contexts, which could crash Node ([#2446](https://github.com/microsoft/vscode-js-debug/issues/2446))
+- fix: decode URL-encoded source map sources, such as `%5Bfoo%5D.ts` emitted by esbuild ([#2463](https://github.com/microsoft/vscode-js-debug/issues/2463))
 
 ## 1.140 (September 2026)
 

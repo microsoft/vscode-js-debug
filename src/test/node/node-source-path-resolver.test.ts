@@ -195,6 +195,17 @@ describe('node source path resolver', () => {
       ).to.equal(fixDriveLetter(join(__dirname, 'hello.js')));
     });
 
+    it('decodes relative source map sources (#2463)', async () => {
+      const r = new NodeSourcePathResolver(fsUtils, undefined, defaultOptions, Logger.null);
+
+      expect(
+        await r.urlToAbsolutePath({
+          url: '%5Bfoo%5D.ts',
+          map: { sourceRoot: '', metadata: { compiledPath: join(__dirname, 'index.js') } } as any,
+        }),
+      ).to.equal(fixDriveLetter(join(__dirname, '[foo].ts')));
+    });
+
     it('loads local node internals (#823)', async () => {
       const r = new NodeSourcePathResolver(fsUtils, undefined, defaultOptions, Logger.null);
 

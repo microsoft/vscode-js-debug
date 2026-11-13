@@ -212,6 +212,8 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
       return utils.fileUrlToAbsolutePath(url);
     }
 
+    url = utils.decodeSourceMapSource(url);
+
     if (!path.isAbsolute(url)) {
       return properResolve(
         await getComputedSourceRoot(
