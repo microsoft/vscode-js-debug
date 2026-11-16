@@ -33,7 +33,7 @@ extends:
     l10nPackageNlsPath: package.nls.json
     l10nSourcePaths: src
     buildSteps:
-      - script: npm install --legacy-peer-deps
+      - script: npm ci --legacy-peer-deps
         displayName: Install dependencies
 
       - script: npm run compile -- dapDebugServer
