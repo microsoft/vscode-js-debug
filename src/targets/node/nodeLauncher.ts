@@ -14,6 +14,7 @@ import { IFsUtils, LocalFsUtils } from '../../common/fsUtils';
 import { ILogger, LogTag } from '../../common/logging';
 import { fixDriveLetterAndSlashes } from '../../common/pathUtils';
 import { delay } from '../../common/promiseUtil';
+import { parseSource } from '../../common/sourceCodeManipulations';
 import { absolutePathToFileUrl, urlToRegex } from '../../common/urlUtils';
 import { AnyLaunchConfiguration, INodeLaunchConfiguration } from '../../configuration';
 import { VSCodeApi } from '../../ioc-extras';
@@ -276,13 +277,29 @@ export class NodeLauncher extends NodeLauncherBase<INodeLaunchConfiguration> {
           return;
         }
 
+        let lineNumber = 0;
+        let columnNumber = 0;
+        try {
+          const content = (await this.fsUtils.readFile(program)).toString('utf-8');
+          const body = parseSource(content);
+          for (const stmt of body) {
+            if (stmt.type !== 'FunctionDeclaration' && stmt.loc) {
+              lineNumber = stmt.loc.start.line - 1;
+              columnNumber = stmt.loc.start.column;
+              break;
+            }
+          }
+        } catch {
+          // fallback to 0:0 if file reading or parsing fails
+        }
+
         const breakpointId = '(?:entryBreakpoint){0}';
         const breakpointPath = absolutePathToFileUrl(program);
         const urlRegexp = urlToRegex(breakpointPath) + breakpointId;
         const breakpoint = await cdp.Debugger.setBreakpointByUrl({
           urlRegex: urlRegexp,
-          lineNumber: 0,
-          columnNumber: 0,
+          lineNumber,
+          columnNumber,
         });
 
         return breakpoint?.breakpointId
