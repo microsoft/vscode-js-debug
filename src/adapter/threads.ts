@@ -1552,6 +1552,10 @@ export class Thread implements IVariableStoreLocationProvider {
           const userEntryBp = this.target.entryBreakpoint;
           if (userEntryBp && hitBreakpoints.includes(userEntryBp.cdpId)) {
             isStopOnEntry = true; // But if it matches the entry breakpoint id, then it's probably stop on entry
+            this.target.entryBreakpoint = undefined;
+            this._cdp.Debugger.removeBreakpoint({ breakpointId: userEntryBp.cdpId }).catch(
+              () => {},
+            );
             const entryBreakpointSource = this._sourceContainer.source({
               path: fileUrlToAbsolutePath(userEntryBp.path),
             });
