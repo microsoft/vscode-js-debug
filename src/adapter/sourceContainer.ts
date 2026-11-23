@@ -289,6 +289,12 @@ export class SourceContainer {
     }
   }
 
+  public removeScriptById(script: ISourceScript) {
+    if (this.scriptsById.get(script.scriptId) === script) {
+      this.scriptsById.delete(script.scriptId);
+    }
+  }
+
   /**
    * Gets a source script by its script ID. This includes internals scripts
    * that are not parsed to full Sources.
