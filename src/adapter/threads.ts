@@ -56,11 +56,11 @@ import { IVariableStoreLocationProvider, VariableStore } from './variableStore';
 
 export class ExecutionContext {
   public readonly sourceMapLoads = new Map<string, Promise<IUiLocation[]>>();
-  public readonly scripts: Script[] = [];
+  public readonly scripts = new Set<Script | ISourceScript>();
   /** Script ID paused in after WASM is initialized, from {@link breakOnWasmInit} */
   public breakOnWasmScriptId?: string;
 
-  constructor(public readonly description: Cdp.Runtime.ExecutionContextDescription) {}
+  constructor(public description: Cdp.Runtime.ExecutionContextDescription) {}
 
   get isDefault(): boolean {
     return this.description.auxData && this.description.auxData['isDefault'];
@@ -69,9 +69,14 @@ export class ExecutionContext {
   /** Removes all scripts associated with the context */
   async remove(container: SourceContainer) {
     await Promise.all(
-      this.scripts.map(async s => {
-        const source = await s.source;
-        source.filterScripts(s => s.executionContextId !== this.description.id);
+      [...this.scripts].map(async script => {
+        container.removeScriptById(script);
+        if (!('source' in script)) {
+          return;
+        }
+
+        const source = await script.source;
+        source.filterScripts(s => s !== script);
         if (!source.scripts.length) {
           container.removeSource(source);
         }
@@ -936,7 +941,10 @@ export class Thread implements IVariableStoreLocationProvider {
   }
 
   private _executionContextCreated(description: Cdp.Runtime.ExecutionContextDescription) {
-    const context = new ExecutionContext(description);
+    // A script may have already caused us to create this context before CDP announced it.
+    const context = this._executionContexts.get(description.id)
+      ?? new ExecutionContext(description);
+    context.description = description;
     this._executionContexts.set(description.id, context);
 
     if (this._scriptWithSourceMapHandler && wantsWasmPauseHandler(context)) {
@@ -973,7 +981,7 @@ export class Thread implements IVariableStoreLocationProvider {
     if (!context) return;
     this._executionContexts.delete(contextId);
     await this.shutdown.shutdownContext();
-    context.remove(this._sourceContainer);
+    await context.remove(this._sourceContainer);
   }
 
   async _executionContextsCleared() {
@@ -982,14 +990,15 @@ export class Thread implements IVariableStoreLocationProvider {
     this._executionContexts.clear();
 
     await this.shutdown.shutdownContext();
-    for (const context of removedContexts) {
-      context.remove(this._sourceContainer);
-    }
+    const cleanup = Promise.all(
+      removedContexts.map(context => context.remove(this._sourceContainer)),
+    );
     this._breakpointManager.executionContextWasCleared();
 
     if (pausedDetails && pausedDetails === this._pausedDetails && !this.disposed) {
       this.onResumed();
     }
+    await cleanup;
   }
 
   _ensureDebuggerEnabledAndRefreshDebuggerId() {
@@ -1645,31 +1654,21 @@ export class Thread implements IVariableStoreLocationProvider {
   }
 
   private _onScriptParsed(event: Cdp.Debugger.ScriptParsedEvent) {
-    const sourceScript: Script | ISourceScript = {
-      url: event.url,
-      hasSourceURL: !!event.hasSourceURL,
-      embedderName: event.embedderName,
-      scriptId: event.scriptId,
-      executionContextId: event.executionContextId,
-    };
-
     // normalize paths paths that old Electron versions can add (#1099)
     if (urlUtils.isAbsolute(event.url)) {
       event.url = urlUtils.absolutePathToFileUrl(event.url);
     }
 
-    const existing = this._sourceContainer.getScriptById(event.scriptId);
-    if (existing && this._executionContexts.has(existing.executionContextId)) {
+    // CDP can reuse both IDs on navigation before the old context finishes cleaning up.
+    const existing = this._sourceContainer.getSourceScriptById(event.scriptId);
+    if (
+      existing && this._executionContexts.get(existing.executionContextId)?.scripts.has(existing)
+    ) {
       return;
     }
 
-    if (event.url.endsWith(sourceUtils.SourceConstants.InternalExtension)) {
-      this._sourceContainer.addScriptById(sourceScript);
-      // The customer doesn't care about the internal cdp files, so skip this event
-      return;
-    }
-
-    if (event.url) {
+    const isInternal = event.url.endsWith(sourceUtils.SourceConstants.InternalExtension);
+    if (!isInternal && event.url) {
       event.url = this.target.scriptUrlToUrl(event.url);
     }
 
@@ -1690,16 +1689,22 @@ export class Thread implements IVariableStoreLocationProvider {
       });
     }
 
+    const sourceScript: ISourceScript = {
+      url: event.url,
+      hasSourceURL: !!event.hasSourceURL,
+      embedderName: event.embedderName,
+      scriptId: event.scriptId,
+      executionContextId: event.executionContextId,
+    };
+    if (isInternal) {
+      executionContext.scripts.add(sourceScript);
+      this._sourceContainer.addScriptById(sourceScript);
+      return;
+    }
+
     const createSource = async () => {
       const prevSource = this._sourceContainer.getSourceByOriginalUrl(event.url);
       if (event.hash && prevSource?.contentHash === event.hash) {
-        prevSource.addScript({
-          scriptId: event.scriptId,
-          url: event.url,
-          embedderName: event.embedderName,
-          hasSourceURL: !!event.hasSourceURL,
-          executionContextId: event.executionContextId,
-        });
         return prevSource;
       }
 
@@ -1736,7 +1741,7 @@ export class Thread implements IVariableStoreLocationProvider {
         this._lastParsedWasmScriptIds.push(event.scriptId);
       }
 
-      const source = await this._sourceContainer.addSource(
+      return this._sourceContainer.addSource(
         event,
         contentGetter,
         resolvedSourceMapUrl,
@@ -1748,21 +1753,17 @@ export class Thread implements IVariableStoreLocationProvider {
         // never matches: https://github.com/microsoft/vscode-js-debug/issues/1476
         !event.hasSourceURL && this.launchConfig.enableContentValidation ? event.hash : undefined,
       );
-
-      source.addScript({
-        scriptId: event.scriptId,
-        url: event.url,
-        embedderName: event.embedderName,
-        hasSourceURL: !!event.hasSourceURL,
-        executionContextId: event.executionContextId,
-      });
-
-      return source;
     };
 
-    const script: Script = { ...sourceScript, source: createSource() };
-    script.source.then(s => (script.resolvedSource = s));
-    executionContext.scripts.push(script);
+    const script: Script = {
+      ...sourceScript,
+      source: createSource().then(source => {
+        source.addScript(script);
+        script.resolvedSource = source;
+        return source;
+      }),
+    };
+    executionContext.scripts.add(script);
 
     this._sourceContainer.addScriptById(script);
 
