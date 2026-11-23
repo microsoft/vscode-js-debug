@@ -190,6 +190,8 @@ class DapSessionManager implements IBinderDelegate {
     for (const { params, ids } of init.setBreakpointsParams) {
       await adapter.breakpointManager.setBreakpoints(params, ids);
     }
+    // These ids came from our own counter, before the adapter had one.
+    adapter.skipBreakpointIds(init.setBreakpointsParams.flatMap(p => p.ids));
     await adapter.setCustomBreakpoints({
       xhr: init.xhrBreakpoints,
       ids: init.customBreakpoints,
