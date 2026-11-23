@@ -130,7 +130,8 @@ export class ExcludedCallersUI
         this.triggerUpdate();
       }),
       this.sessionTracker.onSessionAdded(e => {
-        if (this.allCallers.size > 0) {
+        // Only a target's session handles this request; the root session has no handler for it.
+        if (this.allCallers.size > 0 && DebugSessionTracker.isConcreteSession(e)) {
           this.sendCallersToSession(e);
         }
       }),
