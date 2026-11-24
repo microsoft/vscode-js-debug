@@ -234,14 +234,16 @@ export class TestP implements ITestHandle {
     this._adapter = adapter;
 
     this._root._browserLauncher = launcher;
-    this._connection = this._root._browserLauncher?.connectionForTest()!;
-    const result = await this._connection.rootSession().Target.attachToBrowserTarget({});
-    const testSession = this._connection.createSession(result!.sessionId);
-    const { sessionId } = (await testSession.Target.attachToTarget({
-      targetId: this._target instanceof BrowserTarget ? this._target.targetId : this._target.id(),
-      flatten: true,
-    }))!;
-    this._cdp = this._connection.createSession(sessionId);
+    this._connection = this._root._browserLauncher?.connectionForTest?.()!;
+    if (this._connection) {
+      const result = await this._connection.rootSession().Target.attachToBrowserTarget({});
+      const testSession = this._connection.createSession(result!.sessionId);
+      const { sessionId } = (await testSession.Target.attachToTarget({
+        targetId: this._target instanceof BrowserTarget ? this._target.targetId : this._target.id(),
+        flatten: true,
+      }))!;
+      this._cdp = this._connection.createSession(sessionId);
+    }
     await this._session._init();
     if (this._target.parent()) {
       this.dap.configurationDone({});
@@ -612,7 +614,7 @@ export class TestRoot {
   async disconnect(): Promise<void> {
     return new Promise<void>(cb => {
       this.initialize.then(() => {
-        const connection = this._browserLauncher?.connectionForTest();
+        const connection = this._browserLauncher?.connectionForTest?.();
         if (connection) {
           const disposable = connection.onDisconnected(() => {
             cb();
