@@ -229,7 +229,16 @@ export class BrowserTargetManager implements IDisposable {
     if (parentTarget) parentTarget._children.set(targetInfo.targetId, target);
 
     cdp.Target.on('attachedToTarget', async event => {
-      this.attachedToTarget(event.targetInfo, event.sessionId, event.waitingForDebugger, target);
+      this.attachedToTarget(
+        event.targetInfo,
+        event.sessionId,
+        // Existing child targets discovered via setAutoAttach on an already-open page report
+        // waitingForDebugger: false; mark JS targets as waiting so they are attached and resumed
+        // unless auto-wait is disabled (e.g. VSCodeRendererTargetManager selective filtering).
+        event.waitingForDebugger
+          || (waitForDebuggerOnStart && jsTypes.has(event.targetInfo.type as BrowserTargetType)),
+        target,
+      );
     });
     cdp.Target.on('detachedFromTarget', async event => {
       if (event.targetId) {
