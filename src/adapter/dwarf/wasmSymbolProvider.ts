@@ -557,7 +557,7 @@ class WasmSymbols extends DecompiledWasmSymbols {
     if (columnNumber === 0 && locations.length === 0) {
       const mappedLines = await this.getMappedLines(sourceUrl);
       const next = mappedLines.find(l => l > lineNumber);
-      if (!mappedLines.includes(lineNumber) && next /* always > 0 */) {
+      if (!mappedLines.includes(lineNumber) && next !== undefined) {
         return this.compiledPositionFor(sourceUrl, new Base0Position(next, 0));
       }
     }
@@ -719,7 +719,9 @@ class WasmSymbols extends DecompiledWasmSymbols {
           this.moduleId,
           sourceURL,
         );
-        return new Uint32Array(lines?.sort((a, b) => a - b) || []);
+        return new Uint32Array(
+          lines?.filter(l => l >= 0 && l <= 0x7fffffff).sort((a, b) => a - b) || [],
+        );
       } catch {
         return new Uint32Array();
       }
