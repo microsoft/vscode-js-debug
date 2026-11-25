@@ -52,7 +52,7 @@ export class NetworkTree implements IExtensionContribution, vscode.TreeDataProvi
         }
       }),
       this.debugSessionTracker.onSessionAdded(session => {
-        if (!this.isEnabled()) {
+        if (!this.isEnabled() || session.configuration.type === DebugType.ExtensionHost) {
           return;
         }
 
