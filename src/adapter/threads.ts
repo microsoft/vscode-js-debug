@@ -812,6 +812,10 @@ export class Thread implements IVariableStoreLocationProvider {
   async enableNetworking({
     mirrorEvents,
   }: Dap.EnableNetworkingParams): Promise<Dap.EnableNetworkingResult> {
+    if (this.launchConfig.type === DebugType.ExtensionHost) {
+      throw errors.networkingNotAvailable();
+    }
+
     const ok = await this._cdp.Network.enable({});
     if (!ok) {
       throw errors.networkingNotAvailable();

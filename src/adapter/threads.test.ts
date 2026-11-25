@@ -7,12 +7,18 @@ import { stub } from 'sinon';
 import Cdp from '../cdp/api';
 import Connection from '../cdp/connection';
 import { NullTransport } from '../cdp/nullTransport';
+import { DebugType } from '../common/contributionUtils';
 import { Logger } from '../common/logging/logger';
 import { upcastPartial } from '../common/objUtils';
 import { getDeferred } from '../common/promiseUtil';
 import { ISourcePathResolver } from '../common/sourcePathResolver';
-import { edgeLaunchConfigDefaults } from '../configuration';
+import {
+  AnyLaunchConfiguration,
+  edgeLaunchConfigDefaults,
+  extensionHostConfigDefaults,
+} from '../configuration';
 import Dap from '../dap/api';
+import * as errors from '../dap/errors';
 import { ITarget } from '../targets/targets';
 import { NullTelemetryReporter } from '../telemetry/nullTelemetryReporter';
 import { ShutdownOrder, ShutdownParticipants } from '../ui/shutdownParticipants';
@@ -135,5 +141,88 @@ describe('Thread execution contexts', () => {
     expect(container.getSourceByOriginalUrl(authScript)).to.equal(source);
     expect(source?.scripts.map(script => script.scriptId)).to.deep.equal(['9']);
     expect(container.getScriptById('8')).to.be.undefined;
+  });
+});
+
+describe('Thread enableNetworking', () => {
+  const createThread = (config: AnyLaunchConfiguration) => {
+    const transport = new NullTransport();
+    const connection = new Connection(transport, Logger.null, new NullTelemetryReporter());
+    const shutdown = new ShutdownParticipants();
+    const dap = upcastPartial<Dap.Api>({ loadedSource: stub(), thread: stub() });
+    const container = new SourceContainer(
+      dap,
+      upcastPartial({}),
+      Logger.null,
+      config,
+      upcastPartial({}),
+      upcastPartial<ISourcePathResolver>({ urlToAbsolutePath: async () => undefined }),
+      upcastPartial<ScriptSkipper>({
+        setSourceContainer: stub(),
+        initializeSkippingValueForSource: stub(),
+      }),
+      upcastPartial({}),
+      upcastPartial({}),
+    );
+    const thread = new Thread(
+      container,
+      connection.rootSession(),
+      dap,
+      upcastPartial<ITarget>({ initialize: stub(), scriptUrlToUrl: url => url }),
+      upcastPartial({}),
+      Logger.null,
+      upcastPartial({}),
+      upcastPartial({}),
+      config,
+      upcastPartial<BreakpointManager>({ executionContextWasCleared: stub() }),
+      upcastPartial({}),
+      upcastPartial<IExceptionPauseService>({ apply: stub() }),
+      upcastPartial({}),
+      shutdown,
+      {},
+    );
+    return { transport, connection, thread };
+  };
+
+  it('rejects without calling Network.enable for extensionHost sessions', async () => {
+    const { transport, connection, thread } = createThread({
+      ...extensionHostConfigDefaults,
+      type: DebugType.ExtensionHost,
+    });
+    const sentMethods: string[] = [];
+    transport.onDidSendEmitter.event(msg => {
+      if ('method' in msg && msg.method) {
+        sentMethods.push(msg.method);
+      }
+    });
+
+    let err: unknown;
+    try {
+      await thread.enableNetworking({ mirrorEvents: [] });
+    } catch (e) {
+      err = e;
+    }
+
+    expect(err).to.deep.equal(errors.networkingNotAvailable());
+    expect(sentMethods).to.not.include('Network.enable');
+    connection.close();
+  });
+
+  it('calls Network.enable for non-extensionHost sessions', async () => {
+    const { transport, connection, thread } = createThread(edgeLaunchConfigDefaults);
+    const sentMethods: string[] = [];
+    transport.onDidSendEmitter.event(msg => {
+      if ('id' in msg && 'method' in msg && msg.id !== undefined) {
+        sentMethods.push(msg.method!);
+        queueMicrotask(() => {
+          transport.injectMessage({ id: msg.id!, result: {} });
+        });
+      }
+    });
+
+    const result = await thread.enableNetworking({ mirrorEvents: [] });
+    expect(result).to.deep.equal({});
+    expect(sentMethods).to.include('Network.enable');
+    connection.close();
   });
 });
