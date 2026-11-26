@@ -8,7 +8,7 @@ import { ILogger, LogTag } from '../common/logging';
 import { getDeferred } from '../common/promiseUtil';
 import { ITelemetryReporter } from '../telemetry/telemetryReporter';
 import Dap from './api';
-import { isDapError } from './errors';
+import { createSilentError, isDapError } from './errors';
 import { logOmittedCalls } from './logOmittedCalls';
 import { ProtocolError } from './protocolError';
 import { IDapTransport, Message } from './transport';
@@ -170,6 +170,8 @@ export default class Connection {
         const callback = this._requestHandlers.get(msg.command);
         if (!callback) {
           console.error(`Unknown request: ${msg.command}`);
+          const { error } = createSilentError(`Unknown request: ${msg.command}`);
+          this._send({ ...response, success: false, message: error.format, body: { error } });
         } else {
           const result = await callback(msg.arguments);
           if (isDapError(result)) {
