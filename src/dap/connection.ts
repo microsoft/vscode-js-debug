@@ -169,8 +169,6 @@ export default class Connection {
       try {
         const callback = this._requestHandlers.get(msg.command);
         if (!callback) {
-          // Every request gets a response: a client that is never answered
-          // waits out its own timeout before it can go on.
           console.error(`Unknown request: ${msg.command}`);
           const { error } = createSilentError(`Unknown request: ${msg.command}`);
           this._send({ ...response, success: false, message: error.format, body: { error } });
