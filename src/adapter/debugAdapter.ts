@@ -358,6 +358,18 @@ export class DebugAdapter implements IDisposable {
     };
   }
 
+  /**
+   * Skips past breakpoint ids that were handed to the client before this
+   * adapter existed (`collectInitialize` in dapDebugServer numbers the
+   * breakpoints set ahead of launch/attach itself), so that a later
+   * `setBreakpoints` does not reuse an id that is still live.
+   */
+  public skipBreakpointIds(used: readonly number[]) {
+    if (used.length) {
+      this.breakpointIdCounter.skipPast(Math.max(...used));
+    }
+  }
+
   private async _onSetBreakpoints(
     params: Dap.SetBreakpointsParams,
   ): Promise<Dap.SetBreakpointsResult | Dap.Error> {
