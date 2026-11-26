@@ -3,9 +3,22 @@
  *--------------------------------------------------------*/
 
 import { expect } from 'chai';
-import { memoizeLast } from './objUtils';
+import { memoizeLast, posInt32Counter } from './objUtils';
 
 describe('objUtils', () => {
+  it('posInt32Counter', () => {
+    const counter = posInt32Counter();
+    expect(counter()).to.equal(0);
+    expect(counter()).to.equal(1);
+
+    counter.skipPast(5);
+    expect(counter()).to.equal(6);
+
+    // never moves backwards
+    counter.skipPast(2);
+    expect(counter()).to.equal(7);
+  });
+
   it('memoizeLast', () => {
     let calls = 0;
     const fn = memoizeLast((m: number[]) => {

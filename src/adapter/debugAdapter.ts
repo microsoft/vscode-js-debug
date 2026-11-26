@@ -365,13 +365,8 @@ export class DebugAdapter implements IDisposable {
    * `setBreakpoints` does not reuse an id that is still live.
    */
   public skipBreakpointIds(used: readonly number[]) {
-    if (!used.length) {
-      return;
-    }
-
-    const highest = Math.max(...used);
-    while (this.breakpointIdCounter() < highest) {
-      // advance the counter
+    if (used.length) {
+      this.breakpointIdCounter.skipPast(Math.max(...used));
     }
   }
 

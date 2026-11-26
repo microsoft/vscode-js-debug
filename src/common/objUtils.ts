@@ -397,8 +397,15 @@ const maxInt32 = 2 ** 31 - 1;
 
 /**
  * Creates a new counter that return a positive int32 value on each invokation.
+ * `skipPast` moves it forward so that the values it returns next are greater
+ * than the one given.
  */
 export const posInt32Counter = () => {
   let last = 0;
-  return () => last++ & maxInt32;
+  const counter = () => last++ & maxInt32;
+  counter.skipPast = (value: number) => {
+    last = Math.max(last, value + 1);
+  };
+
+  return counter;
 };
