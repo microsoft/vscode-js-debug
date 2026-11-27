@@ -26,7 +26,13 @@ export const enum StepDirection {
 
 export type ExpectedPauseReason =
   | { reason: Exclude<PausedReason, 'step'>; description?: string }
-  | { reason: 'step'; description?: string; direction: StepDirection };
+  | {
+    reason: 'step';
+    description?: string;
+    direction: StepDirection;
+    targetFrameDepth?: number;
+    stepResumeBreakpointId?: string;
+  };
 
 export interface IPausedDetails {
   thread: Thread;
