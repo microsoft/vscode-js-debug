@@ -315,7 +315,11 @@ export class Thread implements IVariableStoreLocationProvider {
 
   public stepOver(): Promise<Dap.NextResult | Dap.Error> {
     return this.stateQueue.enqueue('stepOver', async () => {
-      this._expectedPauseReason = { reason: 'step', direction: StepDirection.Over };
+      this._expectedPauseReason = {
+        reason: 'step',
+        direction: StepDirection.Over,
+        targetFrameDepth: this._pausedDetails?.event.callFrames.length,
+      };
       const skipList = await this.getCurrentSkipList(StepDirection.Over);
       if (await this._cdp.Debugger.stepOver({ skipList })) {
         return {};
@@ -352,7 +356,13 @@ export class Thread implements IVariableStoreLocationProvider {
 
   public stepOut(): Promise<Dap.StepOutResult | Dap.Error> {
     return this.stateQueue.enqueue('stepOut', async () => {
-      this._expectedPauseReason = { reason: 'step', direction: StepDirection.Out };
+      this._expectedPauseReason = {
+        reason: 'step',
+        direction: StepDirection.Out,
+        targetFrameDepth: this._pausedDetails
+          ? Math.max(0, this._pausedDetails.event.callFrames.length - 1)
+          : undefined,
+      };
 
       if (await this._cdp.Debugger.stepOut({})) {
         return {};
@@ -1017,8 +1027,60 @@ export class Thread implements IVariableStoreLocationProvider {
     this.exceptionPause.apply(this._cdp);
   }
 
+  private async _continueInterruptedStep(
+    event: Cdp.Debugger.PausedEvent,
+    expected: Extract<ExpectedPauseReason, { reason: 'step' }>,
+  ): Promise<boolean> {
+    if (
+      expected.targetFrameDepth === undefined
+      || (expected.direction !== StepDirection.Over && expected.direction !== StepDirection.Out)
+    ) {
+      return false;
+    }
+
+    if (event.callFrames.length > expected.targetFrameDepth) {
+      const targetFrame = event.callFrames[event.callFrames.length - expected.targetFrameDepth];
+      if (targetFrame) {
+        const bp = await this._cdp.Debugger.setBreakpoint({
+          location: {
+            scriptId: targetFrame.location.scriptId,
+            lineNumber: targetFrame.location.lineNumber + 1,
+            columnNumber: 0,
+          },
+        });
+        if (bp) {
+          expected.stepResumeBreakpointId = bp.breakpointId;
+          await this._cdp.Debugger.resume({});
+          return true;
+        }
+      }
+      await this._cdp.Debugger.stepOut({});
+      return true;
+    }
+
+    if (expected.direction === StepDirection.Over) {
+      await this._cdp.Debugger.stepOver({});
+      return true;
+    }
+
+    return false;
+  }
+
   private async _onPaused(event: Cdp.Debugger.PausedEvent) {
-    const hitBreakpoints = event.hitBreakpoints ?? [];
+    const hitBreakpoints = [...(event.hitBreakpoints ?? [])];
+    if (
+      this._expectedPauseReason?.reason === 'step'
+      && this._expectedPauseReason.stepResumeBreakpointId
+    ) {
+      const bpId = this._expectedPauseReason.stepResumeBreakpointId;
+      this._expectedPauseReason.stepResumeBreakpointId = undefined;
+      await this._cdp.Debugger.removeBreakpoint({ breakpointId: bpId }).catch(() => {});
+      const idx = hitBreakpoints.indexOf(bpId);
+      if (idx !== -1) {
+        hitBreakpoints.splice(idx, 1);
+        event.hitBreakpoints = hitBreakpoints;
+      }
+    }
     // "Break on start" is not actually a by-spec reason in CDP, it's added on from Node.js, so cast `as string`:
     // https://github.com/nodejs/node/blob/9cbf6af5b5ace0cc53c1a1da3234aeca02522ec6/src/node_contextify.cc#L913
     // And Deno uses `debugCommand:
@@ -1081,10 +1143,16 @@ export class Thread implements IVariableStoreLocationProvider {
         // Check if there are any user-defined breakpoints on this line
       } else if (expectedPauseReason?.reason === 'step') {
         // Check if we're in the middle of a step, e.g. stepping over a
-        // function compilation. Stepping in should still remain paused,
-        // and an instrumentation pause in step out should not be possible.
+        // function compilation. Stepping in should still remain paused.
+        // For non-instrumentation pauses (e.g. EntryBreakpoint), V8 cancels the
+        // active step when pausing on the breakpoint, so resume the step manually.
         if (expectedPauseReason.direction === StepDirection.In) {
           // no-op
+        } else if (
+          event.reason !== 'instrumentation'
+          && (await this._continueInterruptedStep(event, expectedPauseReason))
+        ) {
+          return;
         } else {
           return this._cdp.Debugger.resume({});
         }
@@ -1103,6 +1171,12 @@ export class Thread implements IVariableStoreLocationProvider {
         );
 
       if (!wantsPause) {
+        if (
+          this._expectedPauseReason?.reason === 'step'
+          && (await this._continueInterruptedStep(event, this._expectedPauseReason))
+        ) {
+          return;
+        }
         return this.resume();
       }
     }
