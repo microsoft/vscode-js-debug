@@ -39,6 +39,7 @@ export class NodeOnlyPathResolverFactory implements ISourcePathResolverFactory {
   public create(c: AnyLaunchConfiguration, logger: ILogger) {
     if (
       c.type === DebugType.Node
+      || c.type === DebugType.ReactNative
       || c.type === DebugType.Terminal
       || c.type === DebugType.ExtensionHost
     ) {
@@ -68,6 +69,7 @@ export class SourcePathResolverFactory implements ISourcePathResolverFactory {
   public create(c: AnyLaunchConfiguration, logger: ILogger) {
     if (
       c.type === DebugType.Node
+      || c.type === DebugType.ReactNative
       || c.type === DebugType.Terminal
       || c.type === DebugType.ExtensionHost
     ) {
