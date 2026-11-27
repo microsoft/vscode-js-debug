@@ -153,7 +153,7 @@ export const invalidConcurrentProfile = () =>
     ErrorCodes.InvalidConcurrentProfile,
   );
 
-export const replError = (message: string) => createSilentError(message, ErrorCodes.ReplError);
+export const replError = (message: string) => createUserError(message, ErrorCodes.ReplError);
 
 export const browserNotFound = (
   browserType: string,
