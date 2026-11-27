@@ -31,6 +31,9 @@ export interface IOptions extends ISourcePathResolverOptions {
   pathMapping: PathMapping;
   clientID: string | undefined;
   remoteFilePrefix: string | undefined;
+  extensionPath?: string;
+  /** Pinned extension ID once discovered from the attached target's URL. */
+  extensionId?: string;
 }
 
 const enum Suffix {
@@ -49,6 +52,11 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
     logger: ILogger,
   ) {
     super(options, logger);
+  }
+
+  /** Pins the resolved extension ID so path resolution only accepts that exact origin. */
+  public pinExtensionId(id: string) {
+    (this.options as IOptions).extensionId = id;
   }
 
   /** @override */
@@ -107,6 +115,21 @@ export class BrowserSourcePathResolver extends SourcePathResolverBase<IOptions> 
     // any source map overrides now (fixes vscode#204784) and before file
     // URIs (vscode-dwarf-debugging-ext#7)
     url = this.sourceMapOverrides.apply(url);
+
+    // Map chrome-extension://<id>/path → extensionPath/path.
+    // If extensionId is known (pinned after attaching to the target) we match
+    // only that exact ID. Otherwise we accept any 32-char ID so the very first
+    // resolution works before we know the ID.
+    if (this.options.extensionPath && url.startsWith('chrome-extension://')) {
+      const idPattern = this.options.extensionId
+        ? this.options.extensionId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+        : '[a-z0-9]{32}';
+      const match = url.match(new RegExp(`^chrome-extension://${idPattern}(/.*)?\$`));
+      if (match) {
+        const relPath = (match[1] ?? '/').replace(/^\//, '');
+        return path.join(this.options.extensionPath, relPath || 'index.html');
+      }
+    }
 
     // If we have a file URL, we know it's absolute already and points
     // to a location on disk.

@@ -9,7 +9,7 @@ import { DebugType } from '../../common/contributionUtils';
 import { ILogger } from '../../common/logging';
 import { ISourcePathResolver } from '../../common/sourcePathResolver';
 import { AnyChromiumAttachConfiguration, AnyLaunchConfiguration } from '../../configuration';
-import { VSCodeApi } from '../../ioc-extras';
+import { FS, FsPromises, VSCodeApi } from '../../ioc-extras';
 import { ILaunchContext } from '../targets';
 import { BrowserAttacher } from './browserAttacher';
 import { RemoteBrowserHelper } from './remoteBrowserHelper';
@@ -20,9 +20,10 @@ export class RemoteBrowserAttacher extends BrowserAttacher<AnyChromiumAttachConf
     @inject(RemoteBrowserHelper) private readonly helper: RemoteBrowserHelper,
     @inject(ILogger) logger: ILogger,
     @inject(ISourcePathResolver) pathResolver: ISourcePathResolver,
+    @inject(FS) fs: FsPromises,
     @optional() @inject(VSCodeApi) vscode?: typeof vscodeType,
   ) {
-    super(logger, pathResolver, vscode);
+    super(logger, pathResolver, fs, vscode);
   }
 
   /**

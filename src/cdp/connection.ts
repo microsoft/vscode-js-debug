@@ -105,8 +105,23 @@ export default class Connection {
     if (!session) {
       const disposedDate = this._disposedSessions.get(object.sessionId);
       if (!disposedDate) {
+        if (object.method) {
+          // Event (not a response) on an unregistered session. This can happen
+          // when Chrome pushes events (e.g. Inspector.workerScriptLoaded) on a
+          // new session before our createSession() call completes — a race
+          // between Target.attachToTarget's response and early CDP events.
+          // Safe to drop: events are fire-and-forget with no waiting caller.
+          this.logger.warn(
+            LogTag.Internal,
+            `Got event for unknown session, ignoring`,
+            { sessionId: object.sessionId, method: object.method },
+          );
+          return;
+        }
+        // A command response on an unregistered session is a real bug — we
+        // only send commands after createSession(), so this should never happen.
         throw new Error(
-          `Unknown session id: ${object.sessionId} while processing: ${object.method}`,
+          `Unknown session id: ${object.sessionId} while processing response`,
         );
       } else {
         const secondsAgo = (Date.now() - disposedDate.getTime()) / 1000.0;

@@ -83,7 +83,7 @@ export class EdgeLauncher extends BrowserLauncher<IEdgeLaunchConfiguration> {
    * we don't want to.
    * @override
    */
-  protected getFilterForTarget(params: IEdgeLaunchConfiguration) {
+  protected async getFilterForTarget(params: IEdgeLaunchConfiguration) {
     return params.useWebView && params.urlFilter
       ? requirePageTarget(createTargetFilterForConfig(params))
       : super.getFilterForTarget(params);
