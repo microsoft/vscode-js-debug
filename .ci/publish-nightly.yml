@@ -17,7 +17,7 @@ parameters:
 extends:
   template: azure-pipelines/extension/pre-release.yml@templates
   parameters:
-    publishExtension: ${{ parameters.publishExtension }}
+    publishExtension: ${{ and(parameters.publishExtension, or(eq(variables['Build.SourceBranch'], 'refs/heads/main'), startsWith(variables['Build.SourceBranch'], 'refs/heads/release/'))) }}
     usePreReleaseChannel: false
     vscePackageArgs: --no-dependencies
     cgIgnoreDirectories: 'testdata,demos,.vscode-test,src/test,testWorkspace'
