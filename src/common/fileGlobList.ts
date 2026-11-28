@@ -3,6 +3,7 @@
  *--------------------------------------------------------*/
 
 import { inject, injectable } from 'inversify';
+import micromatch from 'micromatch';
 import * as path from 'path';
 import { AnyLaunchConfiguration } from '../configuration';
 import { forceForwardSlashes } from './pathUtils';
@@ -12,6 +13,37 @@ export interface IExplodedGlob {
   negations: string[];
   pattern: string;
 }
+
+/**
+ * Expands the brace sets that start before the first star outside of braces,
+ * so that each alternative gets its own search root. Braces after it, like in
+ * `*.{js,mjs}`, stay in the glob so that the tree is only walked once.
+ */
+const expandBraces = (pattern: string): string[] => {
+  let depth = 0;
+  let end = pattern.length;
+  for (let i = 0; i < pattern.length; i++) {
+    if (pattern[i] === '{') {
+      depth++;
+    } else if (pattern[i] === '}' && depth > 0) {
+      depth--;
+    } else if (pattern[i] === '*' && depth === 0) {
+      end = i;
+      break;
+    }
+  }
+
+  const head = pattern.slice(0, end);
+  if (depth !== 0 || !head.includes('{')) {
+    return [pattern];
+  }
+
+  const tail = pattern.slice(end);
+  // braces treats quotes as shell quotes, and the head can hold a folder like
+  // O'Neil. Backslashes are already gone, so escaping them cannot collide.
+  const escaped = head.replace(/['"`]/g, '\\$&');
+  return [...new Set(micromatch.braces(escaped, { expand: true }))].map(h => h + tail);
+};
 
 @injectable()
 export class FileGlobList {
@@ -65,41 +97,45 @@ export class FileGlobList {
         continue;
       }
 
-      const parts = path.resolve(this.rootPath, pattern).split(/[\\/]/g);
-      const firstGlobSegment = parts.findIndex(p => p.includes('*'));
-      // if including a single file, just return a glob that yields only that.
-      // note, here and below we intentionally use / instead of path.sep for globs
-      if (firstGlobSegment === -1) {
-        yield {
-          cwd: parts.slice(0, -1).join('/'),
-          pattern: parts[parts.length - 1],
-          negations: [],
-        };
-        continue;
-      }
-
-      const cwd = parts.slice(0, firstGlobSegment).join('/');
-      const negations = [];
-
-      for (let k = i + 1; k < this.patterns.length; k++) {
-        const { negated, pattern } = this.patterns[k];
-        if (!negated) {
+      for (const expanded of expandBraces(forceForwardSlashes(pattern))) {
+        const parts = path.resolve(this.rootPath, expanded).split(/[\\/]/g);
+        const firstGlobSegment = parts.findIndex(p => p.includes('*'));
+        // if including a single file, just return a glob that yields only that.
+        // note, here and below we intentionally use / instead of path.sep for globs
+        if (firstGlobSegment === -1) {
+          yield {
+            cwd: parts.slice(0, -1).join('/'),
+            pattern: parts[parts.length - 1],
+            negations: [],
+          };
           continue;
         }
 
-        // Make **-prefixed negations apply to _all_ included folders
-        if (pattern.startsWith('**')) {
-          negations.push(forceForwardSlashes(pattern));
-        } else {
-          // otherwise just resolve relative to this cwd
-          const rel = path.relative(cwd, path.resolve(this.rootPath, pattern));
-          if (!rel.startsWith('..')) {
-            negations.push(forceForwardSlashes(rel));
+        const cwd = parts.slice(0, firstGlobSegment).join('/');
+        const negations = [];
+
+        for (let k = i + 1; k < this.patterns.length; k++) {
+          const { negated, pattern } = this.patterns[k];
+          if (!negated) {
+            continue;
+          }
+
+          // Make **-prefixed negations apply to _all_ included folders
+          if (pattern.startsWith('**')) {
+            negations.push(forceForwardSlashes(pattern));
+          } else {
+            // otherwise just resolve relative to this cwd
+            for (const negation of expandBraces(forceForwardSlashes(pattern))) {
+              const rel = path.relative(cwd, path.resolve(this.rootPath, negation));
+              if (!rel.startsWith('..')) {
+                negations.push(forceForwardSlashes(rel));
+              }
+            }
           }
         }
-      }
 
-      yield { cwd, negations, pattern: parts.slice(firstGlobSegment).join('/') };
+        yield { cwd, negations, pattern: parts.slice(firstGlobSegment).join('/') };
+      }
     }
   }
 }
